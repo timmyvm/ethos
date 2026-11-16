@@ -6,7 +6,7 @@ import { IconSwap } from "@/components/ui/IconSwap";
 import { LANDED_MARK } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { FillerHit, Pause } from "@/lib/metrics";
-import { heldPauseMarks, landedAt, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
+import { heldPauseMarks, landedAt, otherKey, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
 
 /**
  * Play the rep back with its own timeline marked up: tap any filler to
@@ -122,27 +122,37 @@ export function AudioScrubber({
        * said she would not read, and which the chips now say by looking
        * like what they are: buttons that play.
        */}
+      {/* The key in plain words (#490): what Demos did, "filler" as the
+          transcript's own key under it says (every kind is marked, "you
+          know" and "basically" too, so "um or like" named two of nine),
+          and each pause by where it fell ("landed a point" and
+          "searching" were the app's own words). The thin marks share the
+          eyebrow's row and the pause bands take the row under it, so the
+          head is two lines at 320 as it was (the review of #490: the
+          longer words in one wrapping group made it four). */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="eyebrow">Hear it back</div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
-          {marks.length > 0 && (
-            <Key mark={CUT_IN_MARK} thin>
-              cut-in
-            </Key>
-          )}
-          {fillers.length > 0 && (
-            <Key mark={FILLER_MARK} thin>
-              filler
-            </Key>
-          )}
-          {held.landed > 0 && (
-            <Key mark={PAUSE_MARK.landed}>{PAUSE_MARK_WORDS.landed}</Key>
-          )}
-          {held.searching > 0 && (
-            <Key mark={PAUSE_MARK.searching}>{PAUSE_MARK_WORDS.searching}</Key>
-          )}
-        </div>
+        {(marks.length > 0 || fillers.length > 0) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
+            {marks.length > 0 && (
+              <Key mark={CUT_IN_MARK} thin>
+                Demos cut in
+              </Key>
+            )}
+            {fillers.length > 0 && (
+              <Key mark={FILLER_MARK} thin>
+                filler
+              </Key>
+            )}
+          </div>
+        )}
       </div>
+      {held.held > 0 && (
+        <div data-pause-key className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
+          {held.landed > 0 && <Key mark={PAUSE_MARK.landed}>{PAUSE_MARK_WORDS.landed}</Key>}
+          {held.searching > 0 && <Key mark={PAUSE_MARK.searching}>{otherKey(pauses)}</Key>}
+        </div>
+      )}
       <div className="mt-4 flex items-center gap-3">
         {/* A key in the pills' own grammar: surface, hairline, the tap's
             warm mark in the glyph. The screen's one filled tap is its
@@ -317,11 +327,11 @@ function Key({
   children: ReactNode;
 }) {
   /* gap-1: the swatch sits 4px from its word and 12px from the next key,
-     so each pair reads as one, and the three keys at the 13px caption
-     (B05) still fit one line in a 320 card ("filler", "landed a point",
-     "searching": 239 of 246pt, measured by scripts/look-pause-moments.mjs). */
+     so each pair reads as one, and a pair never splits. The pause keys
+     (#490: "between sentences", "mid-sentence") hold one line in a 320
+     card, measured by scripts/look-plain-words.mjs. */
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex items-center gap-1 whitespace-nowrap">
       <span aria-hidden className="relative grid h-3 w-3 place-items-center overflow-hidden bg-sand">
         <span className={`${thin ? "h-full w-[3px]" : "absolute inset-0"} ${mark}`} />
       </span>

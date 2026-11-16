@@ -59,7 +59,10 @@ describe("what the menu lists", () => {
 
 describe("what a few letters find", () => {
   it("a word typed must start a word of the row", () => {
-    expect(titles(findCommands("pa")).slice(0, 2)).toEqual(["Pausing", "Pace"]);
+    /* #490: a lesson's title now starts with the query ("Pause between
+       sentences"), so it leads; the two traits are still found. */
+    expect(titles(findCommands("pa"))[0]).toBe("Pause between sentences");
+    expect(titles(findCommands("pa"))).toEqual(expect.arrayContaining(["Pausing", "Pace"]));
     // "Up" is not "pa", and neither is the middle of a word.
     expect(titles(findCommands("pa"))).not.toContain("Upload a recording");
     expect(titles(findCommands("og"))).not.toContain("Log");

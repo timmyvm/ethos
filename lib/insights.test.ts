@@ -177,6 +177,18 @@ describe("insights", () => {
     expect(fillerHeatmap(reps)).toEqual([0, 0, 0, 0, 0]);
   });
 
+  /* The review of #490: "stays within 0.4 of 1.8 in every recording" was
+     a standard deviation said as a bound, false of any take outside it.
+     The range is the lowest and the highest, which every recording is in. */
+  it("says a steady filler rate as the range every recording fell in", () => {
+    const rates = [1, 2, 2, 2, 3]; // fillers in 60 seconds: 1.0 to 3.0 a minute, sd 0.63
+    const steady = insights(rates.map((n) => rep({ filler_count: n })));
+    const line = steady.find((i) => i.id === "consistent");
+    expect(line?.detail).toBe("All fillers / min: 1.0 to 3.0 in every recording.");
+    const same = insights([2, 2, 2, 2, 2].map((n) => rep({ filler_count: n }))).find((i) => i.id === "consistent");
+    expect(same?.detail).toBe("All fillers / min: 2.0 in every recording.");
+  });
+
   it("every insight carries a detail line with numbers", () => {
     const reps = Array.from({ length: 8 }, () =>
       rep({ fillers: [{ word: "um", t: 1 }, { word: "um", t: 2 }] })

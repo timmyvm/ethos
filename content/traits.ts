@@ -85,17 +85,19 @@ export const TRAITS: TraitDef[] = [
     id: "pause",
     name: "Pausing",
     skill: "Pausing",
-    unit: "held pauses a minute",
-    unitOne: "held pause a minute",
-    what: "Silences long enough to land, and where you put them.",
-    why: "A held silence after a point is the clearest signal that you meant it.",
+    /* What the number counts, in the house's words (#490): pauses of a
+       second or more before a sentence ("held" was the app's word). */
+    unit: "pauses between sentences a minute",
+    unitOne: "pause between sentences a minute",
+    what: "Pauses of a second or more, and where you put them.",
+    why: "A pause after a sentence is the clearest sign you meant it.",
     /*
      * The worked example Timothy named. It is the whole lesson: the
      * same length of silence reads as command or as searching depending
      * only on whether it lands between ideas or inside one.
      */
     distinction:
-      "A pause to think and a pause for effect sound identical. Only the placement differs.",
+      "A pause to think and a pause for effect sound the same. Only where it falls is different.",
     howTo: [
       "Pause when a sentence ends, never halfway through it.",
       "Pause long enough to count to two in your head.",
@@ -110,12 +112,12 @@ export const TRAITS: TraitDef[] = [
        */
       before: "The thing about habits is  \u2026  they compound, and you do the small version every day.",
       after: "The thing about habits is that they compound.  \u2026  You do the small version every day.",
-      note: "Same 1.4 seconds of silence. In the first it is inside the sentence, so it reads as searching.",
+      note: "Same 1.4 seconds of silence. In the first it falls mid-sentence, so it sounds like you lost your place.",
     },
     move: (n, up) =>
       up
-        ? `${s(n, "more landed pause", "more landed pauses")} a minute.`
-        : `${s(n, "fewer landed pause", "fewer landed pauses")} a minute.`,
+        ? `${s(n, "more pause", "more pauses")} between sentences a minute.`
+        : `${s(n, "fewer pause", "fewer pauses")} between sentences a minute.`,
   },
   {
     id: "fillers",
@@ -145,7 +147,10 @@ export const TRAITS: TraitDef[] = [
   {
     id: "repairs",
     name: "Restarts",
-    skill: "Follow-through",
+    /* "Follow-through" failed the two-second test (#490): finishing
+       what, a plan or a sentence? Named like Filler control beside it,
+       so a high number reads as fewer restarts. */
+    skill: "Restart control",
     /* Per hundred words, like fillers and for the same reason: the
        published rate (Bortfeld's 1.94) is reported that way, and a
        per-minute count drops when somebody simply speeds up. */
@@ -169,9 +174,9 @@ export const TRAITS: TraitDef[] = [
     unit: "words a minute",
     unitOne: "word a minute",
     what: "How fast you talk, and how much that speed moves.",
-    why: "Too fast and the point does not land; too slow and it leaves before you do.",
+    why: "Too fast and people miss the point; too slow and they stop listening.",
     distinction:
-      "Pace is not one speed. A talk at one steady rate reads as recited, however good the rate is.",
+      "Pace is not one speed. One steady speed the whole way sounds memorised, however good it is.",
     howTo: [
       "Say your most important sentence slower than the rest.",
       "Slow down for your last sentence.",
@@ -183,8 +188,11 @@ export const TRAITS: TraitDef[] = [
     id: "range",
     name: "Variety",
     skill: "Variety",
-    unit: "distinct words per hundred",
-    unitOne: "distinct word per hundred",
+    /* "distinct words per hundred" (#490): the same count in the words
+       the Variety row already says ("62 different words in every 100
+       you said"). */
+    unit: "different words in every 100",
+    unitOne: "different word in every 100",
     what: "How much of your vocabulary you actually reach for.",
     why: "The same phrase three times in a minute is the thing people remember.",
     distinction:
@@ -195,7 +203,7 @@ export const TRAITS: TraitDef[] = [
       "Say exactly what it is: \"exams\", not \"stuff\".",
     ],
     move: (n, up) =>
-      `${s(n, "distinct word")} per hundred ${up ? "more" : "fewer"}.`,
+      `${s(n, up ? "more different word" : "fewer different word", up ? "more different words" : "fewer different words")} in every 100.`,
   },
 ];
 

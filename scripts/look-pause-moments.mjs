@@ -100,7 +100,7 @@ const SETS = {
   four: [P.opening, P.a, P.hes, P.b, P.c, P.land, P.d],
 };
 /** What lib/pause-quality.ts headline() says for filled pauses and no dead air. */
-const filledHeadline = (n) => `${n} of your "pauses" had a sound in them. Silence INSTEAD of the "um", not either side of it.`;
+const filledHeadline = (n) => `${n} ${n === 1 ? "pause" : "pauses"} had an um next to ${n === 1 ? "it" : "them"}. Let the pause replace the um.`;
 const bodyFor = (pauses, over = {}) => {
   const filled = pauses.filter((p) => p.verdict === "filled").length;
   const held = pauses.filter((p) => p.kind !== "beat");
@@ -177,7 +177,7 @@ const LONG_HEAR = [
   { t: 73.0, len: 0.8, kind: "mid", verdict: "hesitation" },
   { t: 80.0, len: 1.2, kind: "mid", verdict: "dead" },
 ];
-const cleanBody = () => ({ ...bodyFor(HEAR.clean), pauseHeadline: "Three silences landed a point; one was searching." });
+const cleanBody = () => ({ ...bodyFor(HEAR.clean), pauseHeadline: "3 pauses between sentences." });
 const roundBody = () => ({
   ...bodyFor(HEAR.two),
   mode: "game",
@@ -288,7 +288,7 @@ async function shootTheme(theme) {
         }
       });
       const detail = row?.querySelector(".reveal")?.textContent ?? "";
-      const said = (detail.match(/had a sound in/g) ?? []).length;
+      const said = (detail.match(/had an um next to/g) ?? []).length;
       const glyph = buttons[0] ? getComputedStyle(buttons[0].querySelector("svg")).color : null;
       const scrubKey = document.querySelector('button[aria-label="Play"], button[aria-label="Pause"]');
       const fillerGlyph = [...document.querySelectorAll('button[aria-label^="Play "]')].find((b) => !b.hasAttribute("data-pause-moment"))?.querySelector("svg");
@@ -304,7 +304,7 @@ async function shootTheme(theme) {
     console.log(`PROBE   glyph ${p.glyph}, Hear it back's key ${p.keyGlyph}, a filler chip ${p.fillerGlyph}`);
     if (p.overlaps.length) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: targets overlap ${JSON.stringify(p.overlaps)}; a tap on one plays another: ${JSON.stringify(p.stolen.slice(0, 3))}`);
     if (p.stolen.length) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: ${p.stolen.length} rows of a pill hit another chip`);
-    if (p.said !== 1) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: the row says "had a sound in" ${p.said} times`);
+    if (p.said !== 1) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: the row says "had an um next to" ${p.said} times`);
     if (p.hScroll) fail(`${scene} ${WIDTH}x${HEIGHT} ${theme}: the page scrolls sideways`);
     if (p.keyGlyph && p.glyph !== p.keyGlyph) fail(`${scene} ${theme}: the chip's glyph ${p.glyph} is not Hear it back's ${p.keyGlyph}`);
     return p;

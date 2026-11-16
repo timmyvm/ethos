@@ -42,7 +42,7 @@ const result: ResultView = {
   ethosIndex: 665,
   previousIndex: 662,
   scorable: true,
-  pauseHeadline: "Three silences landed a point; one was searching.",
+  pauseHeadline: "3 pauses between sentences.",
 };
 const g = glanceLine({ trait: "fillers", metrics, lead: "Practice 2:" });
 const view: GlanceView = { parts: g.parts, moment: g.moment, cue: g.cue, earned: null };
@@ -66,6 +66,18 @@ describe("the glance", () => {
   it("binds the word before the chip to it, and leaves no stop floating after it", () => {
     expect(html).toMatch(/<span class="whitespace-nowrap">first\u00a0<span data-glance-chip/);
     expect(visible(html)).not.toMatch(/0:02 \./);
+  });
+  /* #490: "mid-" alone at the end of a line at 390, "sentence" under it. */
+  it("never splits a hyphenated word at its hyphen, and the words stay the same", () => {
+    const pause: GlanceView = {
+      parts: [{ kind: "text", text: "3 of 5 pauses mid-sentence, first " }, { kind: "moment" }],
+      moment: g.moment,
+      cue: null,
+      earned: null,
+    };
+    const out = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: pause }));
+    expect(out).toContain('<span class="whitespace-nowrap">mid-sentence,</span>');
+    expect(visible(out)).toContain("3 of 5 pauses mid-sentence, first 0:02");
   });
   it("sets Demos's line at his introduction's 20px", () => {
     expect(html).toContain("text-lead");
@@ -132,7 +144,7 @@ describe("the sheet's body, in order", () => {
     );
     expect(visible(html)).toContain("Length 62s, target 60 to 90s");
     // How often, as people feel it (#471), then the filler said most.
-    expect(visible(html)).toContain("4 in 62 seconds, about one every 15 seconds. Most were “um”.");
+    expect(visible(html)).toContain("4 fillers in 62 seconds, about one every 15 seconds. Most were “um”.");
     expect(html).toContain("↳ Replace it with silence");
     expect(html).not.toContain("scores 100");
     const rush = renderToStaticMarkup(

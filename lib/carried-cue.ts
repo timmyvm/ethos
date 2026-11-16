@@ -378,7 +378,7 @@ export function cueTitle(cue: Pick<Cue, "kind" | "word">): string {
     case "filled":
       return "Keep each pause silent";
     case "unheld":
-      return "Land one pause after a point";
+      return "Pause once after a full sentence";
     case "restarts":
       return "Pause, then finish the sentence";
     case "fast":
@@ -397,7 +397,7 @@ export function cueTitle(cue: Pick<Cue, "kind" | "word">): string {
  */
 const SAID: Partial<Record<CueKind, string>> = {
   filled: "keep pauses silent",
-  unheld: "land one pause",
+  unheld: "finish, then pause",
   restarts: "pause, then finish",
   fast: "pause at full stops",
   slow: "keep sentences moving",
@@ -439,13 +439,13 @@ function firstMoment(cue: Pick<Cue, "kind" | "word">, take: CueTake): GlanceMome
     }
     case "searching": {
       const s = readPauses(take).searching[0];
-      return s ? windowAt(s.t, MOMENT_LEAD_S, s.t + s.len + MOMENT_TAIL_S, "Play %, a searching pause") : null;
+      return s ? windowAt(s.t, MOMENT_LEAD_S, s.t + s.len + MOMENT_TAIL_S, "Play %, a misplaced pause") : null;
     }
     case "filled":
       return readPauses(take).firstFilled;
     case "unheld": {
       const l = readPauses(take).landed[0];
-      return l ? windowAt(l.t, MOMENT_LEAD_S, l.t + l.len + MOMENT_TAIL_S, "Play %, a landed pause") : null;
+      return l ? windowAt(l.t, MOMENT_LEAD_S, l.t + l.len + MOMENT_TAIL_S, "Play %, a pause between sentences") : null;
     }
     case "repeat": {
       const s = stem(cue.word ?? "");
@@ -476,14 +476,14 @@ export function cueEvidence(cue: Pick<Cue, "kind" | "word">, take: CueTake): { l
       if (n === 0) return { line: plain(`No ${q(cue.word)} in ${secs}s.`), short: plain(`No ${q(cue.word)}.`) };
       return chip(`${q(cue.word)} once, at `, `${q(cue.word)} ${n} times, first `, `${q(cue.word)} ${times(n)}.`);
     case "searching":
-      if (n === 0) return { line: plain(`No searching pauses in ${secs}s.`), short: plain("No searching pauses.") };
-      return chip("1 searching pause, at ", `${n} searching pauses, first `, `${n} ${plural(n, "searching pause", "searching pauses")}.`);
+      if (n === 0) return { line: plain(`No misplaced pauses in ${secs}s.`), short: plain("No misplaced pauses.") };
+      return chip("1 misplaced pause, at ", `${n} misplaced pauses, first `, `${n} ${plural(n, "misplaced pause", "misplaced pauses")}.`);
     case "filled":
-      if (n === 0) return both("No pause had a sound.");
-      return chip("1 pause had a sound, at ", `${n} pauses had a sound, first `, `${n} ${plural(n, "pause", "pauses")} had a sound.`);
+      if (n === 0) return both("Every pause was silent.");
+      return chip("1 pause had an um, at ", `${n} pauses had an um, first `, `${n} ${plural(n, "pause", "pauses")} had an um.`);
     case "unheld":
-      if (n === 0) return { line: plain(`No pauses landed in ${secs}s.`), short: plain("No pauses landed.") };
-      return chip("1 pause landed, at ", `${n} pauses landed, first `, `${n} ${plural(n, "pause", "pauses")} landed.`);
+      if (n === 0) return { line: plain(`No pauses between sentences in ${secs}s.`), short: plain("No pauses between sentences.") };
+      return chip("1 pause between sentences, at ", `${n} pauses between sentences, first `, `${n} ${plural(n, "pause", "pauses")} between sentences.`);
     case "restarts":
       if (n === 0) return { line: plain(`No restarts in ${secs}s.`), short: plain("No restarts.") };
       return { line: plain(`${n} ${plural(n, "restart", "restarts")} in ${secs}s.`), short: plain(`${n} ${plural(n, "restart", "restarts")}.`) };
@@ -505,17 +505,20 @@ function answerHead(a: CueAnswer): { long: string; short: string } {
     case "searching": {
       /* No short form (the #477 review): "1 searching, down from 3." is
          not a sentence, so a glance short of room gives up "Tomorrow:". */
-      const head = n === 0 ? "No searching pauses" : `${n} ${plural(n, "searching pause", "searching pauses")}`;
+      const head = n === 0 ? "No misplaced pauses" : `${n} ${plural(n, "misplaced pause", "misplaced pauses")}`;
       return { long: head, short: head };
     }
     case "filled":
+      /* The short form is the glance's when the cue needs the room (25
+         words): "Pauses silent, down from 3." left "3" without a unit
+         (the review of #490), so it counts the ums, five words at most. */
       return n === 0
-        ? { long: "No pause had a sound", short: "No sounds" }
-        : { long: `${n} ${plural(n, "pause", "pauses")} had a sound`, short: `${n} ${plural(n, "sound", "sounds")}` };
+        ? { long: "No pause had an um", short: "No ums" }
+        : { long: `${n} ${plural(n, "pause", "pauses")} had an um`, short: `${n} ${plural(n, "um", "ums")}` };
     case "unheld":
       return n === 0
-        ? { long: "No pauses landed", short: "No pauses landed" }
-        : { long: `${n} ${plural(n, "pause", "pauses")} landed`, short: `${n} landed` };
+        ? { long: "No pauses between sentences", short: "No pauses between sentences" }
+        : { long: `${n} ${plural(n, "pause", "pauses")} between sentences`, short: `${n} ${plural(n, "pause", "pauses")} between sentences` };
     case "restarts":
       return n === 0 ? { long: "No restarts", short: "No restarts" } : { long: `${n} ${plural(n, "restart", "restarts")}`, short: `${n} ${plural(n, "restart", "restarts")}` };
     case "fast":
@@ -586,11 +589,11 @@ export function warmupLead(cue: Pick<Cue, "kind" | "word" | "last">): string {
     case "repeat":
       return `Last time, ${q(cue.word)} ${times(n)}`;
     case "searching":
-      return `Last time, ${n} ${plural(n, "searching pause", "searching pauses")}`;
+      return `Last time, ${n} ${plural(n, "misplaced pause", "misplaced pauses")}`;
     case "filled":
-      return `Last time, ${n} ${plural(n, "pause", "pauses")} had a sound`;
+      return `Last time, ${n} ${plural(n, "pause", "pauses")} had an um`;
     case "unheld":
-      return "Last time, no pauses landed";
+      return "Last time, no pauses between sentences";
     case "restarts":
       return `Last time, ${n} ${plural(n, "restart", "restarts")}`;
     case "fast":

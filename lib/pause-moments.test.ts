@@ -32,23 +32,23 @@ describe("the moments a take's filled pauses are heard at", () => {
 
   it("names one moment in the singular", () => {
     const m = filledMoments([stored(2.1, "opening"), stored(15.3, "filled")]);
-    expect(m?.sentence).toBe("0:15 had a sound in it.");
+    expect(m?.sentence).toBe("0:15 had an um next to it.");
     expect(m?.moments.map((x) => x.clock)).toEqual(["0:15"]);
   });
 
   it("names two with 'and'", () => {
     const m = filledMoments([stored(15.3, "filled"), stored(20, "landing"), stored(40.2, "filled")]);
-    expect(m?.sentence).toBe("0:15 and 0:40 had a sound in them.");
+    expect(m?.sentence).toBe("0:15 and 0:40 had an um next to them.");
   });
 
   it("names three as a list", () => {
     const m = filledMoments([stored(15.3, "filled"), stored(40.2, "filled"), stored(62.5, "filled")]);
-    expect(m?.sentence).toBe("0:15, 0:40 and 1:02 had a sound in them.");
+    expect(m?.sentence).toBe("0:15, 0:40 and 1:02 had an um next to them.");
   });
 
   it("names the first three of five and counts the rest", () => {
     const m = filledMoments([10, 20, 30, 40, 50].map((t) => stored(t, "filled")));
-    expect(m?.sentence).toBe("0:10, 0:20, 0:30 and 2 more had a sound in them.");
+    expect(m?.sentence).toBe("0:10, 0:20, 0:30 and 2 more had an um next to them.");
     // Every one is still there to hear; the sentence names three.
     expect(m?.moments).toHaveLength(5);
     expect(m?.parts.filter((p) => p.kind === "moment")).toHaveLength(3);
@@ -58,18 +58,18 @@ describe("the moments a take's filled pauses are heard at", () => {
 
   it("says one more in the singular count", () => {
     const m = filledMoments([10, 20, 30, 40].map((t) => stored(t, "filled")));
-    expect(m?.sentence).toBe("0:10, 0:20, 0:30 and 1 more had a sound in them.");
+    expect(m?.sentence).toBe("0:10, 0:20, 0:30 and 1 more had an um next to them.");
   });
 
   it("puts them in the order they were said, whatever order they arrive in", () => {
     const m = filledMoments([stored(62.5, "filled"), stored(15.3, "filled"), stored(30, "landing"), stored(40.2, "filled")]);
-    expect(m?.sentence).toBe("0:15, 0:40 and 1:02 had a sound in them.");
+    expect(m?.sentence).toBe("0:15, 0:40 and 1:02 had an um next to them.");
     expect(m?.moments.map((x) => x.t)).toEqual([15.3, 40.2, 62.5]);
   });
 
   it("names a filled pause at the very start as 0:00 and plays it from 0", () => {
     const m = filledMoments([stored(0, "filled", 1.2)]);
-    expect(m?.sentence).toBe("0:00 had a sound in it.");
+    expect(m?.sentence).toBe("0:00 had an um next to it.");
     expect(m?.moments[0].from).toBe(0);
     expect(m?.moments[0].until).toBeCloseTo(0 + 1.2 + MOMENT_TAIL_S, 6);
   });
@@ -82,7 +82,7 @@ describe("the moments a take's filled pauses are heard at", () => {
 
   it("names each chip by its visible text, then what it does", () => {
     const [moment] = filledMoments([stored(15.3, "filled")])!.moments;
-    expect(moment.label).toBe("Play 0:15, a pause with a sound in it");
+    expect(moment.label).toBe("Play 0:15, a pause next to an um");
     expect(moment.label.startsWith(`Play ${moment.clock}`)).toBe(true);
   });
 

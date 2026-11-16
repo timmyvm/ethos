@@ -19,11 +19,93 @@ export type PauseMark = "landed" | "searching";
 /** What a mark is drawn from: a stored or live pause, judged or not. */
 export type MarkedPause = { kind?: Pause["kind"]; verdict?: PauseVerdict };
 
-/** The legends' words, one per mark, so both steps say the same thing. */
+/**
+ * The legends' words, one per mark, so both steps say the same thing
+ * (#490, the two-second test: "landed a point" and "searching" were the
+ * app's own words). A sage mark is always a pause before a sentence, so
+ * it is "between sentences"; the quiet mark is "other pause" unless every
+ * one on the take is the same kind (`otherKey`), and then it says which:
+ * "mid-sentence". The swatch is a pause's band, so the key does not say
+ * "pause" again: "pause between sentences" and "pause mid-sentence" took
+ * Hear it back's key from one line to three at 320 (the review of #490).
+ */
 export const PAUSE_MARK_WORDS: Record<PauseMark, string> = {
-  landed: "landed a point",
-  searching: "searching",
+  landed: "between sentences",
+  searching: "other pause",
 };
+
+/**
+ * Why a held pause did or did not count, in the house's plain words
+ * (#490): between sentences (it counted), mid-sentence, after a sentence
+ * too short to be a point, past 3.5 seconds, next to an um, or with a
+ * sound the phone heard in it (a stored verdict from before #476 says so
+ * in its note). Read off the stored verdict and kind, never judged again.
+ */
+export type PauseWhy = "between" | "mid" | "short" | "long" | "um" | "sound";
+
+export function pauseWhy(p: MarkedPause & { note?: string }): PauseWhy {
+  if (landedPause(p)) return "between";
+  if (p.verdict === "filled") return /mic heard/i.test(p.note ?? "") ? "sound" : "um";
+  if (p.verdict === "dead") return "long";
+  if (p.kind === "mid") return "mid";
+  return "short";
+}
+
+/** Each reason as the words after "a pause" or a count of pauses. */
+export const PAUSE_WHY_WORDS: Record<PauseWhy, string> = {
+  between: "between sentences",
+  mid: "mid-sentence",
+  short: "after only a few words",
+  long: "over 3.5 seconds",
+  um: "next to an um",
+  sound: "with a sound in it",
+};
+
+/**
+ * The reason every held pause that did not count shares, or null when
+ * they differ (or there are none). Beats are not held pauses.
+ */
+export function sharedMiss(pauses: readonly (MarkedPause & { note?: string })[]): PauseWhy | null {
+  const whys = new Set(pauses.filter((p) => p.kind !== "beat" && !landedPause(p)).map(pauseWhy));
+  return whys.size === 1 ? [...whys][0] : null;
+}
+
+/**
+ * Each reason as a key's or the glance's few words, where a line has no
+ * room for the whole one: Hear it back's pause keys hold one line in a
+ * 320 card ("after only a few words", "over 3.5 seconds" and "with a
+ * sound in it" each took it to a third, measured by
+ * scripts/look-plain-words.mjs), and the glance holds seven words. The
+ * Pause row says the whole reason under them.
+ */
+export const PAUSE_KEY_WORDS: Record<PauseWhy, string> = {
+  between: "between sentences",
+  mid: "mid-sentence",
+  short: "misplaced",
+  long: "too long",
+  um: "next to an um",
+  sound: "with a sound",
+};
+
+/** The quiet mark's key: "mid-sentence" where every one is, else "other pause". */
+export function otherKey(pauses: readonly (MarkedPause & { note?: string })[]): string {
+  const why = sharedMiss(pauses);
+  return why ? PAUSE_KEY_WORDS[why] : PAUSE_MARK_WORDS.searching;
+}
+
+/**
+ * What the filled pauses had in them, after a count of them: "had an um
+ * next to it", "had a sound in them". An um is what fills a pause since
+ * #476; a stored verdict the phone's trace made says "The mic heard it"
+ * in its note, and is called a sound.
+ */
+export function filledWords(pauses: readonly (MarkedPause & { note?: string })[], n: number): string {
+  const whys = new Set(pauses.filter((p) => p.verdict === "filled").map(pauseWhy));
+  const it = n === 1 ? "it" : "them";
+  if (whys.has("sound") && whys.has("um")) return `had an um or a sound in ${it}`;
+  if (whys.has("sound")) return `had a sound in ${it}`;
+  return `had an um next to ${it}`;
+}
 
 /**
  * A held pause that landed a point: a landing or the opening when it

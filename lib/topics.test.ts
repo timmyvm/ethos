@@ -247,13 +247,15 @@ describe("every trait, covered", () => {
       const walk = walkOf(trait, Number(tier) as 1 | 2);
       expect([key, walk.slice(0, 12).map((p) => p.topicId)]).toEqual([key, ids.map((n) => `t${n}`)]);
     }
-    /* The angles are the twelve they always were, in their order. */
+    /* The angles are twelve in their order; the words are #490's plain
+       ones ("Land the first point" and "Reach further" failed the
+       two-second test), the places and topics unchanged. */
     expect(walkOf("pause", 1).slice(0, 3).map((p) => p.title)).toEqual([
       "The full stop",
-      "Land the first point",
-      "One beat, then the next idea",
+      "Pause after your first point",
+      "Pause, then the next idea",
     ]);
-    expect(walkOf("range", 2)[11].title).toBe("Reach further");
+    expect(walkOf("range", 2)[11].title).toBe("Find a new word");
   });
 
   it("draws a tier from that tier's shapes, as the path always has", () => {

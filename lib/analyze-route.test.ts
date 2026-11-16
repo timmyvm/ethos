@@ -1358,7 +1358,7 @@ describe("the Index scores the pauses the take stores", () => {
       expect.stringContaining("filler leaning on it"),
       expect.stringContaining("filler leaning on it"),
     ]);
-    expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
+    expect(sent.body.pauseHeadline).toBe("2 pauses had an um next to them. Let the pause replace the um.");
     // Below the same take said clean, where both gaps land.
     expect(sent.saved.tier1.pause).toBeLessThan(WORDS_ONLY);
   });
@@ -1385,7 +1385,7 @@ describe("the Index scores the pauses the take stores", () => {
       expect.stringContaining("The mic heard it"),
       expect.stringContaining("The mic heard it"),
     ]);
-    expect(sent.body.pauseHeadline).toMatch(/^2 of your "pauses" had a sound in them/);
+    expect(sent.body.pauseHeadline).toBe("2 pauses had a sound in them. Keep each pause silent.");
     // Below the words' own score, which read both gaps as landings.
     expect(sent.saved.tier1.pause).toBeLessThan(WORDS_ONLY);
   });

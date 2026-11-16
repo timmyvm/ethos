@@ -157,7 +157,7 @@ describe("the portfolio", () => {
     expect(plan.stepParts).toEqual([
       { lead: "Day 1", detail: "Your first 60 seconds set the baseline." },
       { lead: "First number", detail: "Words per minute against the 130 to 160 zone." },
-      { lead: "Then Pace Control", detail: `The unit for rushing. It opens at ${pace.unlocksAt} stars.` },
+      { lead: "Then Pace Control", detail: `Unit ${UNITS.indexOf(pace) + 1} of ${UNITS.length}, the one for rushing.` },
     ]);
     expect(buildPortfolio({ ...EMPTY_ANSWERS, pains: ["fillers"] }).stepParts[2]).toEqual({
       lead: "Then Filler Elimination",
@@ -172,13 +172,19 @@ describe("the portfolio", () => {
     }
   });
 
-  it("names the road's own gate for a later unit", () => {
+  /* #490: "Opens at 4 stars" was a gate on a total of stars no screen
+     counts since #486; the plan says where the unit stands on the road. */
+  it("names where a later unit stands on the road, never a count of stars", () => {
     const pace = UNITS.find((u) => u.id === "pace")!;
     const plan = buildPortfolio({ ...EMPTY_ANSWERS, pains: ["rushing"] });
-    expect(plan.lines[2]).toBe(
-      `Then Pace Control, the unit for rushing. Opens at ${pace.unlocksAt} stars.`
-    );
+    expect(plan.lines[2]).toBe("Then Pace Control, unit 2 of 7, for rushing.");
+    expect(plan.stepParts[2]).toEqual({ lead: "Then Pace Control", detail: "Unit 2 of 7, the one for rushing." });
     expect(plan.focus?.unlocksAt).toBe(pace.unlocksAt);
+    for (const a of every) {
+      for (const line of [...buildPortfolio(a).lines, ...buildPortfolio(a).stepParts.map((s) => s.detail)]) {
+        expect(line, line).not.toMatch(/\bstars?\b(?! you earn)/i);
+      }
+    }
   });
 
   it("keeps the first unit's pain on the first unit", () => {
@@ -189,7 +195,7 @@ describe("the portfolio", () => {
   it("leads with the first pain when there are several", () => {
     const plan = buildPortfolio({ ...EMPTY_ANSWERS, pains: ["freezing", "fillers"] });
     expect(plan.focus?.pain).toBe("freezing");
-    expect(plan.lines[1]).toMatch(/^First number: silences/);
+    expect(plan.lines[1]).toBe("First number: pauses between sentences, and pauses mid-sentence.");
   });
 
   it("still has a plan when every question was skipped", () => {

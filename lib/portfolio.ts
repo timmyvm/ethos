@@ -69,6 +69,9 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
   const level = LEVELS.find((l) => l.id === a.level) ?? null;
   const first = units.find((u) => !u.boss && u.unlocksAt === 0) ?? units[0];
   const unit = pain ? (units.find((u) => u.id === pain.unit) ?? null) : null;
+  /* Where the unit stands on the road, the plan's way of saying when it
+     comes (#490): its gate is a total of stars no screen counts (#486). */
+  const place = { n: unit ? units.indexOf(unit) + 1 : 0, of: units.length };
 
   const lines = [
     PLAN_LINES.dayOne,
@@ -77,7 +80,7 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
       ? PLAN_LINES.road
       : unit.id === first.id
         ? PLAN_LINES.firstUnit(unit.name, pain.said)
-        : PLAN_LINES.laterUnit(unit.name, pain.said, unit.unlocksAt),
+        : PLAN_LINES.laterUnit(unit.name, pain.said, place),
   ];
 
   const stepParts: PlanStep[] = [
@@ -87,7 +90,7 @@ export function buildPortfolio(a: Answers, units: Unit[] = UNITS): Portfolio {
       ? PLAN_STEPS.road
       : unit.id === first.id
         ? PLAN_STEPS.firstUnit(unit.name, pain.said)
-        : PLAN_STEPS.laterUnit(unit.name, pain.said, unit.unlocksAt),
+        : PLAN_STEPS.laterUnit(unit.name, pain.said, place),
   ];
 
   const boss = goal

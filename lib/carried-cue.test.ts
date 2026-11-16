@@ -225,8 +225,8 @@ describe("its words: what to do instead", () => {
     expect(warmupLead(cue({ last: 9, word: "like" }))).toBe("Last time, “like” 9 times");
     expect(warmupLead(cue({ last: 1, word: "like" }))).toBe("Last time, “like” once");
     expect(warmupLead({ kind: "fast", word: null, last: 178 })).toBe("Last time, 178 words a minute");
-    expect(warmupLead({ kind: "searching", word: null, last: 1 })).toBe("Last time, 1 searching pause");
-    expect(warmupLead({ kind: "unheld", word: null, last: 0 })).toBe("Last time, no pauses landed");
+    expect(warmupLead({ kind: "searching", word: null, last: 1 })).toBe("Last time, 1 misplaced pause");
+    expect(warmupLead({ kind: "unheld", word: null, last: 0 })).toBe("Last time, no pauses between sentences");
   });
   it("has a sentence to rehearse for every cue, the pause marked", () => {
     for (const c of all) {
@@ -247,7 +247,7 @@ describe("its words: what to do instead", () => {
     expect(e.line.moment).toMatchObject({ clock: "0:02", label: "Play 0:02, the first “um”" });
     expect(e.short.sentence).toBe("“um” 2 times.");
     expect(cueEvidence({ kind: "filler", word: "like" }, take()).line.sentence).toBe("“like” once, at 0:07");
-    expect(cueEvidence({ kind: "searching", word: null }, take()).line.sentence).toBe("1 searching pause, at 0:20");
+    expect(cueEvidence({ kind: "searching", word: null }, take()).line.sentence).toBe("1 misplaced pause, at 0:20");
     expect(cueEvidence({ kind: "restarts", word: null }, take()).line.sentence).toBe("1 restart in 62s.");
     expect(cueEvidence({ kind: "filler", word: "so" }, take()).line.sentence).toBe("No “so” in 62s.");
   });
@@ -366,13 +366,22 @@ describe("the next day's answer, first on the glance", () => {
     expect(a(9, 9).line.sentence).toBe("“like” 9 times again.");
     expect(a(11, 9).line.sentence).toBe("“like” 11 times, up from 9.");
     expect(a(152, 178, true, "fast", null).short.sentence).toBe("Pace 152, down from 178.");
-    expect(a(2, 0, true, "unheld", null).line.sentence).toBe("2 pauses landed, up from none.");
-    expect(a(0, 0, false, "unheld", null).line.sentence).toBe("No pauses landed again.");
+    expect(a(2, 0, true, "unheld", null).line.sentence).toBe("2 pauses between sentences, up from none.");
+    expect(a(0, 0, false, "unheld", null).line.sentence).toBe("No pauses between sentences again.");
     expect(a(2, 5, true, "restarts", null).line.sentence).toBe("2 restarts, down from 5.");
   });
-  it("a short form is still a sentence: a searching pause keeps its noun (the #477 review)", () => {
-    expect(a(1, 3, true, "searching", null).short.sentence).toBe("1 searching pause, down from 3.");
-    expect(a(0, 3, true, "searching", null).short.sentence).toBe("No searching pauses, down from 3.");
+  /* The review of #490: "Pauses silent, down from 3." left the 3 with no
+     unit; the short form counts the ums, still five words at most. */
+  it("a filled pause's short form counts ums, so its number has a unit", () => {
+    expect(a(0, 3, true, "filled", null).short.sentence).toBe("No ums, down from 3.");
+    expect(a(1, 3, true, "filled", null).short.sentence).toBe("1 um, down from 3.");
+    expect(a(2, 2, false, "filled", null).short.sentence).toBe("2 ums again.");
+    expect(a(0, 3, true, "filled", null).line.sentence).toBe("No pause had an um, down from 3.");
+  });
+
+  it("a short form is still a sentence: a misplaced pause keeps its noun (the #477 review)", () => {
+    expect(a(1, 3, true, "searching", null).short.sentence).toBe("1 misplaced pause, down from 3.");
+    expect(a(0, 3, true, "searching", null).short.sentence).toBe("No misplaced pauses, down from 3.");
     /* With no shorter line, a full glance gives up "Tomorrow:" and keeps the cue. */
     const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Next lesson: The steady state", "Retake"];
     const line = a(1, 3, true, "searching", null);

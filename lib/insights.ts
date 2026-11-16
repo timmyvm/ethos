@@ -119,8 +119,8 @@ export function insights(all: RepRow[]): Insight[] {
     if (share >= 30) {
       out.push({
         id: "filler-cluster",
-        headline: `Most fillers land in ${where} of a recording`,
-        detail: `${share}% of them. ${peak === 0 ? "Openings are where you are still finding the sentence. Plan the first line before you record." : "Worth knowing where the wobble sits."}`,
+        headline: `Most fillers come in ${where} of a recording`,
+        detail: `${share}% of them. ${peak === 0 ? "Openings are where you are still finding the sentence. Plan the first line before you record." : ""}`.trim(),
       });
     }
   }
@@ -134,13 +134,13 @@ export function insights(all: RepRow[]): Insight[] {
       out.push({
         id: "pace-fixed",
         headline: "Your pace moved into the zone",
-        detail: `${Math.round(a)} wpm early on, ${Math.round(b)} across your last ${recent.length}. 130–160 is where a listener can keep up without you dragging.`,
+        detail: `${Math.round(a)} words a minute early on, ${Math.round(b)} across your last ${recent.length}. 130 to 160 is fast enough to hold a listener and slow enough to follow.`,
       });
     } else if (b > 170) {
       out.push({
         id: "pace-fast",
         headline: "You're sprinting",
-        detail: `${Math.round(b)} wpm across your last ${recent.length} recordings. Above 160 the words arrive faster than the point does.`,
+        detail: `${Math.round(b)} words a minute across your last ${recent.length} recordings. Over 160, people start to miss the point.`,
       });
     }
   }
@@ -151,8 +151,8 @@ export function insights(all: RepRow[]): Insight[] {
   if (earlier.length >= 2 && heldRecent >= heldEarly + 1) {
     out.push({
       id: "silence-up",
-      headline: "You're holding more silence",
-      detail: `${heldEarly.toFixed(1)} held pauses per recording early on, ${heldRecent.toFixed(1)} now. That's the hardest habit on the list and it's moving.`,
+      headline: "You're pausing more",
+      detail: `${heldEarly.toFixed(1)} pauses of a second or more per recording early on, ${heldRecent.toFixed(1)} now.`,
     });
   }
 
@@ -173,10 +173,16 @@ export function insights(all: RepRow[]): Insight[] {
     const m = mean(rates);
     const sd = Math.sqrt(mean(rates.map((r) => (r - m) ** 2)));
     if (sd < 1 && m < 4) {
+      /* The lowest and highest rate, which "every recording" is true of:
+         "stays within 0.4 of 1.8 in every recording" was a standard
+         deviation said as a bound, false of any take past it, and a sum
+         to do (the review of #490). */
+      const lo = Math.min(...rates).toFixed(1);
+      const hi = Math.max(...rates).toFixed(1);
       out.push({
         id: "consistent",
-        headline: "Your floor is rising, not just your best day",
-        detail: `${ALL_FILLERS_PER_MIN} stays within ${sd.toFixed(1)} of ${m.toFixed(1)} in every recording. Consistency is the part that survives pressure.`,
+        headline: "Your fillers hold steady",
+        detail: `${ALL_FILLERS_PER_MIN}: ${lo === hi ? lo : `${lo} to ${hi}`} in every recording.`,
       });
     }
   }

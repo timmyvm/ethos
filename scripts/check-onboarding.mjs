@@ -347,7 +347,7 @@ for (const n of ["I rush", "Um, like, you know", "I freeze on the spot"]) {
    take longer than the sleep to render. */
 ok(
   "he replies about the pain just tapped, not the first one",
-  await said("I separate the silences that work.")
+  await said("I'll count where you pause.")
     .waitFor({ timeout: 3000 })
     .then(() => true)
     .catch(() => false)
@@ -438,8 +438,8 @@ ok(
   JSON.stringify(steps[1])
 );
 ok(
-  "step 3 names the unit and the road's gate",
-  steps[2]?.[0] === "Then Pace Control" && /^The unit for rushing\. It opens at \d+ stars\.$/.test(steps[2]?.[1] ?? ""),
+  "step 3 names the unit and where it stands on the road (#490: no count of stars)",
+  steps[2]?.[0] === "Then Pace Control" && /^Unit \d+ of \d+, the one for rushing\.$/.test(steps[2]?.[1] ?? ""),
   JSON.stringify(steps[2])
 );
 const numbersSet = await page.$$eval("main ol li span.tabular-nums.font-display", (els) => els.map((e) => e.textContent));

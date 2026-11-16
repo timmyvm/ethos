@@ -5,8 +5,72 @@ import { AudioScrubber, BAND_MIN, PAUSE_MARK, PLAYHEAD, PLAYHEAD_ON_LANDED } fro
 import { LANDED_MARK, PauseBar } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { Pause } from "./metrics";
-import { heldPauseMarks, landedAt, LANDED_MIN_PX, landedPause, PAUSE_MARK_WORDS, pauseMark, PLAYHEAD_PX, type MarkedPause } from "./pause-mark";
-import type { PauseVerdict } from "./pause-quality";
+import {
+  filledWords,
+  heldPauseMarks,
+  landedAt,
+  LANDED_MIN_PX,
+  landedPause,
+  otherKey,
+  PAUSE_KEY_WORDS,
+  PAUSE_MARK_WORDS,
+  pauseMark,
+  pauseWhy,
+  PLAYHEAD_PX,
+  sharedMiss,
+  type MarkedPause,
+} from "./pause-mark";
+import { reportJudged, type JudgedPause, type PauseVerdict } from "./pause-quality";
+
+/*
+ * The house's plain words for a pause (#490), read off the stored verdict
+ * and kind: what a pause is called is never a word the app made up.
+ */
+describe("a pause in plain words (#490)", () => {
+  const MIC = "0:15 · 1.0s with a sound in it. The mic heard it, the transcript didn't.";
+  it("names each held pause by where it fell, never judged again", () => {
+    expect(pauseWhy({ kind: "pre", verdict: "landing" })).toBe("between");
+    expect(pauseWhy({ kind: "pre", verdict: "opening" })).toBe("between");
+    expect(pauseWhy({ kind: "pre" })).toBe("between");
+    expect(pauseWhy({ kind: "mid", verdict: "hesitation" })).toBe("mid");
+    expect(pauseWhy({ kind: "mid" })).toBe("mid");
+    expect(pauseWhy({ kind: "pre", verdict: "hesitation" })).toBe("short");
+    expect(pauseWhy({ kind: "pre", verdict: "dead" })).toBe("long");
+    expect(pauseWhy({ kind: "pre", verdict: "filled", note: "0:15 · silence with a filler leaning on it." })).toBe("um");
+    expect(pauseWhy({ kind: "pre", verdict: "filled", note: MIC })).toBe("sound");
+  });
+
+  it("keys the quiet mark by the one kind every miss shares, else 'other pause'", () => {
+    expect(otherKey([{ kind: "pre", verdict: "landing" }, { kind: "mid", verdict: "hesitation" }])).toBe("mid-sentence");
+    /* The key's few words, which hold one line at 320 (the review of #490). */
+    expect(otherKey([{ kind: "pre", verdict: "hesitation" }])).toBe("misplaced");
+    expect(otherKey([{ kind: "pre", verdict: "dead" }])).toBe("too long");
+    expect(otherKey([{ kind: "pre", verdict: "filled" }])).toBe("next to an um");
+    expect(otherKey([{ kind: "pre", verdict: "filled", note: MIC }])).toBe("with a sound");
+    for (const w of Object.values(PAUSE_KEY_WORDS)) expect(w.length, w).toBeLessThanOrEqual(PAUSE_KEY_WORDS.between.length);
+    expect(otherKey([{ kind: "mid", verdict: "hesitation" }, { kind: "pre", verdict: "dead" }])).toBe("other pause");
+    expect(sharedMiss([{ kind: "pre", verdict: "landing" }, { kind: "beat", verdict: "beat" }])).toBeNull();
+  });
+
+  it("says an um where the transcript found one and a sound where only the phone heard it", () => {
+    expect(filledWords([{ kind: "pre", verdict: "filled" }], 1)).toBe("had an um next to it");
+    expect(filledWords([{ kind: "pre", verdict: "filled", note: MIC }], 1)).toBe("had a sound in it");
+    expect(filledWords([{ kind: "pre", verdict: "filled", note: MIC }, { kind: "mid", verdict: "filled" }], 2)).toBe("had an um or a sound in them");
+  });
+
+  it("never calls a pause after a short sentence mid-sentence (the headline)", () => {
+    const P = (t: number, kind: Pause["kind"], verdict: PauseVerdict): JudgedPause => ({ t, len: 1.1, kind, verdict, note: "" });
+    expect(reportJudged([P(2, "mid", "hesitation"), P(9, "mid", "hesitation"), P(20, "pre", "landing")], 62).headline).toBe(
+      "You paused mid-sentence twice and between sentences once. Pause where a full sentence ends."
+    );
+    expect(reportJudged([P(2, "pre", "hesitation"), P(9, "pre", "hesitation"), P(20, "pre", "landing")], 62).headline).toBe(
+      "You paused after only a few words twice and between sentences once. Pause where a full sentence ends."
+    );
+    expect(reportJudged([P(2, "pre", "hesitation"), P(9, "mid", "hesitation")], 62).headline).toBe(
+      "You paused mid-sentence or after only a few words twice and never between sentences. Pause where a full sentence ends."
+    );
+  });
+});
 
 /*
  * One mark rule for the take's pauses on both steps (DECISIONS #424):
@@ -77,7 +141,7 @@ function bands(html: string) {
 }
 const legend = (html: string) => {
   const head = html.slice(0, html.indexOf('type="range"'));
-  return [...head.matchAll(/<span class="inline-flex items-center gap-1">.*?<\/span><\/span>([^<]+)<\/span>/g)].map((m) => m[1]);
+  return [...head.matchAll(/<span class="inline-flex items-center gap-1 whitespace-nowrap">.*?<\/span><\/span>([^<]+)<\/span>/g)].map((m) => m[1]);
 };
 
 describe("Hear it back's track marks pauses as the pause map does", () => {
@@ -92,18 +156,20 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
   });
 
   it("names its marks in the pause map's words", () => {
-    expect(legend(scrubber(TWO_FILLED))).toEqual(["filler", PAUSE_MARK_WORDS.landed, PAUSE_MARK_WORDS.searching]);
+    /* "filler", as the transcript's key under it says: every kind is
+       marked ("you know", "basically"), not only "um" or "like". */
+    expect(legend(scrubber(TWO_FILLED))).toEqual(["filler", "between sentences", "other pause"]);
     const map = renderToStaticMarkup(createElement(PauseBar, { pauses: TWO_FILLED, durationS: 62 }));
     expect(map).toContain(`>${PAUSE_MARK_WORDS.landed}</span>`);
     expect(map).toContain(`>${PAUSE_MARK_WORDS.searching}</span>`);
-    expect(map).toContain(`aria-label="5 held pauses, 2 landed a point"`);
+    expect(map).toContain(`aria-label="5 pauses, 2 between sentences"`);
   });
 
   it("keys only the marks the take has", () => {
     const allLanded = [p(2.1, "pre", "opening"), p(30, "pre", "landing")];
-    expect(legend(scrubber(allLanded))).toEqual(["filler", PAUSE_MARK_WORDS.landed]);
+    expect(legend(scrubber(allLanded))).toEqual(["filler", "between sentences"]);
     const noneLanded = [p(12, "pre", "filled"), p(30, "mid", "hesitation")];
-    expect(legend(scrubber(noneLanded))).toEqual(["filler", PAUSE_MARK_WORDS.searching]);
+    expect(legend(scrubber(noneLanded))).toEqual(["filler", "other pause"]);
   });
 
   it("draws a clean take as it always did", () => {
@@ -130,9 +196,24 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
     expect(mapMarks).toEqual(bands(scrubber(TWO_FILLED)).map(([, mark]) => mark));
   });
 
+  /* The review of #490: the plain keys in one wrapping group took the
+     head from two lines to four at 320. The thin marks share the
+     eyebrow's row; the pause bands have the row under it, and only when
+     the take has a held pause. */
+  it("keys the thin marks beside the eyebrow and the pause bands on a row of their own", () => {
+    const html = scrubber(TWO_FILLED, [{ t: 24.2, label: "Says who?" }]);
+    const head = html.slice(0, html.indexOf('type="range"'));
+    const at = head.indexOf("data-pause-key");
+    expect(at).toBeGreaterThan(head.indexOf("Hear it back"));
+    expect(legend(head.slice(0, at))).toEqual(["Demos cut in", "filler"]);
+    expect(legend(head.slice(at))).toEqual(["between sentences", "other pause"]);
+    expect(scrubber([p(9, "beat", "beat", 0.4)])).not.toContain("data-pause-key");
+    expect(legend(scrubber([p(20, "mid", "hesitation")]))).toEqual(["filler", "mid-sentence"]);
+  });
+
   it("keeps the round's cut-in on the track and in its chips", () => {
     const html = scrubber(TWO_FILLED, [{ t: 24.2, label: "Says who?" }]);
-    expect(legend(html)[0]).toBe("cut-in");
+    expect(legend(html)[0]).toBe("Demos cut in");
     expect(html).toMatch(/class="absolute top-0 h-full w-\[3px\] bg-ink\/70" style="left:39\.0322/);
     expect(html).toContain('aria-label="Says who? 0:24, play from a second before Demos cut in"');
   });
@@ -158,7 +239,7 @@ describe("Hear it back's landed pauses read (#425)", () => {
   /** The legend's swatches, as [word, the swatch's mark class]. */
   function keys(html: string) {
     const head = html.slice(0, html.indexOf('type="range"'));
-    return [...head.matchAll(/<span class="inline-flex items-center gap-1"><span aria-hidden="true" class="[^"]*"><span class="([^"]*)"><\/span><\/span>([^<]+)<\/span>/g)].map(
+    return [...head.matchAll(/<span class="inline-flex items-center gap-1 whitespace-nowrap"><span aria-hidden="true" class="[^"]*"><span class="([^"]*)"><\/span><\/span>([^<]+)<\/span>/g)].map(
       ([, cls, word]) => [word, cls] as const
     );
   }

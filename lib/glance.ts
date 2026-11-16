@@ -19,9 +19,9 @@
 import type { TraitId } from "@/content/traits";
 import { recordingTrait } from "./log";
 import type { Pause, RepMetrics, Word } from "./metrics";
-import { heldPauseMarks, landedPause } from "./pause-mark";
+import { filledWords, heldPauseMarks, landedPause, PAUSE_KEY_WORDS, PAUSE_WHY_WORDS, pauseWhy, sharedMiss } from "./pause-mark";
 import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S } from "./pause-quality";
-import type { RewardMoment } from "./rewards";
+import { MOST_PAUSES, type RewardMoment } from "./rewards";
 import type { GameRound } from "./round";
 import { clockTenth, decidingCutIn, secs as tenths, type RoundReveal } from "./round-copy";
 import { transcriptPieces, type TranscriptUnit } from "./transcript-words";
@@ -169,8 +169,9 @@ export function unscoredReason(m: Pick<RepMetrics, "substance">): string {
  * sentence of at most seven words about the practice's trait, the first
  * thing that cost it or, when nothing did, its best moment, with at most
  * one chip that plays it; then one target for next time, its number the
- * one in the sentence. Every line names its trait ("pauses", "fillers"),
- * so "landed" and "searching" are never app words on their own. A capped
+ * one in the sentence. Every line names its trait ("pauses", "fillers")
+ * in the house's plain words (#490: "between sentences", "mid-sentence",
+ * never "landed" or "searching"). A capped
  * take's hero is its filler count, so its line follows the hero: the
  * same trait, never a second one under it (the #427 review).
  */
@@ -193,29 +194,51 @@ export function glanceLine(p: {
   const secs = Math.round(m.durationS);
   const cue = (target: string | null): string | null => (p.lead && target ? `${p.lead} ${target}` : null);
 
+  /* The pauses in the house's plain words (#490): a pause is between
+     sentences, mid-sentence, after only a few words, over 3.5 seconds or
+     next to an um, each read off the verdict the take stored
+     (lib/pause-mark.ts pauseWhy). "landed" and "searching" were the
+     app's own words for the first two. */
   if (trait === "pause") {
     const pauses = m.pauses ?? [];
     const marks = heldPauseMarks(pauses);
     const filled = filledMoments(pauses);
+    const count = (n: number) => `${n} ${n === 1 ? "pause" : "pauses"}`;
     if (filled && filled.moments.length > 0) {
       const first = filled.moments[0];
       const moment: GlanceMoment = { t: first.t, clock: first.clock, from: first.from, until: first.until, label: first.label };
       const n = filled.moments.length;
-      const said = n === 1 ? withMoment("1 pause had a sound, at ", moment, "") : withMoment(`${n} pauses had a sound, first `, moment, "");
-      return { ...said, cue: cue("none with a sound.") };
+      /* "an um" since #476; a stored verdict the phone's trace made is "a sound". */
+      const had = filledWords(pauses, n).startsWith("had an um next") ? "had an um" : "had a sound";
+      const said = n === 1 ? withMoment(`1 pause ${had}, at `, moment, "") : withMoment(`${n} pauses ${had}, first `, moment, "");
+      return { ...said, cue: cue("keep every pause silent.") };
     }
     const held = pauses.filter((x) => x.kind !== "beat");
-    const searching = held.filter((x) => !landedPause(x)).sort((a, b) => a.t - b.t);
-    if (searching.length > 0) {
-      const s = searching[0];
-      const moment = windowAt(s.t, MOMENT_LEAD_S, s.t + s.len + MOMENT_TAIL_S, "Play %, a searching pause");
-      const landed =
-        marks.landed === 0 ? "No pauses landed" : `${marks.landed} pause${marks.landed === 1 ? "" : "s"} landed`;
+    const missed = held.filter((x) => !landedPause(x)).sort((a, b) => a.t - b.t);
+    if (missed.length > 0) {
+      const s = missed[0];
+      const moment = windowAt(s.t, MOMENT_LEAD_S, s.t + s.len + MOMENT_TAIL_S, `Play %, a pause ${PAUSE_WHY_WORDS[pauseWhy(s)]}`);
+      /* Seven words at most (#427): every one the same kind says which
+         ("1 of 4 pauses mid-sentence"); a mix, or a pause after a sentence
+         too short to be a point, is "misplaced",
+         and the chip's own name says what the first one was. */
+      /* A pause that did not count, in the key's few words (#490): the
+         Pause row says it whole ("after only a few words", "over 3.5
+         seconds"). A filled pause has its own line, so it is never one. */
+      const why = sharedMiss(missed);
+      const what = why ? PAUSE_KEY_WORDS[why] : "misplaced";
+      const n = missed.length;
       const said =
-        searching.length === 1
-          ? withMoment(`${landed}, 1 searching at `, moment, "")
-          : withMoment(`${landed}, ${searching.length} searching, first `, moment, "");
-      return { ...said, cue: cue(`land ${marks.held}.`) };
+        n === marks.held
+          ? n === 1
+            ? withMoment(`1 pause, ${what}, at `, moment, "")
+            : withMoment(`All ${n} pauses ${what}, first `, moment, "")
+          : n === 1
+            ? withMoment(`1 of ${marks.held} pauses ${what}, at `, moment, "")
+            : withMoment(`${n} of ${marks.held} pauses ${what}, first `, moment, "");
+      /* "all 4 between sentences" left a reader to carry "pauses" over
+         from the line before (the review of #490); seven words still. */
+      return { ...said, cue: cue(marks.held === 1 ? "1 pause between sentences." : `all ${marks.held} pauses between sentences.`) };
     }
     if (marks.landed > 0) {
       const longest = held.filter(landedPause).reduce((a, b) => (b.len > a.len ? b : a));
@@ -224,14 +247,14 @@ export function glanceLine(p: {
         longest.t,
         MOMENT_LEAD_S,
         longest.t + longest.len + MOMENT_TAIL_S,
-        one ? "Play %, the landed pause" : "Play %, the longest landed pause"
+        one ? "Play %, the pause between sentences" : "Play %, the longest pause between sentences"
       );
       const said = one
-        ? withMoment("1 pause landed, at ", moment, "")
-        : withMoment(`All ${marks.landed} pauses landed, longest at `, moment, "");
-      return { ...said, cue: cue(`land ${marks.landed + 1}.`) };
+        ? withMoment("1 pause between sentences, at ", moment, "")
+        : withMoment(`All ${marks.landed} pauses between sentences, longest `, moment, "");
+      return { ...said, cue: cue(`${count(marks.landed + 1)} between sentences.`) };
     }
-    return { ...plain(`No held pauses in ${secs}s.`), cue: cue("hold 1 after a point.") };
+    return { ...plain(`No one-second pauses in ${secs}s.`), cue: cue("1 pause between sentences.") };
   }
 
   if (trait === "repairs") {
@@ -378,7 +401,7 @@ export interface EarnedLine {
 
 const TRAIT_RECORD: Partial<Record<TraitId, string>> = {
   fillers: "Cleanest recording yet",
-  pause: "Most silence you've held",
+  pause: MOST_PAUSES,
 };
 
 /**
@@ -475,7 +498,7 @@ export function lessonTakes(p: {
 
 const LESSON_UNIT: Partial<Record<TraitId, string>> = {
   fillers: "fillers",
-  pause: "landed pauses",
+  pause: "pauses between sentences",
   pace: "words a minute",
 };
 

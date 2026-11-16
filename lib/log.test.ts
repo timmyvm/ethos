@@ -170,7 +170,7 @@ describe("recordingName", () => {
 
 describe("recordingName, every stored shape", () => {
   it("names a lesson practice, a path item and a game by title", () => {
-    expect(recordingName({ lesson_id: "lesson:the-landing:2", mode: "daily" })).toBe("The landing");
+    expect(recordingName({ lesson_id: "lesson:the-landing:2", mode: "daily" })).toBe("Finish, then go quiet");
     expect(recordingName({ lesson_id: "pause-1-1", mode: "daily" })).not.toBe("Recording");
     expect(recordingName({ lesson_id: "game:qa:x", mode: "daily" })).toBe("Q&A");
   });

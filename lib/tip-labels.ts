@@ -137,7 +137,7 @@ const L: Record<string, [string, TipGlyph]> = {
   'Pick your side in the first sentence: "Queues are good for us."': ["Pick a side right away", "start"],
   "One good point, explained fully, beats four you only list.": ["One point, in full", "one"],
   "Joke if you like, but don't back down.": ["Joke, don't back down", "word"],
-  "Starting over once a minute costs a third of your Follow-through score.": ["Don't start over", "end"],
+  "Starting over once a minute costs a third of your Restart control score.": ["Don't start over", "end"],
   "Sentence going wrong? Finish it anyway, then fix it in the next one.": ["Finish it, then fix it", "end"],
   "Start a little slower and you'll start over less.": ["Start slower", "slow"],
 

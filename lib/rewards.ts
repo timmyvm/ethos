@@ -199,12 +199,14 @@ export function endNote(params: {
   const scored = isScorable(m.substance);
   const landed = landedHeard(m);
 
-  /* One word and one count for a good pause, "landed", as the track and
-     the glance say it (#427); each detail keeps its first sentence. */
+  /* One count for a good pause, as the track and the glance say it
+     (#427), in the house's words since #490 ("3 landed pauses" and
+     "composed" were the app's): a pause between sentences, and the
+     detail says what that is. */
   if (scored && landed > 0) {
     return {
-      headline: `${landed} landed pause${landed === 1 ? "" : "s"}`,
-      detail: "Silence you chose, before a new point.",
+      headline: `${landed} pause${landed === 1 ? "" : "s"} between sentences`,
+      detail: landed === 1 ? "A full sentence, then quiet." : "Each one after a full sentence.",
       tone: "earned",
       trait: "pause",
     };
@@ -220,7 +222,7 @@ export function endNote(params: {
   if (scored && m.wpm >= 130 && m.wpm <= 160) {
     return {
       headline: `${m.wpm} words a minute`,
-      detail: "Dead in the zone.",
+      detail: "Inside the 130 to 160 zone.",
       tone: "earned",
       trait: "pace",
     };
@@ -263,6 +265,9 @@ export function celebrates(prior: RepRow[], stars: number, index: number | null)
   return best > 0 && index > best;
 }
 
+/** The pause record's headline, which the glance's earned line matches on. */
+export const MOST_PAUSES = "Most pauses yet";
+
 export function personalBests(
   all: RepRow[],
   current: RepMetrics,
@@ -291,7 +296,7 @@ export function personalBests(
   if (Number.isFinite(bestFpm) && current.fillersPerMin < bestFpm) {
     out.push({
       headline: "Cleanest recording yet",
-      detail: `${current.fillersPerMin}/min, under your ${Math.round(bestFpm * 100) / 100}`,
+      detail: `${current.fillersPerMin} ${current.fillersPerMin === 1 ? "filler" : "fillers"} a minute, under your ${Math.round(bestFpm * 100) / 100}`,
       tone: "earned",
     });
   }
@@ -299,10 +304,14 @@ export function personalBests(
   const bestHeld = Math.max(
     ...prior.map((r) => (r.pauses ?? []).filter((p) => p.kind !== "beat").length)
   );
+  /* A count of pauses of 0.8 seconds or more, the house's one-second
+     pauses (lib/achievements.ts's badge says it so), never an amount of
+     silence: "Most silence you've held" named a total nothing adds up
+     (the review of #490). */
   if (current.heldPauses > bestHeld) {
     out.push({
-      headline: "Most silence you've held",
-      detail: `${current.heldPauses} held pauses, past ${bestHeld}`,
+      headline: MOST_PAUSES,
+      detail: `${current.heldPauses} one-second pauses, past your ${bestHeld}`,
       tone: "earned",
     });
   }

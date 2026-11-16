@@ -118,7 +118,7 @@ describe("the pause map keeps every held pause", () => {
     expect(durationS).toBeGreaterThan(85);
     expect(judged.filter((p) => p.kind === "beat")).toHaveLength(29);
     expect(judged.filter((p) => p.kind !== "beat")).toHaveLength(5);
-    expect(filledMoments(judged)?.sentence).toBe("1:16 had a sound in it.");
+    expect(filledMoments(judged)?.sentence).toBe("1:16 had an um next to it.");
     const drawn = marks(judged, durationS);
     expect(drawn.length).toBeLessThanOrEqual(48);
     expect(drawn.filter((m) => m === "landed")).toHaveLength(4);

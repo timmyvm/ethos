@@ -83,7 +83,7 @@ const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
  * phone a line may still break, balanced, and only between its phrases:
  * the read and its "always" hold together, and so does the allowance.
  */
-const BENEFITS = [
+export const BENEFITS = [
   { Glyph: IconBubble, text: <>{keep("Demos's full read, always")} {keep("(free: 1 a day)")}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },

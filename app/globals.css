@@ -3883,6 +3883,138 @@ summary::-webkit-details-marker {
 /* Under Increase Contrast the track takes an edge (the block below). */
 /* ========================== end of you (colour pass) ========================== */
 
+/* ============================ XP and the streak (#485) ============================
+ * Timothy, 16 Nov: "purple is a nice colour for anything xp related", and
+ * "current streak, greyed out fire, max streak orange fire".
+ *
+ * --xp is XP's own colour: the bar to the next level, the XP glyph, the
+ * XP a day earned. Its hue sits clear of the two purples that already
+ * mean something. Plum (#62336c, 320 in OKLCH, chroma 0.11) is paid;
+ * Variety's violet (#7048e6, 288, 0.22) is a trait. XP is an orchid at
+ * 315 and chroma 0.26: as saturated as Variety but 27 degrees redder,
+ * and far brighter and purer than plum, so it reads as neither. In OKLab
+ * it is 0.121 from Variety, 0.226 from plum-700 and 0.140 from plum-500
+ * (the trait tones were spread to 0.09 to be told apart at 8px). It
+ * clears 5.19:1 on the white card, 4.71 on surface (text), and 4.08 on
+ * the sand trough (a bar wants 3).
+ * Dark is #cf74ff: 5.19 on the raised card, 4.57 on its sand, 0.112 from
+ * Variety's muted #b191d2 and 0.134 from plum's lilac text #d4a8e8.
+ * Increase Contrast deepens it in light (#8a12b3: 7.45 on white, 5.86 on
+ * sand) and lifts it in dark (#d98cff: 6.25 on raised, 5.50 on sand),
+ * the hue held, as #448 holds every hue.
+ *
+ * --streak is the lit flame (bright orange; #480's streak moment carries
+ * one too, and a merge makes them one token). In light the flame draws
+ * its line in --streak-rim, 4.31:1 on white, and fills its core in
+ * --streak, the way the earned gold takes its rim (`.earned-lit`); in
+ * dark the orange stands alone (6.1:1 on the card). Grey is stone-400.
+ * ============================================================================ */
+:root {
+  --xp: #ad22dd;
+  --streak: #ff8a00;
+  --streak-rim: #c45c00;
+}
+:root[data-theme="dark"] {
+  --xp: #cf74ff;
+  --streak: #ff9f0a;
+  --streak-rim: #ff9f0a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --xp: #cf74ff;
+    --streak: #ff9f0a;
+    --streak-rim: #ff9f0a;
+  }
+}
+/* `screen and`: lib/hig-a11y.test.ts reads the neutrals' own Increase
+   Contrast block as the first one spelled without it. */
+@media screen and (prefers-contrast: more) {
+  :root {
+    --xp: #8a12b3;
+    --streak-rim: #a34a00;
+  }
+  :root[data-theme="dark"] {
+    --xp: #d98cff;
+    --streak-rim: #ff9f0a;
+  }
+}
+.xp-ink {
+  color: var(--xp);
+}
+.xp-fill {
+  background: var(--xp);
+}
+/* The lit flame: its line in the rim, its closed core (the last path) in the orange. */
+.streak-lit {
+  color: var(--streak);
+}
+.streak-lit svg[fill="none"] > path:not([fill]) {
+  stroke: var(--streak-rim);
+}
+.streak-lit svg[fill="none"] > path:not([fill]):last-child {
+  fill: var(--streak);
+}
+/* The photo's coin (components/you/Avatar.tsx): Today's initial coin,
+   larger, holding the photo when there is one. */
+.you-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+}
+:root[data-theme="dark"] .you-avatar {
+  background: #333333;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.you-avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  object-fit: cover;
+}
+/* The photo's own hairline over it, so a white photo keeps its edge on the white card. */
+.you-avatar[data-photo]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .you-avatar[data-photo]::after {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+/* The camera's badge at the coin's foot: it says the coin takes a photo. */
+.you-avatar-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  color: var(--color-ink);
+  background: var(--color-raised);
+  box-shadow:
+    0 0 0 2px var(--color-raised),
+    inset 0 0 0 1px var(--color-card-edge),
+    0 1px 2px rgb(0 0 0 / 0.12);
+}
+/* ========================== end of XP and the streak ========================== */
+
 /* ================================ nav (glass) ================================
  * The tab bar floats (26 Sep, "new modern glass nav"): a rounded slab of
  * frosted glass over the page, a hairline catching light on its top

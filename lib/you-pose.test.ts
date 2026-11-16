@@ -145,20 +145,17 @@ describe("the Shop's picture of a pose", () => {
 describe("You's page", () => {
   const you = readFileSync("app/you/page.tsx", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 
-  it("draws its stage's Demos through YouDemos, with the worn pose, the whole ledger and both moments", () => {
-    expect(you).toMatch(
-      /<YouDemos worn=\{worn\} ledger=\{poseLedger\} away=\{momentUp \|\| drop\.open\} back=\{back\} \/>/
-    );
-    // One whole-ledger read per visit: the pose is proven from the coin
-    // sync's ledger, not from a second read of the same rows.
-    expect(you).toMatch(/setPoseLedger\(read\.data\.ledger\)/);
-    expect(you).not.toMatch(/fetchWholeLedger\b/);
+  /*
+   * #485 (Timothy, 16 Nov: "remove demos from that card"): You's card is
+   * the photo and the numbers, and Demos comes on You only at the
+   * moments, with the price drop and the checkout's return. The pose the
+   * Shop sells stays the Shop's to draw and to save (lib/pose-save).
+   */
+  it("draws no Demos on its card, and reads no pose", () => {
+    expect(you).not.toMatch(/<YouDemos\b/);
     expect(you).not.toMatch(/<DemosArt\b/);
     expect(you).not.toMatch(/pose="hello"/);
-  });
-
-  it("lets the account's pose win over the device's copy, once this device's save has landed", () => {
-    expect(you).toMatch(/setWorn\(readPrefs\(\)\.pose\)/);
-    expect(you).toMatch(/setWorn\(adoptAccountPose\(p\.equipped_pose\)\)/);
+    expect(you).not.toMatch(/adoptAccountPose|setPoseLedger|readPrefs\(\)\.pose/);
+    expect(you).not.toMatch(/fetchWholeLedger\b/);
   });
 });

@@ -10,6 +10,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { deleteAccount, signOut } from "@/lib/auth";
 import { fetchAllLexicon, fetchAllReps, fetchReps } from "@/lib/client-data";
+import { avatarForExport } from "@/lib/avatar-client";
 import { readable } from "@/lib/load";
 import {
   DEFAULT_PREFS,
@@ -374,18 +375,19 @@ export default function SettingsPage() {
       // passed off as a backup is the worst thing this row could do,
       // one row above Delete my account.
       const read = await readable(
-        () => Promise.all([fetchAllReps(), fetchAllLexicon()]),
+        // The profile photo too (#485), the picture itself, not a link.
+        () => Promise.all([fetchAllReps(), fetchAllLexicon(), avatarForExport()]),
         30_000
       );
       if (!read.ok) {
         setExportFailed(true);
         return;
       }
-      const [reps, lexicon] = read.data;
+      const [reps, lexicon, photo] = read.data;
       const blob = new Blob(
         [
           JSON.stringify(
-            { exportedAt: new Date().toISOString(), reps, lexicon },
+            { exportedAt: new Date().toISOString(), reps, lexicon, photo },
             null,
             2
           ),

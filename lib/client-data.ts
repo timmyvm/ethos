@@ -17,6 +17,7 @@ import type { Pause } from "./metrics";
 import type { DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
+import { xpToday } from "./xp";
 
 export interface RepRow {
   id: string;
@@ -144,7 +145,7 @@ export function heldReps(limit = 90): RepRow[] | null {
 export const heldSpine = (): RepSpine[] | null => held<RepSpine[]>(SPINE_KEY) ?? null;
 export const heldGameRounds = (): GameRoundRow[] | null => held<GameRoundRow[]>(ROUNDS_KEY) ?? null;
 export const heldLexicon = (limit = 100): LexiconRow[] | null => held<LexiconRow[]>(lexiconKey(limit)) ?? null;
-export const heldXp = (): { total: number; week: number } | null => held<{ total: number; week: number }>(XP_KEY) ?? null;
+export const heldXp = (): XpRead | null => held<XpRead>(XP_KEY) ?? null;
 export const heldProfile = (): ProfileRow | null | undefined => held<ProfileRow | null>(PROFILE_KEY);
 /** The plan as last read: null is unknown, never free (#353). */
 export function heldPremium(): boolean | null {
@@ -309,13 +310,20 @@ async function readLexicon(limit = 100): Promise<LexiconRow[]> {
   return hold(lexiconKey(limit), (data as LexiconRow[] | null) ?? [], mark);
 }
 
-export function fetchXp(): Promise<{ total: number; week: number }> {
+/** The account's XP: every event's total, this week's (from Monday) and today's (#485). */
+export interface XpRead {
+  total: number;
+  week: number;
+  today: number;
+}
+
+export function fetchXp(): Promise<XpRead> {
   return once(XP_KEY, readXp);
 }
 
-async function readXp(): Promise<{ total: number; week: number }> {
+async function readXp(): Promise<XpRead> {
   const db = supabaseBrowser();
-  if (!db) return { total: 0, week: 0 };
+  if (!db) return { total: 0, week: 0, today: 0 };
   const mark = heldMark();
   // Every event, paged: a read capped at the newest 1000 stopped the
   // total (and the Level) rising after about 1000 recordings. A failed
@@ -331,7 +339,7 @@ async function readXp(): Promise<{ total: number; week: number }> {
   const week = rows
     .filter((r) => new Date(r.created_at) >= monday)
     .reduce((a, r) => a + r.amount, 0);
-  return hold(XP_KEY, { total, week }, mark);
+  return hold(XP_KEY, { total, week, today: xpToday(rows) }, mark);
 }
 
 /**

@@ -630,6 +630,32 @@ export function IconPencil({ size }: { size?: number }) {
   );
 }
 
+/**
+ * XP (#485, Timothy: "add xp icon"): a hexagon, the shape a token or a
+ * rank badge takes, with a chevron climbing inside it, because XP is
+ * what moves you up a level. A shape no other mark in the set uses (the
+ * star is stars, the bolt is Speed rush, the flame is the streak), so it
+ * reads as XP before its colour does. Drawn in `--xp` where it stands.
+ */
+export function IconXp({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={2.25}>
+      <path d="M12 2.9 19.9 7.45v9.1L12 21.1 4.1 16.55v-9.1z" />
+      <path d="m8.4 14.1 3.6-3.6 3.6 3.6" />
+    </Glyph>
+  );
+}
+
+/** A photo: a camera's body and lens, for the profile photo's badge (#485). */
+export function IconCamera({ size }: { size?: number }) {
+  return (
+    <Glyph size={size} weight={TAB_WEIGHT}>
+      <path d="M3.8 9a2 2 0 0 1 2-2h1.9l1.5-2.2h5.6L16.3 7h1.9a2 2 0 0 1 2 2v8.2a2 2 0 0 1-2 2H5.8a2 2 0 0 1-2-2z" />
+      <circle cx="12" cy="12.9" r="3.4" />
+    </Glyph>
+  );
+}
+
 /** Play, for the scrubber: a solid, round-cornered triangle. 16px. */
 export function IconPlay({ size = 16 }: { size?: number }) {
   return (

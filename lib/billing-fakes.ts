@@ -737,6 +737,12 @@ export function fakeDb(users: string[]) {
     removedAudio: [] as string[],
     /** Every playback link the server signed (app/api/audio). */
     signed: [] as { path: string; expiresIn: number }[],
+    /** Storage objects by bucket, by path (the profile photo's, #485). */
+    objects: {} as Record<string, string[]>,
+    /** Every upload the server made. */
+    uploaded: [] as { bucket: string; path: string; bytes: number; contentType: string | null }[],
+    /** Buckets storage answers "Bucket not found" for (a migration not applied). */
+    missingBuckets: new Set<string>(),
     deletedUsers: [] as string[],
     /** Auth users that are anonymous (auth.admin.getUserById's is_anonymous). */
     anonymous: new Set<string>(),
@@ -928,14 +934,40 @@ export function fakeDb(users: string[]) {
     },
     storage: {
       from(bucket: string) {
+        // A bucket whose migration is not applied, as storage answers it.
+        const missing = state.missingBuckets.has(bucket)
+          ? { message: "Bucket not found", statusCode: "404" }
+          : null;
+        const objects = (state.objects[bucket] ??= []);
         return {
           async remove(paths: string[]) {
+            if (missing) return { data: null, error: missing };
             const injected = failure(`storage:${bucket}`, "remove");
             if (injected) return { data: null, error: injected };
             state.removedAudio.push(...paths);
+            state.objects[bucket] = objects.filter((o) => !paths.includes(o));
             return { data: [], error: null };
           },
+          /** The names directly in a folder, as storage-js lists them. */
+          async list(prefix: string) {
+            if (missing) return { data: null, error: missing };
+            const injected = failure(`storage:${bucket}`, "list");
+            if (injected) return { data: null, error: injected };
+            const names = objects
+              .filter((o) => o.startsWith(`${prefix}/`) && !o.slice(prefix.length + 1).includes("/"))
+              .map((o) => ({ name: o.slice(prefix.length + 1) }));
+            return { data: names, error: null };
+          },
+          async upload(path: string, body: Uint8Array, opts: { contentType?: string } = {}) {
+            if (missing) return { data: null, error: missing };
+            const injected = failure(`storage:${bucket}`, "upload");
+            if (injected) return { data: null, error: injected };
+            objects.push(path);
+            state.uploaded.push({ bucket, path, bytes: body.byteLength, contentType: opts.contentType ?? null });
+            return { data: { path }, error: null };
+          },
           async createSignedUrl(path: string, expiresIn: number) {
+            if (missing) return { data: null, error: missing };
             const injected = failure(`storage:${bucket}`, "sign");
             if (injected) return { data: null, error: injected };
             state.signed.push({ path, expiresIn });

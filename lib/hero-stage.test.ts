@@ -34,13 +34,25 @@ describe("every tab opens on the one stage", () => {
     ["Lessons", "components/lessons/LessonCard.tsx"],
     ["Practice", "app/games/page.tsx"],
     ["Log", "components/ScoreCard.tsx"],
-    ["You", "app/you/page.tsx"],
   ];
   for (const [tab, file] of heroes) {
     it(`${tab} draws its hero with HeroStage`, () => {
       expect(src(file).match(/<HeroStage\b/g)?.length).toBe(1);
     });
   }
+
+  /*
+   * You left the stage (#485, Timothy 16 Nov: "make it all one nice card
+   * ... remove demos from that card"): one neutral card holds the photo,
+   * the name, the level, the XP bar and the three numbers, Imprint's Me.
+   */
+  it("You opens on one card, not the stage, with no Demos on it", () => {
+    const you = src("app/you/page.tsx");
+    expect(you).not.toMatch(/<HeroStage\b/);
+    expect(you).not.toMatch(/<YouDemos\b/);
+    expect(you.match(/data-look="you-card"/g)?.length).toBe(1);
+    expect(you).toMatch(/<section aria-label="Your profile" data-look="you-card" className="card mt-5 p-5">/);
+  });
 
   it("the stage is Practice's sky, at the sheet radius, the screen's one lift", () => {
     const stage = src("components/ui/HeroStage.tsx");

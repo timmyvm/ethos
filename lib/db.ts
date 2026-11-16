@@ -18,6 +18,7 @@ import type { RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
+import { xpPaid } from "./xp";
 
 export function supabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -243,9 +244,6 @@ async function storedPremium(userId: string | null): Promise<boolean> {
   return !until || new Date(until) > new Date();
 }
 
-/** XP is the effort currency (DECISIONS #16) — logged from day one. */
-const XP_PER_REP = 10;
-
 /**
  * Columns a recording is stored without when the table lacks them yet,
  * because their migrations are applied by hand: the outbox key (0016) and
@@ -434,12 +432,13 @@ export async function saveRep(params: {
 
   if (params.userId) {
     // Difficulty multiplies EFFORT credit only. Stars and the Index are
-    // untouched by mods (DECISIONS #10, #16).
-    const multiplier = params.xpMultiplier ?? 1;
+    // untouched by mods (DECISIONS #10, #16). XP is the effort currency
+    // (DECISIONS #16), and every stored take pays it, Today's practice
+    // and a lesson's alike: lib/xp.ts holds the one figure (#485).
     writes.push(
       db.from("xp_events").insert({
         user_id: params.userId,
-        amount: Math.max(1, Math.round(XP_PER_REP * multiplier)),
+        amount: xpPaid(params.xpMultiplier ?? 1),
         source:
           params.mode === "boss"
             ? "boss"

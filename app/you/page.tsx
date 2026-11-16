@@ -2,14 +2,14 @@
 
 import { SwapFrom, SwapTo } from "@/components/ui/TrendMark";
 import { Disclosure } from "@/components/ui/Disclosure";
-import { HeroStage } from "@/components/ui/HeroStage";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AchievementMark, IconFlame, IconGear, IconPencil } from "@/components/Icon";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AchievementMark, IconFlame, IconGear, IconOnward, IconPencil, IconXp } from "@/components/Icon";
 import { Overlay } from "@/components/ui/Overlay";
 import { SheetHead } from "@/components/ui/SheetHead";
-import { YouDemos } from "@/components/you/YouDemos";
+import { useYouAvatar } from "@/components/you/Avatar";
+import { PremiumHave } from "@/components/premium/PremiumHave";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { CountUp } from "@/components/CountUp";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
@@ -20,7 +20,7 @@ import { ManageSheet } from "@/components/premium/ManageSheet";
 import { CheckoutReturn, PriceDropSheet } from "@/components/premium/Moments";
 import { PlanCard, PlanCardSkeleton } from "@/components/premium/PlanCard";
 import { achievements } from "@/lib/achievements";
-import { heldCoins, syncCoins } from "@/lib/coin-sync";
+import { syncCoins } from "@/lib/coin-sync";
 import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
 import {
@@ -39,6 +39,7 @@ import {
   heldReps,
   heldSpine,
   heldXp,
+  type XpRead,
 } from "@/lib/client-data";
 import {
   LEVEL_AT,
@@ -58,7 +59,7 @@ import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
 import { held, hold } from "@/lib/held";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
-import { levelFromXp } from "@/lib/level";
+import { barLabel, bestFlame, levelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
 import { readable, readFailure, withTimeout } from "@/lib/load";
 import { starsByLesson, totalStars } from "@/lib/path";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
@@ -70,10 +71,8 @@ import {
 } from "@/lib/streak";
 import { ACTION_CLASS, INPUT_CLASS } from "@/lib/ui";
 import { supabaseBrowser } from "@/lib/supabase-browser";
-import { CHECKOUT_COPY, CODE_LINE, hasPlan } from "@/lib/plan-view";
-import { prefersReducedMotion, readPrefs } from "@/lib/prefs";
-import { adoptAccountPose } from "@/lib/pose-save";
-import type { CoinRow } from "@/lib/coins";
+import { CHECKOUT_COPY, CODE_EXPLORE, CODE_LINE, hasPlan } from "@/lib/plan-view";
+import { prefersReducedMotion } from "@/lib/prefs";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { asTitle } from "@/lib/title";
@@ -119,12 +118,10 @@ const DOOR_CLASS =
 /**
  * The profile.
  *
- * One identity card (M09, Imprint's Me): Demos on a sky coin, your name,
- * your level and the bar to the next, then three numbers in bare columns
- * and the plan row. It replaced five containers (a lifted card, the sun
- * stage inside it, a rule, the plan's rule and three sage tiles) that
- * told one identity in five recipes. Everything under it is a section
- * title and its rows on the ground (DECISIONS #151).
+ * One identity card (M09, Imprint's Me; one card again since #485): your
+ * photo and name, your level and the bar to the next with what pays it,
+ * then three numbers, each beside its mark. Everything under it is a
+ * section title and its rows on the ground (DECISIONS #151).
  *
  * The copy pass took the paragraphs away. Coin economics live in the
  * shop, freeze rules live at the moment a freeze is earned or spent
@@ -169,7 +166,7 @@ export default function YouPage() {
    * not arrived yet would COUNT UP to the truth a moment later. A failed
    * read shows a dash and a retry, never Level 1.
    */
-  const [xp, setXp] = useState<{ total: number; week: number } | null>(() => (warm ? heldXp() : null));
+  const [xp, setXp] = useState<XpRead | null>(() => (warm ? heldXp() : null));
   const xpDrawn = useRef(xp !== null);
   const [xpFailed, setXpFailed] = useState(false);
   const [anon, setAnon] = useState<boolean | null>(() => (warm ? (held<boolean>(GUEST_KEY) ?? null) : null));
@@ -217,31 +214,23 @@ export default function YouPage() {
   const stripeReturn = useStripeReturn();
   const { arrival, rereading } = useStripeReturns(stripeReturn, plan, setPremium);
   const [managing, setManaging] = useState(false);
+  /** "Explore" beside an invite code's Premium: what it gives (#485). */
+  const [exploring, setExploring] = useState(false);
+  /* The photo on the card (#485): its coin, a failure's line, its sheet. */
+  const avatar = useYouAvatar({ name, nameKnown });
   // Held back while any other sheet is up: two sheets at once is one
   // Escape for two and a scroll lock to unpick.
   const drop = usePriceDrop(
     plan.view,
-    stripeReturn !== undefined && stripeReturn !== "checkout" && !managing && paywall === null && openTrait === null
+    stripeReturn !== undefined &&
+      stripeReturn !== "checkout" &&
+      !managing &&
+      !exploring &&
+      !avatar.sheet &&
+      paywall === null &&
+      openTrait === null
   );
   const planSlot = useRef<HTMLDivElement>(null);
-  /* Demos steps off the stage for a moment with its own Demos (the
-     price drop) and springs back in after it, rather than reappearing. */
-  const [back, setBack] = useState(false);
-  /*
-   * The pose the Shop sold, on the stage (#393 took Demos off Today, so
-   * this is where a bought pose shows). `worn` is the shop id: undefined
-   * until read, then the device's copy, then the account's answer, which
-   * wins (#175). The whole ledger proves it was bought (#392), so a pose
-   * from month one is still owned; it is the coin sync's own read, shared,
-   * so a visit reads the ledger once.
-   */
-  const [worn, setWorn] = useState<string | null | undefined>(undefined);
-  const [poseLedger, setPoseLedger] = useState<CoinRow[] | null>(() => (warm ? (heldCoins()?.ledger ?? null) : null));
-  // Before paint, so a tab switch to You never draws an empty stage first.
-  useLayoutEffect(() => setWorn(readPrefs().pose), []);
-  useEffect(() => {
-    if (drop.open) setBack(true);
-  }, [drop.open]);
   // A page someone came back to from the paywall's account doors (or
   // Checkout's back arrow) opens the sheet again.
   usePaywallReturn(() => setPaywall({ reason: "Premium" }));
@@ -269,9 +258,6 @@ export default function YouPage() {
     setCoins(undefined);
     const read = await readable(() => syncCoins(dates));
     setCoins(read.ok ? read.data.balance : null);
-    // The sync read the whole ledger, which is the pose's proof too. A
-    // failed read keeps the pose already drawn; it never blanks the stage.
-    if (read.ok) setPoseLedger(read.data.ledger);
   }, []);
 
   /** Same for freezes: one dead sync shouldn't blank the profile. */
@@ -311,8 +297,7 @@ export default function YouPage() {
     if (!quiet) setStreak(computeStreak(dates));
     void loadFreezes(dates);
     // The coin sync pays new days, which are always among the newest, so
-    // the 90 rows' dates suffice; its ledger read is whole, and the stage's
-    // pose is proven from it.
+    // the 90 rows' dates suffice.
     void loadCoins(rows.map((r) => new Date(r.created_at)));
   }, [loadCoins, loadFreezes]);
 
@@ -359,11 +344,6 @@ export default function YouPage() {
         setNameKnown(true);
         setPremium(p?.premium ?? false);
         setProfileRead(p);
-        // The account's pose wins, its null (none worn) included, and the
-        // device's copy follows so the next first paint is right, unless
-        // the Shop's save of a pose worn here has not landed yet: then the
-        // device's copy stands (lib/pose-save). No account (null) keeps it.
-        if (p) setWorn(adoptAccountPose(p.equipped_pose));
         return syncOnboarding().then(setOnboarding);
       })
       .catch(() => {
@@ -439,7 +419,7 @@ export default function YouPage() {
     };
   }, [stripeReturn, arrival]);
 
-  /** The first step's moment holds the plan's place, and with it the page's one Demos. */
+  /** The first step's moment holds the plan's place, and with it Demos. */
   const momentUp = arrival === "on" && !!plan.today && hasPlan(plan.view);
 
   /* The manage sheet closed over a card that is gone (a 409 found the
@@ -476,7 +456,7 @@ export default function YouPage() {
   const lexiconCap = premium === false ? limit(FREE_LEXICON, false) : null;
   /* Lifetime counts read every recording, not the newest 90. */
   const lifetime = reps === null ? [] : spine;
-  const level = levelFromXp(xp?.total ?? 0);
+  const standing = xpStanding(xp?.total ?? 0);
   const badges = achievements(history);
   const earnedCount = badges.filter((b) => b.earned).length;
   /* The ladder past the next two not yet earned folds into one row
@@ -536,24 +516,24 @@ export default function YouPage() {
     <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {header}
 
-      {/* The identity stage (the cohesion pass, 26 Oct). It was a grey
-          card with Demos on a sky coin over the name, the level, the XP
-          bar, three numbers and the plan row: a first-time tester said
-          "nothing matches this one because of the panda". It is the
-          house stage now (`HeroStage`, Practice's sky), Demos standing on
-          its floor at the right the way Practice's boss Demos does, your
-          name over your level and the bar to the next. The numbers and
-          the plan follow on one neutral card. Every async line holds its
-          exact height while it is in flight (`Line`), so nothing changes
-          size when the numbers land. */}
-      <div className="mt-5">
-        <HeroStage
-          label="Your profile"
-          eyebrowWide={editingName}
-          eyebrow={
-            editingName ? (
+      {/* The one card (#485, Timothy 16 Nov: "make it all one nice card
+          ... rework the me card into all of that in one incl name"). It
+          was the sky stage with Demos standing on it (the cohesion pass,
+          26 Oct) over a second card of three bare numbers. Now it is
+          Imprint's Me: one neutral card holding who you are (the photo
+          and the name), where you stand (the level, the XP bar in XP's
+          purple, how far the next level is and what pays it), and the
+          three numbers, each with its mark. Demos is off it, and comes
+          on You only at the moments (the price drop, the checkout's
+          return). Every async line holds its exact height while it is in
+          flight (`Line`), so nothing changes size when the numbers land. */}
+      <section aria-label="Your profile" data-look="you-card" className="card mt-5 p-5">
+        <div className="flex items-center gap-4">
+          {avatar.coin}
+          <div className="min-w-0 flex-1">
+            {editingName ? (
               <form
-                className="flex items-center gap-2 text-left"
+                className="flex flex-wrap items-center gap-2 text-left"
                 onSubmit={(e) => {
                   e.preventDefault();
                   void saveName();
@@ -574,7 +554,7 @@ export default function YouPage() {
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder="Your name"
-                  className={`${INPUT_CLASS} min-w-0 flex-1`}
+                  className={`${INPUT_CLASS} w-full min-w-0`}
                 />
                 <button
                   type="submit"
@@ -585,130 +565,126 @@ export default function YouPage() {
                 <button
                   type="button"
                   onClick={() => setEditingName(false)}
-                  className="text-link stage-ink shrink-0 px-1"
+                  className="text-link shrink-0 px-1"
                 >
                   Cancel
                 </button>
               </form>
             ) : (
-              /* The name: the one profile field you type rather than
-                 earn, in the stage's eyebrow with its pencil. */
-              <div className="flex min-h-[18px] items-center">
-                {!nameKnown ? (
-                  <Line className="font-display text-detail" bar="w-20" align="left" />
-                ) : name ? (
-                  <>
-                    {/* The name in the detail type, 17/700 (the fix round:
-                        as the stage's 13px eyebrow it was the smallest
-                        words on the stage, and it is the one thing on it
-                        that is you rather than a number). */}
-                    <span className="font-display min-w-0 truncate text-detail">{name}</span>
-                    {/* 14px of pencil, a 44px target: the padding is the
-                        hit area and the negative margin gives it back. */}
+              <>
+                {/* The name: the one line on the card you type rather
+                    than earn, in the detail type with its pencil. */}
+                <div className="flex min-h-[22px] items-center">
+                  {!nameKnown ? (
+                    <Line className="font-display text-detail" bar="w-20" align="left" />
+                  ) : name ? (
+                    <>
+                      <span className="font-display min-w-0 truncate text-detail">{name}</span>
+                      {/* 14px of pencil, a 44px target: the padding is the
+                          hit area and the negative margin gives it back. */}
+                      <button
+                        type="button"
+                        onClick={editName}
+                        aria-label="Edit your name"
+                        className="press -my-[15px] -ml-1.5 -mr-[15px] shrink-0 rounded-control p-[15px] text-stone-500"
+                      >
+                        <IconPencil size={14} />
+                      </button>
+                    </>
+                  ) : (
                     <button
                       type="button"
                       onClick={editName}
-                      aria-label="Edit your name"
-                      className="press stage-ink -my-[15px] -ml-1.5 -mr-[15px] shrink-0 rounded-control p-[15px]"
+                      className="press -my-3 -ml-2 flex min-h-11 shrink-0 items-center gap-1.5 rounded-control px-2 text-stone-500"
                     >
+                      <span className="font-display text-detail">Add your name</span>
                       <IconPencil size={14} />
                     </button>
-                  </>
+                  )}
+                </div>
+                {/* The level outranks everything else on the card, 26/800. */}
+                {xpPending ? (
+                  <Line className="font-display text-title font-extrabold" bar="w-24" align="left" />
                 ) : (
-                  <button
-                    type="button"
-                    onClick={editName}
-                    className="press stage-ink -my-3 -ml-2 flex min-h-11 shrink-0 items-center gap-1.5 rounded-control px-2"
-                  >
-                    <span className="eyebrow stage-ink">Add your name</span>
-                    <IconPencil size={14} />
-                  </button>
+                  <h2 className="font-display text-title font-extrabold tabular-nums">
+                    Level{" "}
+                    {xpFailed ? "–" : <CountUp value={standing.level} durationMs={DURATION.max} />}
+                  </h2>
                 )}
-              </div>
-            )
-          }
-          art={
-            /* The pose the Shop sold, or his hello (YouDemos). At 132
-               his idle clip plays where the pose has one (#316, from 120
-               up). While the checkout's moment celebrates at the foot,
-               or the month's price drop is up in its sheet, he is there,
-               not here: the stage keeps its light with nobody on it, so
-               the page has one Demos and nothing above the moment moves;
-               when the sheet goes he springs back in. And while the name
-               is typed he steps off, so the field has the stage's width. */
-            editingName ? undefined : (
-              <YouDemos worn={worn} ledger={poseLedger} away={momentUp || drop.open} back={back} />
-            )
-          }
-          line={
-            <div className="mt-auto pt-3">
-              {/* The trough paints at once; the bar fills when the
-                  number it reports has landed (#225), never over a
-                  placeholder. The stage's ink on its bone: XP is earned,
-                  and the earned colour stays on the chips and stars. */}
-              <div
-                role="img"
-                aria-label={xp ? `${level.intoLevel} of ${level.forNext} XP to level ${level.level + 1}` : "XP to the next level"}
-                className="stage-trough h-1.5 w-full max-w-[168px] overflow-hidden"
-              >
-                {xp && (
-                  <div
-                    className="fill stage-fill h-full"
-                    style={{ width: `${(level.intoLevel / level.forNext) * 100}%` }}
-                  />
-                )}
-              </div>
-              {xpPending ? (
-                <Line className="font-display mt-1.5 text-link font-bold" bar="w-32" align="left" />
-              ) : xpFailed ? (
-                <ErrorLine className="mt-1.5" onRetry={() => void loadXp()}>
-                  Your XP didn&apos;t load.
-                </ErrorLine>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* The bar to the next level, and its two lines: how far, in XP
+            (Timothy: "40 of 50 to level 2" asked the reader to do the
+            sum), then what reaches it, from what pays (lib/xp.ts). The
+            trough paints at once; the bar fills when its number has
+            landed (#225), in XP's purple (--xp). */}
+        <div className="mt-4">
+          <div
+            role="img"
+            aria-label={xp ? barLabel(xp.total) : "XP to the next level"}
+            className="h-2 w-full overflow-hidden bg-sand"
+          >
+            {xp && <div className="fill xp-fill h-full" style={{ width: `${standing.fraction * 100}%` }} />}
+          </div>
+          {xpPending ? (
+            <>
+              <Line className="font-display mt-2 text-row font-bold" bar="w-32" align="left" />
+              <Line className="mt-0.5 text-caption" bar="w-44" align="left" />
+            </>
+          ) : xpFailed ? (
+            <ErrorLine className="mt-2" onRetry={() => void loadXp()}>
+              Your XP didn&apos;t load.
+            </ErrorLine>
+          ) : (
+            <>
+              <p data-look="level-line" className="font-display mt-2 text-row font-bold tabular-nums">
+                {levelLine(xp?.total ?? 0)}
+              </p>
+              {/* Which line it is ("Today's practice" or "One more
+                  recording") rests on whether today is spoken, which only
+                  the recordings know: until they are read the line holds
+                  its place, so it never says one and then the other. */}
+              {loading ? (
+                <Line className="mt-0.5 text-caption" bar="w-44" align="left" />
               ) : (
-                <p className="stage-ink font-display mt-1.5 text-link font-bold tabular-nums">
-                  {level.intoLevel} of {level.forNext} to level {level.level + 1}
+                <p data-look="reach-line" className="mt-0.5 text-caption text-stone-500">
+                  {reachLine(xp?.total ?? 0, streak.didToday)}
                 </p>
               )}
-            </div>
-          }
-        >
-          {/* The level is the stage's title (you-7: it outranks the
-              three numbers under it, 26/800 against their 24). */}
-          {xpPending ? (
-            <Line className="font-display mt-1.5 text-title font-extrabold" bar="w-24" align="left" />
-          ) : (
-            <h2 className="font-display mt-1.5 text-title font-extrabold tabular-nums">
-              Level{" "}
-              {xpFailed ? "–" : <CountUp value={level.level} durationMs={DURATION.max} />}
-            </h2>
+            </>
           )}
-        </HeroStage>
-        {nameFailed && (
-          <ErrorLine className="mt-2" onRetry={() => void saveName()}>
-            Your name didn&apos;t save.
-          </ErrorLine>
-        )}
-      </div>
+        </div>
 
-      {/* The three numbers, alone on one neutral card under the stage
-          (M09's bare columns, you-12; D36 took the plan row out). */}
-      <section aria-label="Your numbers" className="card mt-3 px-4 py-5 text-center">
-        <div className="grid grid-cols-3">
+        {/* The three numbers, each beside its mark (Timothy: "icons next
+            to the stats"): the streak's flame grey until today is spoken
+            and lit after, the best streak's lit, and the XP today with
+            XP's own mark. */}
+        <div role="group" aria-label="Your numbers" className="mt-5 grid grid-cols-3">
           <Stat
             label="Streak"
             value={loading ? undefined : streak.current}
-            mark
-            /* Today's chip's rule (D25, S06): unlit until today's
-               recording lands, the same flame on both tabs. */
-            lit={!streak.atRisk}
+            mark={<IconFlame size={20} />}
+            flame={streakFlame(streak.current, streak.didToday)}
+            said={streak.didToday ? "spoken today" : "not spoken today yet"}
           />
-          <Stat label="Best streak" value={loading ? undefined : streak.longest} />
           <Stat
-            label="XP this week"
-            value={xpFailed ? null : xp?.week}
+            label="Best streak"
+            value={loading ? undefined : streak.longest}
+            mark={<IconFlame size={20} />}
+            flame={bestFlame(streak.longest)}
           />
+          <Stat label="XP today" value={xpFailed ? null : xp?.today} mark={<IconXp size={20} />} />
         </div>
       </section>
+      {nameFailed && (
+        <ErrorLine className="mt-2" onRetry={() => void saveName()}>
+          Your name didn&apos;t save.
+        </ErrorLine>
+      )}
+      {avatar.problem}
 
       {showGate && (
         /* p-5 and a detail head: the account gate, straight under the
@@ -1128,7 +1104,25 @@ export default function YouPage() {
                 <PlanCard view={plan.view} today={plan.today} onOpen={() => setManaging(true)} />
               </div>
             ) : plan.view.kind === "code" ? (
-              <p className="text-caption text-stone-400">{CODE_LINE}</p>
+              /* Premium by invite code (#485, Timothy 16 Nov: "yay! Youve
+                 got premium 🎉 Explore ->"). His words, his emoji, then
+                 the door to what Premium gives (PremiumHave), the tier
+                 named in plum as every Premium door is. */
+              <div className="flex min-h-11 items-center justify-between gap-3">
+                <p data-look="premium-on" className="font-display text-row">
+                  {CODE_LINE}
+                </p>
+                <button
+                  type="button"
+                  data-look="premium-explore"
+                  aria-haspopup="dialog"
+                  onClick={() => setExploring(true)}
+                  className="press font-display -mr-2 flex min-h-11 shrink-0 items-center gap-1 rounded-control px-2 text-row text-plum-700"
+                >
+                  {CODE_EXPLORE}
+                  <IconOnward size={16} />
+                </button>
+              </div>
             ) : arrival === "slow" ? null : (
               /* Free, or a plan that ended. Not under "Your payment went
                  through": a door that sells the plan again to someone who
@@ -1145,6 +1139,10 @@ export default function YouPage() {
           </>
         )}
       </div>
+
+      {exploring && <PremiumHave onClose={() => setExploring(false)} />}
+
+      {avatar.sheet}
 
       {openTrait && (
         <TraitSheet trait={openTrait} reps={history} done={lessonProgress(lifetime)} onClose={() => setOpenTrait(null)} />
@@ -1178,19 +1176,21 @@ export default function YouPage() {
 }
 
 /**
- * Settings, as an object a thumb can hit (wellspoken-lexicon s1): a
- * 40px surface square with the gear in stone-500, its hit area grown to
- * 44 by the `::after`. A square at the control radius, never a circle:
- * Record is the app's only circle.
+ * Settings: the gear on its own (#485, Timothy 16 Nov: "remove the
+ * square around the settings icon, js have the icon by it self"), as
+ * Imprint's Me and the phone's own bars draw it. 24px in ink, in a 44px
+ * target whose negative margin keeps the glyph's right edge on the
+ * title's 20px gutter.
  */
 function SettingsButton() {
   return (
     <Link
       href="/settings"
       aria-label="Settings"
-      className="press relative flex size-10 items-center justify-center rounded-control bg-surface text-stone-500 after:absolute after:-inset-0.5 after:content-['']"
+      data-look="settings-gear"
+      className="press -mr-2.5 flex size-11 items-center justify-center rounded-control text-ink"
     >
-      <IconGear size={20} />
+      <IconGear size={24} />
     </Link>
   );
 }
@@ -1224,54 +1224,53 @@ function Line({
 }
 
 /**
- * A number and its label, bare in a column (Imprint's Me): the label
- * says what the number counts and in what (you-12), so there is no unit
- * line. `undefined` is still in flight (a bar at the number's height),
- * `null` failed (a dash): never a zero that wasn't read. The value
- * counts up when it lands, which is the measurement arriving, never a
- * re-run over a figure that was already on the screen. The streak keeps
- * the flame it wears everywhere else, in the earned gold.
+ * A number and its label in a column (Imprint's Me), the number beside
+ * its mark (#485, Timothy: "icons next to the stats"): the label says
+ * what the number counts and in what (you-12), so there is no unit line.
+ * `undefined` is still in flight (a bar at the number's height), `null`
+ * failed (a dash): never a zero that wasn't read. The value counts up
+ * when it lands, which is the measurement arriving, never a re-run over
+ * a figure that was already on the screen.
+ *
+ * A flame is lit (--streak, its core filled) or grey (stone-400, a line
+ * only), so the two differ in shape as well as colour (#453's rule); a
+ * mark with no flame is XP's, in --xp. `said` is what the mark means,
+ * for a screen reader.
  */
 function Stat({
   label,
   value,
-  mark = false,
-  lit = true,
+  mark,
+  flame,
+  said,
 }: {
   label: string;
   value: number | null | undefined;
-  mark?: boolean;
-  /** The flame is gold once today's recording lands, stone on an open day. */
-  lit?: boolean;
+  mark: React.ReactNode;
+  flame?: Flame;
+  said?: string;
 }) {
+  const tone = flame === undefined ? "xp-ink" : flame === "lit" ? "streak-lit" : "text-stone-400";
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 text-center">
       {value === undefined ? (
-        <Line className="font-display text-num-m" bar="w-9" text="0" />
+        <Line className="font-display text-num-m" bar="w-12" text="0" />
       ) : (
-        /* The flame hangs off the number's right edge, so the number
-           itself stays centred over its label like the other two. */
-        <div className="font-display text-num-m tabular-nums">
-          <span className="relative inline-block">
-            {value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}
-            {mark && value !== null && value > 0 && (
-              <span
-                aria-hidden
-                className={`you-gold absolute left-full top-1/2 ml-1 -translate-y-1/2 ${lit ? "earned-lit" : "text-stone-400"}`}
-              >
-                <IconFlame size={18} />
-              </span>
-            )}
+        <div className="font-display flex items-center justify-center gap-1.5 text-num-m tabular-nums">
+          <span aria-hidden data-flame={flame} className={`flex shrink-0 ${tone}`}>
+            {mark}
           </span>
+          <span>{value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}</span>
         </div>
       )}
-      {/* One line in every column at every width (D10, D36): three
-          labels that wrapped were six capital lines. Sentence case, the
-          spec's fallback: in capitals "XP THIS WEEK" set 78px in a 79px
-          column at 320, a pixel from touching its neighbour, and the
-          three took the viewport's whole budget of capitals. The label
-          is drawn in both states, so the placeholder is the same height. */}
-      <div className="font-display mt-1 whitespace-nowrap text-caption font-semibold text-stone-500">{label}</div>
+      {/* One line in every column at every width (D10, D36). Sentence
+          case: in capitals the three took the viewport's whole budget of
+          capitals. The label is drawn in both states, so the placeholder
+          is the same height. */}
+      <div className="font-display mt-1 whitespace-nowrap text-caption font-semibold text-stone-500">
+        {label}
+        {said && <span className="sr-only">, {said}</span>}
+      </div>
     </div>
   );
 }

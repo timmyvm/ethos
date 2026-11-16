@@ -26,6 +26,7 @@ import {
   type StoppedBy,
 } from "./round";
 import { asTitle } from "./title";
+import { XP_PER_RECORDING } from "./xp";
 
 // --- numbers as the screen writes them ---------------------------------
 
@@ -317,8 +318,8 @@ export function heldInARow(rows: readonly LadderRow[]): number {
 
 // --- the XP line ---------------------------------------------------------
 
-/** XP a recording pays, the server's own sum (lib/db.ts XP_PER_REP). */
-export const XP_PER_RECORDING = 10;
+/** XP a recording pays, the server's own figure (lib/xp.ts, #485). */
+export { XP_PER_RECORDING };
 
 /** "×2", "×2.5", "×1.88". */
 function times(m: number): string {

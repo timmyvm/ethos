@@ -100,6 +100,33 @@ describe("saveRep", () => {
     expect(xp.created_at).toBe(at);
   });
 
+  /*
+   * #485, Timothy 16 Nov: "daily shld give xp". It does: Today's practice
+   * is a stored recording like a lesson's, and every stored recording
+   * pays lib/xp.ts's figure, which is the one You's card promises.
+   */
+  it("pays Today's practice the XP a lesson's recording pays, the card's own figure", async () => {
+    const { XP_PER_RECORDING } = await import("./xp");
+    await saveRep(params({ mode: "daily" }));
+    const daily = inserts.find((i) => i.table === "xp_events")!.row;
+    inserts = [];
+    await saveRep(params({ mode: "daily", lessonId: "lesson:the-landing:1" }));
+    const lesson = inserts.find((i) => i.table === "xp_events")!.row;
+    expect(daily.amount).toBe(XP_PER_RECORDING);
+    expect(lesson.amount).toBe(XP_PER_RECORDING);
+    expect(daily.source).toBe("rep");
+    expect(daily.user_id).toBe("user-1");
+    // Harder pays more, never less: ×1.5 for a mod, as before.
+    inserts = [];
+    await saveRep(params({ mode: "daily", mods: ["tight"], xpMultiplier: 1.5 }));
+    expect(inserts.find((i) => i.table === "xp_events")!.row.amount).toBe(15);
+  });
+
+  it("pays no XP to a take with no account", async () => {
+    await saveRep(params({ userId: undefined }));
+    expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
+  });
+
   it("leaves created_at to the database when no time is given", async () => {
     await saveRep(params());
     const rep = inserts.find((i) => i.table === "reps")!.row;

@@ -18,12 +18,7 @@ import {
   type StreakMomentView,
 } from "@/lib/streak-moment";
 import { ACTION_CLASS } from "@/lib/ui";
-
-/* Streaks' flame (Icon.tsx's IconFlame), closed and filled: the body and
-   its heart. */
-const BODY =
-  "M12 3.5c.6 2.4 2 3.5 3.4 5 1.4 1.5 2.1 3 2.1 4.7a5.5 5.5 0 0 1-11 0c0-1.6.6-2.9 1.8-4 .3 1.4 1 2.2 1.9 2.6C9.6 9 10.6 6.4 12 3.5z";
-const CORE = "M12 18.6a2.4 2.4 0 0 1-2.4-2.4c0-1.3 1.1-2 2.4-3.9 1.3 1.9 2.4 2.6 2.4 3.9a2.4 2.4 0 0 1-2.4 2.4z";
+import { StatIcon } from "@/components/StatIcon";
 
 const WEEKDAY = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -105,7 +100,7 @@ export function StreakMoment({
     if (calm || !el) return;
     const playing: Animation[] = [];
     const run = (selector: string, frames: Keyframe[], options: KeyframeAnimationOptions) => {
-      el.querySelectorAll<HTMLElement | SVGElement>(selector).forEach((n) =>
+      el.querySelectorAll<HTMLElement>(selector).forEach((n) =>
         playing.push(n.animate(frames, { fill: "backwards", ...options }))
       );
     };
@@ -176,17 +171,17 @@ export function StreakMoment({
       className="flex min-h-dvh flex-col bg-ground px-5 pt-[env(safe-area-inset-top)]"
     >
       <div data-arrive="" className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+        {/* #487's 3D flame: the unlit one (the same file through
+            `--stat-unlit`) fades as the lit one springs in over it. */}
         <div aria-hidden className="streak-flame">
           {!calm && (
-            <svg data-flame="unlit" viewBox="5 3 14 16">
-              <path data-body="unlit" d={BODY} />
-              <path data-core="unlit" d={CORE} />
-            </svg>
+            <span data-flame="unlit">
+              <StatIcon kind="streak" lit={false} size={160} />
+            </span>
           )}
-          <svg data-flame="lit" viewBox="5 3 14 16">
-            <path data-body="lit" d={BODY} />
-            <path data-core="lit" d={CORE} />
-          </svg>
+          <span data-flame="lit">
+            <StatIcon kind="streak" size={160} />
+          </span>
         </div>
 
         {/* The one line, "4 days running": the count large, where it

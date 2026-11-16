@@ -110,7 +110,6 @@
    * gold. A colour, never a tap and never a glow. `-core` is the flame's
    * heart. */
   --color-streak: #ff7a00;
-  --color-streak-core: #ffc53d;
   /* The light text on the deep surfaces (score card, stage). Neutral
    * since #289, with the stage; the name stays because forty call
    * sites use it and a token's name is never on screen. */
@@ -7823,26 +7822,17 @@ html[data-test-tile] .test-tile-slot {
      box is the flame's own (viewBox 5 3 14 16), so the count stands
      under the flame and not under empty canvas. */
   height: clamp(112px, 19dvh, 160px);
-  aspect-ratio: 14 / 16;
+  /* #487's 3D flame is drawn on a square, centred at one optical size. */
+  aspect-ratio: 1 / 1;
 }
-.streak-flame > svg {
+.streak-flame > span {
   position: absolute;
   inset: 0;
+  transform-origin: 50% 92%;
+}
+.streak-flame > span > img {
   width: 100%;
   height: 100%;
-  transform-origin: 50% 96%;
-}
-.streak-flame [data-body="unlit"] {
-  fill: var(--color-sand);
-}
-.streak-flame [data-core="unlit"] {
-  fill: var(--color-surface);
-}
-.streak-flame [data-body="lit"] {
-  fill: var(--color-streak);
-}
-.streak-flame [data-core="lit"] {
-  fill: var(--color-streak-core);
 }
 .streak-count {
   font-family: var(--font-display-face), sans-serif;

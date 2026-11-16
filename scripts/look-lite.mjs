@@ -92,7 +92,7 @@ async function run(theme, lite) {
     await shot("rep-scoring");
   });
   await step(async () => {
-    await page.goto(`${BASE}/settings`);
+    await page.goto(`${BASE}/settings/appearance`);
     await page.getByText("Lite graphics").first().scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollBy(0, 120));
     await shot("settings");

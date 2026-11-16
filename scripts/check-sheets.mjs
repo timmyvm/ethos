@@ -83,7 +83,7 @@ const settle = async (page) => {
 // ---- 1. the delete confirm --------------------------------------------------
 for (const [name, width, height] of [["390", 390, 844], ["320", 320, 568]]) {
   const { context, page, errors, deletes } = await open({ width, height });
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/data`);
   await settle(page);
   const door = page.getByRole("button", { name: "Delete my account" });
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));

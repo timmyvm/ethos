@@ -279,8 +279,8 @@ for (const theme of ["light", "dark"]) {
   ok(`${theme}: the last block clears the capsule by the rhythm`, clear.gap >= 27, `${clear.gap}px over a ${clear.h}px capsule`);
   await page.screenshot({ path: `${OUT}nav-labels-${theme}.png`, clip: { x: 0, y: 740, width: 390, height: 104 } });
 
-  // 4. Settings: the segmented thumb slides on the spring.
-  await page.goto(`${BASE}/settings`);
+  // 4. Settings' Appearance (#479): the segmented thumb slides on the spring.
+  await page.goto(`${BASE}/settings/appearance`);
   await page.waitForSelector(".segmented");
   await sleep(600);
   await capsOk(page, `${theme}: Settings`);

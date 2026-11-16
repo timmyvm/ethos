@@ -249,7 +249,7 @@ for (const [name, s] of Object.entries(SCENES)) {
         if (!(name in want) && !m.ask) fail(`${name} ${size.name}: no ask`);
       }
     } else {
-      await page.goto(`${BASE}/settings`);
+      await page.goto(`${BASE}/settings/notifications`);
       await page.waitForSelector("main .inset-group", { timeout: 30000 });
       await sleep(1500);
       if (s.tap === "switch") {

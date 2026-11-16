@@ -61,9 +61,9 @@ async function fresh({ width = 390, height = 844 } = {}) {
 }
 
 /** The fixture's account, with what this phone is and what it kept. */
-async function account({ prefs = {}, iphone = false, vibrate = true } = {}) {
+async function account({ prefs = {}, iphone = false, vibrate = true, width = 390, height = 844 } = {}) {
   const context = await browser.newContext({
-    viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    viewport: { width, height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     locale: "en-AU", timezoneId: "Australia/Melbourne", serviceWorkers: "block",
     ...(iphone ? { userAgent: IPHONE } : {}),
   });
@@ -156,10 +156,32 @@ for (const [name, width, height, kbd] of [["390x844", 390, 844, 336], ["375x667"
   await context.close();
 }
 
+// ---- 1b. Settings' account forms, with the keyboard up (#479) -----------------
+for (const [path, label] of [["/settings/account/email", "New email"], ["/settings/account/password", "New password"]]) {
+  for (const [name, width, height, kbd] of [["390x844", 390, 844, 336], ["375x667", 375, 667, 260]]) {
+    const { context, page, errors } = await account({ width, height });
+    await page.goto(`${BASE}${path}`);
+    await settle(page);
+    const field = page.getByLabel(label, { exact: true });
+    await field.focus();
+    await field.fill("tim+new@example.com");
+    await keyboard(page, kbd);
+    await sleep(600);
+    const tap = await page.evaluate(() => {
+      const b = document.querySelector('main form button[type="submit"]');
+      return b ? Math.round(b.getBoundingClientRect().bottom) : null;
+    });
+    const visible = height - kbd;
+    ok(`${path} ${name}: with the keyboard up, the form's tap is above the keys`, tap !== null && tap <= visible, `the tap ends at ${tap}, the keys start at ${visible}`);
+    ok(`${path} ${name}: threw nothing`, errors.length === 0, errors.join(" | "));
+    await context.close();
+  }
+}
+
 // ---- 3. the reminder's hour is the hour shown --------------------------------
 {
   const { context, page, errors } = await account({ prefs: { reminderHour: 9 } });
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/notifications`);
   await settle(page);
   const picker = page.locator("main select[data-reminder-hour]");
   const row = async () =>
@@ -197,7 +219,7 @@ for (const [name, width, height, kbd] of [["390x844", 390, 844, 336], ["375x667"
 {
   // An hour kept from before quiet hours covered it is still the hour shown.
   const { context, page } = await account({ prefs: { reminderHour: 23 } });
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/notifications`);
   await settle(page);
   const r = await page.evaluate(() => {
     const s = document.querySelector("main select[data-reminder-hour]");
@@ -215,13 +237,16 @@ for (const [name, opts, want] of [
   ["a browser with no haptic at all", { vibrate: false }, { haptics: false, bench: true, head: "Sound" }],
 ]) {
   const { context, page } = await account(opts);
-  await page.goto(`${BASE}/settings`);
+  /* Since #479 Haptics is on Accessibility and the camera bench on Practice. */
+  await page.goto(`${BASE}/settings/accessibility`);
   await settle(page);
-  const got = await page.evaluate(() => ({
+  const touch = await page.evaluate(() => ({
     haptics: [...document.querySelectorAll('main [role="switch"]')].some((s) => /^Haptics/.test(s.textContent.trim())),
-    bench: !!document.querySelector('main a[href="/calibrate"]'),
     head: [...document.querySelectorAll("main .group-head")].map((h) => h.textContent.trim()).find((t) => /^Sound/.test(t)) ?? null,
   }));
+  await page.goto(`${BASE}/settings/practice`);
+  await settle(page);
+  const got = { ...touch, bench: await page.evaluate(() => !!document.querySelector('main a[href="/calibrate"]')) };
   ok(`${name}: Haptics ${want.haptics ? "shown" : "not offered"}, the camera bench ${want.bench ? "shown" : "not offered"}`, got.haptics === want.haptics && got.bench === want.bench && got.head === want.head, JSON.stringify(got));
   await context.close();
 }

@@ -173,7 +173,7 @@ for (const [what, body] of [["a browser with no text size", null], ["an iPhone a
   await settle(page);
   const b = await read(page);
   ok(`${what}: still one plain tag after moving between tabs`, b.tags.length === 1 && b.tags[0] === PLAIN && b.width === 390, JSON.stringify(b.tags));
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/accessibility`);
   await settle(page);
   ok(`${what}: Settings offers no Larger text switch`, (await page.getByRole("switch", { name: /Larger text/ }).count()) === 0);
   ok(`${what}: no page error, no hydration trouble`, errors.length === 0, errors.join(" | "));
@@ -335,7 +335,7 @@ for (const { body, width, height, layout, zoom, name } of [
 /* ---- 7. Settings' switch ---- */
 {
   const { context, page, errors } = await open({ body: 21 });
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/accessibility`);
   await settle(page);
   const row = page.getByRole("switch", { name: /Larger text/ });
   ok("Settings offers Larger text where the phone asks for it", (await row.count()) === 1);
@@ -351,12 +351,12 @@ for (const { body, width, height, layout, zoom, name } of [
   ok("switched off, the page comes back at the phone's own width", off.width === 390 && off.tags.length === 1 && off.tags[0] === PLAIN && off.zoom === null, JSON.stringify(off));
   ok("switched off, the choice is saved", (await page.evaluate(() => JSON.parse(localStorage.getItem("ethos.prefs")).followTextSize)) === false);
   ok("switched off, the switch is still offered, and reads off", (await row.count()) === 1 && (await row.getAttribute("aria-checked")) === "false");
-  ok("switched off, the page is still Settings", new URL(page.url()).pathname === "/settings");
+  ok("switched off, the page is still Settings' Accessibility", new URL(page.url()).pathname === "/settings/accessibility");
   await page.goto(`${BASE}/history`);
   await settle(page);
   ok("switched off, it stays off on the next screen opened", (await read(page)).width === 390);
 
-  await page.goto(`${BASE}/settings`);
+  await page.goto(`${BASE}/settings/accessibility`);
   await settle(page);
   await Promise.all([page.waitForEvent("load"), row.click()]);
   await settle(page);
@@ -371,7 +371,7 @@ for (const { body, width, height, layout, zoom, name } of [
 if (SHOTS) {
   for (const [body, theme] of [[17, "light"], [21, "dark"], [17, "dark"]]) {
     const { context, page } = await open({ body, theme });
-    for (const [path, name] of [["/", "today"], ["/history", "log"], ["/you", "you"], ["/settings", "settings"]]) {
+    for (const [path, name] of [["/", "today"], ["/history", "log"], ["/you", "you"], ["/settings/accessibility", "settings"]]) {
       await page.goto(`${BASE}${path}`);
       await settle(page);
       if (name === "settings") await page.getByRole("switch", { name: /Reduced motion/ }).scrollIntoViewIfNeeded().catch(() => {});

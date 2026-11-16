@@ -211,7 +211,7 @@ select at, kind, name, screen, label, ms
 
 ### Paying and the parents
 
-Who has finished the 14 days (2 to 15 November). The report's `days_spoken` counts every day since joining with no end, so a friend who keeps recording after the 12th would pass `days_spoken >= 14` without fourteen days in the test; count the window's days instead, as Today's tile does:
+Who is paid (#469): 8 or more of the 14 days (2 to 15 November), Timothy's bar after the test, plus anyone he pays as goodwill. The report's `days_spoken` counts every day since joining with no end, so a friend who keeps recording after the 12th would pass `days_spoken >= 14` without fourteen days in the test; count the window's days instead, as Today's tile does:
 
 ```sql
 select t.tester_number, t.name, t.email, count(distinct r.spoken_on) as days_in_test
@@ -219,11 +219,11 @@ select t.tester_number, t.name, t.email, count(distinct r.spoken_on) as days_in_
   join tester_admin.recordings r on r.user_id = t.user_id
  where r.spoken_on between date '2026-11-02' and date '2026-11-15'
  group by t.tester_number, t.name, t.email
-having count(distinct r.spoken_on) >= 14
+having count(distinct r.spoken_on) >= 8
  order by t.name;
 ```
 
-The same list is who is owed free Premium at launch (the DM promises it): keep it.
+Every tester was given Premium on 16 Nov (#469), so the DM's free Premium at launch is already kept. Keep the paid list outside this repo. A friend whose days sit on an account that never joined tester mode (an anonymous tester session and a separate signed-in account, never linked) is found by email in `auth.users` and their days counted from `public.reps`.
 
 `under_18` comes from the introduction's age answer, and it is empty for anyone who skipped that question or the whole introduction. Check you have a parent's or guardian's text for every tester where it is true or empty:
 

@@ -582,7 +582,7 @@
         },
         {
           "id": "t71",
-          "len": 45,
+          "len": 46,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -750,10 +750,10 @@
         },
         {
           "id": "t92",
-          "len": 42,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -870,10 +870,10 @@
         },
         {
           "id": "t107",
-          "len": 47,
+          "len": 33,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -966,7 +966,7 @@
         },
         {
           "id": "t119",
-          "len": 43,
+          "len": 46,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -1062,10 +1062,10 @@
         },
         {
           "id": "t131",
-          "len": 42,
+          "len": 43,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -1078,10 +1078,10 @@
         },
         {
           "id": "t133",
-          "len": 31,
-          "cardLines": 2,
+          "len": 43,
+          "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -1166,10 +1166,10 @@
         },
         {
           "id": "t144",
-          "len": 47,
+          "len": 37,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -1310,8 +1310,8 @@
         },
         {
           "id": "t162",
-          "len": 35,
-          "cardLines": 3,
+          "len": 26,
+          "cardLines": 2,
           "card": 376,
           "reelLines": 2,
           "reelFits": true
@@ -1382,10 +1382,10 @@
         },
         {
           "id": "t171",
-          "len": 45,
-          "cardLines": 4,
+          "len": 36,
+          "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -1542,7 +1542,7 @@
         },
         {
           "id": "t191",
-          "len": 42,
+          "len": 41,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -1606,7 +1606,7 @@
         },
         {
           "id": "t199",
-          "len": 41,
+          "len": 40,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -1766,10 +1766,10 @@
         },
         {
           "id": "t219",
-          "len": 47,
+          "len": 37,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -1926,7 +1926,7 @@
         },
         {
           "id": "t239",
-          "len": 42,
+          "len": 41,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -2054,7 +2054,7 @@
         },
         {
           "id": "t255",
-          "len": 37,
+          "len": 42,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -2182,10 +2182,10 @@
         },
         {
           "id": "t271",
-          "len": 38,
+          "len": 48,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -2350,10 +2350,10 @@
         },
         {
           "id": "t292",
-          "len": 37,
+          "len": 32,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -2566,10 +2566,10 @@
         },
         {
           "id": "t319",
-          "len": 35,
+          "len": 45,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -2798,10 +2798,10 @@
         },
         {
           "id": "t348",
-          "len": 36,
+          "len": 47,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -2822,7 +2822,7 @@
         },
         {
           "id": "t351",
-          "len": 47,
+          "len": 48,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -2862,7 +2862,7 @@
         },
         {
           "id": "t356",
-          "len": 46,
+          "len": 40,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -2902,7 +2902,7 @@
         },
         {
           "id": "t361",
-          "len": 30,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -3512,7 +3512,7 @@
         },
         {
           "id": "t71",
-          "len": 45,
+          "len": 46,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -3680,7 +3680,7 @@
         },
         {
           "id": "t92",
-          "len": 42,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -3800,10 +3800,10 @@
         },
         {
           "id": "t107",
-          "len": 47,
+          "len": 33,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -3896,7 +3896,7 @@
         },
         {
           "id": "t119",
-          "len": 43,
+          "len": 46,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -3992,7 +3992,7 @@
         },
         {
           "id": "t131",
-          "len": 42,
+          "len": 43,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -4008,10 +4008,10 @@
         },
         {
           "id": "t133",
-          "len": 31,
-          "cardLines": 2,
+          "len": 43,
+          "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -4096,7 +4096,7 @@
         },
         {
           "id": "t144",
-          "len": 47,
+          "len": 37,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -4240,8 +4240,8 @@
         },
         {
           "id": "t162",
-          "len": 35,
-          "cardLines": 3,
+          "len": 26,
+          "cardLines": 2,
           "card": 376,
           "reelLines": 2,
           "reelFits": true
@@ -4312,7 +4312,7 @@
         },
         {
           "id": "t171",
-          "len": 45,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -4472,7 +4472,7 @@
         },
         {
           "id": "t191",
-          "len": 42,
+          "len": 41,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -4536,7 +4536,7 @@
         },
         {
           "id": "t199",
-          "len": 41,
+          "len": 40,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -4696,10 +4696,10 @@
         },
         {
           "id": "t219",
-          "len": 47,
+          "len": 37,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -4856,7 +4856,7 @@
         },
         {
           "id": "t239",
-          "len": 42,
+          "len": 41,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -4984,7 +4984,7 @@
         },
         {
           "id": "t255",
-          "len": 37,
+          "len": 42,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -5112,10 +5112,10 @@
         },
         {
           "id": "t271",
-          "len": 38,
+          "len": 48,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -5280,7 +5280,7 @@
         },
         {
           "id": "t292",
-          "len": 37,
+          "len": 32,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -5496,7 +5496,7 @@
         },
         {
           "id": "t319",
-          "len": 35,
+          "len": 45,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -5728,10 +5728,10 @@
         },
         {
           "id": "t348",
-          "len": 36,
+          "len": 47,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 2,
+          "reelLines": 3,
           "reelFits": true
         },
         {
@@ -5752,7 +5752,7 @@
         },
         {
           "id": "t351",
-          "len": 47,
+          "len": 48,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -5792,7 +5792,7 @@
         },
         {
           "id": "t356",
-          "len": 46,
+          "len": 40,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -5832,7 +5832,7 @@
         },
         {
           "id": "t361",
-          "len": 30,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -6442,7 +6442,7 @@
         },
         {
           "id": "t71",
-          "len": 45,
+          "len": 46,
           "cardLines": 3,
           "card": 376,
           "reelLines": 3,
@@ -6610,7 +6610,7 @@
         },
         {
           "id": "t92",
-          "len": 42,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -6730,10 +6730,10 @@
         },
         {
           "id": "t107",
-          "len": 47,
+          "len": 33,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -6826,7 +6826,7 @@
         },
         {
           "id": "t119",
-          "len": 43,
+          "len": 46,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -6922,8 +6922,8 @@
         },
         {
           "id": "t131",
-          "len": 42,
-          "cardLines": 2,
+          "len": 43,
+          "cardLines": 3,
           "card": 376,
           "reelLines": 2,
           "reelFits": true
@@ -6938,8 +6938,8 @@
         },
         {
           "id": "t133",
-          "len": 31,
-          "cardLines": 2,
+          "len": 43,
+          "cardLines": 3,
           "card": 376,
           "reelLines": 2,
           "reelFits": true
@@ -7026,7 +7026,7 @@
         },
         {
           "id": "t144",
-          "len": 47,
+          "len": 37,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -7170,8 +7170,8 @@
         },
         {
           "id": "t162",
-          "len": 35,
-          "cardLines": 3,
+          "len": 26,
+          "cardLines": 2,
           "card": 376,
           "reelLines": 2,
           "reelFits": true
@@ -7242,7 +7242,7 @@
         },
         {
           "id": "t171",
-          "len": 45,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -7402,7 +7402,7 @@
         },
         {
           "id": "t191",
-          "len": 42,
+          "len": 41,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -7466,7 +7466,7 @@
         },
         {
           "id": "t199",
-          "len": 41,
+          "len": 40,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -7626,10 +7626,10 @@
         },
         {
           "id": "t219",
-          "len": 47,
+          "len": 37,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -7786,7 +7786,7 @@
         },
         {
           "id": "t239",
-          "len": 42,
+          "len": 41,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -7914,7 +7914,7 @@
         },
         {
           "id": "t255",
-          "len": 37,
+          "len": 42,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -8042,7 +8042,7 @@
         },
         {
           "id": "t271",
-          "len": 38,
+          "len": 48,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -8210,7 +8210,7 @@
         },
         {
           "id": "t292",
-          "len": 37,
+          "len": 32,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -8426,7 +8426,7 @@
         },
         {
           "id": "t319",
-          "len": 35,
+          "len": 45,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -8658,7 +8658,7 @@
         },
         {
           "id": "t348",
-          "len": 36,
+          "len": 47,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -8682,10 +8682,10 @@
         },
         {
           "id": "t351",
-          "len": 47,
+          "len": 48,
           "cardLines": 3,
           "card": 376,
-          "reelLines": 3,
+          "reelLines": 2,
           "reelFits": true
         },
         {
@@ -8722,7 +8722,7 @@
         },
         {
           "id": "t356",
-          "len": 46,
+          "len": 40,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,
@@ -8762,7 +8762,7 @@
         },
         {
           "id": "t361",
-          "len": 30,
+          "len": 36,
           "cardLines": 3,
           "card": 376,
           "reelLines": 2,

@@ -2,13 +2,14 @@
  * The roulette pool — topics to speak on cold.
  *
  * Competitor note (Wellspoken): a spinning wheel of random topics before
- * the rep. The mechanic is good for a real reason — it removes the
- * "what do I even talk about" stall, and it makes the rep a genuine
- * cold open rather than something you quietly rehearsed while deciding.
+ * the recording. The mechanic is good for a real reason: it removes the
+ * "what do I even talk about" stall, and it makes the recording a
+ * genuine cold open rather than something you quietly rehearsed while
+ * deciding.
  *
  * These are deliberately answerable by anyone: opinions and experiences,
  * not knowledge. The Cold Topic boss is where not-knowing is the point
- * (lib/cold-topics.ts); here, not-knowing would just waste the rep.
+ * (lib/cold-topics.ts); here, not-knowing would just waste the recording.
  *
  * Structure tips are per-shape, not per-topic, so the advice is honest:
  * we know what shape of answer the prompt asks for, and nothing more.
@@ -157,7 +158,16 @@ export const TOPICS: Topic[] = [
    * (docs/look/topics/365/fit.json), and the eight that ran Today's card
    * to four lines at 375 or 390 were reworded to the idea in fewer or
    * shorter words: a 38-character topic with "community" in it breaks
-   * where a 44-character one of short words does not.
+   * where a 44-character one of short words does not. The review read
+   * all 305 and replaced 21 in place, each with its id and shape: school
+   * essay titles (zoos, museums, school in 2050), sermons ("starting
+   * before you feel ready", "celebrating small wins", fair and equal, a
+   * want from a need), near-twins of another topic (a big decision and
+   * gut or list, turning down plans and leaving a conversation, a habit
+   * and a phrase picked up from someone), and ones too thin or vague to
+   * fill a minute. Their replacements ask for something everyone has
+   * done or can picture: a shoelace, a text, a blanket fort, the front
+   * seat.
    */
   { id: "t61", prompt: "The longest you can leave a text unanswered", shape: "opinion" },
   { id: "t62", prompt: "Someone who taught you by accident", shape: "story" },
@@ -169,7 +179,7 @@ export const TOPICS: Topic[] = [
   { id: "t68", prompt: "Pitch a law you'd pass tomorrow", shape: "pitch" },
   { id: "t69", prompt: "Whether AI makes people lazier or smarter", shape: "opinion" },
   { id: "t70", prompt: "The first thing you learnt to cook, even toast", shape: "story" },
-  { id: "t71", prompt: "Explain a normal Tuesday for you in ten years", shape: "explain" },
+  { id: "t71", prompt: "Explain how to tie a shoelace using only words", shape: "explain" },
   { id: "t72", prompt: "Pitch a street party to your neighbours", shape: "pitch" },
   { id: "t73", prompt: "Whether to live in a city or the countryside", shape: "opinion" },
   { id: "t74", prompt: "The first big decision you made on your own", shape: "story" },
@@ -190,7 +200,7 @@ export const TOPICS: Topic[] = [
   { id: "t89", prompt: "Whether the book is always better than the film", shape: "opinion" },
   { id: "t90", prompt: "A place from childhood you can still picture", shape: "story" },
   { id: "t91", prompt: "Explain the point of a rule you used to hate", shape: "explain" },
-  { id: "t92", prompt: "Pitch an afternoon with someone much older", shape: "pitch" },
+  { id: "t92", prompt: "Pitch a new rule for your group chat", shape: "pitch" },
   { id: "t93", prompt: "Whether breakfast is the best meal of the day", shape: "opinion" },
   { id: "t94", prompt: "A time you told the truth when a lie was easier", shape: "story" },
   { id: "t95", prompt: "Explain your morning routine, step by step", shape: "explain" },
@@ -205,7 +215,7 @@ export const TOPICS: Topic[] = [
   { id: "t104", prompt: "Pitch a new ice cream flavour", shape: "pitch" },
   { id: "t105", prompt: "Whether homework should exist", shape: "opinion" },
   { id: "t106", prompt: "A film you saw at exactly the right time", shape: "story" },
-  { id: "t107", prompt: "Explain a meal you can make from almost nothing", shape: "explain" },
+  { id: "t107", prompt: "Explain what makes a good villain", shape: "explain" },
   { id: "t108", prompt: "Pitch the film of your life so far", shape: "pitch" },
   { id: "t109", prompt: "Whether you can separate the art from the artist", shape: "opinion" },
   { id: "t110", prompt: "The hottest or coldest you've ever been", shape: "story" },
@@ -217,7 +227,7 @@ export const TOPICS: Topic[] = [
   { id: "t116", prompt: "Pitch a skill you could teach in ten minutes", shape: "pitch" },
   { id: "t117", prompt: "Whether you'd see your future if you could", shape: "opinion" },
   { id: "t118", prompt: "The neighbour you remember most", shape: "story" },
-  { id: "t119", prompt: "Explain how to ask a good question in class", shape: "explain" },
+  { id: "t119", prompt: "Explain how to write a text no one can misread", shape: "explain" },
   { id: "t120", prompt: "Pitch a channel or creator you never miss", shape: "pitch" },
   { id: "t121", prompt: "Whether to tell a friend a hard truth", shape: "opinion" },
   { id: "t122", prompt: "A time you asked for help and it worked", shape: "story" },
@@ -229,9 +239,9 @@ export const TOPICS: Topic[] = [
   { id: "t128", prompt: "Pitch a fairer way to queue", shape: "pitch" },
   { id: "t129", prompt: "An invention the world would be better without", shape: "opinion" },
   { id: "t130", prompt: "A pet you've had or one you've known well", shape: "story" },
-  { id: "t131", prompt: "Explain what school will look like in 2050", shape: "explain" },
+  { id: "t131", prompt: "Explain how a toy you loved as a kid worked", shape: "explain" },
   { id: "t132", prompt: "Pitch the dish someone you know makes best", shape: "pitch" },
-  { id: "t133", prompt: "Whether zoos should still exist", shape: "opinion" },
+  { id: "t133", prompt: "Whether to binge a series or wait each week", shape: "opinion" },
   { id: "t134", prompt: "A day you'd happily live again", shape: "story" },
   { id: "t135", prompt: "Explain an inside joke to an outsider", shape: "explain" },
   { id: "t136", prompt: "Pitch a thirty-day challenge to a friend", shape: "pitch" },
@@ -242,7 +252,7 @@ export const TOPICS: Topic[] = [
   { id: "t141", prompt: "Whether going to the cinema alone is underrated", shape: "opinion" },
   { id: "t142", prompt: "The day something you were learning clicked", shape: "story" },
   { id: "t143", prompt: "Explain why a song gets stuck in your head", shape: "explain" },
-  { id: "t144", prompt: "Pitch a hobby that gets people off their phones", shape: "pitch" },
+  { id: "t144", prompt: "Pitch a fictional world you'd live in", shape: "pitch" },
   { id: "t145", prompt: "Whether to follow your gut or make a list", shape: "opinion" },
   { id: "t146", prompt: "A time you went down an internet rabbit hole", shape: "story" },
   { id: "t147", prompt: "Explain how to explore a new town in a day", shape: "explain" },
@@ -260,7 +270,7 @@ export const TOPICS: Topic[] = [
   { id: "t159", prompt: "Explain how to remember what you read", shape: "explain" },
   { id: "t160", prompt: "Pitch a new word the language needs", shape: "pitch" },
   { id: "t161", prompt: "Whether small talk is a waste of time", shape: "opinion" },
-  { id: "t162", prompt: "How you got ready for something big", shape: "story" },
+  { id: "t162", prompt: "The night before a big day", shape: "story" },
   { id: "t163", prompt: "Explain why people love being scared by films", shape: "explain" },
   { id: "t164", prompt: "Pitch a craft that deserves a comeback", shape: "pitch" },
   { id: "t165", prompt: "Whether you learn more from teachers or videos", shape: "opinion" },
@@ -269,7 +279,7 @@ export const TOPICS: Topic[] = [
   { id: "t168", prompt: "Pitch writing a letter to your future self", shape: "pitch" },
   { id: "t169", prompt: "Whether everyone should learn to code", shape: "opinion" },
   { id: "t170", prompt: "A trip, however short, you still think about", shape: "story" },
-  { id: "t171", prompt: "Explain the difference between fair and equal", shape: "explain" },
+  { id: "t171", prompt: "Explain how to plan a scavenger hunt", shape: "explain" },
   { id: "t172", prompt: "Pitch a quiet night in over a night out", shape: "pitch" },
   { id: "t173", prompt: "Whether to travel alone or with friends", shape: "opinion" },
   { id: "t174", prompt: "A time you put someone else first", shape: "story" },
@@ -289,7 +299,7 @@ export const TOPICS: Topic[] = [
   { id: "t188", prompt: "Pitch keeping a one-line diary", shape: "pitch" },
   { id: "t189", prompt: "Whether slang makes language better or worse", shape: "opinion" },
   { id: "t190", prompt: "Something you noticed on a walk recently", shape: "story" },
-  { id: "t191", prompt: "Explain how you'd split a prize three ways", shape: "explain" },
+  { id: "t191", prompt: "Explain how to find something you've lost", shape: "explain" },
   { id: "t192", prompt: "Pitch a birthday with no presents", shape: "pitch" },
   { id: "t193", prompt: "The best place to think", shape: "opinion" },
   { id: "t194", prompt: "A promise someone kept to you", shape: "story" },
@@ -297,7 +307,7 @@ export const TOPICS: Topic[] = [
   { id: "t196", prompt: "Pitch school starting an hour later", shape: "pitch" },
   { id: "t197", prompt: "The one thing you'd save in a fire", shape: "opinion" },
   { id: "t198", prompt: "The first friend you can remember", shape: "story" },
-  { id: "t199", prompt: "Explain how to keep a promise to yourself", shape: "explain" },
+  { id: "t199", prompt: "Explain how to build a good blanket fort", shape: "explain" },
   { id: "t200", prompt: "Pitch a new sport for the Olympics", shape: "pitch" },
   { id: "t201", prompt: "Whether surprise parties are a good idea", shape: "opinion" },
   { id: "t202", prompt: "Advice that only made sense later", shape: "story" },
@@ -317,7 +327,7 @@ export const TOPICS: Topic[] = [
   { id: "t216", prompt: "Pitch your goal for this year to a sceptic", shape: "pitch" },
   { id: "t217", prompt: "Whether you'd take a year of being famous", shape: "opinion" },
   { id: "t218", prompt: "A story your friends or family always retell", shape: "story" },
-  { id: "t219", prompt: "Explain how to stay motivated on a long project", shape: "explain" },
+  { id: "t219", prompt: "Explain how to pick a name for a band", shape: "explain" },
   { id: "t220", prompt: "Pitch a kind of music most people skip", shape: "pitch" },
   { id: "t221", prompt: "Whether a phone call beats a text", shape: "opinion" },
   { id: "t222", prompt: "The first time you led something", shape: "story" },
@@ -337,7 +347,7 @@ export const TOPICS: Topic[] = [
   { id: "t236", prompt: "Pitch a study group to people you barely know", shape: "pitch" },
   { id: "t237", prompt: "The best age to be", shape: "opinion" },
   { id: "t238", prompt: "A time you said yes to a last-minute plan", shape: "story" },
-  { id: "t239", prompt: "Explain how to break a big task into steps", shape: "explain" },
+  { id: "t239", prompt: "Explain how to tidy a room in ten minutes", shape: "explain" },
   { id: "t240", prompt: "Pitch a chore you'd hand over to AI", shape: "pitch" },
   { id: "t241", prompt: "Whether you can leave a party without saying bye", shape: "opinion" },
   { id: "t242", prompt: "The last time you competed at anything", shape: "story" },
@@ -353,7 +363,7 @@ export const TOPICS: Topic[] = [
   { id: "t252", prompt: "Pitch a sunrise to someone who loves sleep", shape: "pitch" },
   { id: "t253", prompt: "A sport that deserves more fans", shape: "opinion" },
   { id: "t254", prompt: "The fairest person you know", shape: "story" },
-  { id: "t255", prompt: "Explain how to turn down plans nicely", shape: "explain" },
+  { id: "t255", prompt: "Explain how to make a playlist for a party", shape: "explain" },
   { id: "t256", prompt: "Pitch a library to someone who's never been", shape: "pitch" },
   { id: "t257", prompt: "Whether you should keep score in friendships", shape: "opinion" },
   { id: "t258", prompt: "The strangest thing you've seen in public", shape: "story" },
@@ -369,7 +379,7 @@ export const TOPICS: Topic[] = [
   { id: "t268", prompt: "Pitch planting a tree you'll never sit under", shape: "pitch" },
   { id: "t269", prompt: "Whether you'd take a one-way ticket to Mars", shape: "opinion" },
   { id: "t270", prompt: "Something you collected as a kid", shape: "story" },
-  { id: "t271", prompt: "Explain how to tell a want from a need", shape: "explain" },
+  { id: "t271", prompt: "Explain how to settle who sits in the front seat", shape: "explain" },
   { id: "t272", prompt: "Pitch a picnic over a restaurant", shape: "pitch" },
   { id: "t273", prompt: "Whether spicy food is worth the pain", shape: "opinion" },
   { id: "t274", prompt: "A time you kept a secret for a good reason", shape: "story" },
@@ -390,7 +400,7 @@ export const TOPICS: Topic[] = [
   { id: "t289", prompt: "Whether the internet should forget old posts", shape: "opinion" },
   { id: "t290", prompt: "A casual game that got far too serious", shape: "story" },
   { id: "t291", prompt: "Explain the three things a good day needs", shape: "explain" },
-  { id: "t292", prompt: "Pitch thanking someone who shaped you", shape: "pitch" },
+  { id: "t292", prompt: "Pitch a playground for grown-ups", shape: "pitch" },
   { id: "t293", prompt: "The best smell in the world", shape: "opinion" },
   { id: "t294", prompt: "A time someone bent the rules and was right to", shape: "story" },
   { id: "t295", prompt: "Explain how to tell a story at the dinner table", shape: "explain" },
@@ -417,7 +427,7 @@ export const TOPICS: Topic[] = [
   { id: "t316", prompt: "Pitch learning something useless", shape: "pitch" },
   { id: "t317", prompt: "Whether a promise made as a kid still counts", shape: "opinion" },
   { id: "t318", prompt: "The best compliment you've ever had", shape: "story" },
-  { id: "t319", prompt: "Explain how you make a big decision", shape: "explain" },
+  { id: "t319", prompt: "Explain how to keep a little kid busy all day", shape: "explain" },
   { id: "t320", prompt: "Pitch a day in history worth travelling back to", shape: "pitch" },
   { id: "t321", prompt: "Whether you become who you spend time with", shape: "opinion" },
   { id: "t322", prompt: "Something you're glad you quit", shape: "story" },
@@ -446,20 +456,20 @@ export const TOPICS: Topic[] = [
   { id: "t345", prompt: "Advice for someone new to high school", shape: "opinion" },
   { id: "t346", prompt: "A line from a film or show you still quote", shape: "story" },
   { id: "t347", prompt: "Explain how you know who to trust", shape: "explain" },
-  { id: "t348", prompt: "Pitch starting before you feel ready", shape: "pitch" },
+  { id: "t348", prompt: "Pitch a cartoon you grew up with to a kid today", shape: "pitch" },
   { id: "t349", prompt: "The best decade for music", shape: "opinion" },
   { id: "t350", prompt: "A meal you ate somewhere unusual", shape: "story" },
-  { id: "t351", prompt: "Explain a habit you picked up from someone else", shape: "explain" },
+  { id: "t351", prompt: "Explain how your phone's home screen is laid out", shape: "explain" },
   { id: "t352", prompt: "Pitch an emoji that should exist", shape: "pitch" },
   { id: "t353", prompt: "Whether to stay in your hometown or leave", shape: "opinion" },
   { id: "t354", prompt: "A rule you made up that people actually followed", shape: "story" },
   { id: "t355", prompt: "Explain how to split work fairly in a group", shape: "explain" },
-  { id: "t356", prompt: "Pitch celebrating small wins with your friends", shape: "pitch" },
+  { id: "t356", prompt: "Pitch a better greeting than a handshake", shape: "pitch" },
   { id: "t357", prompt: "Whether sixteen-year-olds should vote", shape: "opinion" },
   { id: "t358", prompt: "A stranger you see so often they feel familiar", shape: "story" },
   { id: "t359", prompt: "Explain what you'd put in a time capsule", shape: "explain" },
   { id: "t360", prompt: "Pitch a pencil like it's the latest phone", shape: "pitch" },
-  { id: "t361", prompt: "Whether museums should be free", shape: "opinion" },
+  { id: "t361", prompt: "Whether spoilers really ruin a story", shape: "opinion" },
   { id: "t362", prompt: "The highest place you've ever stood", shape: "story" },
   { id: "t363", prompt: "Explain your music taste in three songs", shape: "explain" },
   { id: "t364", prompt: "Pitch who your town should put up a statue of", shape: "pitch" },

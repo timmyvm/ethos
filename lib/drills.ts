@@ -324,7 +324,7 @@ export const DRILLS: Drill[] = [
     title: "Finish every sentence",
     prompt: "What you'd change about your city. Every sentence you start, you finish.",
     tips: [
-      "Starting over once a minute costs a third of your Follow-through score.",
+      "Starting over once a minute costs a third of your Restart control score.",
       "Sentence going wrong? Finish it anyway, then fix it in the next one.",
       "Start a little slower and you'll start over less.",
     ],

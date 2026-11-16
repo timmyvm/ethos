@@ -66,7 +66,7 @@ describe("a pause is judged by where it lands", () => {
     expect(r.landings).toBe(1);
     expect(r.hesitations).toBe(0);
     expect(r.pauses.find((p) => p.verdict === "landing")?.note).toContain(
-      "after a finished point"
+      "between sentences"
     );
   });
 
@@ -89,7 +89,7 @@ describe("a pause is judged by where it lands", () => {
     const r = report(["Right. So.", 1.5, SENTENCE_A]);
     expect(r.landings).toBe(0);
     expect(r.pauses.find((p) => p.verdict === "hesitation")?.note).toContain(
-      "No point to land"
+      "after only 1 word"
     );
   });
 
@@ -114,7 +114,7 @@ describe("silence you bought back", () => {
     });
     expect(r.landings).toBe(0);
     expect(r.filled).toBe(1);
-    expect(r.headline).toContain("INSTEAD");
+    expect(r.headline).toBe("1 pause had an um next to it. Let the pause replace the um.");
   });
 
   it("scores a filled pause below the same pause left clean", () => {
@@ -136,7 +136,7 @@ describe("dead air", () => {
     const r = report([SENTENCE_A, DEAD_AIR_S + 1, SENTENCE_B]);
     expect(r.dead).toBe(1);
     expect(r.landings).toBe(0);
-    expect(r.headline).toContain("dead air");
+    expect(r.headline).toContain("ran past 3.5 seconds");
   });
 
   it("costs more than it could ever have earned", () => {
@@ -169,7 +169,7 @@ describe("the score", () => {
   it("does not hand out a baseline for a rep with no held pauses", () => {
     const r = report([`${SENTENCE_A} ${SENTENCE_B} ${SENTENCE_C}`]);
     expect(r.score).toBeLessThan(40);
-    expect(r.headline).toContain("No held pauses");
+    expect(r.headline).toContain("No one-second pauses");
   });
 
   it("still tops out at 100 for a genuinely well-paced rep", () => {
@@ -192,13 +192,13 @@ describe("the score", () => {
 describe("the headline", () => {
   it("names the biggest problem, not a list of them", () => {
     const r = report([SENTENCE_A, DEAD_AIR_S + 1, SENTENCE_B, 1.4, "and then"]);
-    expect(r.headline).toContain("dead air");
+    expect(r.headline).toContain("ran past 3.5 seconds");
     expect(r.headline).not.toContain("mid-sentence");
   });
 
   it("says something true and useful when nothing is wrong", () => {
     const r = report([SENTENCE_A, 1.5, SENTENCE_B, 1.4, SENTENCE_C]);
-    expect(r.headline).toContain("landed after a finished point");
+    expect(r.headline).toBe("2 pauses between sentences.");
   });
 });
 
@@ -388,7 +388,7 @@ describe("a take as Whisper returns it (#476)", () => {
     const pause = sr.pauses.find((p) => p.verdict !== "beat")!;
     expect(pause.kind).toBe("pre");
     expect(pause.verdict).toBe("hesitation");
-    expect(pause.note).toContain("a pause after 3 words");
+    expect(pause.note).toContain("a pause after only 3 words");
   });
 
   it("scores it 73: placement 6 of 8 (50.25), the rate (25), the ending (8), one filled (-10)", () => {

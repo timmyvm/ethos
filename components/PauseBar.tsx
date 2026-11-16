@@ -1,6 +1,6 @@
 import { IconBubble } from "@/components/Icon";
 import type { Pause } from "@/lib/metrics";
-import { heldPauseMarks, landedPause as landed, PAUSE_MARK_WORDS } from "@/lib/pause-mark";
+import { heldPauseMarks, landedPause as landed, otherKey, PAUSE_MARK_WORDS } from "@/lib/pause-mark";
 import type { PauseVerdict } from "@/lib/pause-quality";
 
 /** Stored rows carry a verdict once they've been judged. */
@@ -93,7 +93,7 @@ export function PauseBar({
       <div className="eyebrow">Pauses</div>
       <div
         role="img"
-        aria-label={`${heldCount} held pause${heldCount === 1 ? "" : "s"}, ${landedCount} ${PAUSE_MARK_WORDS.landed}`}
+        aria-label={`${heldCount} pause${heldCount === 1 ? "" : "s"}, ${landedCount} between sentences`}
         className="forced-color-adjust-none mt-3 flex h-14 items-center gap-[3px] overflow-hidden"
       >
         {clip(segs).map((s, i) => {
@@ -151,7 +151,7 @@ export function PauseBar({
           {searchingCount > 0 && (
             <span aria-hidden className="inline-flex items-center gap-1.5">
               <span className={`inline-block h-1.5 w-2.5 ${SEARCHING_MARK}`} />
-              {PAUSE_MARK_WORDS.searching}
+              {otherKey(pauses)}
             </span>
           )}
         </div>

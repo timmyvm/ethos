@@ -14,7 +14,7 @@
  *    same number, said once at the top of the page since #484);
  *  - one word for how it went, from the row's share of its max (`band`);
  *  - named for the skill where the trait is named for the fault
- *    (content/traits.ts `skill`: Filler control, Follow-through).
+ *    (content/traits.ts `skill`: Filler control, Restart control since #490).
  *
  * Pure: the rows, the words and the headline are computed here and
  * drawn by components/DimensionList.tsx and You's trait rows.
@@ -156,7 +156,9 @@ export function listWords(names: string[]): string {
  * stands right under it with its number.
  */
 export const STRONG_PHRASE: Record<TraitKey, string> = {
-  pause: "let your points land",
+  /* "let your points land" (#490): what a Strong Pausing row measured,
+     in the house's words for it. */
+  pause: "paused between sentences",
   /* "down", never "out": Strong is up to 2.4 fillers a minute, so the
      row under it can say "2 in 60 seconds" (#471 review). */
   fillers: "kept fillers down",

@@ -1109,6 +1109,23 @@ function useShortRoom(): boolean {
   );
 }
 
+/* A hyphenated word ("mid-sentence") never splits at its hyphen in the
+   bubble (#490: "mid-" alone on a line at 390): the word sits in a
+   nowrap span, so the text a reader or a test gets is unchanged. */
+function wholeWords(text: string): ReactNode {
+  const pieces = text.split(/(\S+-\S+)/);
+  if (pieces.length === 1) return text;
+  return pieces.map((piece, i) =>
+    i % 2 ? (
+      <span key={i} className="whitespace-nowrap">
+        {piece}
+      </span>
+    ) : (
+      piece
+    )
+  );
+}
+
 /**
  * The glance (DECISIONS #427, its review): the results' one screen. The
  * score as one centred column (the stars, the 72px Index, its delta with
@@ -1203,7 +1220,7 @@ function Glance({
       return;
     }
     if (next?.kind !== "moment") {
-      parts.push(<Fragment key={i}>{p.text}</Fragment>);
+      parts.push(<Fragment key={i}>{wholeWords(p.text)}</Fragment>);
       return;
     }
     const text = p.text.trimEnd();
@@ -1214,7 +1231,7 @@ function Glance({
     const tail = text.slice(cut).replace(/ /g, "\u00a0");
     parts.push(
       <Fragment key={i}>
-        {head}
+        {wholeWords(head)}
         <span className="whitespace-nowrap">
           {tail}
           {tail ? "\u00a0" : ""}

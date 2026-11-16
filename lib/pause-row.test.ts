@@ -13,7 +13,7 @@ import { filledMoments, reportJudged, saysFilled, type JudgedPause, type PauseVe
  * review): a take that cannot play gives plain times and no dead
  * buttons; a take that can gives one chip per named moment, pressed
  * while its own stretch plays; the times sit on one unbroken line so
- * two 44px targets never stack; the row says "had a sound in" once; and
+ * two 44px targets never stack; the row says "had an um next to" once; and
  * the chip's glyph wears Hear it back's terracotta.
  */
 const judged = (t: number, verdict: PauseVerdict, len = 1.1): JudgedPause => ({
@@ -74,7 +74,7 @@ describe("a take that cannot play names its moments as plain times", () => {
       const html = row(TAKE.two, { take: t });
       expect(html).not.toMatch(/<button[^>]*data-pause-moment/);
       expect(html.match(/<span data-pause-moment[^>]*>0:(15|40)<\/span>/g)).toHaveLength(2);
-      expect(text(html)).toContain("0:15 and 0:40 had a sound in them.");
+      expect(text(html)).toContain("0:15 and 0:40 had an um next to them.");
     });
   }
 });
@@ -140,25 +140,25 @@ describe("the row says it once", () => {
       const detail = headline(TAKE[name]);
       expect(saysFilled(detail), name).toBe(true);
       const said = text(row(TAKE[name], { take: take({ playable: true }), detail }));
-      expect(said.match(/had a sound in/g), name).toHaveLength(1);
+      expect(said.match(/had an um next to/g), name).toHaveLength(1);
       expect(said, name).toContain(where);
     }
   });
 
   it("the dead-air headline says nothing of them, so the moments say it whole", () => {
     const detail = headline(TAKE.dead);
-    expect(detail).toMatch(/dead air/);
+    expect(detail).toMatch(/ran past 3.5 seconds/);
     expect(saysFilled(detail)).toBe(false);
     const said = text(row(TAKE.dead, { take: take({ playable: true }), detail }));
-    expect(said.match(/had a sound in/g)).toHaveLength(1);
-    expect(said).toContain("0:15 had a sound in it.");
+    expect(said.match(/had an um next to/g)).toHaveLength(1);
+    expect(said).toContain("0:15 had an um next to it.");
   });
 
   it("a stored recording's counts line says nothing of them either", () => {
     const said = text(row(TAKE.two, { take: take({ playable: true }) }));
-    expect(said).toMatch(/before a sentence/);
-    expect(said.match(/had a sound in/g)).toHaveLength(1);
-    expect(said).toContain("0:15 and 0:40 had a sound in them.");
+    expect(said).toMatch(/between sentences/);
+    expect(said.match(/had an um next to/g)).toHaveLength(1);
+    expect(said).toContain("0:15 and 0:40 had an um next to them.");
   });
 });
 

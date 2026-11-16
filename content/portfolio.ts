@@ -62,9 +62,9 @@ export const GOALS = [
 export const PAINS = [
   { id: "fillers", label: "Um, like, you know", said: "fillers", unit: "filler", metric: "fillers", line: "fillers per minute, counted with timestamps.", reply: "I'll count every filler, with its timestamp." },
   { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "words per minute against the 130 to 160 zone.", reply: "I'll count your words per minute." },
-  { id: "trailing", label: "I trail off", said: "trailing off", unit: "structure", metric: "structure", line: "whether the ending lands, cited from your words.", reply: "I'll check whether your endings land." },
-  { id: "freezing", label: "I freeze on the spot", said: "freezing", unit: "fire", metric: "pause", line: "silences that land a point, and silences that search.", reply: "I separate the silences that work." },
-  { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "pace that moves, and words you repeat.", reply: "I'll count the words you repeat." },
+  { id: "trailing", label: "I trail off", said: "trailing off", unit: "structure", metric: "structure", line: "whether you end on your point, quoted from your words.", reply: "I'll check whether you end on your point." },
+  { id: "freezing", label: "I freeze on the spot", said: "freezing", unit: "fire", metric: "pause", line: "pauses between sentences, and pauses mid-sentence.", reply: "I'll count where you pause." },
+  { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "how much your speed changes, and words you repeat.", reply: "I'll count the words you repeat." },
   { id: "rambling", label: "I ramble", said: "rambling", unit: "compression", metric: "structure", line: "one claim, one example, an ending.", reply: "I'll hold you to one claim, one example and an ending." },
 ] as const satisfies readonly { id: string; label: string; said: string; unit: string; metric: string; line: string; reply: string }[];
 
@@ -129,7 +129,9 @@ export const PLAN_LINES = {
   firstNumber: (line: string) => `First number: ${line}`,
   firstNumberDefault: "First number: your Ethos Index, out of 1000.",
   firstUnit: (unit: string, said: string) => `${unit} first. Every lesson in it targets ${said}.`,
-  laterUnit: (unit: string, said: string, stars: number) => `Then ${unit}, the unit for ${said}. Opens at ${stars} stars.`,
+  /* Where the unit stands on the road (#490): "Opens at 8 stars" was a
+     gate on a total of stars no screen counts since #486. */
+  laterUnit: (unit: string, said: string, place: UnitPlace) => `Then ${unit}, unit ${place.n} of ${place.of}, for ${said}.`,
   road: "Then the road, one unit at a time.",
   headlineDefault: "Your first month.",
   line: "Built from what you told me.",
@@ -146,6 +148,9 @@ export const PLAN_LINES = {
  */
 export type PlanStep = { lead: string; detail: string };
 
+/** Where a unit stands on the road: the 2nd of 7. */
+export type UnitPlace = { n: number; of: number };
+
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const PLAN_STEPS = {
@@ -156,9 +161,9 @@ export const PLAN_STEPS = {
     lead: `Then ${unit}`,
     detail: `The unit for ${said}. It opens on day one.`,
   }),
-  laterUnit: (unit: string, said: string, stars: number): PlanStep => ({
+  laterUnit: (unit: string, said: string, place: UnitPlace): PlanStep => ({
     lead: `Then ${unit}`,
-    detail: `The unit for ${said}. It opens at ${stars} stars.`,
+    detail: `Unit ${place.n} of ${place.of}, the one for ${said}.`,
   }),
   road: { lead: "Then the road", detail: "Each unit opens with the stars you earn." },
 } as const;

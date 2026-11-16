@@ -5,8 +5,66 @@ import { AudioScrubber, BAND_MIN, PAUSE_MARK, PLAYHEAD, PLAYHEAD_ON_LANDED } fro
 import { LANDED_MARK, PauseBar } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { Pause } from "./metrics";
-import { heldPauseMarks, landedAt, LANDED_MIN_PX, landedPause, PAUSE_MARK_WORDS, pauseMark, PLAYHEAD_PX, type MarkedPause } from "./pause-mark";
-import type { PauseVerdict } from "./pause-quality";
+import {
+  filledWords,
+  heldPauseMarks,
+  landedAt,
+  LANDED_MIN_PX,
+  landedPause,
+  otherKey,
+  PAUSE_MARK_WORDS,
+  pauseMark,
+  pauseWhy,
+  PLAYHEAD_PX,
+  sharedMiss,
+  type MarkedPause,
+} from "./pause-mark";
+import { reportJudged, type JudgedPause, type PauseVerdict } from "./pause-quality";
+
+/*
+ * The house's plain words for a pause (#490), read off the stored verdict
+ * and kind: what a pause is called is never a word the app made up.
+ */
+describe("a pause in plain words (#490)", () => {
+  const MIC = "0:15 · 1.0s with a sound in it. The mic heard it, the transcript didn't.";
+  it("names each held pause by where it fell, never judged again", () => {
+    expect(pauseWhy({ kind: "pre", verdict: "landing" })).toBe("between");
+    expect(pauseWhy({ kind: "pre", verdict: "opening" })).toBe("between");
+    expect(pauseWhy({ kind: "pre" })).toBe("between");
+    expect(pauseWhy({ kind: "mid", verdict: "hesitation" })).toBe("mid");
+    expect(pauseWhy({ kind: "mid" })).toBe("mid");
+    expect(pauseWhy({ kind: "pre", verdict: "hesitation" })).toBe("short");
+    expect(pauseWhy({ kind: "pre", verdict: "dead" })).toBe("long");
+    expect(pauseWhy({ kind: "pre", verdict: "filled", note: "0:15 · silence with a filler leaning on it." })).toBe("um");
+    expect(pauseWhy({ kind: "pre", verdict: "filled", note: MIC })).toBe("sound");
+  });
+
+  it("keys the quiet mark by the one kind every miss shares, else 'other pause'", () => {
+    expect(otherKey([{ kind: "pre", verdict: "landing" }, { kind: "mid", verdict: "hesitation" }])).toBe("pause mid-sentence");
+    expect(otherKey([{ kind: "pre", verdict: "hesitation" }])).toBe("pause after only a few words");
+    expect(otherKey([{ kind: "mid", verdict: "hesitation" }, { kind: "pre", verdict: "dead" }])).toBe("other pause");
+    expect(sharedMiss([{ kind: "pre", verdict: "landing" }, { kind: "beat", verdict: "beat" }])).toBeNull();
+  });
+
+  it("says an um where the transcript found one and a sound where only the phone heard it", () => {
+    expect(filledWords([{ kind: "pre", verdict: "filled" }], 1)).toBe("had an um next to it");
+    expect(filledWords([{ kind: "pre", verdict: "filled", note: MIC }], 1)).toBe("had a sound in it");
+    expect(filledWords([{ kind: "pre", verdict: "filled", note: MIC }, { kind: "mid", verdict: "filled" }], 2)).toBe("had an um or a sound in them");
+  });
+
+  it("never calls a pause after a short sentence mid-sentence (the headline)", () => {
+    const P = (t: number, kind: Pause["kind"], verdict: PauseVerdict): JudgedPause => ({ t, len: 1.1, kind, verdict, note: "" });
+    expect(reportJudged([P(2, "mid", "hesitation"), P(9, "mid", "hesitation"), P(20, "pre", "landing")], 62).headline).toBe(
+      "You paused mid-sentence twice and between sentences once. Pause where a full sentence ends."
+    );
+    expect(reportJudged([P(2, "pre", "hesitation"), P(9, "pre", "hesitation"), P(20, "pre", "landing")], 62).headline).toBe(
+      "You paused after only a few words twice and between sentences once. Pause where a full sentence ends."
+    );
+    expect(reportJudged([P(2, "pre", "hesitation"), P(9, "mid", "hesitation")], 62).headline).toBe(
+      "You paused mid-sentence or after only a few words twice and never between sentences. Pause where a full sentence ends."
+    );
+  });
+});
 
 /*
  * One mark rule for the take's pauses on both steps (DECISIONS #424):
@@ -77,7 +135,7 @@ function bands(html: string) {
 }
 const legend = (html: string) => {
   const head = html.slice(0, html.indexOf('type="range"'));
-  return [...head.matchAll(/<span class="inline-flex items-center gap-1">.*?<\/span><\/span>([^<]+)<\/span>/g)].map((m) => m[1]);
+  return [...head.matchAll(/<span class="inline-flex items-center gap-1 whitespace-nowrap">.*?<\/span><\/span>([^<]+)<\/span>/g)].map((m) => m[1]);
 };
 
 describe("Hear it back's track marks pauses as the pause map does", () => {
@@ -92,18 +150,18 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
   });
 
   it("names its marks in the pause map's words", () => {
-    expect(legend(scrubber(TWO_FILLED))).toEqual(["filler", PAUSE_MARK_WORDS.landed, PAUSE_MARK_WORDS.searching]);
+    expect(legend(scrubber(TWO_FILLED))).toEqual(["um or like", "pause between sentences", "other pause"]);
     const map = renderToStaticMarkup(createElement(PauseBar, { pauses: TWO_FILLED, durationS: 62 }));
     expect(map).toContain(`>${PAUSE_MARK_WORDS.landed}</span>`);
     expect(map).toContain(`>${PAUSE_MARK_WORDS.searching}</span>`);
-    expect(map).toContain(`aria-label="5 held pauses, 2 landed a point"`);
+    expect(map).toContain(`aria-label="5 pauses, 2 between sentences"`);
   });
 
   it("keys only the marks the take has", () => {
     const allLanded = [p(2.1, "pre", "opening"), p(30, "pre", "landing")];
-    expect(legend(scrubber(allLanded))).toEqual(["filler", PAUSE_MARK_WORDS.landed]);
+    expect(legend(scrubber(allLanded))).toEqual(["um or like", "pause between sentences"]);
     const noneLanded = [p(12, "pre", "filled"), p(30, "mid", "hesitation")];
-    expect(legend(scrubber(noneLanded))).toEqual(["filler", PAUSE_MARK_WORDS.searching]);
+    expect(legend(scrubber(noneLanded))).toEqual(["um or like", "other pause"]);
   });
 
   it("draws a clean take as it always did", () => {
@@ -132,7 +190,7 @@ describe("Hear it back's track marks pauses as the pause map does", () => {
 
   it("keeps the round's cut-in on the track and in its chips", () => {
     const html = scrubber(TWO_FILLED, [{ t: 24.2, label: "Says who?" }]);
-    expect(legend(html)[0]).toBe("cut-in");
+    expect(legend(html)[0]).toBe("Demos cut in");
     expect(html).toMatch(/class="absolute top-0 h-full w-\[3px\] bg-ink\/70" style="left:39\.0322/);
     expect(html).toContain('aria-label="Says who? 0:24, play from a second before Demos cut in"');
   });
@@ -158,7 +216,7 @@ describe("Hear it back's landed pauses read (#425)", () => {
   /** The legend's swatches, as [word, the swatch's mark class]. */
   function keys(html: string) {
     const head = html.slice(0, html.indexOf('type="range"'));
-    return [...head.matchAll(/<span class="inline-flex items-center gap-1"><span aria-hidden="true" class="[^"]*"><span class="([^"]*)"><\/span><\/span>([^<]+)<\/span>/g)].map(
+    return [...head.matchAll(/<span class="inline-flex items-center gap-1 whitespace-nowrap"><span aria-hidden="true" class="[^"]*"><span class="([^"]*)"><\/span><\/span>([^<]+)<\/span>/g)].map(
       ([, cls, word]) => [word, cls] as const
     );
   }

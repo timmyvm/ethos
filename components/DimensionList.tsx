@@ -43,7 +43,7 @@ interface Detail {
  * this under that) and a bar that shows the band: sage where it is
  * Strong, because a Strong row is earned (it is the bar a trait levels
  * at), and a neutral where it is not. A trait named for its fault is
- * named for its skill here (Filler control, Follow-through), so a high
+ * named for its skill here (Filler control, Restart control), so a high
  * number reads as good on every row. The Index itself is the same
  * number: nothing is rescored.
  *
@@ -124,12 +124,16 @@ export function DimensionList({
 
   const details: Record<TraitKey, Detail | null> = {
     pause: {
+      /* In the house's plain words (#490): a pause is between sentences
+         or mid-sentence, and a gap under the second a pause needs is a
+         shorter stop ("under the held-pause bar: quiet hesitation" was
+         the app talking to itself). */
       detail: `${
         pauseDetail ??
-        `${metrics.composedPauses} before a sentence, ${metrics.midSentencePauses} mid-sentence.`
+        `${plural(metrics.composedPauses, "pause")} between sentences, ${metrics.midSentencePauses} mid-sentence.`
       }${
         (metrics.unvoicedHesitations ?? 0) >= 3
-          ? ` Plus ${metrics.unvoicedHesitations} short mid-sentence gaps, under the held-pause bar: quiet hesitation.`
+          ? ` Plus ${metrics.unvoicedHesitations} shorter stops mid-sentence, under a second each.`
           : ""
       }`,
       moments: moments ? <PauseMoments moments={moments} take={take?.playable ? take : null} /> : undefined,
@@ -142,11 +146,11 @@ export function DimensionList({
       // row's grammar: a bare "8 scores 0" read as 8 fillers.
       detail: brief
         ? fillers === 0
-          ? `None in ${secs} seconds.`
-          : `${fillers} in ${secs} seconds${tail(everyLine(fillers, metrics.durationS))}.${
+          ? `No fillers in ${secs} seconds.`
+          : `${plural(fillers, "filler")} in ${secs} seconds${tail(everyLine(fillers, metrics.durationS))}.${
               metrics.topFiller ? ` Most were “${metrics.topFiller}”.` : ""
             }`
-        : `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${fillers} in all${tail(everyLine(fillers, metrics.durationS))}). None scores 100; 8 a minute scores 0.${
+        : `${ALL_FILLERS_PER_MIN}: ${metrics.fillersPerMin} (${fillers} in all${tail(everyLine(fillers, metrics.durationS))}). 0 fillers a minute scores 100; 8 scores 0.${
             metrics.topFiller ? ` Most of them were “${metrics.topFiller}”.` : ""
           }`,
       improve: fillers > 0 ? "Replace it with silence, not a different word." : undefined,
@@ -156,23 +160,27 @@ export function DimensionList({
     // repairs score, and get no row rather than an invented one.
     repairs: {
       detail: `${plural(repairs, "restarted phrase")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
-        brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute. None scores 100; 3 a minute scores 0.`
+        brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute. 0 restarts a minute scores 100; 3 scores 0.`
       }`,
       improve:
         repairs > 0
-          ? "Finish the sentence, then say the better one. A restart makes the listener re-follow you."
+          ? "Finish the sentence, then say the better one. A restart makes the listener start over with you."
           : undefined,
     },
+    /* The Log's ledger keeps the rule, said with its number (#490: "A
+       pace that moves earns a bonus" named neither the move nor the
+       bonus; index-score.ts paceScore adds 10 for a speed that changes
+       a little from sentence to sentence). */
     pace: {
-      detail: `${paceWords(metrics.wpm)}${brief ? "" : " A pace that moves earns a bonus."}`,
+      detail: `${paceWords(metrics.wpm)}${brief ? "" : " Speeding up and slowing down a little adds 10 points."}`,
     },
     range: {
       detail: [
         varietyWords(metrics.substance?.distinctRatio),
-        brief ? null : "Repeats and crutch words (“really”, “very”, “thing”) cost points.",
+        brief ? null : "Words you repeat, and words like “really”, “very” and “thing”, cost points.",
       ]
         .filter(Boolean)
-        .join(" ") || "Distinct words against repeats and crutch words (“really”, “very”, “thing”).",
+        .join(" ") || "Different words count for you; repeats and words like “really”, “very” and “thing” cost points.",
     },
     structure: coach
       ? { detail: coach.dimensions.structure.citedMoment, improve: coach.dimensions.structure.improve }
@@ -186,12 +194,16 @@ export function DimensionList({
     // The dimension's key stays `confidence` in the schema, the prompt
     // and every stored row: Steadiness is a LABEL (lib/dimension-rows
     // DIMENSION_NAME), so no migration and no re-scoring.
+    /* The two counts beside Demos's quote, said as what was said (#490:
+       "hedges" and "counted rather than judged" were the app's words).
+       A hedge is "maybe", "I guess", "sort of" or "I feel like"
+       (index-score.ts countHedges). */
     confidence: coach
       ? {
-          detail: `${coach.dimensions.confidence.citedMoment} (${plural(anchors.hedgeCount, "hedge")} and ${plural(
+          detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${plural(
             anchors.restartCount,
             "restart"
-          )}, counted rather than judged.)`,
+          )}.)`,
           improve: coach.dimensions.confidence.improve,
         }
       : null,
@@ -230,6 +242,13 @@ export function DimensionList({
 /** ", about one every 15 seconds", or nothing. */
 function tail(s: string | null): string {
   return s ? `, ${s}` : "";
+}
+
+/** "“maybe” or “I guess” twice", "no “maybe” or “I guess”". */
+export function hedgeWords(n: number): string {
+  const said = "“maybe” or “I guess”";
+  if (!(n > 0)) return `no ${said}`;
+  return `${said} ${n === 1 ? "once" : n === 2 ? "twice" : `${n} times`}`;
 }
 
 /** The band's word, in the colour it means: sage where earned, ink where it asks for work. */

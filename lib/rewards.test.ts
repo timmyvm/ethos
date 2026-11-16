@@ -171,13 +171,13 @@ describe("freshStart", () => {
 describe("endNote", () => {
   const base = { repCount: 4 };
 
-  it("prefers a landed pause, the hardest thing to do (#427: one word, landed)", () => {
+  it("prefers a pause between sentences, the hardest thing to do (#427, in #490's words)", () => {
     const e = endNote({
       ...base,
       metrics: metrics({ composedPauses: 2 }),
       streak: streak({ current: 5 }),
     });
-    expect(e.headline).toBe("2 landed pauses");
+    expect(e.headline).toBe("2 pauses between sentences");
   });
 
   it("never counts a pause the take judged filled as composed (#422)", () => {
@@ -187,7 +187,7 @@ describe("endNote", () => {
       pauses: [pre(10, "landing"), pre(20, "filled"), pre(30, "landing")] as unknown as RepMetrics["pauses"],
     });
     expect(composedHeard(judged)).toBe(2);
-    expect(endNote({ ...base, metrics: judged, streak: streak() }).headline).toBe("2 landed pauses");
+    expect(endNote({ ...base, metrics: judged, streak: streak() }).headline).toBe("2 pauses between sentences");
 
     const allFilled = metrics({
       composedPauses: 2,
@@ -307,7 +307,7 @@ describe("personalBests", () => {
       metrics({ fillersPerMin: 1 }),
       null
     );
-    expect(out.map((b) => b.detail)).toContain("1/min, under your 3");
+    expect(out.map((b) => b.detail)).toContain("1 filler a minute, under your 3");
     // Nothing measured before it: nothing to beat, and no "past -Infinity".
     expect(personalBests([rep({ transcript: "Hi." })], metrics({ heldPauses: 4 }), null)).toEqual([]);
   });

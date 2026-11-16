@@ -55,15 +55,15 @@ const ladder = (over: Partial<LadderState> = {}): LadderState => ({
 });
 
 describe("closingLook, every closing the walk ends on", () => {
-  it("sets a landed-pause close's number in Pausing's tone, its first sentence only (#427)", () => {
+  it("sets a between-sentences close's number in Pausing's tone, its first sentence only (#427, #490)", () => {
     const m = endNote({ ...base, metrics: metrics({ composedPauses: 3 }), streak: streak({ current: 5 }) });
     expect(closingLook(m)).toEqual({
       pre: "",
       value: "3",
-      post: " landed pauses",
+      post: " pauses between sentences",
       ink: "trait",
       trait: "pause",
-      lines: ["Silence you chose, before a new point."],
+      lines: ["Each one after a full sentence."],
     });
   });
 
@@ -136,8 +136,8 @@ describe("ClosingNote", () => {
     expect(html).toContain('data-look="closing-note"');
     expect(html).toContain('data-trait="pause"');
     expect(html).toContain('data-ink="trait"');
-    expect(html).toContain('<span class="closing-note-value">3</span> landed pauses');
-    expect(html).toContain('<span class="block">Silence you chose, before a new point.</span>');
+    expect(html).toContain('<span class="closing-note-value">3</span> pauses between sentences');
+    expect(html).toContain('<span class="block">Each one after a full sentence.</span>');
   });
 
   it("carries no trait on an earned close", () => {

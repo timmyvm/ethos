@@ -49,6 +49,7 @@
 
 import { calibrate, classifyGap, type Envelope } from "./envelope";
 import { FILLED_PAUSES, normalizeWord, type FillerHit, type Pause, type Segment, type Word } from "./metrics";
+import { filledWords, PAUSE_WHY_WORDS, pauseWhy } from "./pause-mark";
 import { sentenceEnds } from "./sentence-ends";
 
 export type PauseVerdict =
@@ -247,7 +248,7 @@ export function judgePauses(params: PauseInput): JudgedPause[] {
       return {
         ...p,
         verdict: "dead",
-        note: `${clock(p.t)} · ${p.len.toFixed(1)}s of dead air. Past ${DEAD_AIR_S}s it stops reading as composure.`,
+        note: `${clock(p.t)} · ${p.len.toFixed(1)}s, over ${DEAD_AIR_S} seconds. Longer than that sounds lost.`,
       };
     }
 
@@ -263,7 +264,7 @@ export function judgePauses(params: PauseInput): JudgedPause[] {
       return {
         ...p,
         verdict: "filled",
-        note: `${clock(p.t)} · silence with a filler leaning on it. The swap is silence INSTEAD of the "um".`,
+        note: `${clock(p.t)} · silence with a filler leaning on it. Let the pause replace the um.`,
       };
     }
 
@@ -271,7 +272,7 @@ export function judgePauses(params: PauseInput): JudgedPause[] {
       return {
         ...p,
         verdict: "hesitation",
-        note: `${clock(p.t)} · ${p.len.toFixed(1)}s mid-sentence. That reads as searching for the word.`,
+        note: `${clock(p.t)} · ${p.len.toFixed(1)}s mid-sentence.`,
       };
     }
 
@@ -284,7 +285,7 @@ export function judgePauses(params: PauseInput): JudgedPause[] {
       return {
         ...p,
         verdict: "opening",
-        note: `${clock(p.t)} · you took the room before you spoke.`,
+        note: `${clock(p.t)} · a pause before you got going.`,
       };
     }
 
@@ -293,7 +294,7 @@ export function judgePauses(params: PauseInput): JudgedPause[] {
       return {
         ...p,
         verdict: "hesitation",
-        note: `${clock(p.t)} · a pause after ${closed} word${closed === 1 ? "" : "s"}. No point to land yet.`,
+        note: `${clock(p.t)} · a pause after only ${closed} word${closed === 1 ? "" : "s"}, too soon to count.`,
       };
     }
 
@@ -302,8 +303,8 @@ export function judgePauses(params: PauseInput): JudgedPause[] {
       ...p,
       verdict: "landing",
       note: late
-        ? `${clock(p.t)} · you let the ending land.`
-        : `${clock(p.t)} · ${p.len.toFixed(1)}s after a finished point. That's the one.`,
+        ? `${clock(p.t)} · a pause between sentences, near the end.`
+        : `${clock(p.t)} · ${p.len.toFixed(1)}s between sentences.`,
     };
   });
 }
@@ -366,7 +367,7 @@ export function reportJudged(judged: JudgedPause[], durationS: number): PauseRep
     dead,
     opened: opening > 0,
     landedTheEnding: landedTheEnding(judged, durationS),
-    headline: headline({ held: held.length, landings, hesitations, filled, dead }),
+    headline: headline(judged, { held: held.length, landings, hesitations, filled, dead }),
   };
 }
 
@@ -410,18 +411,22 @@ export interface FilledMoments {
   sentence: string;
 }
 
-/** What the filled headline says of them, so a line can tell it already said it. */
-const HAD_A_SOUND = "had a sound in them";
+/**
+ * What the filled headline says of them ("had an um next to them", "had a
+ * sound in it", lib/pause-mark.ts `filledWords`), so a line can tell it
+ * already said it.
+ */
+const SAYS_FILLED = /\bhad an? (um|sound)\b/;
 
 /**
  * The line over the Pause row's moments already says how many pauses had
- * a sound in them: the live results' filled headline. The moments then
+ * an um next to them: the live results' filled headline. The moments then
  * say only where ("At 0:15 and 0:40."), so the row never says it twice
- * (review of #424). A stored recording's counts line, or the dead-air
- * headline, does not, and the moments say it whole.
+ * (review of #424). A stored recording's counts line, or the headline
+ * about pauses over 3.5 seconds, does not, and the moments say it whole.
  */
 export function saysFilled(line: string | null | undefined): boolean {
-  return !!line && line.includes(HAD_A_SOUND);
+  return !!line && SAYS_FILLED.test(line);
 }
 
 /**
@@ -438,8 +443,8 @@ export function filledMoments(
   pauses: readonly (Pause & { verdict?: PauseVerdict })[] | null | undefined,
   { counted = false }: { counted?: boolean } = {}
 ): FilledMoments | null {
-  const moments = (pauses ?? [])
-    .filter((p) => p.verdict === "filled" && Number.isFinite(p.t) && Number.isFinite(p.len))
+  const filled = (pauses ?? []).filter((p) => p.verdict === "filled" && Number.isFinite(p.t) && Number.isFinite(p.len));
+  const moments = filled
     .sort((a, b) => a.t - b.t)
     .map((p): FilledMoment => {
       const at = clock(Math.max(0, p.t));
@@ -448,7 +453,7 @@ export function filledMoments(
         clock: at,
         from: Math.max(0, p.t - MOMENT_LEAD_S),
         until: p.t + p.len + MOMENT_TAIL_S,
-        label: `Play ${at}, a pause with a sound in it`,
+        label: `Play ${at}, a pause ${PAUSE_WHY_WORDS[pauseWhy(p)]}`,
       };
     });
   if (moments.length === 0) return null;
@@ -468,7 +473,7 @@ export function filledMoments(
   }
   parts.push({
     kind: "text",
-    text: counted ? "." : moments.length === 1 ? " had a sound in it." : ` ${HAD_A_SOUND}.`,
+    text: counted ? "." : ` ${filledWords(filled, moments.length)}.`,
   });
   const sentence = parts
     .map((p) => (p.kind === "moment" ? p.moment.clock : p.text))
@@ -490,32 +495,54 @@ function zone(value: number, [lo, hi]: [number, number]): number {
   return Math.max(0, 1 - distance / Math.max((hi - lo) / 2, 1));
 }
 
+/** "once", "twice", "3 times". */
+function times(n: number): string {
+  return n === 1 ? "once" : n === 2 ? "twice" : `${n} times`;
+}
+
 /**
  * One line, picking the biggest problem — or the win, if there isn't
  * one. Never a list: the loop has one focus (mechanics.md).
+ *
+ * In the house's plain words since #490 (the two-second test): a pause
+ * is "between sentences" or "mid-sentence", a filled one has "an um next
+ * to it", and nothing "lands" or "searches". Every count is a verdict
+ * the take stored, so the line traces to the pauses the row plays. A
+ * pause after a sentence too short to be a point is said as "after only
+ * a few words", never as mid-sentence, which it was not.
  */
-function headline(counts: {
-  held: number;
-  landings: number;
-  hesitations: number;
-  filled: number;
-  dead: number;
-}): string | null {
+function headline(
+  judged: readonly JudgedPause[],
+  counts: { held: number; landings: number; hesitations: number; filled: number; dead: number }
+): string | null {
   const { held, landings, hesitations, filled, dead } = counts;
+  const pauses = (n: number) => `${n} ${n === 1 ? "pause" : "pauses"}`;
   if (held === 0) {
-    return "No held pauses yet. Try one after your first real point.";
+    return "No one-second pauses yet. After your next full sentence, stop for one.";
   }
   if (dead > 0) {
-    return `${dead} pause${dead === 1 ? "" : "s"} ran past ${DEAD_AIR_S}s into dead air. A pause lands at one to two seconds; past that a listener starts wondering if you're lost.`;
+    return `${pauses(dead)} ran past ${DEAD_AIR_S} seconds. Keep a pause to one or two seconds.`;
   }
   if (filled > 0) {
-    return `${filled} of your "pauses" ${HAD_A_SOUND}. Silence INSTEAD of the "um", not either side of it.`;
+    const had = filledWords(judged, filled);
+    /* A sound the phone heard (a stored verdict, or the trace switched
+       back on) is not an um to replace. */
+    return `${pauses(filled)} ${had}. ${had.startsWith("had an um next") ? "Let the pause replace the um." : "Keep each pause silent."}`;
   }
   if (hesitations > landings) {
-    return `${hesitations} of your pauses were mid-sentence and ${landings} landed after a finished point. Same silence, opposite read: one is thinking, one is composure.`;
+    const mid = judged.filter((p) => p.verdict === "hesitation" && p.kind === "mid").length;
+    const short = hesitations - mid;
+    const where =
+      short === 0
+        ? `mid-sentence ${times(mid)}`
+        : mid === 0
+          ? `after only a few words ${times(short)}`
+          : `mid-sentence or after only a few words ${times(hesitations)}`;
+    const between = landings === 0 ? "never between sentences" : `between sentences ${times(landings)}`;
+    return `You paused ${where} and ${between}. Pause where a full sentence ends.`;
   }
   if (landings === 0) {
-    return "Nothing landed after a finished point yet. Say the thing, then stop for a second.";
+    return "No pauses between sentences yet. Finish a sentence, then stop for a second.";
   }
-  return `${landings} pause${landings === 1 ? "" : "s"} landed after a finished point.`;
+  return `${pauses(landings)} between sentences.`;
 }

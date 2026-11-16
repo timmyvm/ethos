@@ -64,7 +64,7 @@ describe("one scale for the rows, the same Index (#471)", () => {
     expect(rows.map((r) => r.name)).toEqual([
       "Pausing",
       "Filler control",
-      "Follow-through",
+      "Restart control",
       "Pace",
       "Variety",
       "Structure",
@@ -87,7 +87,7 @@ describe("one scale for the rows, the same Index (#471)", () => {
     expect(rows.map((r) => r.weight)).toEqual(Object.values(INDEX_WEIGHTS));
   });
 
-  it("draws no row a take never had: no judged four without the coach, no Follow-through before the split", () => {
+  it("draws no row a take never had: no judged four without the coach, no Restart control before the split", () => {
     expect(dimensionRows(tier1, null)).toHaveLength(5);
     const { repairs: _, ...old } = tier1;
     expect(dimensionRows(old, null).map((r) => r.key)).toEqual(["pause", "fillers", "pace", "range"]);
@@ -114,7 +114,7 @@ describe("a fault is named for its skill where its number is a score (#471)", ()
       if (t.id === "pause" || t.id === "pace" || t.id === "range") expect(t.skill).toBe(t.name);
     }
     expect(DIMENSION_NAME.fillers).toBe("Filler control");
-    expect(DIMENSION_NAME.repairs).toBe("Follow-through");
+    expect(DIMENSION_NAME.repairs).toBe("Restart control");
     expect(DIMENSION_NAME.confidence).toBe("Steadiness");
   });
 });
@@ -171,7 +171,7 @@ describe("one headline in words, the numbers under it (#471, plan §7)", () => {
 
   it("names only rows that are on the card under it", () => {
     const rows = dimensionRows(tier1, tier2);
-    expect(rowsHeadline(rows)).toBe("You spoke at a good pace and let your points land. Filler control has the most room to grow.");
+    expect(rowsHeadline(rows)).toBe("You spoke at a good pace and paused between sentences. Filler control has the most room to grow.");
     expect(rowsHeadline([])).toBe("");
   });
 
@@ -215,7 +215,7 @@ describe("a percentile says what it is against and which way is up (#471)", () =
   it("says where you sit in words, the right way up for every trait", () => {
     expect(placeWords({ id: "fillers", percentile: 93 })).toBe("Fewer ums and uhs than 93 in 100 speakers");
     expect(placeWords({ id: "repairs", percentile: 40 })).toBe("Fewer restarts than 40 in 100 speakers");
-    expect(placeWords({ id: "pause", percentile: 18 })).toBe("More landed pauses than 18 in 100 speakers");
+    expect(placeWords({ id: "pause", percentile: 18 })).toBe("More pauses between sentences than 18 in 100 speakers");
     expect(placeWords({ id: "range", percentile: 68 })).toBe("More varied words than 68 in 100 speakers");
     expect(placeWords({ id: "pace", percentile: 72 })).toBe("Nearer the middle of 130 to 160 than 72 in 100 speakers");
   });
@@ -237,7 +237,7 @@ describe("a percentile says what it is against and which way is up (#471)", () =
     expect(placeLine({ id: "fillers", percentile: 93, quality: "provisional" })).toBe(
       "Fewer ums and uhs than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
     );
-    expect(placeLine({ id: "pause", percentile: 18, quality: "provisional" }, true)).toMatch(/^Your lowest trait\. More landed pauses/);
+    expect(placeLine({ id: "pause", percentile: 18, quality: "provisional" }, true)).toMatch(/^Your lowest trait\. More pauses between sentences/);
   });
 
   it("holds the line's own shape while the read is in flight, so nothing moves when it lands", () => {

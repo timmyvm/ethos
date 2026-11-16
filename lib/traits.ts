@@ -239,7 +239,7 @@ export function levelLine(t: Pick<TraitLevel, "level" | "percent">): LevelLine {
  * control, which leveled instead."): its bar stops at 99, and "100 of
  * the 100 it needed" would say it had what it needed and did not level.
  * That is common, not a corner: no ums is Filler control 100, and no
- * restart that same take is Follow-through 100. `nameOf` is the name
+ * restart that same take is Restart control 100. `nameOf` is the name
  * the screen prints (You passes DIMENSION_NAME).
  */
 export function closestLine(

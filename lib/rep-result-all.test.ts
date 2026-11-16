@@ -93,7 +93,7 @@ const view: ResultView = {
   ethosIndex: 665,
   previousIndex: 662,
   scorable: true,
-  pauseHeadline: "Three silences landed a point; one was searching.",
+  pauseHeadline: "3 pauses between sentences.",
 };
 
 describe("RepResult section=\"all\", the Log's page (#427)", () => {
@@ -122,7 +122,7 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
     expect(h).not.toMatch(/>\s*landed a point\s*</);
     // The sentence that read off the map went from under it; the Pausing
     // row still opens on it, once.
-    expect(text(h).split("Three silences landed a point; one was searching.").length - 1).toBe(1);
+    expect(text(h).split("3 pauses between sentences.").length - 1).toBe(1);
   });
 
   it("draws no tiles, and since #484 no line under the rows' head either", () => {
@@ -180,7 +180,7 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
 
   it("names a fault's row for its skill", () => {
     expect(text).toContain("Filler control");
-    expect(text).toContain("Follow-through");
+    expect(text).toContain("Restart control");
     expect(text).not.toMatch(/\bRestarts\b/);
   });
 
@@ -194,7 +194,7 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
   });
 
   it("leads with one headline in words and ends on its last row: no foot (#484)", () => {
-    expect(text).toContain("You spoke at a good pace and let your points land. Filler control has the most room to grow.");
+    expect(text).toContain("You spoke at a good pace and paused between sentences. Filler control has the most room to grow.");
     // Timothy, 16 Nov: the foot underlined, remove. The Ethos number over
     // the page says the total once; the rows say nothing more about it.
     expect(html).not.toContain("data-dimension-foot");

@@ -782,7 +782,7 @@ const analyze = {
     dimensions: LIVE_TIER2,
   },
   ethosIndex: indexOf(LIVE_TIER1, LIVE_TIER2), previousIndex: reps[reps.length - 1].ethos_index, repId: "rep-live", scorable: true,
-  pauseHeadline: "Three silences landed a point; one was searching.",
+  pauseHeadline: "3 pauses between sentences.",
   accuracy: null, mode: "daily", mods: [], xpMultiplier: 1, captureMode: "voice",
   delivery: null, deliveryMoments: [], previousPresence: null,
   judged: { ran: true, unlimited: false, remaining: 0, capped: false },

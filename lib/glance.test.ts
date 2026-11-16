@@ -116,12 +116,12 @@ describe("the fixture's two glances", () => {
     expect(g.parts).toEqual([{ kind: "text", text: "4 fillers, first " }, { kind: "moment" }]);
   });
 
-  it("a daily take on Pausing: pauses landed and searching, the searching one playing", () => {
+  it("a daily take on Pausing: pauses between sentences and mid-sentence, the mid-sentence one playing (#490)", () => {
     const g = line("pause");
-    /* The #427 review: "3 landed, 1 searching" never said pauses. */
-    expect(g.sentence).toBe("3 pauses landed, 1 searching at 0:20");
-    expect(g.cue).toBe("Next time: land 4.");
-    expect(g.moment).toMatchObject({ t: 20, from: 19, until: 21.9, label: "Play 0:20, a searching pause" });
+    /* The #427 review: "3 landed, 1 searching" never said pauses; #490: nor in plain words. */
+    expect(g.sentence).toBe("1 of 4 pauses mid-sentence, at 0:20");
+    expect(g.cue).toBe("Next time: all 4 between sentences.");
+    expect(g.moment).toMatchObject({ t: 20, from: 19, until: 21.9, label: "Play 0:20, a pause mid-sentence" });
   });
 });
 
@@ -153,9 +153,9 @@ describe("glanceLine, every row of the tables", () => {
       pauses: [...PAUSES, { t: 15, len: 1, kind: "pre", verdict: "filled" }] as unknown as RepMetrics["pauses"],
     });
     expect([filled1.sentence, filled1.cue, filled1.moment?.label]).toEqual([
-      "1 pause had a sound, at 0:15",
-      "Next time: none with a sound.",
-      "Play 0:15, a pause with a sound in it",
+      "1 pause had an um, at 0:15",
+      "Next time: keep every pause silent.",
+      "Play 0:15, a pause next to an um",
     ]);
     expect(filled1.parts.at(-1)).toEqual({ kind: "moment" });
     const filled2 = line("pause", {
@@ -164,11 +164,11 @@ describe("glanceLine, every row of the tables", () => {
         { t: 33, len: 1, kind: "mid", verdict: "filled" },
       ] as unknown as RepMetrics["pauses"],
     });
-    expect(filled2.sentence).toBe("2 pauses had a sound, first 0:15");
+    expect(filled2.sentence).toBe("2 pauses had an um, first 0:15");
     const two = line("pause", {
       pauses: [...PAUSES, { t: 30, len: 1, kind: "mid", verdict: "hesitation" }] as unknown as RepMetrics["pauses"],
     });
-    expect([two.sentence, two.cue]).toEqual(["3 pauses landed, 2 searching, first 0:20", "Next time: land 5."]);
+    expect([two.sentence, two.cue]).toEqual(["2 of 5 pauses mid-sentence, first 0:20", "Next time: all 5 between sentences."]);
     const all = line("pause", {
       pauses: [
         { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
@@ -177,24 +177,24 @@ describe("glanceLine, every row of the tables", () => {
       ] as unknown as RepMetrics["pauses"],
     });
     expect([all.sentence, all.cue, all.moment?.t, all.moment?.label]).toEqual([
-      "All 3 pauses landed, longest at 0:41",
-      "Next time: land 4.",
+      "All 3 pauses between sentences, longest 0:41",
+      "Next time: 4 pauses between sentences.",
       41,
-      "Play 0:41, the longest landed pause",
+      "Play 0:41, the longest pause between sentences",
     ]);
     const oneLanded = line("pause", { pauses: [{ t: 41, len: 1.5, kind: "pre", verdict: "landing" }] as unknown as RepMetrics["pauses"] });
-    expect(oneLanded.sentence).toBe("1 pause landed, at 0:41");
+    expect(oneLanded.sentence).toBe("1 pause between sentences, at 0:41");
     const none = line("pause", { pauses: [{ t: 9, len: 0.4, kind: "beat", verdict: "beat" }] as unknown as RepMetrics["pauses"] });
-    expect([none.sentence, none.cue, none.moment]).toEqual(["No held pauses in 62s.", "Next time: hold 1 after a point.", null]);
+    expect([none.sentence, none.cue, none.moment]).toEqual(["No one-second pauses in 62s.", "Next time: 1 pause between sentences.", null]);
     const noneLanded = line("pause", { pauses: [{ t: 20, len: 0.9, kind: "mid", verdict: "hesitation" }] as unknown as RepMetrics["pauses"] });
-    expect(noneLanded.sentence).toBe("No pauses landed, 1 searching at 0:20");
+    expect(noneLanded.sentence).toBe("1 pause, mid-sentence, at 0:20");
   });
 
-  it("a pause before a sentence judged dead is searching, never landed", () => {
+  it("a pause before a sentence judged dead is too long, never between sentences", () => {
     const g = line("pause", {
       pauses: [{ t: 41, len: 1.5, kind: "pre", verdict: "landing" }, { t: 50, len: 3.9, kind: "pre", verdict: "dead" }] as unknown as RepMetrics["pauses"],
     });
-    expect(g.sentence).toBe("1 pause landed, 1 searching at 0:50");
+    expect(g.sentence).toBe("1 of 2 pauses too long, at 0:50");
   });
 
   it("Restarts: two or more, one, none, with no chip this pass", () => {
@@ -294,14 +294,14 @@ describe("every number Demos says traces to the take", () => {
   it("the landed count is heldPauseMarks' and the closing note's", () => {
     const m = take();
     expect(heldPauseMarks(m.pauses).landed).toBe(3);
-    expect(line("pause").sentence.startsWith("3 pauses landed")).toBe(true);
-    expect(endNote({ metrics: m, streak: streak(), repCount: 4 }).headline).toBe("3 landed pauses");
+    expect(line("pause").sentence).toBe("1 of 4 pauses mid-sentence, at 0:20");
+    expect(endNote({ metrics: m, streak: streak(), repCount: 4 }).headline).toBe("3 pauses between sentences");
     /* A pause before a sentence judged dead counts in neither. */
     const dead = take({
       pauses: [...PAUSES, { t: 50, len: 3.9, kind: "pre", verdict: "dead" }] as unknown as RepMetrics["pauses"],
     });
     expect(heldPauseMarks(dead.pauses).landed).toBe(3);
-    expect(endNote({ metrics: dead, streak: streak(), repCount: 4 }).headline).toBe("3 landed pauses");
+    expect(endNote({ metrics: dead, streak: streak(), repCount: 4 }).headline).toBe("3 pauses between sentences");
   });
 
   it("a chip window never starts before the take", () => {
@@ -563,13 +563,13 @@ describe("a lesson's ending (the #427 review)", () => {
     expect(lessonDone("fillers", null)).toBeNull();
   });
 
-  it("counts each lesson in its own trait: landed pauses, words a minute, else the Index", () => {
+  it("counts each lesson in its own trait: pauses between sentences, words a minute, else the Index", () => {
     const takes: PracticeTake[] = [
       { fillers: 5, pauses: [{ t: 2, len: 1.2, kind: "pre", verdict: "landing" }] as unknown as RepMetrics["pauses"], wpm: 152, index: 640 },
       { fillers: 4, pauses: [], wpm: 148, index: 652 },
       current,
     ];
-    expect(lessonDone("pause", takes)?.text).toBe("Lesson done: 1, 0, 3 landed pauses");
+    expect(lessonDone("pause", takes)?.text).toBe("Lesson done: 1, 0, 3 pauses between sentences");
     expect(practiceCount("pause", current)).toBe(heldPauseMarks(PAUSES).landed);
     expect(lessonDone("pace", takes)?.text).toBe("Lesson done: 152, 148, 145 words a minute");
     expect(lessonDone("repairs", takes)).toEqual({ text: "Lesson done: 640, 652, 689", short: null, tone: "earned" });

@@ -6,7 +6,7 @@ import { IconSwap } from "@/components/ui/IconSwap";
 import { LANDED_MARK } from "@/components/PauseBar";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { FillerHit, Pause } from "@/lib/metrics";
-import { heldPauseMarks, landedAt, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
+import { heldPauseMarks, landedAt, otherKey, pauseMark, PAUSE_MARK_WORDS, type MarkedPause, type PauseMark } from "@/lib/pause-mark";
 
 /**
  * Play the rep back with its own timeline marked up: tap any filler to
@@ -125,21 +125,24 @@ export function AudioScrubber({
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="eyebrow">Hear it back</div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-stone-500">
+          {/* The key in plain words (#490): what Demos did, the words a
+              filler is, and the pause by where it fell ("landed a point"
+              and "searching" were the app's own words). */}
           {marks.length > 0 && (
             <Key mark={CUT_IN_MARK} thin>
-              cut-in
+              Demos cut in
             </Key>
           )}
           {fillers.length > 0 && (
             <Key mark={FILLER_MARK} thin>
-              filler
+              um or like
             </Key>
           )}
           {held.landed > 0 && (
             <Key mark={PAUSE_MARK.landed}>{PAUSE_MARK_WORDS.landed}</Key>
           )}
           {held.searching > 0 && (
-            <Key mark={PAUSE_MARK.searching}>{PAUSE_MARK_WORDS.searching}</Key>
+            <Key mark={PAUSE_MARK.searching}>{otherKey(pauses)}</Key>
           )}
         </div>
       </div>
@@ -317,11 +320,11 @@ function Key({
   children: ReactNode;
 }) {
   /* gap-1: the swatch sits 4px from its word and 12px from the next key,
-     so each pair reads as one, and the three keys at the 13px caption
-     (B05) still fit one line in a 320 card ("filler", "landed a point",
-     "searching": 239 of 246pt, measured by scripts/look-pause-moments.mjs). */
+     so each pair reads as one. The plain keys (#490: "um or like",
+     "pause between sentences", "pause mid-sentence") are longer than the
+     old three and wrap under the eyebrow, a pair never split. */
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex items-center gap-1 whitespace-nowrap">
       <span aria-hidden className="relative grid h-3 w-3 place-items-center overflow-hidden bg-sand">
         <span className={`${thin ? "h-full w-[3px]" : "absolute inset-0"} ${mark}`} />
       </span>

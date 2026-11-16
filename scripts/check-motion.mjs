@@ -95,7 +95,7 @@ const analyze = {
     },
   },
   ethosIndex: 612, previousIndex: null, repId: "rep-1", scorable: true,
-  pauseHeadline: "Three silences landed a point; one was searching.",
+  pauseHeadline: "3 pauses between sentences.",
   accuracy: null, mode: "daily", mods: [], xpMultiplier: 1, captureMode: "voice",
   delivery: null, deliveryMoments: [], previousPresence: null,
   judged: { ran: true, unlimited: false, remaining: 0, capped: false },

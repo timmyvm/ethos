@@ -131,7 +131,7 @@ export function targetFor(r: TraitReading, points = 5): number | null {
 
 /**
  * The raw measurement, printed. One decimal under ten, none above:
- * "1.8 held pauses a minute" is a number somebody can picture and
+ * "1.8 pauses between sentences a minute" is a number somebody can picture and
  * "155.4 words a minute" is a number pretending to a precision a
  * sixty-second sample does not have.
  */
@@ -222,7 +222,7 @@ export function placeWords(r: Pick<TraitReading, "id" | "percentile">): string {
   const than = `than ${p} in 100 speakers`;
   switch (r.id) {
     case "pause":
-      return `More landed pauses ${than}`;
+      return `More pauses between sentences ${than}`;
     case "fillers":
       return `Fewer ums and uhs ${than}`;
     case "repairs":

@@ -19,11 +19,74 @@ export type PauseMark = "landed" | "searching";
 /** What a mark is drawn from: a stored or live pause, judged or not. */
 export type MarkedPause = { kind?: Pause["kind"]; verdict?: PauseVerdict };
 
-/** The legends' words, one per mark, so both steps say the same thing. */
+/**
+ * The legends' words, one per mark, so both steps say the same thing
+ * (#490, the two-second test: "landed a point" and "searching" were the
+ * app's own words). A sage mark is always a pause before a sentence, so
+ * it is "pause between sentences"; the quiet mark is "other pause" unless
+ * every one on the take is the same kind (`otherKey`), and then it says
+ * which: "pause mid-sentence".
+ */
 export const PAUSE_MARK_WORDS: Record<PauseMark, string> = {
-  landed: "landed a point",
-  searching: "searching",
+  landed: "pause between sentences",
+  searching: "other pause",
 };
+
+/**
+ * Why a held pause did or did not count, in the house's plain words
+ * (#490): between sentences (it counted), mid-sentence, after a sentence
+ * too short to be a point, past 3.5 seconds, next to an um, or with a
+ * sound the phone heard in it (a stored verdict from before #476 says so
+ * in its note). Read off the stored verdict and kind, never judged again.
+ */
+export type PauseWhy = "between" | "mid" | "short" | "long" | "um" | "sound";
+
+export function pauseWhy(p: MarkedPause & { note?: string }): PauseWhy {
+  if (landedPause(p)) return "between";
+  if (p.verdict === "filled") return /mic heard/i.test(p.note ?? "") ? "sound" : "um";
+  if (p.verdict === "dead") return "long";
+  if (p.kind === "mid") return "mid";
+  return "short";
+}
+
+/** Each reason as the words after "a pause" or a count of pauses. */
+export const PAUSE_WHY_WORDS: Record<PauseWhy, string> = {
+  between: "between sentences",
+  mid: "mid-sentence",
+  short: "after only a few words",
+  long: "over 3.5 seconds",
+  um: "next to an um",
+  sound: "with a sound in it",
+};
+
+/**
+ * The reason every held pause that did not count shares, or null when
+ * they differ (or there are none). Beats are not held pauses.
+ */
+export function sharedMiss(pauses: readonly (MarkedPause & { note?: string })[]): PauseWhy | null {
+  const whys = new Set(pauses.filter((p) => p.kind !== "beat" && !landedPause(p)).map(pauseWhy));
+  return whys.size === 1 ? [...whys][0] : null;
+}
+
+/** The quiet mark's key: "pause mid-sentence" where every one is, else "other pause". */
+export function otherKey(pauses: readonly (MarkedPause & { note?: string })[]): string {
+  const why = sharedMiss(pauses);
+  return why ? `pause ${PAUSE_WHY_WORDS[why]}` : PAUSE_MARK_WORDS.searching;
+}
+
+/**
+ * What the filled pauses had in them, after a count of them: "had an um
+ * next to it", "had a sound in them". An um is what fills a pause since
+ * #476; a stored verdict the phone's trace made says "The mic heard it"
+ * in its note, and is called a sound.
+ */
+export function filledWords(pauses: readonly (MarkedPause & { note?: string })[], n: number): string {
+  const whys = new Set(pauses.filter((p) => p.verdict === "filled").map(pauseWhy));
+  const it = n === 1 ? "it" : "them";
+  if (whys.has("sound") && whys.has("um")) return `had an um or a sound in ${it}`;
+  if (whys.has("sound")) return `had a sound in ${it}`;
+  return `had an um next to ${it}`;
+}
 
 /**
  * A held pause that landed a point: a landing or the opening when it

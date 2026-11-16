@@ -34,7 +34,9 @@ describe("the interview, as Timothy wrote it", () => {
   it("ends on Demos, in words, from the level alone", () => {
     expect(INTERVIEW.verdict).toEqual({ alright: "That was alright.", horrible: "That was horrible." });
     expect(INTERVIEW.after).toEqual(["What if that was real?"]);
-    expect(INTERVIEW.noMic).toBe("No mic, no room. Let's set you up instead.");
+    expect(INTERVIEW.noMic).toBe("I couldn't hear you, so let's get you set up.");
+    /* One plain sentence: no fragment standing as one (COPY-RULES). */
+    expect(INTERVIEW.noMic.split(/[.!?]\s/).length).toBe(1);
   });
 
   it("opens on one hold", () => {

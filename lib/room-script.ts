@@ -92,7 +92,9 @@ export const INTERVIEW: RoomScript = {
   ],
   verdict: { alright: "That was alright.", horrible: "That was horrible." },
   after: ["What if that was real?"],
-  noMic: "No mic, no room. Let's set you up instead.",
+  /* Claude's line, not Timothy's: said plainly, one sentence, no
+     fragment (COPY-RULES), true whether the phone said no or has no mic. */
+  noMic: "I couldn't hear you, so let's get you set up.",
 };
 
 /** Every scene there is. Only the interview ships (#475). */

@@ -218,6 +218,7 @@ import {
   sessionToken,
 } from "@/lib/supabase-browser";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
+import { WAIT_START, nextWait, resendWait, type WaitState } from "@/lib/wait";
 import { MIN_TAKE_MS, TOO_SHORT_COPY, UNHEARD_COPY } from "@/lib/unheard";
 import { IconBack } from "@/components/Icon";
 import { RoundCard } from "@/components/rep/RoundCard";
@@ -571,6 +572,8 @@ function RepScreen() {
 
   /** Which upload attempt is in flight, so the wait can say so. */
   const [attempt, setAttempt] = useState(0);
+  /** Where the route is with this take, and its words once they are in (#472). */
+  const [wait, setWait] = useState<WaitState>(WAIT_START);
   /**
    * "Next lesson" links to /rep?lesson=… — the SAME route, so Next.js
    * keeps this component mounted and every piece of state with it. The
@@ -889,6 +892,7 @@ function RepScreen() {
       setPhase("analyzing");
       setError(null);
       setAttempt(0);
+      setWait(WAIT_START);
     }
     if (outboxId) markInFlight(outboxId);
     try {
@@ -904,9 +908,21 @@ function RepScreen() {
       // A gateway's 502 is HTML, and parsing it used to throw, so the
       // JSON parser's complaint ("Unexpected token <") became the
       // sentence the user read. Ours are the only words that reach them.
-      const outcome = await sendWithRetry(form, token, (n) => {
-        if (live()) setAttempt(n);
-      });
+      const outcome = await sendWithRetry(
+        form,
+        token,
+        (n) => {
+          if (!live()) return;
+          setAttempt(n);
+          // A resend starts the stages again; the words, the same audio's, stay.
+          if (n > 0) setWait(resendWait);
+        },
+        undefined,
+        // Each stage as the route reaches it, the words the moment they are in (#472).
+        (event) => {
+          if (live()) setWait((w) => nextWait(w, event));
+        }
+      );
       if (!outcome.ok && isFinalReject(outcome.status)) {
         // The server will never take this file (empty, unreadable, too
         // large, or a take the mic barely heard, #406). Keeping it would
@@ -1179,6 +1195,8 @@ function RepScreen() {
     buzz([20, 40, 20]);
     waitRef.current = { cutIns: firedCutIns(r.cutPlan).map((c) => c.at), stoppedBy: by };
     setPhase("analyzing");
+    setWait(WAIT_START);
+    setAttempt(0);
     setCutIn(null);
 
     const blob = await new Promise<Blob>((resolve) => {
@@ -2411,6 +2429,7 @@ function RepScreen() {
             levels={scoringWave}
             seconds={seconds}
             boss={config.kind === "boss"}
+            wait={wait}
             attempt={attempt}
             fact={scoringFact}
             cutIns={waitTicks({ gameId, cutIns: waitNow?.cutIns ?? [] })}

@@ -383,6 +383,8 @@ describe("a trait's tone is only ever one of its forms", () => {
     '.tw-key[data-word-mark="repeat"]': "mark",
     ".word-sheet-word[data-word-mark]": "mark",
     ".word-in-sentence[data-word-mark]": "mark",
+    // The scoring wait's words (#472): the same bar under a counted filler.
+    ".wait-filler": "mark",
     // The closing note over a trait's reading (#423): its short rule, a
     // tick, and the number the take measured.
     '.closing-note[data-ink="trait"] .closing-note-mark': "mark",

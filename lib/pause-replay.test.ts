@@ -369,7 +369,7 @@ const STUBS = `
   create function auth.role() returns text language sql stable as $$
     select current_setting('request.jwt.claim.role', true) $$;
   create schema storage;
-  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint);
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 `;
 
 const person = (k: number) => `${k + 1}${k + 1}${k + 1}${k + 1}0000-0000-4000-8000-00000000000${k + 1}`;

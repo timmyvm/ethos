@@ -29,9 +29,8 @@ import { measured, readTraitsFromRow, type TraitReading } from "./trait-readings
  * lines (content/path.ts, `tipsFor`), and the card's object is the
  * object of the lesson that teaches that tactic, paired by what the two
  * say, not by their place in a list: the hourglass beside "Pause, count
- * to two", the pause marks and full stop beside "Pause when a sentence
- * ends", the zip beside "Close your mouth between sentences". Indexed
- * like `howTo`.
+ * to two", the pause marks and full stop beside "Finish, then pause",
+ * the zip beside 'Mouth shut, no "um"'. Indexed like `howTo`.
  *
  * Two tactics have no lesson of their own in their trait. Fillers'
  * "Quiet instead of um" is a shut mouth holding a silence, so it takes

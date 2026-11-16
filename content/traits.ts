@@ -192,7 +192,7 @@ export const TRAITS: TraitDef[] = [
     howTo: [
       "Name a thing in full once, like \"my new phone\". Then just say \"it\".",
       "Skip \"really\" and \"very\". Say the exact word instead.",
-      "Say exactly what it is: \"two exams\", not \"stuff\".",
+      "Say exactly what it is: \"exams\", not \"stuff\".",
     ],
     move: (n, up) =>
       `${s(n, "distinct word")} per hundred ${up ? "more" : "fewer"}.`,

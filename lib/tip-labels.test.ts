@@ -53,7 +53,7 @@ describe("tip faces", () => {
   it("tells the unit intro's reader what to do with the silence", () => {
     expect(
       tipFace("Pause longer than feels right. It sounds shorter to everyone else.").label
-    ).toBe("Pause longer than feels right");
+    ).toBe("Pause a bit longer");
   });
 
   /* recording-15: a length of silence wears the stopwatch, so two
@@ -73,7 +73,7 @@ describe("tip faces", () => {
      "A short concrete noun beats a long abstract one every time" could
      not be understood in two seconds). A tactic is read by someone who
      never studied grammar, so no grammar word reaches one: an example
-     says it instead ("two exams", not "stuff"). The headings over the
+     says it instead ("exams", not "stuff"). The headings over the
      tactics (a lesson's title and blurb, a practice's angle) are held to
      the same words. */
   it("says every tactic without a grammar word", () => {

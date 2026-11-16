@@ -158,5 +158,10 @@ describe("the doors to the Log's Games side (#491)", () => {
     expect(door).toContain("exit(GAMES_LOG_HREF, { leaves: true })");
     expect(door).toContain("{GAMES_LOG_LABEL}");
     expect(door).toContain("min-h-11");
+    /* The review: Retake's pill, so the press veil is a pill and not a
+       square, with the words kept on the card's edge. */
+    expect(door).toMatch(/rounded-tap/);
+    expect(door).toMatch(/\bpx-3\b/);
+    expect(door).toMatch(/-ml-3/);
   });
 });

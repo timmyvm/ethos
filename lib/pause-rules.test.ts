@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { countWords, GLANCE_WORDS_RULES, rulesBudget } from "./glance";
 import {
@@ -7,6 +8,7 @@ import {
   RULES_NOTE_KEY,
   RULES_NOTE_MIN,
   rulesNote,
+  rulesNoteForAnswer,
   rulesNoteShown,
   rulesNoteTold,
   type RulesRow,
@@ -154,5 +156,52 @@ describe("this phone's memory of the note", () => {
     });
     expect(rulesNoteTold()).toBe(false);
     expect(() => markRulesNoteTold()).not.toThrow();
+  });
+});
+
+/*
+ * The review (#491): the note is read off the route's answer in one call,
+ * so the recorder's glance and Upload's results cannot drift apart, and
+ * Upload carries it: an upload is a take, stored with the mark, so an
+ * account whose first take under #476 was an upload would otherwise have
+ * had its jump unexplained and the note ended unsaid.
+ */
+describe("the note read off an answer that just landed (#491 review)", () => {
+  const answer = { pauseRules: PAUSE_RULES, ethosIndex: 673, previousIndex: 602, tier1: { pause: 73 }, mode: "daily" };
+
+  it("is the same note rulesNote gives, from the answer's own fields", () => {
+    expect(rulesNoteForAnswer(answer, [old(602, 26)], false)).toEqual({ kind: "delta", text: DELTA });
+  });
+
+  it("says nothing before the history is read, without a Pause score, or once told", () => {
+    expect(rulesNoteForAnswer(answer, null, false)).toBeNull();
+    expect(rulesNoteForAnswer(answer, undefined, false)).toBeNull();
+    expect(rulesNoteForAnswer({ ...answer, tier1: null }, [old(602, 26)], false)).toBeNull();
+    expect(rulesNoteForAnswer(answer, [old(602, 26)], true)).toBeNull();
+  });
+
+  it("never on an answer scored before the mark, nor one with no Index (capped or too short)", () => {
+    expect(rulesNoteForAnswer({ ...answer, pauseRules: undefined }, [old(602, 26)], false)).toBeNull();
+    expect(rulesNoteForAnswer({ ...answer, ethosIndex: null }, [old(602, 26)], false)).toBeNull();
+  });
+
+  it("reads a boss's answer against the bosses", () => {
+    const prior = [old(602, 30, { mode: "boss" }), old(602, 40)];
+    expect(rulesNoteForAnswer({ ...answer, mode: "boss", ethosIndex: 650 }, prior, false)?.text).toMatch(/went 30 to 73/);
+  });
+
+  it("is the one call on both screens that show a new take's delta, and each remembers it was told", () => {
+    for (const file of ["app/rep/page.tsx", "app/upload/page.tsx"]) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).toContain("rulesNoteForAnswer(");
+      expect(src, file).toContain("rulesNoteTold()");
+      expect(src, file).toContain("markRulesNoteTold()");
+    }
+    const upload = readFileSync("app/upload/page.tsx", "utf8");
+    expect(upload).toContain("rulesNote={rulesText}");
+    /* No "Best yet" stands on Upload, so its best note never shows there. */
+    expect(upload).toMatch(/earned: null/);
+    const result = readFileSync("components/RepResult.tsx", "utf8");
+    expect(result.match(/data-rules-note/g)?.length).toBe(2);
   });
 });

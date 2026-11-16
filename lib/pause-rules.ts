@@ -50,12 +50,19 @@ export const RULES_NOTE_MIN = 5;
 /** This phone has shown the note (the account's memory is the stored mark). */
 export const RULES_NOTE_KEY = "ethos.pauseRules.told";
 
+export interface RulesNote {
+  /** What it stands beside: the delta ("this jump"), or the best it passed. */
+  kind: "delta" | "best";
+  text: string;
+}
+
 /**
  * The one line under the delta on the first take scored under #476 whose
  * delta or "Best yet" stands beside a take scored before it (#491), or
  * null. A "best" note is said only where the glance shows "Best yet"
  * (the caller drops it where a lesson's ending or a rung holds that
- * line), so "passing your 690" always has its 690 on screen. CLAUDE.md: feedback traces to a number, so a jump that is the
+ * line), so "passing your 690" always has its 690 on screen.
+ * CLAUDE.md: feedback traces to a number, so a jump that is the
  * rule's and not the speaker's says so, once, with the Pause scores that
  * moved: "Part of this jump comes from new pause scoring: Pausing went
  * 26 to 73."
@@ -71,12 +78,6 @@ export const RULES_NOTE_KEY = "ethos.pauseRules.told";
  * the route compared with (`previousIndex`; a boss's is last week's
  * boss), the best's the one holding the best Index.
  */
-export interface RulesNote {
-  /** What it stands beside: the delta ("this jump"), or the best it passed. */
-  kind: "delta" | "best";
-  text: string;
-}
-
 export function rulesNote(p: {
   /** The take on screen: the rules the route scored it under, its Index and its Pause score. */
   now: { rules: number | null | undefined; index: number | null; pause: number };
@@ -120,6 +121,38 @@ export function rulesNote(p: {
     }
   }
   return null;
+}
+
+/** What `rulesNoteForAnswer` reads off /api/analyze's answer. */
+export interface RulesAnswer {
+  pauseRules?: number;
+  ethosIndex: number | null;
+  previousIndex: number | null;
+  tier1?: { pause: number } | null;
+  mode?: string | null;
+}
+
+/**
+ * The note for an answer that just landed, read against the history the
+ * screen held from before the take (#491). Every screen that shows a new
+ * take's delta goes through this one call: the recorder's glance and
+ * Upload's results (an upload is a take too, stored with the mark, so a
+ * first take made there would otherwise end the note unsaid). No history
+ * read yet means no note, never a guess.
+ */
+export function rulesNoteForAnswer(
+  answer: RulesAnswer,
+  prior: readonly RulesRow[] | null | undefined,
+  told: boolean
+): RulesNote | null {
+  if (!prior || !answer.tier1) return null;
+  return rulesNote({
+    now: { rules: answer.pauseRules, index: answer.ethosIndex, pause: answer.tier1.pause },
+    previousIndex: answer.previousIndex,
+    prior,
+    boss: answer.mode === "boss",
+    told,
+  });
 }
 
 /**

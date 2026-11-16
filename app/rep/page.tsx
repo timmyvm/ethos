@@ -124,7 +124,7 @@ import {
 import { armReminder } from "@/lib/reminders";
 import { writeSpokeHint } from "@/lib/spoke-hint";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
-import { markRulesNoteTold, rulesNote, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
+import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
 import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
 import {
   backLabel,
@@ -987,19 +987,7 @@ function RepScreen() {
       /* The first take under #476 beside one scored before it (#491),
          read off the history from before this take, in the same frame
          as the result, so nothing on the glance moves when it lands. */
-      const landed = data as AnalyzeResponse;
-      const priorReps = baselineRef.current?.reps ?? null;
-      setRulesNoteNow(
-        priorReps && landed.tier1
-          ? rulesNote({
-              now: { rules: landed.pauseRules, index: landed.ethosIndex, pause: landed.tier1.pause },
-              previousIndex: landed.previousIndex,
-              prior: priorReps,
-              boss: landed.mode === "boss",
-              told: rulesNoteTold(),
-            })
-          : null
-      );
+      setRulesNoteNow(rulesNoteForAnswer(data as AnalyzeResponse, baselineRef.current?.reps, rulesNoteTold()));
       const key = form.get("clientId");
       setResultKey(typeof key === "string" ? key : null);
       setWalkRows(null);
@@ -3613,7 +3601,9 @@ function Results({
     ),
     /* The round, then the door to every round played (#491): the Log's
        Games side, one tap from the round just finished. Through exit(),
-       as the way on is, so a streak's moment still owed plays first. */
+       as the way on is, so a streak's moment still owed plays first.
+       Retake's pill (rounded-tap, px-3) so its press veil is a pill, not
+       a square, pulled 12px left so the words stay on the card's edge. */
     round: roundCard ? (
       <div>
         {roundCard}
@@ -3621,7 +3611,7 @@ function Results({
           type="button"
           data-games-log-door
           onClick={() => exit(GAMES_LOG_HREF, { leaves: true })}
-          className="press mt-1 -mb-3 flex min-h-11 w-fit items-center text-link text-stone-500"
+          className="press -ml-3 mt-1 -mb-3 flex min-h-11 w-fit items-center rounded-tap px-3 text-link text-stone-500"
         >
           {GAMES_LOG_LABEL}
         </button>

@@ -16,12 +16,18 @@
  * Asserts, on `after`: the door is on Practice, at least 44px tall,
  * inside the page's width, and one tap lands on /history?view=games
  * with the Games side chosen.
+ *
+ * Then Upload's results (the #491 review): a file uploaded as the first
+ * take under #476's pause rules, against the fixtures' newest stored take
+ * scored before them (Pause 26 then, 73 now, +71 on the Index), shot as
+ * `upload`. Asserts, on `after`: the note under the delta, once.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { mkdirSync } from "node:fs";
 import {
   supabaseRoute as supabase,
   analyzeBody as analyze,
+  reps,
   json,
   session,
   billingApiRoute,
@@ -43,6 +49,41 @@ const fail = (m) => {
 };
 
 gamesMode.on = true;
+
+/* Upload's take (#491 review): the newest stored take as scored before
+   #476 (its Pause 26, its Index 71 under this take's), the answer under
+   #476 with Pause 73. Swapped in only while Upload is shot. */
+const LAST = reps[reps.length - 1];
+const KEPT = JSON.parse(JSON.stringify(LAST));
+const pts = (s) => Math.round((Math.max(0, Math.min(100, s)) / 100) * 150);
+const OLD_INDEX = KEPT.ethos_index - pts(KEPT.dimensions.tier1.pause) + pts(26);
+const oldRules = (on) => {
+  Object.assign(LAST, JSON.parse(JSON.stringify(KEPT)));
+  if (on) {
+    LAST.ethos_index = OLD_INDEX;
+    LAST.dimensions = { ...LAST.dimensions, tier1: { ...LAST.dimensions.tier1, pause: 26 } };
+  }
+};
+const uploadAnswer = { ...analyze, pauseRules: 476, tier1: { ...analyze.tier1, pause: 73 }, previousIndex: OLD_INDEX, ethosIndex: OLD_INDEX + 71 };
+/* A second of silence as a WAV: Upload reads its length, then sends it. */
+const wav = (() => {
+  const rate = 16000;
+  const n = rate;
+  const b = Buffer.alloc(44 + n * 2);
+  b.write("RIFF", 0);
+  b.writeUInt32LE(36 + n * 2, 4);
+  b.write("WAVEfmt ", 8);
+  b.writeUInt32LE(16, 16);
+  b.writeUInt16LE(1, 20);
+  b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24);
+  b.writeUInt32LE(rate * 2, 28);
+  b.writeUInt16LE(2, 32);
+  b.writeUInt16LE(16, 34);
+  b.write("data", 36);
+  b.writeUInt32LE(n * 2, 40);
+  return b;
+})();
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 
 for (const theme of ["light", "dark"]) {
@@ -59,7 +100,7 @@ for (const theme of ["light", "dark"]) {
       serviceWorkers: "block",
     });
     await context.route("http://supabase.local/**", supabase);
-    await context.route("**/api/analyze", (route) => route.fulfill(json(analyze)));
+    await context.route("**/api/analyze", (route) => route.fulfill(json(page.url().includes("/upload") ? uploadAnswer : analyze)));
     await context.route("**/api/billing/*", billingApiRoute);
     await context.addInitScript(({ theme, session, pose }) => {
       localStorage.setItem("ethos.welcomed", new Date().toISOString());
@@ -110,6 +151,29 @@ for (const theme of ["light", "dark"]) {
       }
     } catch (e) {
       fail(`${tag} ${theme}: ${String(e.message ?? e).split("\n")[0]}`);
+    }
+    /* Upload's results: the first take under #476, its note under the delta. */
+    try {
+      oldRules(true);
+      await page.goto(`${BASE}/upload`);
+      await page.waitForSelector('main input[type="file"]', { state: "attached", timeout: 15000 });
+      await sleep(1500);
+      await page.setInputFiles('main input[type="file"]', { name: "take.wav", mimeType: "audio/wav", buffer: wav });
+      await page.waitForSelector("main [data-score]", { timeout: 20000 });
+      await sleep(1600);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await snap("upload");
+      const text = await page.evaluate(() => [...document.querySelectorAll("main [data-rules-note]")].map((e) => e.textContent));
+      if (TAG !== "before") {
+        if (text.length !== 1) fail(`${tag} ${theme}: ${text.length} notes on Upload's results`);
+        else if (!/26 to 73/.test(text[0] ?? "")) fail(`${tag} ${theme}: Upload's note reads "${text[0]}"`);
+        const told = await page.evaluate(() => localStorage.getItem("ethos.pauseRules.told"));
+        if (told !== "476") fail(`${tag} ${theme}: Upload's note did not mark this phone told`);
+      }
+    } catch (e) {
+      fail(`${tag} ${theme} upload: ${String(e.message ?? e).split("\n")[0]}`);
+    } finally {
+      oldRules(false);
     }
     await context.close();
   }

@@ -277,9 +277,10 @@ export default function GamesPage() {
           screen's one lifted thing, with Demos standing in it holding
           his clock, the eyebrow and the name on the left. No time frame
           and no countdown (#486, Timothy: "they don't need to know any
-          time frame"): the reading's clock runs on the reading. A week already taken says so in sage at
-          the foot, the one state that is earned. Nothing on the stage
-          is a tap; Start sits on the ground under it. */}
+          time frame"): the reading's clock runs on the reading. A week
+          already taken says so in sage under the name, the one state
+          that is earned. Nothing on the stage is a tap; Start sits on
+          the ground under it. */}
       <section aria-labelledby="boss-title" className="mt-5">
         {/* The house stage (components/ui/HeroStage.tsx): every tab's
             hero is this one, since the cohesion pass. */}
@@ -288,12 +289,20 @@ export default function GamesPage() {
           title="Cold Topic"
           titleId="boss-title"
           center
+          /* The line's slot is always there, under the name in the
+             centred group, so the eyebrow and the name hold one y from
+             the first frame to the week's read: it stood at the foot
+             with mt-auto, and a taken week pulled them 33px up the
+             stage as the read landed (#486 review). Empty while the
+             week is open or unknown, a no-break space at its height. */
           line={
-            bossDone ? (
-              <p className="practice-week arrive font-display mt-auto pt-3 text-link font-bold" data-done>
-                {BOSS_DONE_LINE}
-              </p>
-            ) : undefined
+            <p
+              className={`practice-week font-display mt-1 text-link font-bold ${bossDone ? "arrive" : ""}`}
+              data-done={bossDone || undefined}
+              aria-hidden={bossDone ? undefined : true}
+            >
+              {bossDone ? BOSS_DONE_LINE : "\u00a0"}
+            </p>
           }
           artSize={BOSS_ART}
           art={

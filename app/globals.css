@@ -4610,6 +4610,13 @@ summary::-webkit-details-marker {
 .segmented-thumb[data-arrive] {
   animation: fade-in var(--duration-base) var(--ease-out);
 }
+/* A control whose value is settled after mount, before anyone touched
+   it (the Log's Daily / Games, read from the address and the phone):
+   the thumb is drawn where it lands, never slid there on load. The
+   class comes off two frames after mount, so every tap slides (#486). */
+.segmented-still .segmented-thumb {
+  transition: none;
+}
 
 /* The match check's note (components/tester/MatchCheck) while it is
    being typed: a keyboard that shrinks the page (Android's in-app

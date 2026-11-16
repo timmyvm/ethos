@@ -4,7 +4,7 @@ import type { Metadata } from "next";
  * place to declare it. Renders nothing of its own. The boss's proper
  * name is Cold Topic (#292), so the tab says that. */
 const description =
-  "Read for 4 minutes, then explain it from memory in 90 seconds.";
+  "A topic you've never studied. Read it, then explain it from memory.";
 
 export const metadata: Metadata = {
   title: "Cold Topic · Ethos",

@@ -52,10 +52,33 @@ export function useLogView(warm: boolean): [LogView, (view: LogView) => void] {
  * (components/log/GamesLog.tsx).
  */
 export function LogSwitch({ view, onChange }: { view: LogView; onChange: (view: LogView) => void }) {
+  /* For its first two frames the thumb stands where the side was read:
+     a cold open on Games drew Daily (the server's page) and then slid
+     the thumb across while the page loaded (#486 review). The side is
+     read in the page's mount effect, which runs in the same flush as
+     this one and lands before the second frame; from then on every
+     choice slides. (Taking the class off with the first tap instead
+     made that tap jump: Chromium starts no transition from a style
+     whose transition was none.) */
+  const [still, setStill] = useState(true);
+  useEffect(() => {
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setStill(false));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, []);
   return (
-    <div className="mt-5" data-look="log-switch">
+    /* 8 over and, with the -8 under, 12 to the side's first block (its
+       own mt-5 less 8): the Log's content sits exactly the switch's 44
+       lower than it did, the brief's limit, rather than 64. */
+    <div className="mt-2 -mb-2" data-look="log-switch">
       <Segmented
         label="Log"
+        className={still ? "segmented-still" : ""}
         value={view}
         onChange={onChange}
         options={[

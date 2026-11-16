@@ -43,6 +43,26 @@ describe("the boss card says the boss, not its clocks", () => {
     }
   });
 
+  it("says no time frame in the page's own description either", () => {
+    const layout = readFileSync("app/boss/layout.tsx", "utf8");
+    expect(layout).not.toMatch(/\d+\s*(minutes?|seconds?)/);
+  });
+
+  /* #486 review: Practice's words stand at the stage's middle height,
+     and a taken week's line, landing with the read, pulled them 33px up
+     the stage. Its slot is drawn from the first frame instead. */
+  it("holds Practice's eyebrow and name still while the week is read", () => {
+    const practice = readFileSync("app/games/page.tsx", "utf8");
+    const stage = practice.slice(practice.indexOf("<HeroStage"), practice.indexOf("/>", practice.indexOf("artSize={BOSS_ART}")));
+    expect(stage).toContain("center");
+    expect(stage).toContain('{bossDone ? BOSS_DONE_LINE : "\\u00a0"}');
+    expect(stage).toContain("practice-week font-display mt-1 text-link");
+    expect(stage).not.toMatch(/className=[^>]*mt-auto/);
+    expect(stage).not.toMatch(/line=\{\s*bossDone \?/);
+    // The house stage puts a centred stage's line in the group, never at the foot.
+    expect(readFileSync("components/ui/HeroStage.tsx", "utf8")).toContain('center ? "mt-1" : "mt-auto pt-3"');
+  });
+
   it("keeps one line for a taken week, and only that", () => {
     expect(BOSS_DONE_LINE).toBe("Done this week");
     expect(Object.keys(boss).sort()).toEqual(

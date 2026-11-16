@@ -8,7 +8,8 @@
  *   LOOK_BASE=http://localhost:3901 LOOK_OUT=/tmp/x node scripts/look-boss-log.mjs before
  *   LOOK_BASE=http://localhost:3901 LOOK_OUT=/tmp/x node scripts/look-boss-log.mjs after log-games
  *
- * Scenes: practice (Practice's boss card), boss (/boss), today (Today's
+ * Scenes: practice (Practice's boss card), practice-taken (the same card
+ * on a week already taken), boss (/boss), today (Today's
  * header), log (the Log, Daily), log-games-empty and log-games (the
  * Log's Games side with no rounds and with the fixtures' games, bosses
  * and Hostile takes, `gamesMode.on`), you-road (You's road card).
@@ -23,6 +24,7 @@ import {
   billingApiRoute,
   resetPlan,
   gamesMode,
+  extraReps,
   POSE_PREF,
 } from "./look-fixtures.mjs";
 
@@ -95,6 +97,20 @@ async function shoot(theme, [width, height]) {
   await scene("practice", async () => {
     await go("/games");
     await snap("practice");
+  });
+  /* A week already taken: this week's boss an hour ago, so the stage
+     says "Done this week" under the name (#486 review). */
+  await scene("practice-taken", async () => {
+    const at = new Date(Date.now() - 3_600_000).toISOString();
+    extraReps.push({
+      id: "boss-now", client_id: "boss-now", lesson_id: "boss:great-vowel-shift", mode: "boss",
+      boss_topic_id: "great-vowel-shift", created_at: at, stars: 2, ethos_index: 655, duration_s: 80,
+      wpm: 140, filler_count: 2, fillers: [], pauses: [], transcript: "x",
+      accuracy: { score: 80, coverage: 0.8, covered: [0, 1], missed: [], confidentlyWrong: 0, claims: [] },
+    });
+    await go("/games");
+    await snap("practice-taken");
+    extraReps.length = 0;
   });
   await scene("boss", async () => {
     await go("/boss", "main h1");

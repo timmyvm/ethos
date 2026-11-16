@@ -91,6 +91,24 @@ describe("the switch on the Log", () => {
     expect(control).toMatch(/warm \? readLogView\(/);
   });
 
+  /* #486 review: a cold open on Games drew the server's Daily, then slid
+     the thumb across as the side was read; and the switch with its mt-5
+     put the Log's content 64px lower, past the brief's "the switch's
+     height". */
+  it("draws the thumb where the side was read, and slides it only for a choice", () => {
+    expect(control).toContain('className={still ? "segmented-still" : ""}');
+    // Off two frames after mount, never on the tap: a tap that takes it off jumps.
+    expect(control).toMatch(/requestAnimationFrame\(\(\) => \{\s*second = requestAnimationFrame\(\(\) => setStill\(false\)\);/);
+    expect(control).not.toMatch(/setStill\(false\);\s*onChange/);
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toMatch(/\.segmented-still \.segmented-thumb \{\s*transition: none;\s*\}/);
+  });
+
+  it("moves the Log's content down by the switch's 44 and no more", () => {
+    // 8 above it, and the side's own mt-5 (20) less 8 under it: 8 + 44 + 12 - 20 = 44.
+    expect(control).toContain('className="mt-2 -mb-2" data-look="log-switch"');
+  });
+
   it("puts Games in its own file and leaves Daily's rows where they were", () => {
     expect(page).toContain('if (view === "games")');
     expect(page).toContain("<GamesLog />");

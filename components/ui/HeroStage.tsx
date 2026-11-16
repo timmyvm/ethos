@@ -96,7 +96,10 @@ export function HeroStage({
    * The words stand at the stage's middle height rather than its top: a
    * stage whose words are only an eyebrow and a title (Practice's boss
    * since #486) would otherwise leave its lower left an empty band of
-   * sky. A `line` still stands at the foot (its own `mt-auto`).
+   * sky. A `line` joins the centred group under the title rather than
+   * standing at the foot, and a line that lands late keeps its slot
+   * from the first frame (a no-break space), or the group moves when
+   * it arrives.
    */
   center?: boolean;
   "data-trait"?: string;
@@ -142,7 +145,7 @@ export function HeroStage({
         {children}
         {line !== undefined &&
           (typeof line === "string" ? (
-            <p className="stage-ink font-display mt-auto pt-3 text-link font-bold">{line}</p>
+            <p className={`stage-ink font-display text-link font-bold ${center ? "mt-1" : "mt-auto pt-3"}`}>{line}</p>
           ) : (
             line
           ))}

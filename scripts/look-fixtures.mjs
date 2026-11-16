@@ -446,7 +446,13 @@ function gameRows() {
   const bossTake = (ago, h, id, topic, index, accuracy) => ({
     ...row(ago, h, id, `boss:${topic}`, 2, index, null),
     mode: "boss", boss_topic_id: topic, duration_s: 84,
-    accuracy: accuracy === null ? null : { score: accuracy, coverage: accuracy, missed: [], confidentlyWrong: 0, claims: [] },
+    /* As /api/analyze stores it (lib/accuracy.ts AccuracyResult): the
+       stored recording's AccuracyCard counts `covered`, and a row
+       without it threw on /rep/[id] (#486 review). */
+    accuracy:
+      accuracy === null
+        ? null
+        : { score: accuracy, coverage: accuracy / 100, covered: [0, 1, 2], missed: [], confidentlyWrong: 0, claims: [] },
   });
   rows.push(
     bossTake(8, 19, "boss-1", "dunning-kruger", 648, 82),

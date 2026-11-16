@@ -223,7 +223,7 @@ having count(distinct r.spoken_on) >= 8
  order by t.name;
 ```
 
-The same list is who is owed free Premium at launch (the DM promises it): keep it, outside this repo. A friend whose days sit on an account that never joined tester mode (an anonymous tester session and a separate signed-in account, never linked) is found by email in `auth.users` and their days counted from `public.reps`.
+Every tester was given Premium on 16 Nov (#433), so the DM's free Premium at launch is already kept. Keep the paid list outside this repo. A friend whose days sit on an account that never joined tester mode (an anonymous tester session and a separate signed-in account, never linked) is found by email in `auth.users` and their days counted from `public.reps`.
 
 `under_18` comes from the introduction's age answer, and it is empty for anyone who skipped that question or the whole introduction. Check you have a parent's or guardian's text for every tester where it is true or empty:
 

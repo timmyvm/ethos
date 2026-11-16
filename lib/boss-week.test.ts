@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { bossWeekField, bossWeeks, lastBossWeek, parseBossWeek } from "./boss";
+import { bossWeekField, lastBossWeek, parseBossWeek } from "./boss";
+import { bossWeekRows } from "./games-log";
 
 /*
- * The boss's delta and the lobby's record name the same last week across
- * a clock change (games review, finding 4). Node reads TZ as it changes,
+ * The boss's delta and the Log's boss rows (the lobby's record until
+ * #486) name the same last week across a clock change (games review,
+ * finding 4). Node reads TZ as it changes,
  * so this file runs on Los Angeles' calendar, where summer time ended on
  * Sunday 1 November 2026.
  */
@@ -21,7 +23,7 @@ describe("last week across a clock change", () => {
     expect(new Date(2026, 9, 26).toISOString()).toBe("2026-10-26T07:00:00.000Z");
   });
 
-  it("sends the lobby's own Mondays, an hour apart from a week of 168 hours", () => {
+  it("sends the Log's own Mondays, an hour apart from a week of 168 hours", () => {
     // Friday 6 Nov 2026, 10:00 PST.
     const at = new Date("2026-11-06T18:00:00Z");
     const field = bossWeekField(at);
@@ -33,16 +35,18 @@ describe("last week across a clock change", () => {
     expect(week.to.toISOString()).toBe("2026-11-02T08:00:00.000Z");
   });
 
-  it("names the take the lobby's last-week slot shows", () => {
+  it("names the take the Log's row for last week shows", () => {
     const at = new Date("2026-11-06T18:00:00Z");
-    // Monday 26 Oct, 00:30 PDT: last week's first boss on the lobby.
+    // Monday 26 Oct, 00:30 PDT: last week's first boss in the Log.
     const early = "2026-10-26T07:30:00.000Z";
     const rows = [
-      { created_at: early, lesson_id: "boss:t1", ethos_index: 612 },
-      { created_at: "2026-10-28T19:00:00.000Z", lesson_id: "boss:t2", ethos_index: 640 },
+      { id: "a", created_at: early, lesson_id: "boss:t1", ethos_index: 612 },
+      { id: "b", created_at: "2026-10-28T19:00:00.000Z", lesson_id: "boss:t2", ethos_index: 640 },
     ];
-    const lobby = bossWeeks(rows, at);
-    expect(lobby[lobby.length - 2].index).toBe(612);
+    const weeks = bossWeekRows(rows);
+    expect(weeks).toHaveLength(1);
+    expect(weeks[0].index).toBe(612);
+    expect(weeks[0].week.toISOString()).toBe("2026-10-26T07:00:00.000Z");
     const week = parseBossWeek(bossWeekField(at), at)!;
     const t = new Date(early).getTime();
     expect(t >= week.from.getTime() && t < week.to.getTime()).toBe(true);

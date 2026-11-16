@@ -154,6 +154,8 @@ for (const [name, width, height] of [["390", 390, 844], ["320", 320, 568]]) {
 {
   const { context, page, errors } = await open();
   const openPaywall = async () => {
+    /* A forced tap lands where the button is: scrolled only until its foot shows, Unlock sat under the floating tab bar once Practice's boss card lost its two clock lines (#486), so it is centred first. */
+    await page.$eval(".premium-wall", (el) => el.scrollIntoView({ block: "center" }));
     await page.click(".premium-wall", { force: true });
     await page.waitForSelector('[role="dialog"] [role="slider"]', { timeout: 8000 });
     await sleep(900);

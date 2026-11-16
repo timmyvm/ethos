@@ -38,6 +38,8 @@ export function HeroStage({
   artBleed = false,
   artFluid = false,
   artGrow,
+  artReserve = 130,
+  center = false,
   ...rest
 }: {
   /** Sentence case, the stage's ink. A node, so a trait chip can lead it. */
@@ -83,6 +85,20 @@ export function HeroStage({
    * box with DemosArt's `fit`.
    */
   artGrow?: number;
+  /**
+   * With `artGrow`, the height kept clear above the figure, px: the
+   * words' block and the padding. 130 holds an eyebrow, a title and a
+   * line; a stage with only an eyebrow and a title (/boss, #486) gives
+   * the rest to the figure.
+   */
+  artReserve?: number;
+  /**
+   * The words stand at the stage's middle height rather than its top: a
+   * stage whose words are only an eyebrow and a title (Practice's boss
+   * since #486) would otherwise leave its lower left an empty band of
+   * sky. A `line` still stands at the foot (its own `mt-auto`).
+   */
+  center?: boolean;
   "data-trait"?: string;
   "data-look"?: string;
 }) {
@@ -110,7 +126,7 @@ export function HeroStage({
       {eyebrowWide && eyebrow !== undefined && (
         <div className="relative z-[2] min-w-0 pr-16">{eyebrow}</div>
       )}
-      <div className="hero-words relative z-[2] flex min-w-0 flex-1 flex-col">
+      <div className={`hero-words relative z-[2] flex min-w-0 flex-1 flex-col ${center ? "justify-center" : ""}`}>
         {!eyebrowWide &&
           eyebrow !== undefined &&
           (typeof eyebrow === "string" ? (
@@ -139,8 +155,8 @@ export function HeroStage({
           <div
             className="hero-figure absolute bottom-[2px] right-1 [container-type:size]"
             style={{
-              width: `clamp(${artSize}px, calc(100cqh - 130px), ${artGrow}px)`,
-              height: `clamp(${artSize}px, calc(100cqh - 130px), ${artGrow}px)`,
+              width: `clamp(${artSize}px, calc(100cqh - ${artReserve}px), ${artGrow}px)`,
+              height: `clamp(${artSize}px, calc(100cqh - ${artReserve}px), ${artGrow}px)`,
             }}
           >
             {art}

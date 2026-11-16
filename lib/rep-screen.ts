@@ -10,7 +10,7 @@ import { achievements } from "./achievements";
 import type { RepRow } from "./client-data";
 import type { LevelN } from "./games";
 import type { RepMetrics } from "./metrics";
-import { nextMilestones, type RepGain } from "./progress";
+import { nextMilestones } from "./progress";
 import {
   anticipation,
   endNote,
@@ -72,7 +72,6 @@ export function takeRewards(p: {
   prior: RepRow[];
   metrics: RepMetrics;
   ethosIndex: number | null;
-  gains: RepGain[];
   streak: StreakState;
   repCount: number;
   /**
@@ -95,7 +94,6 @@ export function takeRewards(p: {
         ...personalBests(p.prior, p.metrics, p.ethosIndex),
       ],
       closing: endNote({
-        gains: p.gains,
         metrics: p.metrics,
         streak: p.streak,
         repCount: p.repCount,

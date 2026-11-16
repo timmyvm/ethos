@@ -269,6 +269,8 @@ async function shootTheme(theme) {
   await step(async () => {
     if (!want("paywall")) return;
     await go("/games", READY);
+    /* A forced tap lands where the button is: scrolled only until its foot shows, Unlock sat under the floating tab bar once Practice's boss card lost its two clock lines (#486), so it is centred first. */
+    await page.$eval(".premium-wall", (el) => el.scrollIntoView({ block: "center" }));
     await page.click(".premium-wall", { force: true });
     await page.waitForSelector('[role="dialog"]', { timeout: 8000 });
     // The ladder rises in once the sheet has settled: let it land.
@@ -282,6 +284,7 @@ async function shootTheme(theme) {
    */
   const openPaywall = async () => {
     await go("/games", READY);
+    await page.$eval(".premium-wall", (el) => el.scrollIntoView({ block: "center" }));
     await page.click(".premium-wall", { force: true });
     await page.waitForSelector('[role="dialog"] [role="slider"]', { timeout: 8000 });
     await sleep(1400);

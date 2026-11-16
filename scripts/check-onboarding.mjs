@@ -514,13 +514,12 @@ ok("the roulette never draws a job prompt for an under-18", !job, `${drawn.size}
 // 9. /you: the plan row, and reopening the plan to change an answer.
 await page.goto(`${BASE}/you`);
 await page.getByText("The road", { exact: true }).waitFor();
-/* The gate's count is read after the card is drawn: until the stars
-   land the line is the unit's name alone (gateLine), so the check waits
-   for the count instead of reading the frame the eyebrow arrived in. */
+/* The caption names the unit, and no count of stars to its gate: the
+   total of every lesson's stars left every screen in #486. */
 ok(
-  "/you shows the road card with the unit and its gate",
+  "/you shows the road card with the unit",
   await page
-    .getByText(/^Pace Control (opens in \d+ stars?|is open)$/)
+    .getByText(/^Pace Control$/)
     .waitFor({ timeout: 8000 })
     .then(() => true)
     .catch(() => false)

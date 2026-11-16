@@ -1,14 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Achievement } from "./achievements";
 import type { RepRow } from "./client-data";
-import {
-  journeySteps,
-  journeySummary,
-  nextMilestones,
-  repGains,
-  type ProgressInput,
-} from "./progress";
-import { MAX_STARS } from "./path";
+import { nextMilestones, type ProgressInput } from "./progress";
+import * as progress from "./progress";
 import { MAX_EQUIPPED_FREEZES, type StreakState } from "./streak";
 
 const streak = (over: Partial<StreakState> = {}): StreakState => ({
@@ -160,91 +154,11 @@ describe("nextMilestones", () => {
   });
 });
 
-describe("journeySteps", () => {
-  it("opens with an honest completed node, never a free star", () => {
-    const steps = journeySteps({}, false);
-    expect(steps[0].endowed).toBe(true);
-    expect(steps[0].done).toBe(true);
-    expect(steps[0].stars).toBe(0);
-    // The endowed node contributes nothing to the star count.
-    expect(journeySummary({}).stars).toBe(0);
-  });
-
-  it("reflects earned stars per lesson", () => {
-    const steps = journeySteps({ f1: 3, f2: 1 }, true);
-    expect(steps.find((s) => s.id === "f1")?.stars).toBe(3);
-    expect(steps.find((s) => s.id === "f2")?.stars).toBe(1);
-    expect(steps.find((s) => s.id === "f3")?.stars).toBe(0);
-  });
-
-  it("locks steps in units that haven't opened", () => {
-    expect(journeySteps({}, false).find((s) => s.id === "p1")?.locked).toBe(
-      true
-    );
-    expect(
-      journeySteps({ f1: 3, f2: 3 }, true).find((s) => s.id === "p1")?.locked
-    ).toBe(false);
-  });
-});
-
-describe("journeySummary", () => {
-  it("counts stars against the real maximum", () => {
-    const s = journeySummary({ f1: 3, f2: 2 });
-    expect(s.stars).toBe(5);
-    expect(s.maxStars).toBe(MAX_STARS);
-    expect(s.pct).toBeCloseTo(5 / MAX_STARS, 5);
-    expect(s.lessonsMastered).toBe(1);
-    expect(s.lessonsStarted).toBe(2);
-  });
-
-  it("is zero, not negative or NaN, for a new user", () => {
-    const s = journeySummary({});
-    expect(s.stars).toBe(0);
-    expect(s.pct).toBe(0);
-    expect(s.lessonsMastered).toBe(0);
-  });
-});
-
-describe("repGains", () => {
-  it("reports only what actually changed", () => {
-    const gains = repGains({
-      starsBefore: 4,
-      starsAfter: 6,
-      indexBefore: 610,
-      indexAfter: 655,
-      streakAfter: 3,
-      unlockedUnit: "The Pause",
-    });
-    expect(gains.map((g) => g.label)).toEqual([
-      "+2★",
-      "+45 Ethos",
-      "3-day streak",
-      "The Pause unlocked",
-    ]);
-  });
-
-  it("says nothing about stars or Index when neither moved", () => {
-    const gains = repGains({
-      starsBefore: 4,
-      starsAfter: 4,
-      indexBefore: 610,
-      indexAfter: 610,
-      streakAfter: 0,
-      unlockedUnit: null,
-    });
-    expect(gains).toEqual([]);
-  });
-
-  it("reports a drop honestly rather than hiding it", () => {
-    const gains = repGains({
-      starsBefore: 4,
-      starsAfter: 4,
-      indexBefore: 700,
-      indexAfter: 640,
-      streakAfter: 0,
-      unlockedUnit: null,
-    });
-    expect(gains[0].label).toBe("-60 Ethos");
-    expect(gains[0].detail).toBe("700 → 640");
+/* #486: nothing here sums every lesson's stars any more. */
+describe("no total of stars", () => {
+  it("has no rail, summary or gains left to print one", () => {
+    for (const gone of ["journeySteps", "journeySummary", "repGains"]) {
+      expect(gone in progress, gone).toBe(false);
+    }
   });
 });

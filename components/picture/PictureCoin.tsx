@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { IconYou } from "@/components/Icon";
 import { bustSrc, type Picture } from "@/lib/picture";
+import { photoBroke } from "@/lib/picture-client";
 
 /** What a picture is, as one string: its change is what the coin animates. */
 function pictureKey(picture: Picture): string | null {
@@ -79,6 +80,9 @@ export function PictureCoin({
           draggable={false}
           decoding="async"
           onLoad={() => setLoaded(url)}
+          // A dead link (signed an hour ago, or a photo removed on
+          // another phone) is read again, then drawn as the initial.
+          onError={picture.kind === "photo" ? () => photoBroke(url) : undefined}
           className={`dur-base transition-opacity ${swap} ${picture.kind === "photo" && loaded !== url && !url.startsWith("blob:") ? "opacity-0" : ""} ${dim ? "opacity-60" : ""}`}
         />
       ) : picture.kind === "initial" ? (

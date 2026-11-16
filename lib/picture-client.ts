@@ -33,6 +33,25 @@ export function fetchOwnedPoses(): Promise<ReadonlySet<string>> {
   });
 }
 
+type Broke = (url: string) => void;
+const broke = new Set<Broke>();
+
+/**
+ * A photo's link would not load in a coin (PictureCoin's img). Every
+ * picture on screen hears it, so whichever coin saw it first (Today's
+ * corner, a row of the choices), the hook that drew it reads a fresh
+ * link (lib/picture.ts `afterBrokenPhoto`).
+ */
+export function photoBroke(url: string): void {
+  for (const listen of broke) listen(url);
+}
+
+/** Hear a photo that would not load; the return stops hearing. */
+export function onPhotoBroke(listen: Broke): () => void {
+  broke.add(listen);
+  return () => void broke.delete(listen);
+}
+
 /** This phone's copy of the choice, for the first paint: the account's wins when it lands. */
 export function deviceChoice(): string | null {
   return readPrefs().pose;

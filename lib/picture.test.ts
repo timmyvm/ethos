@@ -9,10 +9,12 @@ import {
   INITIAL,
   PHOTO,
   PICTURE_COPY,
+  afterBrokenPhoto,
   bustSrc,
   isPaidPose,
   needsLedger,
   needsPhoto,
+  photoPath,
   pictureChoices,
   pictureRow,
   resolvePicture,
@@ -21,6 +23,7 @@ import {
   type Picture,
   type PictureInput,
 } from "./picture";
+import { onPhotoBroke, photoBroke } from "./picture-client";
 import { POSE_STAGE, SHOP, SHOP_PICTURE, itemById, ownedFrom } from "./shop";
 
 /*
@@ -289,5 +292,62 @@ describe("every picture surface reads one source", () => {
       expect(src(path), path).not.toMatch(/type="file"/);
     }
     expect(src("components/picture/usePicture.tsx").match(/type="file"/g)?.length).toBe(1);
+  });
+});
+
+/*
+ * A photo whose link will not load (#488 review). The link is signed for
+ * an hour and held for the visit: a phone left open past it drew the dead
+ * link on the next mount, read again, kept the dead one (`samePhoto`: the
+ * new link names the same photo), and every coin, Today's corner first,
+ * stayed an empty circle. The same happened to a photo removed on another
+ * phone, and to a storage outage.
+ */
+describe("a photo that will not load", () => {
+  const DEAD = "https://x.supabase.co/storage/v1/object/sign/avatars/u1/1.webp?token=old";
+  const none = new Set<string>();
+
+  it("asks once more for a fresh link, then draws the initial, never an empty coin", () => {
+    // First failure: the link is forgotten and read again.
+    expect(afterBrokenPhoto(DEAD, DEAD, none)).toEqual({ photo: undefined, refetch: true });
+    // The same photo failing again (its fresh link too): no photo, so the initial.
+    const retried = new Set([photoPath(DEAD)]);
+    const fresh = DEAD.replace("token=old", "token=new");
+    expect(afterBrokenPhoto(fresh, fresh, retried)).toEqual({ photo: null, refetch: false });
+    expect(resolvePicture({ choice: PHOTO, photo: null, owned: owns(), letter: "T", nameKnown: true })).toEqual({ kind: "initial", letter: "T" });
+    expect(photoPath(fresh)).toBe(photoPath(DEAD));
+  });
+
+  it("changes nothing for a link no longer drawn, a second coin's report, or the phone's own copy", () => {
+    expect(afterBrokenPhoto(URL_A, DEAD, none)).toEqual({ photo: URL_A, refetch: false });
+    expect(afterBrokenPhoto(undefined, DEAD, none)).toEqual({ photo: undefined, refetch: false });
+    expect(afterBrokenPhoto(null, DEAD, none)).toEqual({ photo: null, refetch: false });
+    expect(afterBrokenPhoto("blob:http://x/1", "blob:http://x/1", none)).toEqual({ photo: "blob:http://x/1", refetch: false });
+  });
+
+  it("is heard from any coin by the hook that drew it", () => {
+    const heard: string[] = [];
+    const stop = onPhotoBroke((url) => heard.push(url));
+    photoBroke(DEAD);
+    stop();
+    photoBroke(URL_A);
+    expect(heard).toEqual([DEAD]);
+    const strip = (path: string) => readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    // The coin reports a photo's error, and only a photo's: a bust is a file of the app's own.
+    expect(strip("components/picture/PictureCoin.tsx")).toMatch(/onError=\{picture\.kind === "photo" \? \(\) => photoBroke\(url\) : undefined\}/);
+    const hook = strip("components/picture/usePicture.tsx");
+    expect(hook).toMatch(/onPhotoBroke\(\(url\) => \{/);
+    expect(hook).toMatch(/afterBrokenPhoto\(photoNow\.current, url, retried\.current\)/);
+    expect(hook).toMatch(/if \(next\.refetch\) \{\s*retried\.current\.add\(photoPath\(url\)\);\s*readPhoto\(\);/);
+  });
+});
+
+describe("the Shop's owned pose", () => {
+  it("says what to do once: the button, not the blurb over it as well", () => {
+    const page = readFileSync("app/shop/page.tsx", "utf8");
+    // The blurb is drawn for a pose still for sale, never over the wear button.
+    expect(page).toMatch(/\{isOwned \? null : \(\s*<p className="mt-1 text-caption text-pretty text-stone-500">\s*\{item\.blurb\}/);
+    expect(page.match(/\{item\.blurb\}/g)?.length).toBe(1);
+    expect(SHOP_PICTURE.wear).toBe(SHOP_PICTURE.blurb.replace(/\.$/, ""));
   });
 });

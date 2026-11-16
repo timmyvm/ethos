@@ -9,7 +9,9 @@ import {
   INITIAL,
   PHOTO,
   PICTURE_COPY,
+  afterBrokenPhoto,
   needsLedger,
+  photoPath,
   needsPhoto,
   pictureChoices,
   pictureRow,
@@ -17,7 +19,7 @@ import {
   type Picture,
   type PictureRow,
 } from "@/lib/picture";
-import { deviceChoice, fetchOwnedPoses, heldOwnedPoses } from "@/lib/picture-client";
+import { deviceChoice, fetchOwnedPoses, heldOwnedPoses, onPhotoBroke } from "@/lib/picture-client";
 import { adoptAccountPose, wearPose } from "@/lib/pose-save";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useWarm } from "@/lib/use-warm";
@@ -121,6 +123,27 @@ export function usePicture({
     setChoice((was) => (was === undefined ? deviceChoice() : was));
     readChoice();
   }, []);
+  /* A photo whose link would not load in any coin: read once more for a
+     fresh link, then draw the initial (lib/picture.ts `afterBrokenPhoto`).
+     The photo as last set is mirrored here, so a second coin reporting
+     the same dead link finds it already gone and changes nothing. */
+  const photoNow = useRef(photo);
+  photoNow.current = photo;
+  const retried = useRef(new Set<string>());
+  useEffect(
+    () =>
+      onPhotoBroke((url) => {
+        const next = afterBrokenPhoto(photoNow.current, url, retried.current);
+        if (next.photo === photoNow.current) return;
+        photoNow.current = next.photo;
+        setPhoto(next.photo);
+        if (next.refetch) {
+          retried.current.add(photoPath(url));
+          readPhoto();
+        }
+      }),
+    []
+  );
   // The photo and the ledger only once the choice says they are needed.
   const wantPhoto = choices || (choice !== undefined && needsPhoto(choice, owned));
   const wantLedger = choices || needsLedger(choice);

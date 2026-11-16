@@ -298,7 +298,7 @@ export default function ShopPage() {
               <div key={item.id} className="card p-4">
                 <div className="flex gap-3.5">
                   <ItemArt id={item.id} />
-                  <div className="min-w-0 flex-1">
+                  <div className={`min-w-0 flex-1${isOwned ? " self-center" : ""}`}>
                     {/* Owned leaves the price's slot empty (E38): the
                         price has done its job, and the wear button under
                         it says the state, so a second word doubled it. */}
@@ -318,9 +318,15 @@ export default function ShopPage() {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-caption text-pretty text-stone-500">
-                      {item.blurb}
-                    </p>
+                    {/* Owned, the blurb goes the way the price went
+                        (E38): "Wear it as your picture." over a button
+                        that says "Wear it as your picture" said it twice
+                        (#488 review). The button carries the words. */}
+                    {isOwned ? null : (
+                      <p className="mt-1 text-caption text-pretty text-stone-500">
+                        {item.blurb}
+                      </p>
+                    )}
                     {full && (
                       <p className="mt-1.5 text-caption font-semibold tabular-nums text-ink">
                         {state.reason}

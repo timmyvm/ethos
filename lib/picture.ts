@@ -112,6 +112,31 @@ export function needsLedger(choice: string | null | undefined): boolean {
   return isPaidPose(choice);
 }
 
+/**
+ * What the photo becomes when its link will not load in a coin (the
+ * img's error). A link is signed for an hour and held for the visit, so
+ * a phone left open draws a dead one on its next mount, and reading
+ * again cannot fix it alone: the new link names the same stored photo,
+ * and `samePhoto` keeps the one already drawn. So the first failure of a
+ * photo forgets the link and asks again (`refetch`); a second failure of
+ * the same photo draws as no photo, the initial in its place, never an
+ * empty circle. A link that is not the one drawn (already replaced, or
+ * reported by a second coin) and the phone's own copy change nothing.
+ */
+export function afterBrokenPhoto(
+  drawn: string | null | undefined,
+  broken: string,
+  retried: ReadonlySet<string>
+): { photo: string | null | undefined; refetch: boolean } {
+  if (broken.startsWith("blob:") || drawn !== broken) return { photo: drawn, refetch: false };
+  return retried.has(photoPath(broken)) ? { photo: null, refetch: false } : { photo: undefined, refetch: true };
+}
+
+/** A photo's stored path, without the signature that changes on every read. */
+export function photoPath(url: string): string {
+  return url.split("?")[0];
+}
+
 /** The row a list of choices checks: the picture on screen, named as a choice. Null while unknown. */
 export function pictureRow(picture: Picture): PictureRow | null {
   switch (picture.kind) {

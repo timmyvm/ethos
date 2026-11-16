@@ -483,7 +483,7 @@ export function RepResult({
                   metrics={m}
                   coach={coach}
                   index={ethosIndex}
-                  headline={result.scorable !== false}
+                  scored={result.scorable !== false}
                   pauseDetail={result.pauseHeadline ?? undefined}
                   take={take}
                   fill={live}
@@ -865,7 +865,7 @@ export function RepResult({
               metrics={m}
               coach={coach}
               index={ethosIndex}
-              headline={result.scorable !== false}
+              scored={result.scorable !== false}
               pauseDetail={result.pauseHeadline ?? undefined}
               take={take}
               fill={live}

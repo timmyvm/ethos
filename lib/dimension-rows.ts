@@ -185,7 +185,9 @@ export function weightLine(rows: Pick<DimensionRow, "name" | "weight">[]): strin
  */
 export const STRONG_PHRASE: Record<TraitKey, string> = {
   pause: "let your points land",
-  fillers: "kept fillers out",
+  /* "down", never "out": Strong is up to 2.4 fillers a minute, so the
+     row under it can say "2 in 60 seconds" (#471 review). */
+  fillers: "kept fillers down",
   repairs: "finished your sentences",
   pace: "spoke at a good pace",
   range: "varied your words",
@@ -204,7 +206,7 @@ export const STRONG_PHRASE: Record<TraitKey, string> = {
  *   "You got to the point and sounded steady. Pausing is the one to work on."
  *   "You spoke at a good pace. Variety has the most room to grow."
  *   "Pausing is the one to work on."            (nothing Strong)
- *   "You spoke at a good pace and kept fillers out. Strong on all 9."
+ *   "You spoke at a good pace and kept fillers down. Strong on all 9."
  */
 export function rowsHeadline(rows: DimensionRow[]): string {
   if (rows.length === 0) return "";
@@ -279,8 +281,9 @@ const fmt1 = (n: number) => n.toFixed(1).replace(/\.0$/, "");
  *
  *   "About half your first week's fillers a minute: 3.9, from 7.6."
  *
- * Null where there is nothing honest to say: the first week not wholly
- * in what was read (`complete` false), a take inside that first week,
+ * Null where there is nothing honest to say: this take too short to
+ * score (`now.scorable` false: it measured nothing, #55), the first week
+ * not wholly in what was read (`complete` false), a take inside that first week,
  * a first week without a measured take, or one with no fillers to
  * compare against. The takes too short to score are skipped, as every
  * reading of a stored row skips them (lib/trait-readings `measured`).
@@ -290,11 +293,11 @@ export function fillerTrend(p: {
   reps: RateTake[];
   /** Whether `reps` reaches back to the account's first recording. */
   complete: boolean;
-  now: { fillerCount: number; durationS: number };
+  now: { fillerCount: number; durationS: number; scorable?: boolean };
   /** When this take was made. */
   at: Date;
 }): string | null {
-  if (!p.complete || !(p.now.durationS > 0) || p.reps.length === 0) return null;
+  if (!p.complete || p.now.scorable === false || !(p.now.durationS > 0) || p.reps.length === 0) return null;
   const sorted = [...p.reps].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
   const end = Date.parse(sorted[0].created_at) + WEEK_MS;
   if (!(p.at.getTime() >= end)) return null;

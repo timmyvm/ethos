@@ -3441,7 +3441,11 @@ function Results({
   const fillersTrend = fillerTrend({
     reps: repsNow,
     complete: repsNow.length > 0 && spineNow.length <= repsNow.length,
-    now: { fillerCount: result.metrics.fillerCount, durationS: result.metrics.durationS },
+    now: {
+      fillerCount: result.metrics.fillerCount,
+      durationS: result.metrics.durationS,
+      scorable: result.scorable !== false,
+    },
     at: new Date(),
   });
   const sheetSlots = {

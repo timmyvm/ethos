@@ -21,15 +21,12 @@ import {
   nextLine,
   nextTrait,
   ordinal,
-  placeSource,
-  placeWords,
+  placeHold,
+  placeLine,
   readTraitsFromRow,
   withUnit,
   type TraitReading,
 } from "@/lib/trait-readings";
-
-/** "Against ..." as the second half of a sentence. */
-const lowerFirst = (s: string) => (s ? s[0].toLowerCase() + s.slice(1) : s);
 
 /**
  * A lesson (DECISIONS #258). One trait, start to finish.
@@ -250,11 +247,17 @@ function Lesson() {
           /* D29: the ring says the number and its percentile, so the
              fine print says only where they come from, the same line on
              a provisional scale (said by the ring to a screen reader,
-             Ring's `provisional`, never as a disclaimer). Held at one
-             line while the read is in flight, so the shelf keeps its
-             height when it lands. */
+             Ring's `provisional`, never as a disclaimer). Held at the
+             landed line's height while the read is in flight, the same
+             words drawn invisible (`placeHold`), so nothing moves when
+             it lands (#471 review: a held blank had no height, and the
+             three lines that land moved the title 57px). */
           !loaded
-            ? " "
+            ? (
+                <span aria-hidden className="invisible">
+                  {placeHold(id)}
+                </span>
+              )
             : failed
               ? undefined
               : !now
@@ -265,7 +268,7 @@ function Lesson() {
                      it based off of and is it on a leaderboard"):
                      published research, never other users, an estimate
                      while the scale is provisional. */
-                  `${lowest ? "Your lowest trait. " : ""}${placeWords(now)}, ${lowerFirst(placeSource(NORMS[id].quality))}`
+                  placeLine(now, lowest)
         }
         action={{ label: "Why it matters", onPress: () => go(i + 1) }}
       />

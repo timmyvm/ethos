@@ -192,4 +192,19 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
     expect(h).not.toContain("data-dimension-headline");
     expect(h).not.toContain("You spoke at a good pace");
   });
+
+  it("and no band's word or sage on its rows: a number it stored, nothing earned (#471 review)", () => {
+    const unscored: ResultView = { ...view, ethosIndex: null, coach: null, scorable: false };
+    const h = renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }));
+    const t = h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    // The rows still print what was stored: Pausing 72, Pace 93.
+    expect(t).toMatch(/Pausing 72 out of 100/);
+    expect(t).toMatch(/Pace 93 out of 100/);
+    expect(h).not.toContain("data-band-word");
+    expect(h).not.toMatch(/data-band="/);
+    expect(t).not.toMatch(/\b(Strong|Okay|Work on this)\b/);
+    const bars = [...h.matchAll(/data-bar="true" class="([^"]+)"/g)].map((m) => m[1]);
+    expect(bars.length).toBeGreaterThan(0);
+    for (const cls of bars) expect(cls).toContain("bg-bar-plain");
+  });
 });

@@ -12,13 +12,14 @@ import {
   paceWords,
   rowsHeadline,
   STRONG_AT,
+  STRONG_PHRASE,
   varietyWords,
   weightLine,
   type DimensionRow,
 } from "./dimension-rows";
 import { ethosIndex, INDEX_WEIGHTS } from "./index-score";
 import { LEVEL_AT } from "./traits";
-import { placeSource, placeWords } from "./trait-readings";
+import { placeHold, placeLine, placeSource, placeWords } from "./trait-readings";
 
 const tier1 = { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 };
 const tier2 = {
@@ -158,8 +159,14 @@ describe("one headline in words, the numbers under it (#471, plan §7)", () => {
 
   it("names the lowest as the most room when nothing is under half", () => {
     expect(rowsHeadline([row("pace", 93), row("range", 66), row("fillers", 72)])).toBe(
-      "You spoke at a good pace and kept fillers out. Variety has the most room to grow."
+      "You spoke at a good pace and kept fillers down. Variety has the most room to grow."
     );
+  });
+
+  it("never says fillers were kept out of a take that had some (#471 review)", () => {
+    // Strong is up to 2.4 fillers a minute, so a Strong row can sit over
+    // "2 in 60 seconds": the words may say down, never out or none.
+    expect(STRONG_PHRASE.fillers).not.toMatch(/\b(out|no|none|zero|free)\b/);
   });
 
   it("says only the one to work on when nothing is Strong", () => {
@@ -235,6 +242,28 @@ describe("a percentile says what it is against and which way is up (#471)", () =
     expect(placeSource("good")).not.toMatch(/estimate/);
     expect(placeSource("good")).not.toMatch(/leaderboard|rank/i);
   });
+
+  it("puts the place and its source in one line on the trait page (#471 review)", () => {
+    expect(placeLine({ id: "fillers", percentile: 93, quality: "provisional" })).toBe(
+      "Fewer ums and uhs than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    );
+    expect(placeLine({ id: "pause", percentile: 18, quality: "provisional" }, true)).toMatch(/^Your lowest trait\. More landed pauses/);
+  });
+
+  it("holds the line's own shape while the read is in flight, so nothing moves when it lands", () => {
+    // The hold is drawn invisible at the landed line's height: for every
+    // trait and every place it can print, the landed line is the hold to
+    // within the one digit "than 9" saves over "than 50".
+    for (const t of TRAITS) {
+      const hold = placeHold(t.id);
+      expect(hold).toBe(placeLine({ id: t.id, percentile: 50, quality: "provisional" }));
+      for (let p = 0; p <= 100; p++) {
+        const landed = placeLine({ id: t.id, percentile: p, quality: "provisional" });
+        expect(hold.length - landed.length, `${t.id} at ${p}`).toBeGreaterThanOrEqual(0);
+        expect(hold.length - landed.length, `${t.id} at ${p}`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
 });
 
 describe("the trend in words, with its numbers (#471, plan §7)", () => {
@@ -284,5 +313,13 @@ describe("the trend in words, with its numbers (#471, plan §7)", () => {
     const short = week.map((r) => ({ ...r, transcript: "Hi there." }));
     expect(fillerTrend({ reps: short, complete: true, now: { fillerCount: 2, durationS: 60 }, at })).toBeNull();
     expect(fillerTrend({ reps: [], complete: true, now: { fillerCount: 2, durationS: 60 }, at })).toBeNull();
+  });
+
+  it("says nothing of a take too short to score, which measured nothing (#471 review)", () => {
+    // 0 fillers in 9 seconds is no reading, so never "Under a third".
+    expect(fillerTrend({ reps: week, complete: true, now: { fillerCount: 0, durationS: 9, scorable: false }, at })).toBeNull();
+    expect(fillerTrend({ reps: week, complete: true, now: { fillerCount: 4, durationS: 62, scorable: true }, at })).toMatch(
+      /^About half/
+    );
   });
 });

@@ -409,8 +409,11 @@ export function LessonScreen({
   speech?: "above" | "beside";
   /** The one tap (brand.md: exactly one per screen). */
   action: LessonAction;
-  /** Bottom, small, muted. */
-  fineprint?: string;
+  /**
+   * Bottom, small, muted. A node where a line held invisible keeps its
+   * height while a read is in flight (the trait page, #471 review).
+   */
+  fineprint?: ReactNode;
   /** Above the title. An image, never text. */
   art?: ReactNode;
   /**

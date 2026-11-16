@@ -63,7 +63,7 @@ export function DimensionList({
   open,
   brief = false,
   gain = null,
-  headline = true,
+  scored = true,
   trend = null,
 }: {
   tier1: Tier1Scores;
@@ -109,8 +109,12 @@ export function DimensionList({
    * it leveled, by its key.
    */
   gain?: { key: string; name: string; text: string } | null;
-  /** The rows' headline in words over the card (plan §7); off where the caller draws it. */
-  headline?: boolean;
+  /**
+   * Whether the rows are a reading. A take too short to score measured
+   * nothing (#55), so its rows claim nothing in words: no headline, no
+   * band's word and no sage, only the numbers it stored (#471 review).
+   */
+  scored?: boolean;
   /**
    * The trend in words for a row, by its key (plan §7, lib/dimension-rows
    * `fillerTrend`): "About half your first week's fillers a minute: 3.9,
@@ -206,7 +210,7 @@ export function DimensionList({
   // Same rounding the Index uses, so the rows' points add up to it.
   const earned = rows.reduce((sum, r) => sum + r.points, 0);
   const available = rows.reduce((sum, r) => sum + r.weight, 0);
-  const said = headline ? rowsHeadline(rows) : "";
+  const said = scored ? rowsHeadline(rows) : "";
 
   return (
     <>
@@ -214,7 +218,7 @@ export function DimensionList({
         /* One headline in words, the numbers under it (plan §7): the
            strongest rows as what you did, then the one to work on. Every
            clause is a row on the card below. */
-        <p data-dimension-headline className="mb-3 text-body text-ink text-balance">
+        <p data-dimension-headline className="mb-3 text-body text-ink text-pretty">
           {said}
         </p>
       )}
@@ -225,6 +229,7 @@ export function DimensionList({
             row={row}
             detail={details[row.key]}
             open={open !== undefined && row.key === open}
+            scored={scored}
             fill={fill}
             gain={gain && gain.key === row.key ? gain.text : null}
             trend={trend?.[row.key] ?? null}
@@ -289,6 +294,7 @@ function RowDetails({
   row,
   detail,
   open,
+  scored,
   fill,
   gain,
   trend,
@@ -296,19 +302,21 @@ function RowDetails({
   row: DimensionRow;
   detail: Detail | null;
   open: boolean;
+  /** False on a take too short to score: the number alone, no word, no sage. */
+  scored: boolean;
   fill: boolean;
   gain: string | null;
   trend: string | null;
 }) {
   const trait = isTraitKey(row.key) ? row.key : undefined;
-  const strong = row.band === "strong";
+  const strong = scored && row.band === "strong";
   return (
     /* No `group` here (log-1): Tailwind's marker class matched the
        grouped list's old `.group` rule and drew a grey capsule round
        every row. Nothing on the row reads a group variant. */
     <details
       open={open || undefined}
-      data-band={row.band}
+      data-band={scored ? row.band : undefined}
       className="border-b border-hairline py-3 last-of-type:border-b-0"
     >
       <summary
@@ -322,9 +330,11 @@ function RowDetails({
             <span aria-hidden className={`h-3.5 w-[3px] shrink-0 self-center ${trait ? "tone-fill" : ""}`} />
             <span className="font-display min-w-0 truncate text-row font-bold">{row.name}</span>
           </span>
-          <span data-band-word className={`shrink-0 text-caption font-semibold ${BAND_TEXT[row.band]}`}>
-            {BAND_WORD[row.band]}
-          </span>
+          {scored && (
+            <span data-band-word className={`shrink-0 text-caption font-semibold ${BAND_TEXT[row.band]}`}>
+              {BAND_WORD[row.band]}
+            </span>
+          )}
           <span className="font-display w-8 shrink-0 text-right text-body font-extrabold tabular-nums">
             {row.score}
             <span className="sr-only"> out of 100</span>

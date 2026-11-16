@@ -250,6 +250,33 @@ export function placeSource(quality: NormQuality): string {
 }
 
 /**
+ * A trait page's fine print under its ring (#471): where the reading
+ * places you in words, then what that is against, in one line of text
+ * that runs to two or three at a phone's width.
+ *
+ *   "Fewer ums and uhs than 93 in 100 speakers, against published
+ *    speech research, not other Ethos users. An estimate for now."
+ *
+ * One function, so the page can hold the line's height while the read
+ * is in flight (`placeHold`) and nothing moves when it lands
+ * (DESIGN 8): the page grew by 57px under a held blank before (#471
+ * review).
+ */
+export function placeLine(r: Pick<TraitReading, "id" | "percentile" | "quality">, lowest = false): string {
+  const source = placeSource(r.quality);
+  return `${lowest ? "Your lowest trait. " : ""}${placeWords(r)}, ${source[0].toLowerCase()}${source.slice(1)}`;
+}
+
+/**
+ * The same line at a stand-in place, drawn invisible while the read is
+ * in flight so the fine print holds the height it lands at. Two digits,
+ * the most `placeWords` ever prints (it clamps to 1 to 99).
+ */
+export function placeHold(id: TraitId): string {
+  return placeLine({ id, percentile: 50, quality: NORMS[id].quality });
+}
+
+/**
  * The one line that has to appear beside every percentile, always.
  *
  * The hardest finding in `docs/closure.md` is the boomerang: a bare

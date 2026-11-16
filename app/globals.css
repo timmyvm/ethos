@@ -761,8 +761,13 @@ body {
     border-radius: 999px;
     background-color: currentColor;
   }
+  /* The arrow is drawn at the stem of the tap's word (#474): Outfit 700
+     at 15px has a 2.30px stem, and the set's 2.75 on a 16px arrow drew
+     1.83, so the word read heavier than the mark that carries it on.
+     3.4 on the 24 grid is 2.27px at 16. */
   .tap-arrow-disc > svg {
     color: var(--color-ink);
+    stroke-width: 3.4;
     transition: transform var(--spring-snappy-duration) var(--spring-snappy);
   }
   .tap-tonal .tap-arrow-disc > svg {
@@ -4069,9 +4074,15 @@ summary::-webkit-details-marker {
   color: var(--color-ink);
   border-radius: 999px;
 }
+/* The chevron is drawn at the stem of its word (#474): the back's word
+   is Figtree 600 at 16px, a 1.79px stem, and the set's 2.75 on a 22px
+   chevron drew 2.52, a mark heavier than the word it leads. 2 on the 24
+   grid is 1.83px at 22, the tab marks' weight. Every back wears this
+   class, so the recorder's and a walk's change with the bar's. */
 .screen-bar-back > svg {
   flex: none;
   margin-left: -2px;
+  stroke-width: 2;
 }
 /* In the bar, the back's word gives way before the title does. Only in
    the bar: a back that stands by itself (the recorder's, a walk's) is
@@ -6101,6 +6112,16 @@ summary::-webkit-details-marker {
   background: var(--color-sand);
   color: var(--color-ink);
 }
+/* #474: both marks are drawn at the stem of the words beside them,
+   "Today's line" (Outfit 600 at 13px, a 1.71px stem; the set's 2.75 drew
+   them at 1.38 and 1.49). The weight is on the 24 grid, so it is the
+   stem times 24 over the mark's size. */
+.home-flag > svg {
+  stroke-width: 3.4;
+}
+.home-check > svg {
+  stroke-width: 3.15;
+}
 /* This week's two half tiles, row for row alike: the head, the number,
    a 38px chart, a caption, so each row shares a line across the pair. */
 .home-week-head {
@@ -6896,4 +6917,41 @@ html[data-test-tile] .test-tile-slot {
   .new-password-line rect {
     transition: stroke var(--duration-fast) var(--ease-out);
   }
+}
+
+/* ======================= an icon swap (#474) =======================
+ * components/ui/IconSwap.tsx: two marks in one grid cell, Hear it back's
+ * Play and Pause, a word's Save and Saved. The mark leaving blurs as it
+ * fades and shrinks a little; the one arriving sharpens out of the same
+ * blur and grows to size (SF Symbols' replace). Both stay drawn, so the
+ * control never changes size and nothing mounts mid-tap.
+ */
+.icon-swap {
+  display: inline-grid;
+  place-items: center;
+}
+.icon-swap > span {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    filter var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+.icon-swap > [data-off] {
+  opacity: 0;
+  filter: blur(3px);
+  transform: scale(0.6);
+}
+/* Reduced motion keeps the fade and nothing else. */
+:root[data-motion="reduce"] .icon-swap > span {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+:root[data-motion="reduce"] .icon-swap > [data-off] {
+  filter: none;
+  transform: none;
+}
+/* Lite graphics drops the blur, as it drops every decorative one (#412). */
+:root[data-graphics="lite"] .icon-swap > [data-off] {
+  filter: none;
 }

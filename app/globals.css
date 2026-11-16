@@ -3390,6 +3390,37 @@ summary::-webkit-details-marker {
   background: var(--color-surface);
   color: var(--color-stone-600);
 }
+/* The stat icons (#487, Timothy 16 Nov: "higgs field icons duolingo
+   style"): a count's mark is a 3D object, `components/StatIcon.tsx`, so
+   it carries its own colour and the gold above no longer reaches it. An
+   unlit streak is the same file through a grey filter, never a second
+   render, so lit and unlit are one shape. Light: a solid mid grey that
+   reads as a flame waiting (the chip's stone-400 role). Dark: dimmer,
+   so it never reads lit beside the white number. Increase Contrast: the
+   same grey, firmer, restated in #448's block with the neutrals; no hue
+   anywhere. */
+:root {
+  --stat-unlit: grayscale(1) contrast(0.7) brightness(1.15);
+}
+:root[data-theme="dark"] {
+  --stat-unlit: grayscale(1) brightness(1.2) contrast(0.7) opacity(0.7);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --stat-unlit: grayscale(1) brightness(1.2) contrast(0.7) opacity(0.7);
+  }
+}
+.stat-icon {
+  display: block;
+  flex: none;
+  object-fit: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.stat-icon[data-lit="false"] {
+  filter: var(--stat-unlit);
+}
 /* A game's best before Record (Timothy, 6 Nov: "make your best stand
    out more, it is an important milestone"). The record drawn as an
    object: a sage-200 wash at card radius (one step past the earned
@@ -3446,10 +3477,12 @@ summary::-webkit-details-marker {
   background: color-mix(in oklab, var(--earned-gold) 20%, var(--color-ground));
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--earned-rim) 30%, transparent);
 }
-.best-plaque-mark > svg,
-.best-moment-mark > svg {
-  width: 26px;
-  height: 26px;
+/* The cup is the 3D trophy since #487, drawn a little larger than the
+   line cup was: the object has no stroke to carry it. */
+.best-plaque-mark > .stat-icon,
+.best-moment-mark > .stat-icon {
+  width: 30px;
+  height: 30px;
 }
 .best-plaque-head {
   display: block;
@@ -3495,9 +3528,9 @@ summary::-webkit-details-marker {
     width: 32px;
     height: 32px;
   }
-  .best-plaque-mark > svg {
-    width: 18px;
-    height: 18px;
+  .best-plaque-mark > .stat-icon {
+    width: 22px;
+    height: 22px;
   }
   .best-plaque-head {
     display: none;
@@ -3536,8 +3569,8 @@ summary::-webkit-details-marker {
   font-weight: 600;
   color: var(--color-sage-800);
 }
-/* The cup's handles sit 2.5px inside its 16px box: pulled out by 2 so
-   its edge lines up with "Level" above it. */
+/* The 3D cup (#487) at 18 in a 20px line: its handles sit about 1.6px
+   inside its box, so it is pulled out by 2 to line up with "Level". */
 .tile-best-cup {
   display: inline-flex;
   flex: none;
@@ -3779,28 +3812,9 @@ summary::-webkit-details-marker {
 .you-gold {
   display: inline-flex;
 }
-/* A freeze: the sky's tile with its ink glyph (3.7:1 light, 6.8:1 dark,
-   over the 3:1 a glyph needs), light from the top like Practice's tiles.
-   Its size is the caller's (a utility), so the Shop's 56px art slot sets
-   it without `!` (B8). */
-.you-freeze {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 60%),
-    var(--pop-sky);
-  color: var(--pop-sky-ink);
-  box-shadow: inset 0 0 0 1px rgba(29, 110, 158, 0.12);
-}
-:root[data-theme="dark"] .you-freeze {
-  background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%),
-    var(--pop-sky);
-  box-shadow: inset 0 0 0 1px rgba(147, 211, 246, 0.14);
-}
+/* A freeze was the sky's tile with a line snowflake here (.you-freeze);
+   since #487 it is the 3D snowflake in the Shop's neutral slot
+   (components/shop/ItemArt.tsx). */
 /* A lexicon word: a neutral label, ink on the surface, never a pill
    anyone would press (no border, no arrow, no hover). It wore Variety's
    wash and ink (you-4) until the cohesion pass: purple chips under the
@@ -4367,6 +4381,8 @@ summary::-webkit-details-marker {
     --color-stone-500: rgba(32, 30, 29, 0.86);
     --color-stone-600: rgba(32, 30, 29, 0.9);
     --color-bar-plain: rgba(32, 30, 29, 0.42);
+    /* The unlit streak (#487): a darker, firmer grey. */
+    --stat-unlit: grayscale(1) contrast(0.9) brightness(0.85);
   }
   :root[data-theme="dark"] {
     --color-hairline: rgba(242, 242, 242, 0.3);
@@ -4378,6 +4394,7 @@ summary::-webkit-details-marker {
     --color-stone-500: rgba(242, 242, 242, 0.86);
     --color-stone-600: rgba(242, 242, 242, 0.9);
     --color-bar-plain: rgba(242, 242, 242, 0.42);
+    --stat-unlit: grayscale(1) brightness(1.1) contrast(0.85);
   }
   .screen-bar[data-edge]::before {
     background: var(--color-ground);
@@ -6410,9 +6427,6 @@ summary::-webkit-details-marker {
 .active-day[data-mark="opened"] {
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--color-stone-400);
-}
-.active-flame {
-  color: var(--color-amber);
 }
 
 /* The test tile's place, held from the server's first paint on a

@@ -1,6 +1,6 @@
 "use client";
 
-import { IconTrophy } from "@/components/Icon";
+import { StatIcon } from "@/components/StatIcon";
 import type { RewardMoment } from "@/lib/rewards";
 
 /**
@@ -39,8 +39,8 @@ export function Moment({ moment }: { moment: RewardMoment | null }) {
             {moment.headline}. {moment.detail}.
           </p>
           <div aria-hidden className="best-moment">
-            <span className="best-moment-mark earned-lit">
-              <IconTrophy size={22} />
+            <span className="best-moment-mark">
+              <StatIcon kind="trophy" size={30} />
             </span>
             <div className="min-w-0 flex-1">
               {headline}

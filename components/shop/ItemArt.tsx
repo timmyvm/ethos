@@ -2,8 +2,12 @@
 
 import Image from "next/image";
 import { poseSrc } from "@/components/DemosArt";
-import { IconFreeze } from "@/components/Icon";
+import { StatIcon } from "@/components/StatIcon";
 import { POSE_STAGE } from "@/lib/shop";
+
+/** The 56px slot every item's picture stands in, a pose's or the freeze's. */
+const SLOT =
+  "flex h-14 w-14 shrink-0 justify-center overflow-hidden rounded-control bg-surface dark:bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)]";
 
 /**
  * Every item's picture in one 56px slot (you-3, you-22).
@@ -15,25 +19,25 @@ import { POSE_STAGE } from "@/lib/shop";
  * alarm clock). The stage stills share one baseline, so each stands on
  * the slot's floor at the same height.
  *
- * The freeze is the sky tile itself (#315: protection you hold, never
- * sage), not a tile in a tile. In dark the surface step is darker than
- * the card it sits in and drew a hole, so the tile takes the quiet ink
- * fill Settings' hour set uses.
+ * The freeze is the 3D snowflake (#487) in the same slot as the poses:
+ * the colour is in the object now, as Today's trait tiles keep theirs
+ * in the mark (#359), so the slot is the poses' neutral one and the
+ * Shop's four pictures stand alike. It was a line snowflake on the sky
+ * tile (#315), which under an icy blue object read as blue on blue. In
+ * dark the surface step is darker than the card it sits in and drew a
+ * hole, so the slot takes the quiet ink fill Settings' hour set uses.
  */
 export function ItemArt({ id }: { id: string }) {
   const pose = POSE_STAGE[id];
   if (!pose) {
     return (
-      <span aria-hidden className="you-freeze h-14 w-14">
-        <IconFreeze size={22} />
+      <span aria-hidden className={`${SLOT} items-center`}>
+        <StatIcon kind="freeze" size={44} />
       </span>
     );
   }
   return (
-    <span
-      aria-hidden
-      className="flex h-14 w-14 shrink-0 items-end justify-center overflow-hidden rounded-control bg-surface dark:bg-[color-mix(in_srgb,var(--color-ink)_7%,transparent)]"
-    >
+    <span aria-hidden className={`${SLOT} items-end`}>
       <Image
         src={poseSrc(pose, 128)}
         alt=""

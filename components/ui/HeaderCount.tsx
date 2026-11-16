@@ -12,12 +12,14 @@ import { useState, type ReactNode } from "react";
  *  - `bare`: the glyph at 18px and the number in Outfit 17/800 tabular
  *    ink, no fill. Shop's coin balance only.
  *
- * The glyph is an SVG from Icon.tsx (IconStar, IconFlame, a coin); both
- * variants size it to 18px. A lit glyph is gold (D03): `.earned-lit`,
- * --color-amber with a 1px darker rim in light.
+ * The glyph is an SVG from Icon.tsx (IconStar, a coin), sized to 18px by
+ * both variants, or a 3D stat icon (`StatIcon`, #487: the streak's
+ * flame), which carries its own size and colour. A lit SVG glyph is gold
+ * (D03): `.earned-lit`, --color-amber with a 1px darker rim in light.
  *
- * `unlit` greys the glyph (an open day's flame), through the chip's
- * `data-open` hook in globals.css; the words still say why.
+ * `unlit` greys an SVG glyph through the chip's `data-open` hook in
+ * globals.css; a StatIcon is greyed by its own `lit={false}` (an open
+ * day's flame). The words still say why.
  *
  * `empty` is a zero nobody has earned yet (D25, Timothy #317's "an
  * unlit 0 on day zero"): the whole chip goes unlit, the glyph stone-400,
@@ -26,7 +28,7 @@ import { useState, type ReactNode } from "react";
  * the chip lands with `.arrive`; a chip that was never empty on this
  * screen does not re-arrive.
  *
- *   <HeaderCount variant="chip" glyph={<IconFlame />} value={6} label="Streak 6" />
+ *   <HeaderCount variant="chip" glyph={<StatIcon kind="streak" />} value={6} label="Streak 6" />
  */
 export function HeaderCount({
   glyph,

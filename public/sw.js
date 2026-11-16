@@ -8,9 +8,11 @@
  * never run again offline; activate deletes every other cache. v17
  * (#428 review): a page cached before #428 loads its own cached scripts
  * offline, and those still hold the curated word map that answered
- * "things" in "switch things up" with "points, ideas, parts".
+ * "things" in "switch things up" with "points, ideas, parts". v19
+ * (#487): the stat icons are 3D files now, and a page cached before
+ * them draws the line flame; the files themselves are shell below.
  */
-const CACHE = "ethos-v18";
+const CACHE = "ethos-v19";
 
 const SHELL = [
   "/",
@@ -74,6 +76,14 @@ const SHELL = [
   "/coin/coin-stack.svg",
   "/coin/coin-burst.svg",
   "/coin/coin-empty.svg",
+  /* The stat icons (#487): Today's streak chip is on the first screen
+     a returning phone opens, so the flame is shell, and its four
+     siblings with it (a few KB each). */
+  "/icons/3d/streak.webp",
+  "/icons/3d/best.webp",
+  "/icons/3d/freeze.webp",
+  "/icons/3d/xp.webp",
+  "/icons/3d/trophy.webp",
 ];
 
 self.addEventListener("install", (e) => {

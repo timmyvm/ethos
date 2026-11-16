@@ -126,10 +126,10 @@ describe("the Shop's picture of a pose", () => {
     }
   });
 
-  it("keeps the freeze its own tile", () => {
+  it("draws the freeze as its 3D snowflake, not a pose (#487)", () => {
     const html = renderToStaticMarkup(createElement(ItemArt, { id: "streak_freeze" }));
     expect(drawn(html)).toBeNull();
-    expect(html).toMatch(/you-freeze/);
+    expect(html).toContain('src="/icons/3d/freeze.webp"');
   });
 
   it("names the pose each blurb puts on You", () => {

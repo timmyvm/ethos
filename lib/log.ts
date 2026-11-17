@@ -19,19 +19,31 @@ import { DIMENSION_NAME } from "./dimension-rows";
 import { measured } from "./trait-readings";
 import { topicById } from "./topics";
 import { TRAITS, type TraitKey } from "./traits";
-import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "./metric-labels";
+import { ALL_FILLERS_RATE, PACE_RATE, PAUSES_IN_RECORDING, pausesBetween, type Measure } from "./metric-labels";
 
 /** The pace band the results walk already names (RepResult). */
 export const WPM_ZONE = { low: 130, high: 160 } as const;
 
-/** The Log's labels for the every-filler rate and one recording's held pauses. */
-export { ALL_FILLERS, ALL_FILLERS_PER_MIN, HELD_PER_RECORDING } from "./metric-labels";
+/** The Log's measures: the every-filler rate, pace, one recording's pauses between sentences. */
+export {
+  ALL_FILLERS,
+  ALL_FILLERS_PER_MIN,
+  ALL_FILLERS_RATE,
+  PACE_RATE,
+  PAUSES_IN_RECORDING,
+  PAUSES_PER_RECORDING,
+  WORDS_A_MINUTE,
+  pausesBetween,
+} from "./metric-labels";
 
 export type Direction = "up" | "down" | "flat";
 
 export interface MovedRow {
   key: string;
+  /** What is measured, its first line ("All fillers"). */
   label: string;
+  /** What it is measured against, in words, its second line ("a minute"); none on a score. */
+  unit?: string;
   /** Day-one value, formatted. Null before there is one. */
   then: string | null;
   /** Latest value, formatted. Null before there is one. */
@@ -50,8 +62,10 @@ function fpm(r: RepRow): number {
   return r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : 0;
 }
 
-function held(r: RepRow): number {
-  return (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
+/* Pauses between sentences only (#495): every pause of 0.8s or more
+   counted the ones mid-sentence too, the fault the results name. */
+function between(r: RepRow): number {
+  return pausesBetween(r.pauses);
 }
 
 function fmt(v: number, decimals = 0): string {
@@ -66,13 +80,14 @@ function signed(delta: number, decimals = 0): string {
 
 function endpoints(
   key: string,
-  label: string,
+  measure: string | Measure,
   series: number[],
   opts: { decimals?: number; invert?: boolean } = {}
 ): MovedRow {
   const { decimals = 0, invert = false } = opts;
+  const named = typeof measure === "string" ? { label: measure } : { label: measure.name, unit: measure.unit };
   if (series.length === 0) {
-    return { key, label, then: null, now: null, change: null, direction: "flat", series, invert };
+    return { key, ...named, then: null, now: null, change: null, direction: "flat", series, invert };
   }
   const first = series[0];
   const last = series[series.length - 1];
@@ -81,7 +96,7 @@ function endpoints(
   const better = invert ? delta < 0 : delta > 0;
   return {
     key,
-    label,
+    ...named,
     then: fmt(first, decimals),
     now: fmt(last, decimals),
     change: moved ? signed(delta, decimals) : null,
@@ -98,7 +113,7 @@ function endpoints(
  * target the reader cannot see is not a change anyone can check.
  */
 function paceRow(series: number[]): MovedRow {
-  const base = endpoints("wpm", "Words / min", series);
+  const base = endpoints("wpm", PACE_RATE, series);
   if (base.now === null) return base;
   const last = series[series.length - 1];
   if (last > WPM_ZONE.high) {
@@ -115,7 +130,7 @@ function paceRow(series: number[]): MovedRow {
  * average of itself and the n - 1 before it, so the first points
  * average what exists. Same length as the series and the same first
  * value, so a smoothed trend still starts at the Day 1 number printed
- * beside it. Per-recording WPM and held pauses are noisy enough that,
+ * beside it. Per-recording pace and pauses are noisy enough that,
  * at 2px a recording in a 44px track, the raw line reads as hatching.
  */
 export function rolling(series: number[], n: number): number[] {
@@ -143,7 +158,7 @@ export function sinceDayOne(reps: RepRow[]): { first: RepRow; last: RepRow } | n
 /**
  * The four rows everyone sees, oldest recording first. The three
  * measurements read only recordings that measured something: a one-word
- * take printed Words / min 128 to 7 and Fillers 9.3 to 0.0 here. The
+ * take printed pace 128 to 7 and fillers 9.3 to 0.0 here. The
  * Index row is already the scored ones.
  */
 export function movedRows(reps: RepRow[]): MovedRow[] {
@@ -153,9 +168,9 @@ export function movedRows(reps: RepRow[]): MovedRow[] {
   const kept = reps.filter(measured);
   return [
     endpoints("index", "Ethos Index", index),
-    endpoints("fillers", ALL_FILLERS_PER_MIN, kept.map(fpm), { decimals: 1, invert: true }),
+    endpoints("fillers", ALL_FILLERS_RATE, kept.map(fpm), { decimals: 1, invert: true }),
     paceRow(kept.map((r) => r.wpm)),
-    endpoints("held", HELD_PER_RECORDING, kept.map(held)),
+    endpoints("held", PAUSES_IN_RECORDING, kept.map(between)),
   ];
 }
 

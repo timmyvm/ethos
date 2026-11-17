@@ -1,39 +1,51 @@
 /**
- * Every filler counted (um, uh, like, you know), a minute (E32). The
- * Fillers trait is um or uh per hundred words (content/traits.ts), so
- * Today's tile and this rate are two different numbers: a row or a card
- * that printed this one under the trait's own name read as the same
- * trait in a second unit. One label for it wherever it is printed
- * (Timothy, 31 October: What moved, Day 1 vs now, the shared picture,
- * the results' Since day one card, the Log's insights, a Hostile take,
- * the Index's Fillers row), so the bare word Fillers only ever means
- * the trait (`lib/trait-labels.test.ts` holds every label to it). Its
- * own module, so a screen that prints it does not load the Log with it.
+ * The Log's measures, each with one name and one unit in words (#495:
+ * "/ min", "/100 words" and "wpm" were three spellings of two ideas).
+ * Its own module, so a screen that prints one does not load the Log.
+ *
+ * A measure that is a trait's own number takes the trait's name and its
+ * unit from content/traits.ts (Pace, "words a minute"). A measure that
+ * is not gets a name of its own, so the two cannot be read as one:
+ *
+ *  - Every filler counted (um, uh, like, you know, basically), a minute
+ *    (E32). The Fillers trait is um or uh in 100 words, so the bare word
+ *    Fillers only ever means the trait (`lib/trait-labels.test.ts`).
+ *  - Pauses between sentences in one recording (#495). The Pausing trait
+ *    is the same pauses a minute; a count over a whole recording is a
+ *    different number, so it says "in a recording".
  */
+export interface Measure {
+  /** What is counted, sentence case: the row's first line. */
+  name: string;
+  /** What it is counted against, in words: the row's second line. */
+  unit: string;
+  /** The two as one phrase, where a label has one line. */
+  said: string;
+}
+
 export const ALL_FILLERS = "All fillers";
-export const ALL_FILLERS_PER_MIN = `${ALL_FILLERS} / min`;
+export const ALL_FILLERS_RATE: Measure = { name: ALL_FILLERS, unit: "a minute", said: `${ALL_FILLERS} a minute` };
+/** "All fillers a minute": the every-filler rate wherever one line names it. */
+export const ALL_FILLERS_PER_MIN = ALL_FILLERS_RATE.said;
+
+/** Pace is the Pace trait's own number, so it wears the trait's name and unit. */
+export const PACE_RATE: Measure = { name: "Pace", unit: "words a minute", said: "Words a minute" };
+export const WORDS_A_MINUTE = PACE_RATE.said;
 
 /**
- * Held pauses counted in one recording (L08, with E32). The Pausing
- * trait is held pauses a minute (content/traits.ts), so a row that set
- * one recording's count beside another's under the bare words read as
- * the trait's rate. A screen about one take (the numbers step, a
- * Hostile take) keeps "Held pauses": the count is that take's.
+ * Pauses between sentences counted over one recording (#495). It counted
+ * every pause of 0.8s or more, the ones inside a sentence too, so the
+ * Log's number rose with the fault Demos names on the results; now it
+ * counts the pauses the Pausing trait counts (kind "pre"), over the take.
  */
-export const HELD_PER_RECORDING = "Held pauses / recording";
+export const PAUSES_IN_RECORDING: Measure = {
+  name: "Pauses between sentences",
+  unit: "in a recording",
+  said: "Pauses between sentences in a recording",
+};
+export const PAUSES_PER_RECORDING = PAUSES_IN_RECORDING.said;
 
-/**
- * A label and its unit, each one piece: the subject's words hold
- * together (no-break spaces), the unit holds to its slash (no-break thin
- * spaces), and the one place a narrow column may break is just before
- * the slash (a zero-width space). "All fillers / min" holds one line in
- * the Log at 320 and from 375 up, and "Held pauses / recording" sets
- * "Held pauses" over "/ recording" instead of stranding "Held" over a
- * "pauses/recording" too wide for the column. A label with no unit is
- * returned as it is.
- */
-export function unitBreak(label: string): string {
-  const at = label.indexOf(" / ");
-  if (at < 0) return label;
-  return `${label.slice(0, at).replace(/ /g, "\u00A0")}\u202F\u200B/\u202F${label.slice(at + 3)}`;
+/** The pauses between sentences in one recording's stored pauses. */
+export function pausesBetween(pauses: readonly { kind: string }[] | null | undefined): number {
+  return (pauses ?? []).filter((p) => p.kind === "pre").length;
 }

@@ -6284,6 +6284,11 @@ summary::-webkit-details-marker {
   display: block;
   margin-top: 4px;
 }
+/* The wide tile's 56px number reaches 7px under its line box; its unit
+   steps down with it, so the two never touch (check-type). */
+.home-tile[data-wide] .home-unit-line {
+  margin-top: 8px;
+}
 /* Today's line: one sentence, at the tile's foot, its last line level
    with the unit's under the number, as the left half stands its number
    over its unit (R2F-07: the two halves read on one level). */

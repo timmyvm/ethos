@@ -16,15 +16,24 @@
  *   practice  the Practice tab, where Hostile moves from Premium to Free.
  *   boss      /boss, whose Premium card loses its Hostile row.
  *   squint    Today's first screen at 390x844 light, blurred 7px.
+ *   phones    Today's first screen at 390x844, 393x852 and 430x932 with
+ *             an iPhone's 34px home inset, light (#495: the Today / This
+ *             week switch against the tab bar).
+ *   scrolled  Today scrolled until the card's foot is under the bar,
+ *             light and dark (#495: the bar over the coloured card), and
+ *             scrolled to the tiles.
+ *   spoken    Today's header on a day already spoken (a take at 09:12),
+ *             light and dark, beside the open day's (#495: the streak chip).
  *
- * Shots go to docs/look/today-three/<phase>/, deviceScaleFactor 2.
+ * Shots go to docs/look/today-three/<phase>/ (LOOK_OUT moves the root),
+ * deviceScaleFactor 2.
  */
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 const { chromium } = process.env.PLAYWRIGHT_MODULE
   ? await import(process.env.PLAYWRIGHT_MODULE)
   : createRequire(import.meta.url)("playwright");
-import { supabaseRoute as supabase, json, session, seed, POSE_PREF, reps, extraReps, resetPlan, testerMode } from "./look-fixtures.mjs";
+import { supabaseRoute as supabase, json, session, seed, POSE_PREF, reps, extraReps, resetPlan, testerMode, TODAY_REP } from "./look-fixtures.mjs";
 
 const PHASE = process.argv[2] ?? "before";
 const ONLY = process.argv.slice(3);
@@ -43,11 +52,17 @@ const VIEWS = {
   "375-light": { w: 375, h: 667, theme: "light", inset: 0 },
   "320-light": { w: 320, h: 568, theme: "light", inset: 0 },
 };
+/* The three iPhones of #495's switch, each with its home inset. */
+const PHONES = {
+  "390x844-light": { w: 390, h: 844, theme: "light", inset: 34 },
+  "393x852-light": { w: 393, h: 852, theme: "light", inset: 34 },
+  "430x932-light": { w: 430, h: 932, theme: "light", inset: 34 },
+};
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 
 async function context(tag) {
-  const v = VIEWS[tag];
+  const v = VIEWS[tag] ?? PHONES[tag];
   const ctx = await browser.newContext({
     viewport: { width: v.w, height: v.h },
     deviceScaleFactor: 2,
@@ -146,6 +161,59 @@ if (want("squint")) {
   await sleep(300);
   await shot(page, "today-squint-390-light");
   await ctx.close();
+}
+
+if (want("phones")) {
+  for (const tag of Object.keys(PHONES)) {
+    const { ctx, page } = await context(tag);
+    await today(page);
+    /* Where the switch stands against the tab bar, printed beside the shot. */
+    const at = await page.evaluate(() => {
+      const seg = document.querySelector("main .home-seg")?.getBoundingClientRect();
+      const nav = document.querySelector("nav")?.getBoundingClientRect();
+      return seg && nav ? `switch ${Math.round(seg.top)} to ${Math.round(seg.bottom)}, bar from ${Math.round(nav.top)}` : "none";
+    });
+    await shot(page, `today-phone-${tag}`);
+    console.log(`    ${at}`);
+    await ctx.close();
+  }
+}
+
+if (want("scrolled")) {
+  for (const tag of ["390-light", "390-dark"]) {
+    const { ctx, page } = await context(tag);
+    await today(page);
+    /* The card's foot 92px from the top, its last band under the bar:
+       where the tour (02-today-tiles) saw "Another topic" ghost through
+       a blue smear. */
+    await page.evaluate(() => {
+      const card = document.querySelector("main .home-hero");
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + r.bottom - 92);
+    });
+    await sleep(700);
+    await shot(page, `today-scrolled-${tag}`);
+    await page.evaluate(() => document.querySelector("main .home-seg")?.scrollIntoView({ block: "start" }));
+    await page.evaluate(() => window.scrollBy(0, -70));
+    await sleep(700);
+    await shot(page, `today-tiles-scrolled-${tag}`);
+    await ctx.close();
+  }
+}
+
+if (want("spoken")) {
+  for (const spoke of [false, true]) {
+    extraReps.length = 0;
+    if (spoke) extraReps.push({ ...TODAY_REP });
+    for (const tag of ["390-light", "390-dark"]) {
+      const { ctx, page } = await context(tag);
+      await today(page);
+      await shot(page, `today-header-${spoke ? "spoken" : "open"}-${tag}`, { clip: { x: 0, y: 0, width: 390, height: 140 } });
+      await ctx.close();
+    }
+  }
+  extraReps.length = 0;
 }
 
 if (want("hostile")) {

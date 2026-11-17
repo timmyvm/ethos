@@ -25,6 +25,8 @@
  *   places     a finished walk, and a walk left part way through the
  *              old three-screen pitch, never land on the room or off
  *              their place
+ *   tester     the door's Tester code with the clock before the test's
+ *              end and after it: offered, then gone (#496)
  *
  * Against a production build (the room's timings are real: the walk
  * takes about two and a half minutes):
@@ -44,6 +46,9 @@ const { chromium } = process.env.PLAYWRIGHT_MODULE
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
 const want = (name) => !ONLY || ONLY.has(name);
+/* content/tester.ts TEST.endsAt: 00:00 on 16 November 2026 in Melbourne. */
+const TEST_ENDS = Date.parse("2026-11-15T13:00:00Z");
+const TEST_OVER = Date.now() >= TEST_ENDS;
 const wavs = writeRoomWavs(join(tmpdir(), "ethos-room-wavs"));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const findings = [];
@@ -217,7 +222,13 @@ if (want("speaking")) {
   ok("one tap on the door, Hold to step in", (await page.locator("main button", { hasText: "Hold to step in" }).count()) === 1);
   ok("Not now is there", (await page.getByRole("button", { name: "Not now" }).count()) === 1);
   ok("a new phone for an account can sign in", (await page.getByRole("link", { name: "Sign in" }).getAttribute("href")) === "/signin");
-  ok("the tester's door is still on the first screen", (await page.getByRole("link", { name: "Tester code" }).getAttribute("href")) === "/tester?from=welcome");
+  /* The tester's door stands on the first screen until the test is over (#496). */
+  ok(
+    TEST_OVER ? "the test is over: the door offers no tester code" : "the tester's door is still on the first screen",
+    TEST_OVER
+      ? (await page.getByRole("link", { name: "Tester code" }).count()) === 0
+      : (await page.getByRole("link", { name: "Tester code" }).getAttribute("href")) === "/tester?from=welcome"
+  );
 
   const quick = await hold(page, cdp, 150);
   await sleep(500);
@@ -320,6 +331,32 @@ if (want("speaking")) {
 }
 
 /* ------------------------------------------------------------------ */
+/* The tester's door with the phone's clock either side of the test's
+   end (#496): offered while the test can be joined, gone once it is
+   over, Sign in kept either way. */
+if (want("tester")) {
+  for (const [when, at, offered] of [
+    ["during the test", new Date(TEST_ENDS - 5 * 86_400_000), true],
+    ["the minute before the end", new Date(TEST_ENDS - 60_000), true],
+    ["at the end", new Date(TEST_ENDS), false],
+    ["the day after", new Date(TEST_ENDS + 86_400_000), false],
+  ]) {
+    const { browser, page, errors } = await open();
+    await page.clock.setFixedTime(at);
+    await page.goto(`${BASE}/`);
+    await page.waitForURL(/\/welcome/, { timeout: 20_000 });
+    await page.waitForSelector("[data-room-hold]");
+    const code = page.getByRole("link", { name: "Tester code" });
+    ok(
+      `${when}, the door ${offered ? "offers" : "does not offer"} the tester code`,
+      offered ? (await code.getAttribute("href")) === "/tester?from=welcome" : (await code.count()) === 0
+    );
+    ok(`${when}, Sign in stays`, (await page.getByRole("link", { name: "Sign in" }).getAttribute("href")) === "/signin");
+    ok(`${when}, no page error`, errors.length === 0, errors.join(" | "));
+    await browser.close();
+  }
+}
+
 if (want("silent")) {
   const { browser, page, errors } = await open({ wav: wavs.silent });
   await page.goto(`${BASE}/welcome`);

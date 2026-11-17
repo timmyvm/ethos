@@ -135,10 +135,17 @@ ok(
   (await page.locator("[data-room-hold]", { hasText: "Hold to step in" }).count()) === 1 &&
     (await page.getByRole("button", { name: "Not now" }).count()) === 1
 );
+/* The tester's door stands until the test is over (#496, content/tester.ts
+   TEST.endsAt, 00:00 on 16 November 2026 in Melbourne). */
+const testOver = Date.now() >= Date.parse("2026-11-15T13:00:00Z");
 ok(
-  "and the doors the first screen always had: sign in, and the tester's",
+  testOver
+    ? "and sign in, the door the first screen keeps once the test is over (no tester code)"
+    : "and the doors the first screen always had: sign in, and the tester's",
   (await page.getByRole("link", { name: "Sign in" }).getAttribute("href")) === "/signin" &&
-    (await page.getByRole("link", { name: "Tester code" }).getAttribute("href")) === "/tester?from=welcome"
+    (testOver
+      ? (await page.getByRole("link", { name: "Tester code" }).count()) === 0
+      : (await page.getByRole("link", { name: "Tester code" }).getAttribute("href")) === "/tester?from=welcome")
 );
 await shot("01-room-door");
 

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { TapTick } from "@/components/ui/TapTick";
 import { DemosFigure } from "@/components/DemosClip";
-import { PremiumMark } from "@/components/PremiumMark";
 import { RollNumber } from "@/components/premium/RollNumber";
 import { Says } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
@@ -573,11 +572,11 @@ export default function HostilePage() {
 
       {phase === "intro" && (
         <>
+          {/* The title says the mode and the claim card says the rule
+              ("Argue either side."): the line that explained it a second
+              time between them went in #494 (the morning tour). */}
           <p className="eyebrow mt-4">Hostile Q&amp;A</p>
           <h1 className="font-display mt-1.5 text-title">{HOSTILE_LINE}</h1>
-          <p className="mt-2 text-read text-stone-800 text-pretty">
-            Argue the claim, then answer Demos on what you said.
-          </p>
 
           {/* R3 (principle 7): the free height is Demos's. He stands on
               the claim card's top edge, as he does on the recording
@@ -636,15 +635,17 @@ export default function HostilePage() {
               </span>
             </div>
             {/* The one rule that changes how you answer, at reading
-                size rather than in a caps rider (modes-25). The
-                allowance shares its line: named by the mark, counted
-                in words, said before the take (modes-6). */}
+                size rather than in a caps rider (modes-25). The free
+                plan's allowance shares its line, counted in words and
+                said before the take (modes-6). No tier mark beside it
+                since #494: Hostile is free for every plan (#478), and a
+                PREMIUM chip after "3 free today" sold a tier the round
+                does not need. */}
             <div className="mt-2 flex min-h-6 items-center justify-between gap-3">
               <p className="text-caption text-stone-500">Argue either side.</p>
               {premium === false && allowance && (
-                <p className="arrive flex shrink-0 items-center gap-2 text-caption tabular-nums text-stone-500">
+                <p className="arrive shrink-0 text-caption tabular-nums text-stone-500">
                   {hostileLeftLine(capped ? 0 : allowance.left)}
-                  <PremiumMark variant="chip" />
                 </p>
               )}
             </div>

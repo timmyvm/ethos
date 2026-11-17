@@ -74,6 +74,7 @@ import {
   OAUTH_KEY,
   callbackWelcome,
   carriedEmail,
+  freshAccount,
   createAccount,
   emailFrom,
   parseOAuthAttempt,
@@ -177,7 +178,8 @@ describe("a guest signs up with an email that has an account (email_exists)", ()
     guest();
     localStorage.setItem("ethos.tester", "1");
     const r = await signInExisting(EMAIL, PASSWORD, NEXT);
-    expect(r).toEqual({ ok: true });
+    // Signed in to the account that was there (#497): the landing says so.
+    expect(r).toEqual({ ok: true, account: "existing" });
     expect(called("signInWithPassword")).toEqual([{ call: "signInWithPassword", args: { email: EMAIL, password: PASSWORD } }]);
     // The guest's testing rides the sign-in (carried_from), the account's token over the guest's.
     expect(posts).toEqual([{ body: { carry: "tok_guest" }, auth: "Bearer tok_account" }]);
@@ -198,7 +200,8 @@ describe("a sign-up with no session meets a confirmed account", () => {
       error: null,
     };
     const r = await createAccount(EMAIL, PASSWORD, NEXT);
-    expect(r).toEqual({ ok: true });
+    // A sign-up that met an account (#497): "That email already has an account, so you're signed in."
+    expect(r).toEqual({ ok: true, account: "existing" });
     expect(r.checkInbox).toBeUndefined();
     expect(called("signUp")).toHaveLength(1);
     expect(called("signInWithPassword")).toEqual([{ call: "signInWithPassword", args: { email: EMAIL, password: PASSWORD } }]);
@@ -207,7 +210,7 @@ describe("a sign-up with no session meets a confirmed account", () => {
 
   it("is user_already_exists when confirmations are off, and signs in the same way", async () => {
     fake.signUp = { user: null, session: null, error: USER_EXISTS };
-    expect(await createAccount(EMAIL, PASSWORD, NEXT)).toEqual({ ok: true });
+    expect(await createAccount(EMAIL, PASSWORD, NEXT)).toEqual({ ok: true, account: "existing" });
     expect(called("signInWithPassword")).toHaveLength(1);
   });
 
@@ -302,7 +305,8 @@ describe("a brand-new email is unchanged", () => {
       session: { access_token: "tok_new" },
       error: null,
     };
-    expect(await createAccount("new@example.com", PASSWORD)).toEqual({ ok: true });
+    // A new account (#497): "Account created."
+    expect(await createAccount("new@example.com", PASSWORD)).toEqual({ ok: true, account: "new" });
   });
 
   it("a guest's new email still goes to the inbox with the password page after it", async () => {
@@ -320,7 +324,7 @@ describe("the sign-in itself", () => {
   it("is /signin's own sign-in: the same call, the same carry", async () => {
     guest();
     localStorage.setItem("ethos.tester", "1");
-    expect(await signIn(EMAIL, PASSWORD)).toEqual({ ok: true });
+    expect(await signIn(EMAIL, PASSWORD)).toEqual({ ok: true, account: "existing" });
     expect(posts).toEqual([{ body: { carry: "tok_guest" }, auth: "Bearer tok_account" }]);
     fake.signInError = WRONG;
     expect(await signIn(EMAIL, "nope")).toEqual({ ok: false, error: "That email and password don't match. Try again or reset it." });
@@ -476,16 +480,42 @@ describe("the link an unconfirmed account gets again (review 2)", () => {
     expect(callbackWelcome({ email: EMAIL, google: null, resent: true })).toBe(`${EMAIL} is confirmed.`);
     // Even in the tab a Google sign-up began in: the link is an email link.
     expect(callbackWelcome({ email: EMAIL, google: { mode: "signup" }, resent: true })).toBe(`${EMAIL} is confirmed.`);
-    // Every other return says what it said before.
-    expect(callbackWelcome({ email: EMAIL, google: null, resent: false })).toBe(
-      `${EMAIL} is confirmed. Everything you've already recorded came with you.`
-    );
-    expect(callbackWelcome({ email: EMAIL, google: { mode: "signup" }, resent: false })).toBe(
-      `Signed in as ${EMAIL}. Everything you've already recorded came with you.`
-    );
-    expect(callbackWelcome({ email: EMAIL, google: { mode: "signin" }, resent: false })).toBe(`Signed in as ${EMAIL}.`);
-    expect(callbackWelcome({ email: null, google: { mode: "signin" }, resent: false })).toBe("Signed in with Google.");
     expect(callbackWelcome({ email: null, google: null, resent: true })).toBe("Your email is confirmed.");
+  });
+
+  /* #497: "Say signing into account or account exists after u sign in." */
+  it("says whether the account was made just now or was there already", () => {
+    // A sign-up's confirmation link: its sign-up had no guest, so nothing is claimed.
+    expect(callbackWelcome({ email: EMAIL, google: null, resent: false })).toBe(`Account created for ${EMAIL}.`);
+    expect(callbackWelcome({ email: null, google: null, resent: false })).toBe("Account created.");
+    // Google that made the account: a guest's sign-up took its recordings along.
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signup" }, resent: false, fresh: true })).toBe(
+      `Account created for ${EMAIL}. Everything you've already recorded came with you.`
+    );
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signin" }, resent: false, fresh: true })).toBe(`Account created for ${EMAIL}.`);
+    // A sign-up that met an account: the switch (#414), or the auth server signing in.
+    const exists = "That Google account already has Ethos, so you're signed in.";
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signin" }, resent: false, switched: true })).toBe(exists);
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signin" }, resent: false, fresh: true, switched: true })).toBe(exists);
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signup" }, resent: false })).toBe(exists);
+    // A sign-in.
+    expect(callbackWelcome({ email: EMAIL, google: { mode: "signin" }, resent: false })).toBe(`Signed in to your account as ${EMAIL}.`);
+    expect(callbackWelcome({ email: null, google: { mode: "signin" }, resent: false })).toBe("Signed in to your account.");
+  });
+
+  it("knows an account made by this round trip from one that was there", () => {
+    const now = Date.parse("2026-11-17T10:00:00Z");
+    const ago = (min: number) => new Date(now - min * 60_000).toISOString();
+    // A guest that linked Google, or a new Google account: its one way in is new.
+    expect(freshAccount({ created_at: ago(60 * 24 * 3), identities: [{ created_at: ago(0.2) }] }, now)).toBe(true);
+    expect(freshAccount({ created_at: ago(0.2), identities: [{ created_at: ago(0.2) }] }, now)).toBe(true);
+    // An account that was there: Google signed in, or Google just added beside its email.
+    expect(freshAccount({ created_at: ago(60 * 24 * 30), identities: [{ created_at: ago(60 * 24 * 30) }] }, now)).toBe(false);
+    expect(freshAccount({ created_at: ago(60 * 24 * 30), identities: [{ created_at: ago(60 * 24 * 30) }, { created_at: ago(0.2) }] }, now)).toBe(false);
+    // No identities to read: the user's own age, either way of the clock.
+    expect(freshAccount({ created_at: ago(-3) }, now)).toBe(true);
+    expect(freshAccount({ created_at: ago(60 * 24 * 30) }, now)).toBe(false);
+    expect(freshAccount(null, now)).toBe(false);
   });
 });
 

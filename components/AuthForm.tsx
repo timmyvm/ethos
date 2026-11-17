@@ -21,6 +21,7 @@ import {
 } from "@/lib/auth";
 import { NewPasswordField, ShowPassword, useHidOnSubmit } from "@/components/NewPassword";
 import { useGoogleSignIn } from "@/lib/use-oauth-return";
+import { landAfterAuth, noteFor } from "@/lib/auth-landing";
 import { asksForPaywall, authHref, useNextPath } from "@/lib/use-paywall-return";
 
 /** Where the auth screens' back goes unless a page says otherwise. */
@@ -259,6 +260,14 @@ export function AuthForm({
     const result = signingIn
       ? await signInExisting(email, password, next)
       : await onSubmit(email, password, next);
+    if (result.ok && !result.checkInbox) {
+      /* Signed in (#497): an account that has not done the introduction
+         does it now, the room first; one that has goes where it was
+         going. The page it lands on says which account this was, once.
+         The tap stays held until the page goes. */
+      window.location.href = await landAfterAuth(next, noteFor(mode, result.account));
+      return;
+    }
     setBusy(false);
     if (!result.ok) {
       if (result.existing) {
@@ -270,12 +279,10 @@ export function AuthForm({
       setErrorField(result.error ? (result.field ?? null) : null);
       return;
     }
-    if (result.checkInbox) {
-      setNote(result.note ?? null);
-      setThenSignIn(result.thenSignIn === true);
-      setResent(result.resent === true);
-      setSent(true);
-    } else window.location.href = next ?? "/";
+    setNote(result.note ?? null);
+    setThenSignIn(result.thenSignIn === true);
+    setResent(result.resent === true);
+    setSent(true);
   }
 
   if (!ready) {

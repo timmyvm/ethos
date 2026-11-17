@@ -14,6 +14,7 @@ import {
   callbackScreen,
   callbackWelcome,
   forgetOAuthAttempt,
+  freshAccount,
   readOAuthAttempt,
   resentLink,
   settingsLanding,
@@ -23,6 +24,9 @@ import {
   type SettingsLanding,
 } from "@/lib/auth";
 import { readAccount } from "@/lib/account-settings";
+import { finishedWithin, INTRO_PATH } from "@/lib/auth-landing";
+import { SWITCHED_KEY } from "@/lib/google-taken";
+import { supabaseBrowser } from "@/lib/supabase-browser";
 
 /**
  * Where an email-confirmation link and a Google round trip land.
@@ -44,7 +48,14 @@ import { readAccount } from "@/lib/account-settings";
  */
 type State =
   | { at: "waiting" }
-  | { at: "ok"; email: string | null }
+  | {
+      at: "ok";
+      email: string | null;
+      /** The introduction is not finished: the way on is it (#497). */
+      onboard?: boolean;
+      /** The account was made by this round trip (lib/auth.ts `freshAccount`). */
+      fresh?: boolean;
+    }
   | { at: "google" }
   | { at: "taken" }
   | { at: "stale" }
@@ -59,6 +70,8 @@ export default function CallbackPage() {
   const [resent, setResent] = useState(false);
   /** A Settings round trip (#479): an email change or Google linked. */
   const [landing, setLanding] = useState<SettingsLanding>(null);
+  /** A Google sign-up switched to that account's sign-in (#414). */
+  const [switched, setSwitched] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -69,6 +82,9 @@ export default function CallbackPage() {
     setAttempt(tried);
     setResent(again);
     setLanding(fromSettings);
+    try {
+      setSwitched(sessionStorage.getItem(SWITCHED_KEY) !== null);
+    } catch {}
     // The link or Google's redirect carries it; a redirect that dropped
     // the query still has it in the page the attempt began on.
     setNext(nextFrom(window.location.search) ?? nextFrom(tried?.from));
@@ -104,7 +120,13 @@ export default function CallbackPage() {
           // Testing joined on the session this sign-in replaced: Google's
           // waits in this tab, a resent link's on this device (lib/auth.ts).
           void (again ? carryKeptForLink() : carryStashed());
-          setState({ at: "ok", email: s.email });
+          /* Whether this account has done the introduction (#497), and
+             whether it was made just now, before anything is said: the
+             line and the way on are drawn once, right. */
+          void Promise.all([finishedWithin(), signedInUser()]).then(([finished, user]) => {
+            if (!live) return;
+            setState({ at: "ok", email: s.email, onboard: finished === false, fresh: freshAccount(user) });
+          });
         } else {
           // Back from Google with nothing to show for it is a Google
           // that did not finish, not a used link.
@@ -120,6 +142,8 @@ export default function CallbackPage() {
   /* An email link opened in the tab a Google attempt began in is still
      an email link. */
   const viaGoogle = attempt !== null && !resent;
+  const onward =
+    state.at === "ok" && state.onboard && !landing ? { href: INTRO_PATH, label: "Next" } : onwardLink(next);
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-5 text-center">
@@ -144,12 +168,13 @@ export default function CallbackPage() {
                 : "Your new email is set."
               : landing?.kind === "google"
                 ? "Sign in with Google or your email from now on."
-                : callbackWelcome({ email: state.email, google: viaGoogle ? attempt : null, resent })}
+                : callbackWelcome({ email: state.email, google: viaGoogle ? attempt : null, resent, fresh: state.fresh, switched })}
           </p>
-          {/* On to the page that asked for the account (the Premium
-              sheet included), or the floor. */}
-          <Link href={onwardLink(next).href} className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
-            {onwardLink(next).label}
+          {/* On to the introduction when this account has not done it
+              (#497), else the page that asked for the account (the
+              Premium sheet included), or the floor. */}
+          <Link href={onward.href} className={`${ACTION_CLASS} mt-7 max-w-[320px]`}>
+            {onward.label}
           </Link>
         </>
       )}
@@ -300,4 +325,12 @@ function GoogleTile() {
       <GoogleMark size={26} />
     </span>
   );
+}
+
+/** The signed-in user as the session holds it, identities included. */
+async function signedInUser() {
+  const db = supabaseBrowser();
+  if (!db) return null;
+  const { data } = await db.auth.getSession().catch(() => ({ data: { session: null } }));
+  return data.session?.user ?? null;
 }

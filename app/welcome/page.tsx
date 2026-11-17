@@ -59,7 +59,7 @@ import {
   PLAN_COPY,
   QUESTIONS,
   roomDue,
-  storageKeys,
+  storedAccount,
   WELCOME_BEAT,
   type QuestionId,
 } from "@/lib/onboarding";
@@ -277,6 +277,8 @@ function Walk() {
    * name has no way back to a room it never showed.
    */
   const [roomOn, setRoomOn] = useState(false);
+  /* An account's session (#497): its door has no Sign in or Tester code. */
+  const [signedIn, setSignedIn] = useState(false);
 
   /*
    * Seen once is seen (#133): set on mount, so neither finishing nor
@@ -305,8 +307,9 @@ function Walk() {
       asked === null &&
       saved.done &&
       (attemptStartedOn(readOAuthAttempt(), "/welcome") || saved.step === LAST);
-    const room = roomDue({ asked, done: saved.done, step: saved.step, keys: storageKeys() });
+    const room = roomDue({ asked, done: saved.done, step: saved.step });
     setRoomOn(room);
+    setSignedIn(storedAccount());
     setI(
       resumeAccount
         ? LAST
@@ -396,7 +399,7 @@ function Walk() {
 
   if (step.kind === "room") {
     /* Not now, Skip and Demos's Next all go on to the name. */
-    return <Room onDone={() => go(i + 1)} onSkip={() => go(i + 1)} />;
+    return <Room signedIn={signedIn} onDone={() => go(i + 1)} onSkip={() => go(i + 1)} />;
   }
 
   if (step.kind === "beat") {

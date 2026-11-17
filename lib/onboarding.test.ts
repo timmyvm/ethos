@@ -1,23 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { GATE_STREAK, gateMoment, isFirstRun, roomDue, WELCOMED_KEY } from "./onboarding";
+import { accountIn, GATE_STREAK, gateMoment, isFirstRun, roomDue, WELCOMED_KEY } from "./onboarding";
 
 /**
- * The room (#475): a first run opens on it, and nobody else sees it.
+ * The room (#475): a first run opens on it, and so does anyone whose
+ * introduction is not finished, signed in or not (#497).
  */
 describe("roomDue", () => {
-  const fresh = { asked: null, done: false, step: 0, keys: [] as string[] };
+  const fresh = { asked: null, done: false, step: 0 };
 
-  it("opens a first run on the room", () => {
+  it("opens on the room for anyone whose introduction is not finished, a session or none (#497)", () => {
+    // `done` is the device's walk, merged with the account's row at
+    // sign-in (lib/auth-landing.ts): a session is no longer read here.
     expect(roomDue(fresh)).toBe(true);
-    // The walk marks the browser welcomed on mount: the room still plays.
-    expect(roomDue({ ...fresh, keys: [WELCOMED_KEY, "ethos.prefs"] })).toBe(true);
   });
 
-  it("never opens for someone signed in, or anyone holding a session", () => {
-    expect(roomDue({ ...fresh, keys: ["sb-abcdefgh-auth-token"] })).toBe(false);
-  });
-
-  it("never opens on a finished introduction", () => {
+  it("never opens on a finished introduction, whoever is signed in", () => {
     expect(roomDue({ ...fresh, done: true })).toBe(false);
   });
 
@@ -29,6 +26,25 @@ describe("roomDue", () => {
   it("never opens on a deep link into the walk", () => {
     expect(roomDue({ ...fresh, asked: "plan" })).toBe(false);
     expect(roomDue({ ...fresh, asked: "ageBand" })).toBe(false);
+  });
+});
+
+/** The door's Sign in and Tester code are for someone without an account (#497). */
+describe("accountIn", () => {
+  const stored = (user: object | null) => JSON.stringify({ access_token: "t", refresh_token: "r", user });
+
+  it("is an account's stored session", () => {
+    expect(accountIn([["sb-abc-auth-token", stored({ id: "u1", is_anonymous: false })]])).toBe(true);
+    expect(accountIn([[WELCOMED_KEY, "x"], ["sb-supabase.local-auth-token", stored({ id: "u1" })]])).toBe(true);
+  });
+
+  it("is not a guest's session, nor none, nor something unreadable", () => {
+    expect(accountIn([["sb-abc-auth-token", stored({ id: "g1", is_anonymous: true })]])).toBe(false);
+    expect(accountIn([])).toBe(false);
+    expect(accountIn([["sb-abc-auth-token", null]])).toBe(false);
+    expect(accountIn([["sb-abc-auth-token", "not json"]])).toBe(false);
+    expect(accountIn([["sb-abc-auth-token", stored(null)]])).toBe(false);
+    expect(accountIn([["ethos.session", stored({ id: "u1" })]])).toBe(false);
   });
 });
 

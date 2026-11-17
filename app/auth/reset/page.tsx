@@ -15,6 +15,7 @@ import { NewPasswordField } from "@/components/NewPassword";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { resetReady, sessionState, setNewPassword } from "@/lib/auth";
 import { authHref, nextFrom, onwardLink } from "@/lib/use-paywall-return";
+import { finishedWithin, INTRO_PATH } from "@/lib/auth-landing";
 
 /**
  * The landing page for a password-reset link, and, as ?first=1, for
@@ -60,7 +61,11 @@ function ResetScreen() {
   const first = params.get("first") === "1";
   // The page that asked for the account (the paywall's account ask
   // sends its page with paywall=1): where the finished account goes.
-  const onward = onwardLink(nextFrom(`?${params.toString()}`));
+  const asked = onwardLink(nextFrom(`?${params.toString()}`));
+  /* Signed in by the link, the account that has not done the
+     introduction does it next (#497). */
+  const [onboard, setOnboard] = useState(false);
+  const onward = onboard ? { href: INTRO_PATH, label: "Next" } : asked;
   const [ready, setReady] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -101,6 +106,7 @@ function ResetScreen() {
     setBusy(true);
     setError(null);
     const result = await setNewPassword(password, email);
+    if (result.ok) setOnboard((await finishedWithin()) === false);
     setBusy(false);
     if (result.ok) setDone(true);
     else setError(result.error ?? "That didn't go through. Try again.");
@@ -147,7 +153,7 @@ function ResetScreen() {
             <Link
               /* An unconfirmed email can't receive a reset mail, so the
                  fresh link for the first-password flow is a fresh save. */
-              href={first ? authHref("signup", onward.href === "/" ? null : onward.href) : "/auth/forgot"}
+              href={first ? authHref("signup", asked.href === "/" ? null : asked.href) : "/auth/forgot"}
               className={ACTION_CLASS}
             >
               Get a new link

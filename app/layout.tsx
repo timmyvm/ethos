@@ -6,6 +6,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { TesterLayer } from "@/components/tester/TesterLayer";
 import { AccountGate } from "@/components/AccountGate";
+import { AuthNote } from "@/components/AuthNote";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.
@@ -140,6 +141,8 @@ export default function RootLayout({
             in instead of being asked to sign up again (#414). */}
         <GoogleTakenSwitch />
         <AccountGate />
+        {/* What a sign-in just did, once, on the page it landed on (#497). */}
+        <AuthNote />
         {/* DESIGN.md: speed is the loudest signal. Vercel's Speed
             Insights is where the field numbers for that claim land. */}
         <SpeedInsights />

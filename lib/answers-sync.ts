@@ -25,6 +25,7 @@ import {
   fetchProfile,
   updateDisplayName,
   upsertOnboarding,
+  type OnboardingRow,
 } from "./client-data";
 import {
   answered,
@@ -67,35 +68,65 @@ export async function syncOnboarding(): Promise<OnboardingState> {
 
   if (!local.done && !answered(local.answers)) {
     const remote = await fetchOnboarding().catch(() => null);
-    if (remote) {
-      // The name is on the other table, and a missing profile is not a
-      // reason to drop the answers we just successfully read.
-      const name = await fetchProfile()
-        .then((p) => cleanName(p?.display_name))
-        .catch(() => null);
-      /*
-       * The hour round-trips; the "No reminder" ANSWER does not, since
-       * the column holds an hour and "off" has none. A new phone reads
-       * that as unanswered, which produces exactly the same silence, so
-       * the loss costs nothing worth a second column.
-       */
-      if (remote.reminder_hour !== null) {
-        writePrefs({ reminderHour: remote.reminder_hour });
-      }
-      return writeOnboarding({
-        answers: cleanAnswers({
-          name,
-          time: TIMES.find((t) => t.hour === remote.reminder_hour)?.id ?? null,
-          ageBand: remote.age_band as never,
-          goal: remote.goal as never,
-          pains: (remote.pains ?? []) as never,
-          level: remote.level as never,
-          context: remote.context as never,
-        }),
-        done: true,
-        synced: true,
-      });
-    }
+    if (remote) return takeDown(remote);
   }
   return local;
+}
+
+/** The account's finished walk, onto this device: answers, name and hour. */
+async function takeDown(remote: OnboardingRow): Promise<OnboardingState> {
+  // The name is on the other table, and a missing profile is not a
+  // reason to drop the answers we just successfully read.
+  const name = await fetchProfile()
+    .then((p) => cleanName(p?.display_name))
+    .catch(() => null);
+  /*
+   * The hour round-trips; the "No reminder" ANSWER does not, since
+   * the column holds an hour and "off" has none. A new phone reads
+   * that as unanswered, which produces exactly the same silence, so
+   * the loss costs nothing worth a second column.
+   */
+  if (remote.reminder_hour !== null) {
+    writePrefs({ reminderHour: remote.reminder_hour });
+  }
+  return writeOnboarding({
+    answers: cleanAnswers({
+      name,
+      time: TIMES.find((t) => t.hour === remote.reminder_hour)?.id ?? null,
+      ageBand: remote.age_band as never,
+      goal: remote.goal as never,
+      pains: (remote.pains ?? []) as never,
+      level: remote.level as never,
+      context: remote.context as never,
+    }),
+    done: true,
+    synced: true,
+  });
+}
+
+/**
+ * Whether the person just signed in has finished the introduction
+ * (#497): this device's walk and the account's onboarding row, merged
+ * as `syncOnboarding` merges them. A walk finished on this device counts,
+ * a guest's included, and goes up to the account if it has not; an
+ * account that finished elsewhere comes down onto this device, over a
+ * walk left part way here, so the walk opens on its plan and never on
+ * the room. Null when the account could not be read: the caller leaves
+ * the person where they were going rather than guess.
+ */
+export async function introFinished(): Promise<boolean | null> {
+  const local = readOnboarding();
+  if (local.done) {
+    await syncOnboarding().catch(() => local);
+    return true;
+  }
+  let remote: OnboardingRow | null;
+  try {
+    remote = await fetchOnboarding();
+  } catch {
+    return null;
+  }
+  if (!remote) return false;
+  await takeDown(remote);
+  return true;
 }

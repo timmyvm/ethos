@@ -143,29 +143,73 @@ export function settingsLanding(href: string): SettingsLanding {
 const CAME_WITH_YOU = "Everything you've already recorded came with you.";
 
 /**
- * What /auth/callback says once signed in, under "You're in". Only what
- * happened: a Google sign-up linked to the guest took its recordings
- * with it, and a sign-up's own confirmation keeps the line it always
- * had; a sign-in, the switch's included (#414), and the link an account
- * that never confirmed got again (#426) leave the guest's recordings on
- * the guest, so they say nothing of them.
+ * What /auth/callback says once signed in, under "You're in" (#497):
+ * whether this is an account just made or one that was there already,
+ * once, in plain words (Timothy, 17 Nov: "Say signing into account or
+ * account exists after u sign in").
+ *
+ *  - An account made just now: "Account created." A Google sign-up
+ *    linked to the guest took its recordings with it, and says so.
+ *  - A sign-up that met an account (the switch, #414, or a Google
+ *    sign-up the auth server signed in): "That Google account already
+ *    has Ethos, so you're signed in."
+ *  - A sign-in: "Signed in to your account as <email>."
+ *  - A sign-up's confirmation link: "Account created for <email>." Its
+ *    sign-up had no guest (a guest's link goes to /auth/reset?first=1),
+ *    so nothing recorded came along to be claimed.
+ *  - The link an account that never confirmed got again (#426): only
+ *    that the email is confirmed.
+ *
+ * A sign-in, the switch's included, and a resent link leave the guest's
+ * recordings on the guest, so they say nothing of them.
  */
 export function callbackWelcome({
   email,
   google,
   resent,
+  fresh = false,
+  switched = false,
 }: {
   email: string | null;
   /** The Google attempt this return answers, or null for an email link. */
   google: { mode: "signup" | "signin" } | null;
   resent: boolean;
+  /** The account was made just now (`freshAccount`). */
+  fresh?: boolean;
+  /** A Google sign-up was switched to that account's sign-in (#414). */
+  switched?: boolean;
 }): string {
-  if (google && !resent) {
-    const who = email ? `Signed in as ${email}.` : "Signed in with Google.";
-    return google.mode === "signup" ? `${who} ${CAME_WITH_YOU}` : who;
-  }
-  const confirmed = email ? `${email} is confirmed.` : "Your email is confirmed.";
-  return resent ? confirmed : `${confirmed} ${CAME_WITH_YOU}`;
+  if (resent) return email ? `${email} is confirmed.` : "Your email is confirmed.";
+  const created = email ? `Account created for ${email}.` : "Account created.";
+  if (!google) return created;
+  if (fresh && !switched) return google.mode === "signup" ? `${created} ${CAME_WITH_YOU}` : created;
+  if (switched || google.mode === "signup") return "That Google account already has Ethos, so you're signed in.";
+  return email ? `Signed in to your account as ${email}.` : "Signed in to your account.";
+}
+
+/** How recently a way in was made for the account to count as made now. */
+export const FRESH_MS = 15 * 60_000;
+
+/**
+ * The account was made by this round trip (#497): every way into it was
+ * made in the last few minutes (a guest that linked Google, a new Google
+ * account), where an account that was there already has an older one,
+ * even when the auth server has just added Google beside its email.
+ * Without identities to read, the user's own age. Either way of the
+ * device's clock, since it need not agree with the server's.
+ */
+export function freshAccount(
+  user: { created_at?: string; identities?: { created_at?: string }[] | null } | null | undefined,
+  now = Date.now()
+): boolean {
+  if (!user) return false;
+  const recent = (at: string | undefined) => {
+    const t = at ? Date.parse(at) : NaN;
+    return Number.isFinite(t) && Math.abs(now - t) < FRESH_MS;
+  };
+  const ways = user.identities ?? [];
+  if (ways.length > 0) return ways.every((w) => recent(w.created_at));
+  return recent(user.created_at);
 }
 
 export interface AuthResult {
@@ -195,6 +239,13 @@ export interface AuthResult {
    * was tried and is not that account's.
    */
   existing?: boolean;
+  /**
+   * Signed in, and to which: an account that was there already (a
+   * sign-in, or a sign-up that met one, #426) or one this sign-up just
+   * made. The page it lands on says which, once (#497,
+   * lib/auth-landing.ts).
+   */
+  account?: "existing" | "new";
   /**
    * The inbox is for an account that signed up with this email and
    * never confirmed it: its link went again (#426).
@@ -448,7 +499,7 @@ export async function createAccount(
   // A confirmed account, and confirmations on: no mail is coming (#426).
   if (obfuscatedUser(signedUp?.user, signedUp?.session)) return signInExisting(email, password, next);
   // Confirmations off: the new account is signed in already.
-  if (signedUp?.session) return { ok: true };
+  if (signedUp?.session) return { ok: true, account: "new" };
   // Signed up before and never confirmed: its link went again.
   if (resentToEarlier(signedUp?.user)) return { ok: true, checkInbox: true, thenSignIn: true, resent: true };
   return { ok: true, checkInbox: true, thenSignIn: true };
@@ -484,7 +535,7 @@ export async function signInExisting(
   const db = supabaseBrowser();
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
   const error = await passwordSignIn(email, password);
-  if (!error) return { ok: true };
+  if (!error) return { ok: true, account: "existing" };
   if (wrongPassword(error)) {
     return { ok: false, existing: true, error: EXISTING_COPY.mismatch, field: "password" };
   }
@@ -881,7 +932,7 @@ export async function signIn(
   if (!db) return { ok: false, error: "Accounts aren't configured yet." };
   const error = await passwordSignIn(email, password);
   if (error) return { ok: false, error: humanise(error.message) };
-  return { ok: true };
+  return { ok: true, account: "existing" };
 }
 
 export async function sendReset(email: string): Promise<AuthResult> {

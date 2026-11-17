@@ -14,7 +14,9 @@
  *   mic denied his lines play, no turn opens, Demos says it plainly,
  *              Next is the name; motion denied says nothing
  *   reduced    each line arrives whole with one pop; the tilt holds still
- *   returning  a browser holding a session never sees the room
+ *   returning  an account that has not done the introduction meets the
+ *              door without Sign in or Tester code (#497); a finished one
+ *              never sees the room; without an account both doors stay
  *   hidden     the phone put away mid-turn: the mic closes, the scene
  *              waits, and the turn is asked again once it is back
  *   skip       Skip mid-turn: the name, and the mic let go
@@ -418,8 +420,34 @@ if (want("returning")) {
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("main h1");
   await sleep(800);
-  ok("returning: a signed-in browser never sees the room", (await room(page)) === null && /What do I call you\?/.test((await heading(page)) ?? ""), await heading(page));
-  ok("returning: and the name has no way back to it", (await page.getByRole("button", { name: "Back", exact: true }).count()) === 0);
+  /* #497: a session no longer rules the room out. An account that has
+     not done the introduction meets the door, without the doors that
+     are not theirs (Sign in, Tester code). */
+  ok("returning: a signed-in browser that has not done the introduction opens on the room", (await room(page)) !== null && (await page.locator("[data-room-hold]").count()) === 1);
+  ok("returning: its door has no Sign in and no Tester code", (await page.locator("main.room .room-top a").count()) === 0, String(await page.locator("main.room .room-top a").count()));
+  await browser.close();
+}
+if (want("returning")) {
+  /* Finished, signed in: never the room, and the walk opens on its plan. */
+  const { browser, page } = await open();
+  await page.addInitScript((s) => {
+    localStorage.setItem("sb-supabase-auth-token", JSON.stringify(s));
+    localStorage.setItem("sb-supabase.local-auth-token", JSON.stringify(s));
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", ageBand: "18_24", goal: "feet", pains: ["fillers"], level: "some", context: "work" }, step: 9, done: true, synced: true, walk: 2 }));
+  }, session);
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("main h1");
+  await sleep(800);
+  ok("returning: a signed-in browser whose introduction is finished never sees the room", (await room(page)) === null, await heading(page));
+  await browser.close();
+}
+if (want("returning")) {
+  /* A guest (no account) on the door keeps both doors. */
+  const { browser, page } = await open();
+  await page.goto(`${BASE}/welcome`);
+  await page.waitForSelector("[data-room-hold]");
+  const links = await page.locator("main.room .room-top a").allTextContents();
+  ok("returning: without an account the door keeps Sign in and Tester code", links.length === 2, JSON.stringify(links));
   await browser.close();
 }
 

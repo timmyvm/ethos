@@ -492,10 +492,13 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
 
 export function Room({
   script = INTERVIEW,
+  signedIn = false,
   onDone,
   onSkip,
 }: {
   script?: RoomScript;
+  /** An account is signed in (#497): the door drops Sign in and Tester code. */
+  signedIn?: boolean;
   /** Demos's Next: into the questions. */
   onDone: () => void;
   /** Not now, or Skip mid-scene: into the questions, without the scene. */
@@ -820,15 +823,22 @@ export function Room({
 
       {(stage === "door" || doorFading) && (
         <div className="room-door-layer" data-fading={doorFading ? "" : undefined}>
+          {/* Someone signed in to an account that has not done the
+              introduction meets the door too (#497): neither door is
+              theirs to use, so the row stands empty at its height. */}
           <div className="room-top">
-            <Link href="/signin" className="room-link">
-              {ROOM_COPY.signIn}
-            </Link>
-            {/* The tester's door (docs/testers.md): the quietest thing on
-                the first screen, where it has always been. */}
-            <Link href="/tester?from=welcome" className="room-link">
-              {DOOR_COPY.welcome}
-            </Link>
+            {!signedIn && (
+              <>
+                <Link href="/signin" className="room-link">
+                  {ROOM_COPY.signIn}
+                </Link>
+                {/* The tester's door (docs/testers.md): the quietest thing on
+                    the first screen, where it has always been. */}
+                <Link href="/tester?from=welcome" className="room-link">
+                  {DOOR_COPY.welcome}
+                </Link>
+              </>
+            )}
           </div>
           <div className="room-foot room-door">
             <HoldToStep label={ROOM_COPY.hold} onComplete={enter} />

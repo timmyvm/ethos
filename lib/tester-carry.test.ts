@@ -85,16 +85,16 @@ afterEach(() => {
 describe("signing in from a phone that joined testing", () => {
   it("hands the anonymous session's testing to the account, with the account's own token", async () => {
     localStorage.setItem("ethos.tester", "1");
-    expect(await signIn("friend@example.com", "a long password")).toEqual({ ok: true });
+    expect(await signIn("friend@example.com", "a long password")).toEqual({ ok: true, account: "existing" });
     expect(posts).toEqual([{ body: { carry: "tok_anon" }, auth: "Bearer tok_account" }]);
     expect(localStorage.getItem("ethos.tester")).toBe("1");
   });
 
   it("asks nothing of the server when this phone never joined, or the session was already an account", async () => {
-    expect(await signIn("friend@example.com", "a long password")).toEqual({ ok: true });
+    expect(await signIn("friend@example.com", "a long password")).toEqual({ ok: true, account: "existing" });
     localStorage.setItem("ethos.tester", "1");
     fake.session = { access_token: "tok_real", user: { id: "real", is_anonymous: false } };
-    expect(await signIn("friend@example.com", "a long password")).toEqual({ ok: true });
+    expect(await signIn("friend@example.com", "a long password")).toEqual({ ok: true, account: "existing" });
     expect(posts).toEqual([]);
   });
 

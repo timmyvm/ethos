@@ -660,7 +660,8 @@ for (const theme of run("google-recordings") ? ["light", "dark"] : []) {
     const inn = await signedInAfter(page);
     const text = ((await page.locator("main").first().textContent({ timeout: 4000 }).catch(() => "")) ?? "").replace(/\s+/g, " ");
     ok("Google with recordings: Continue with Google there signs in", inn && calls.authorize.join(",") === "link,signin" && (await storedUser(page))?.is_anonymous === false, `${calls.authorize.join(",")} ${page.url()}`);
-    ok("Google with recordings: greeted as a sign-in, nothing claimed", /Signed in as/.test(text) && !/came with you/.test(text), text.slice(0, 160));
+    // #497: a sign-in says so in those words.
+    ok("Google with recordings: greeted as a sign-in, nothing claimed", /Signed in to your account/.test(text) && !/came with you/.test(text), text.slice(0, 160));
     const after = visited.slice(tapped).map((u) => new URL(u).pathname);
     ok("Google with recordings: never back on the sign-up screen on the way", !after.includes("/signup"), after.join(" > "));
   }

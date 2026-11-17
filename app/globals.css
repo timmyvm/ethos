@@ -7023,6 +7023,37 @@ html[data-test-tile] .test-tile-slot {
 :root[data-motion="reduce"] .toast[data-leaving] {
   animation: fade-out var(--duration-base) var(--ease-out) forwards;
 }
+/* The sign-in's note (#497, components/AuthNote.tsx): the same capsule
+   with no action, under the top edge instead of over the tab bar, so it
+   covers neither the tabs nor the room's door. It is a status passing
+   through: a tap goes through it, and its line wraps rather than cut. */
+.toast-dock[data-at="top"] {
+  top: calc(max(12px, env(safe-area-inset-top)) + 8px);
+  bottom: auto;
+  z-index: 40;
+}
+.toast[data-note] {
+  padding: 12px 20px;
+  pointer-events: none;
+}
+.toast[data-note]:not([data-leaving]) {
+  animation-name: toast-in-top;
+}
+:root[data-motion="reduce"] .toast[data-note]:not([data-leaving]) {
+  animation-name: fade-in;
+}
+.toast[data-note] .toast-text {
+  overflow: visible;
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
+}
+@keyframes toast-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+}
 /* ========================== end of the undo toast (#435) ========================== */
 
 

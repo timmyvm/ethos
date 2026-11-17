@@ -167,25 +167,56 @@ export function firstRun(): boolean {
 }
 
 /**
- * Whether the walk opens on the room (#475): a person on their first
- * run, and nobody else. Not a deep link into the walk (`?step=`, You's
- * plan row), not a walk already finished or already past the room
- * (a refresh on the name lands on the name), and not a browser holding a
- * session, which is someone who has been here before: signed-in
- * returning people never see it.
+ * Whether the walk opens on the room (#475, #497): for anyone whose
+ * introduction is not finished, and nobody else. Not a deep link into
+ * the walk (`?step=`, You's plan row), not a walk already finished or
+ * already past the room (a refresh on the name lands on the name).
+ *
+ * A session no longer rules it out (#497, Timothy: "if u sign into an
+ * account that somehow hasnt done the onboarding make them onboard"):
+ * `done` is this device's walk, which every sign-in has already merged
+ * with the account's onboarding row before it lands here
+ * (lib/auth-landing.ts `landAfterAuth`, lib/answers-sync.ts
+ * `introFinished`), so an account that finished elsewhere arrives done.
  */
 export function roomDue(a: {
   /** The `?step=` the walk was opened with, or null. */
   asked: string | null;
+  /** The introduction finished, for this device and the account it holds. */
   done: boolean;
   /** The stored step; the room is step 0. */
   step: number;
-  keys: readonly string[];
 }): boolean {
   if (a.asked !== null) return false;
   if (a.done) return false;
-  if (a.step > 0) return false;
-  return !a.keys.some((k) => SB_SESSION.test(k));
+  return a.step === 0;
+}
+
+/**
+ * Whether this browser holds an account's session, not a guest's and not
+ * none (#497): the room's door offers Sign in and Tester code only to
+ * someone without one. Read from the stored session itself, before
+ * paint, so the door never draws a link and then takes it away.
+ */
+export function accountIn(entries: readonly (readonly [string, string | null])[]): boolean {
+  return entries.some(([k, v]) => {
+    if (!SB_SESSION.test(k) || !v) return false;
+    try {
+      const s = JSON.parse(v) as { access_token?: unknown; user?: { is_anonymous?: unknown } | null };
+      return typeof s.access_token === "string" && !!s.user && s.user.is_anonymous !== true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+export function storedAccount(): boolean {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    return accountIn(storageKeys().map((k) => [k, localStorage.getItem(k)] as const));
+  } catch {
+    return false;
+  }
 }
 
 export function markWelcomed(): void {

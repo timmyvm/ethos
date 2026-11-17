@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { BOSS_DONE_LINE } from "@/lib/boss";
 import { dayKey } from "@/lib/challenge";
 import { weeklyTopic } from "@/lib/cold-topics";
-import { hostileTile } from "@/lib/home-modes";
+import { BOSS_ASK_LINE, hostileTile } from "@/lib/home-modes";
 import {
   fetchGameRounds,
   fetchProfile,
@@ -286,11 +286,11 @@ export default function GamesPage() {
 
       {/* The weekly headliner. The sky stage is the card itself, the
           screen's one lifted thing, with Demos standing in it holding
-          his clock, the eyebrow and the name on the left. No time frame
-          and no countdown (#486, Timothy: "they don't need to know any
-          time frame"): the reading's clock runs on the reading. A week
-          already taken says so in sage under the name, the one state
-          that is earned. Nothing on the stage is a tap; Start sits on
+          his clock, "Weekly boss" over the week's topic on the left
+          (#494). No time frame and no countdown (#486, Timothy: "they
+          don't need to know any time frame"): the reading's clock runs
+          on the reading. A week already taken says so in sage under the
+          topic, the one state that is earned. Nothing on the stage is a tap; Start sits on
           the ground under it. */}
       <section aria-labelledby="boss-title" className="mt-5">
         {/* The house stage (components/ui/HeroStage.tsx): every tab's
@@ -300,21 +300,23 @@ export default function GamesPage() {
           center
           /* The week's topic is the title (#494): "Weekly boss" names the
              boss here, on Today's tile, in the Log and on /boss, and the
-             topic is what this week asks. It sits in a box three lines
+             topic is what this week asks. It hangs in a box three lines
              tall at the topic's own size (`.boss-topic`), the most a
              topic takes at 320, so the stage holds one height whichever
              week it is and nothing moves when a cold open reads the
-             clock. The line's slot under it is always there, so the
+             clock. Under it, the line Today's tile says (lib/home-modes.ts
+             bossTile): what the boss asks while the week is open, "Done
+             this week" in sage once it is taken, so the stage, the tile
+             and /boss are one face. Its slot is always there, so the
              eyebrow and the topic hold one y from the first frame to the
-             week's read (#486 review). Empty while the week is open or
-             unknown, a no-break space at its height. */
+             week's read (#486 review): a no-break space while unknown. */
           line={
             <p
-              className={`practice-week font-display mt-1 text-link font-bold ${bossDone ? "arrive" : ""}`}
+              className={`practice-week font-display mt-1 text-link font-bold ${bossDone !== null ? "arrive" : ""}`}
               data-done={bossDone || undefined}
-              aria-hidden={bossDone ? undefined : true}
+              aria-hidden={bossDone === null ? true : undefined}
             >
-              {bossDone ? BOSS_DONE_LINE : "\u00a0"}
+              {bossDone === null ? "\u00a0" : bossDone ? BOSS_DONE_LINE : BOSS_ASK_LINE}
             </p>
           }
           artSize={BOSS_ART}
@@ -331,7 +333,7 @@ export default function GamesPage() {
           }
         >
           <h2 id="boss-title" className="boss-topic font-display mt-1.5">
-            <span className={`boss-topic-line ${topic ? "arrive" : "invisible"}`}>
+            <span className={topic ? "arrive" : "invisible"}>
               {topic?.title ?? "\u00a0"}
             </span>
           </h2>

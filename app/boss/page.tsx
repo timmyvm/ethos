@@ -16,6 +16,7 @@ import { HeroStage } from "@/components/ui/HeroStage";
 import { BackLink } from "@/components/ui/ScreenHeader";
 import { BOSS_DONE_LINE, BOSS_RESEARCH_SECONDS, takeThisWeek } from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
+import { BOSS_ASK_LINE } from "@/lib/home-modes";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { weekStart } from "@/lib/level";
 import { prefersReducedMotion } from "@/lib/prefs";
@@ -239,8 +240,9 @@ export default function BossPage() {
           {/* Practice's stage, the same one (E30, #494): sky, the sheet
               radius, p-5, the screen's one elev-2, at the house's tab
               height, "Weekly boss" over the week's topic at the stage's
-              middle height as Practice centres them, a taken week's
-              sage line in the slot under them, and the clock Demos at
+              middle height as Practice centres them, the line Today's
+              tile says under them (what the boss asks, or "Done this
+              week" in sage once taken), and the clock Demos at
               132 on its floor at the right, without his spring: his
               arrival stays Practice's weekly moment (#313). No clocks
               and no countdown (#486). The topic is the page's h1, and
@@ -259,11 +261,11 @@ export default function BossPage() {
             center
             line={
               <p
-                className={`practice-week font-display mt-1 text-link font-bold ${takenThisWeek ? "arrive" : ""}`}
+                className={`practice-week font-display mt-1 text-link font-bold ${taken !== null ? "arrive" : ""}`}
                 data-done={takenThisWeek || undefined}
-                aria-hidden={takenThisWeek ? undefined : true}
+                aria-hidden={taken === null ? true : undefined}
               >
-                {takenThisWeek ? BOSS_DONE_LINE : "\u00a0"}
+                {taken === null ? "\u00a0" : takenThisWeek ? BOSS_DONE_LINE : BOSS_ASK_LINE}
               </p>
             }
             artSize={BOSS_ART}
@@ -274,7 +276,7 @@ export default function BossPage() {
                 state={reel}
                 current={shown}
                 className={`min-w-0 flex-1 ${topic ? "" : "invisible"}`}
-                render={(t) => <span className="flex h-full items-center">{t.title}</span>}
+                render={(t) => <span className="block">{t.title}</span>}
               />
             </h1>
           </HeroStage>

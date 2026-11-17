@@ -59,7 +59,7 @@ describe("the boss card says the boss, not its clocks", () => {
     expect(lobby.match(/<Reel\b/g)).toHaveLength(1);
     expect(lobby.match(/<h1\b/g)).toHaveLength(1);
     // The taken week's slot is drawn from the first frame, as Practice's is.
-    expect(stage).toContain('{takenThisWeek ? BOSS_DONE_LINE : "\\u00a0"}');
+    expect(stage).toContain('{taken === null ? "\\u00a0" : takenThisWeek ? BOSS_DONE_LINE : BOSS_ASK_LINE}');
   });
 
   it("names the tier once at the head of Premium's section, on Practice and /boss", () => {
@@ -83,7 +83,7 @@ describe("the boss card says the boss, not its clocks", () => {
     const practice = readFileSync("app/games/page.tsx", "utf8");
     const stage = practice.slice(practice.indexOf("<HeroStage"), practice.indexOf("/>", practice.indexOf("artSize={BOSS_ART}")));
     expect(stage).toContain("center");
-    expect(stage).toContain('{bossDone ? BOSS_DONE_LINE : "\\u00a0"}');
+    expect(stage).toContain('{bossDone === null ? "\\u00a0" : bossDone ? BOSS_DONE_LINE : BOSS_ASK_LINE}');
     expect(stage).toContain("practice-week font-display mt-1 text-link");
     expect(stage).not.toMatch(/className=[^>]*mt-auto/);
     expect(stage).not.toMatch(/line=\{\s*bossDone \?/);

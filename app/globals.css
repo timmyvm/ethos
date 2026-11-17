@@ -3139,13 +3139,17 @@ summary::-webkit-details-marker {
    and at the title's 26 three topics overflowed it at 390 and nineteen
    took three lines or more at 320. The box is always three lines tall,
    the most any topic takes at 320, so the stage is one height every
-   week and the topic stands at its middle; on /boss it is the reel's
-   window too (`--reel-cell`), so Spin turns in the title's own slot. */
+   week and nothing moves when a cold open learns the week; the topic
+   hangs from its top, under the eyebrow as any stage's title does
+   (centred in the box, a one-line topic stood 23px off its eyebrow), and
+   the stage's line stands under the box, the house's foot line. On
+   /boss the box is the reel's window too (`--reel-cell`), so Spin turns
+   in the title's own slot. */
 .boss-topic {
   --boss-topic-lh: 1.15;
   --reel-cell: calc(3 * var(--boss-topic-lh) * var(--text-lead));
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   height: var(--reel-cell);
   font-size: var(--text-lead);
   line-height: var(--boss-topic-lh);

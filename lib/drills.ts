@@ -25,7 +25,7 @@ export interface Drill {
 export const DRILLS: Drill[] = [
   {
     id: "f1",
-    unit: "Filler Elimination",
+    unit: "Filler elimination",
     title: "The baseline",
     /* The first tip is docs/voice.md Part 3, verbatim (DECISIONS
        #209). The second was its partner there and the third this
@@ -42,7 +42,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "f2",
-    unit: "Filler Elimination",
+    unit: "Filler elimination",
     title: "Kill ‘like’",
     prompt: "Explain your favorite app to someone who's never used a phone.",
     tips: [
@@ -53,7 +53,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "f3",
-    unit: "Filler Elimination",
+    unit: "Filler elimination",
     title: "Silence beats ‘um’",
     prompt: "Describe your morning routine. Pause wherever you'd say \"um\".",
     tips: [
@@ -64,7 +64,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "f4",
-    unit: "Filler Elimination",
+    unit: "Filler elimination",
     title: "The clean minute",
     prompt: "Describe the last thing you made. 60 seconds, no \"um\" or \"like\".",
     tips: [
@@ -78,7 +78,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "p1",
-    unit: "Pace Control",
+    unit: "Pace control",
     title: "The 140 zone",
     prompt: "Tell the story of how you learned to code, at a walking pace.",
     tips: [
@@ -89,7 +89,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "p2",
-    unit: "Pace Control",
+    unit: "Pace control",
     title: "Slow is smooth",
     prompt: "Explain compound interest to a 10-year-old, slower than feels natural.",
     tips: [
@@ -100,7 +100,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "p3",
-    unit: "Pace Control",
+    unit: "Pace control",
     title: "Move the pace",
     prompt: "Describe a game that came down to the end. Rise with the action, land slow.",
     tips: [
@@ -111,7 +111,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "p4",
-    unit: "Pace Control",
+    unit: "Pace control",
     title: "The steady state",
     prompt: "Explain how something everyday works: a coffee machine, a traffic light. Hold 130 to 160 words a minute.",
     tips: [
@@ -122,7 +122,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "h1",
-    unit: "The Pause",
+    unit: "The pause",
     title: "Hold one second",
     prompt: "Argue for your most controversial food opinion. One full second before each new point.",
     tips: [
@@ -133,7 +133,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "h2",
-    unit: "The Pause",
+    unit: "The pause",
     title: "Land the ending",
     prompt: "Pitch what you're building in 45 seconds. End on a sentence, then hold the silence.",
     tips: [
@@ -144,7 +144,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "h3",
-    unit: "The Pause",
+    unit: "The pause",
     title: "Open with silence",
     prompt: "Hold one full second of silence, then answer: what's a rule you live by?",
     tips: [
@@ -155,7 +155,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "h4",
-    unit: "The Pause",
+    unit: "The pause",
     title: "Punctuate with silence",
     prompt: "Argue that one everyday habit is underrated. Full stop, one beat, next sentence.",
     tips: [
@@ -276,7 +276,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "t1",
-    unit: "Thinking Under Fire",
+    unit: "Thinking under fire",
     title: "Switch sides",
     prompt: "Argue the other side of an opinion you hold, like you mean it.",
     tips: [
@@ -287,7 +287,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "t2",
-    unit: "Thinking Under Fire",
+    unit: "Thinking under fire",
     title: "No hedges",
     prompt: "What should more people be doing? No \"I guess\", \"maybe\", \"sort of\".",
     tips: [
@@ -298,7 +298,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "t3",
-    unit: "Thinking Under Fire",
+    unit: "Thinking under fire",
     title: "Cold open",
     prompt: "No think time. Your topic is the last object you touched. Go.",
     tips: [
@@ -309,7 +309,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "t4",
-    unit: "Thinking Under Fire",
+    unit: "Thinking under fire",
     title: "Hold the unpopular corner",
     prompt: "Defend something mundane and unpopular: queues, ads, Mondays.",
     tips: [
@@ -320,7 +320,7 @@ export const DRILLS: Drill[] = [
   },
   {
     id: "t5",
-    unit: "Thinking Under Fire",
+    unit: "Thinking under fire",
     title: "Finish every sentence",
     prompt: "What you'd change about your city. Every sentence you start, you finish.",
     tips: [

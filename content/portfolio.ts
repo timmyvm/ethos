@@ -43,7 +43,7 @@ export const AGE_BANDS = [
 ] as const satisfies readonly { id: string; label: string; pool: Pool; reply?: string }[];
 
 export const BOSSES = {
-  "cold-topic": { name: "Cold Topic", href: "/boss" },
+  "cold-topic": { name: "Weekly boss", href: "/boss" },
   hostile: { name: "Hostile Q&A", href: "/hostile" },
 } as const;
 
@@ -142,7 +142,7 @@ export const PLAN_LINES = {
 /**
  * The same three steps as data, for the plan screen (intro-b-12): a
  * short lead the eye can count down ("Day 1", "First number", "Then
- * Pace Control") and the detail under it, where the screen sets every
+ * Pace control") and the detail under it, where the screen sets every
  * number in the display face. `PLAN_LINES` keeps the one-line form for
  * anything that stores or prints the plan as text.
  */

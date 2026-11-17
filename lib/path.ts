@@ -39,7 +39,7 @@ export interface Unit {
 const BOSS_LESSONS: Drill[] = [
   {
     id: "b1",
-    unit: "Cold Topic",
+    unit: "Weekly boss",
     title: "Boss: unknown territory",
     prompt:
       "A topic you've never studied. 4 minutes to research, 90 seconds to explain. Scored on delivery and accuracy.",
@@ -51,7 +51,7 @@ const BOSS_LESSONS: Drill[] = [
   },
   {
     id: "b2",
-    unit: "Cold Topic",
+    unit: "Weekly boss",
     title: "Boss: hostile Q&A",
     prompt:
       "Give a 60-second take. Demos interrupts with skeptical questions. Scored on composure and pause quality under pressure.",
@@ -70,11 +70,11 @@ function lessonsFor(unitName: string): Drill[] {
 export const UNITS: Unit[] = [
   {
     id: "filler",
-    name: "Filler Elimination",
+    name: "Filler elimination",
     icon: "✂️",
     blurb: "Cut the noise. Every 'um' you drop is a second of authority back.",
     unlocksAt: 0,
-    lessons: lessonsFor("Filler Elimination"),
+    lessons: lessonsFor("Filler elimination"),
     /* docs/voice.md Part 3, verbatim, but for the line: "No ums, no
        ahs. You pause instead." under "No fillers" spent the screen's
        one negation twice, so it says the move instead (E29, Timothy
@@ -93,23 +93,23 @@ export const UNITS: Unit[] = [
   },
   {
     id: "pace",
-    name: "Pace Control",
+    name: "Pace control",
     icon: "⏱",
     blurb: "130–160 words a minute. Fast enough to hold, slow enough to land.",
     unlocksAt: 4,
-    lessons: lessonsFor("Pace Control"),
+    lessons: lessonsFor("Pace control"),
   },
   {
     id: "pause",
-    name: "The Pause",
+    name: "The pause",
     icon: "🤫",
     blurb: "Silence you hold on purpose. The skill nobody else scores.",
     unlocksAt: 8,
-    lessons: lessonsFor("The Pause"),
+    lessons: lessonsFor("The pause"),
   },
   {
     id: "boss",
-    name: "Cold Topic",
+    name: "Weekly boss",
     icon: "🔥",
     blurb: "Unknown territory, on the clock. Weekly, premium.",
     unlocksAt: 12,
@@ -139,11 +139,11 @@ export const UNITS: Unit[] = [
   },
   {
     id: "fire",
-    name: "Thinking Under Fire",
+    name: "Thinking under fire",
     icon: "⚡",
     blurb: "No script, no warm-up, still clear.",
     unlocksAt: 32,
-    lessons: lessonsFor("Thinking Under Fire"),
+    lessons: lessonsFor("Thinking under fire"),
   },
 ];
 

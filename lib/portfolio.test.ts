@@ -157,10 +157,10 @@ describe("the portfolio", () => {
     expect(plan.stepParts).toEqual([
       { lead: "Day 1", detail: "Your first 60 seconds set the baseline." },
       { lead: "First number", detail: "Words per minute against the 130 to 160 zone." },
-      { lead: "Then Pace Control", detail: `Unit ${UNITS.indexOf(pace) + 1} of ${UNITS.length}, the one for rushing.` },
+      { lead: "Then Pace control", detail: `Unit ${UNITS.indexOf(pace) + 1} of ${UNITS.length}, the one for rushing.` },
     ]);
     expect(buildPortfolio({ ...EMPTY_ANSWERS, pains: ["fillers"] }).stepParts[2]).toEqual({
-      lead: "Then Filler Elimination",
+      lead: "Then Filler elimination",
       detail: "The unit for fillers. It opens on day one.",
     });
     expect(buildPortfolio(EMPTY_ANSWERS).stepParts.slice(1)).toEqual([
@@ -177,8 +177,8 @@ describe("the portfolio", () => {
   it("names where a later unit stands on the road, never a count of stars", () => {
     const pace = UNITS.find((u) => u.id === "pace")!;
     const plan = buildPortfolio({ ...EMPTY_ANSWERS, pains: ["rushing"] });
-    expect(plan.lines[2]).toBe("Then Pace Control, unit 2 of 7, for rushing.");
-    expect(plan.stepParts[2]).toEqual({ lead: "Then Pace Control", detail: "Unit 2 of 7, the one for rushing." });
+    expect(plan.lines[2]).toBe("Then Pace control, unit 2 of 7, for rushing.");
+    expect(plan.stepParts[2]).toEqual({ lead: "Then Pace control", detail: "Unit 2 of 7, the one for rushing." });
     expect(plan.focus?.unlocksAt).toBe(pace.unlocksAt);
     for (const a of every) {
       for (const line of [...buildPortfolio(a).lines, ...buildPortfolio(a).stepParts.map((s) => s.detail)]) {
@@ -189,7 +189,7 @@ describe("the portfolio", () => {
 
   it("keeps the first unit's pain on the first unit", () => {
     const plan = buildPortfolio({ ...EMPTY_ANSWERS, pains: ["fillers"] });
-    expect(plan.lines[2]).toBe("Filler Elimination first. Every lesson in it targets fillers.");
+    expect(plan.lines[2]).toBe("Filler elimination first. Every lesson in it targets fillers.");
   });
 
   it("leads with the first pain when there are several", () => {
@@ -278,7 +278,7 @@ describe("the portfolio", () => {
 
   it("picks the boss from the goal", () => {
     expect(buildPortfolio({ ...EMPTY_ANSWERS, goal: "feet" }).boss?.name).toBe("Hostile Q&A");
-    expect(buildPortfolio({ ...EMPTY_ANSWERS, goal: "present" }).boss?.name).toBe("Cold Topic");
+    expect(buildPortfolio({ ...EMPTY_ANSWERS, goal: "present" }).boss?.name).toBe("Weekly boss");
   });
 
   it("repeats the answer back on day one, in their words", () => {

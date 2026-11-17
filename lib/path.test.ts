@@ -26,7 +26,7 @@ describe("unit gating", () => {
     expect(fresh[3].locked).toBe(true); // Boss needs 12
     expect(fresh[4].locked).toBe(true); // Structure needs 16
     expect(fresh[5].locked).toBe(true); // Compression needs 24
-    expect(fresh[6].locked).toBe(true); // Thinking Under Fire needs 32
+    expect(fresh[6].locked).toBe(true); // Thinking under fire needs 32
   });
 
   /**
@@ -109,5 +109,32 @@ describe("no total of stars", () => {
     for (const gone of ["totalStars", "MAX_STARS", "TOTAL_LESSONS"]) {
       expect(gone in path, gone).toBe(false);
     }
+  });
+});
+
+/*
+ * #494, the morning tour: the road's units were Title Case ("Filler
+ * Elimination", "Pace Control") where every other name in the app is
+ * sentence case ("Speed rush", "Your words", "Weekly boss"). The names
+ * are display strings; the units keep their ids.
+ */
+describe("the road's names", () => {
+  const sentence = (name: string) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+
+  it("names every unit and every lesson's unit in sentence case", () => {
+    for (const u of path.UNITS) expect(u.name, u.id).toBe(sentence(u.name));
+    for (const u of path.UNITS) for (const l of u.lessons) expect(l.unit, l.id).toBe(sentence(l.unit));
+  });
+
+  it("keeps the ids, and every unit still holds its lessons", () => {
+    expect(path.UNITS.map((u) => u.id)).toEqual(["filler", "pace", "pause", "boss", "structure", "compression", "fire"]);
+    for (const u of path.UNITS) {
+      expect(u.lessons.length, u.id).toBeGreaterThan(0);
+      for (const l of u.lessons) expect(l.unit, l.id).toBe(u.name);
+    }
+  });
+
+  it("calls the boss's unit by the boss's one name", () => {
+    expect(path.UNITS.find((u) => u.boss)?.name).toBe("Weekly boss");
   });
 });

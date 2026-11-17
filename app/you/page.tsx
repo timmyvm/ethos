@@ -900,14 +900,11 @@ export default function YouPage() {
                       className={toned ? "trait-dot" : "size-2 shrink-0 rounded-[2px] bg-stone-200"}
                     />
                     {/* 600, not 700: nine equally bold lines read as nine
-                        headings and the section loses its leader (#234). */}
-                    <span
-                      className={`font-display -ml-1 min-w-0 flex-1 truncate text-row font-semibold ${
-                        t.level > 0 ? "" : "text-stone-400"
-                      }`}
-                    >
-                      {name}
-                    </span>
+                        headings and the section loses its leader (#234).
+                        The name is ink at every level (#496): at level 0
+                        it was stone and read as a disabled row beside a
+                        bar with fill; only "Level 0" is quiet. */}
+                    <span className="font-display -ml-1 min-w-0 flex-1 truncate text-row font-semibold">{name}</span>
                     <LevelMeter
                       name={name}
                       level={t.level}

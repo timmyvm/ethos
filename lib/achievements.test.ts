@@ -104,6 +104,24 @@ describe("achievements", () => {
  * claim because nothing on screen says "hard", so a reordering has to be
  * a decision someone makes here rather than a line that drifted.
  */
+/*
+ * A badge's words are set as the rest of the app's are: a word quoted
+ * is in curly quotes (#496, the morning tour: Clean run's line read
+ * 'Say "um" or "like"' with straight ones, on You and under Record).
+ */
+describe("a badge's words", () => {
+  it("quote in curly quotes, never straight ones", () => {
+    for (const a of achievements([])) {
+      for (const words of [a.name, a.requirement]) {
+        expect(words, a.id).not.toMatch(/"/);
+        expect(words, a.id).not.toMatch(/(^|\s)'|'(\s|$)/);
+      }
+    }
+    const clean = achievements([]).find((a) => a.id === "clean")!;
+    expect(clean.requirement).toBe("Say “um” or “like” under 3 times a minute");
+  });
+});
+
 describe("the shelf", () => {
   it("runs easiest to hardest, ending on the north star", () => {
     expect(achievements([]).map((a) => a.id)).toEqual([

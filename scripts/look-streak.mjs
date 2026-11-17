@@ -18,6 +18,9 @@
  *   calm    roll under reduced motion: lit, and at 4, from the first frame.
  *   second  today already spoken at 09:12: no moment, the exit goes to Today.
  *   short   a take stopped inside 1.5s: nothing is stored, no results, no moment.
+ *   done    roll, left by the one tap rather than the header's back: Today's
+ *           practice ends on "Done for today" (#493), which leaves for Today,
+ *           so the moment plays on it. Fails a tap with other words.
  *   pro     roll on day 4 with Since day one never seen: Continue goes on to
  *           Since day one, and its Not now to Today (the #480 review: the
  *           asks follow the moment, or someone who speaks once a day never
@@ -76,6 +79,7 @@ const SCENE = {
   calm: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, calm: true },
   second: { spoke: [1, 2, 3], frozen: [], today: true, moment: false },
   pro: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, pro: true },
+  done: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, viaTap: "Done for today" },
   short: { spoke: [1, 2, 3], frozen: [], short: true, moment: false },
   /* A lesson's first practice makes today count: "Practice 2 of 3" goes
      straight on (the moment waits, owed), and the way back from the next
@@ -224,6 +228,14 @@ for (const scene of SCENES) {
       await page.screenshot({ path: shot("practice2") });
       /* The way back from the idle recorder leaves, so the owed moment plays. */
       await page.locator("a.screen-bar-back").first().click();
+    } else if (S.viaTap) {
+      /* The glance's one tap, its words read first (#493: it named the
+         old road's next lesson). */
+      const tap = page.locator("main [data-step-action]").first();
+      const words = ((await tap.textContent()) ?? "").trim();
+      console.log(`${at}: the tap reads "${words}"`);
+      if (words !== S.viaTap) fail(`${at}: the tap reads "${words}", wanted "${S.viaTap}"`);
+      await tap.click();
     } else {
       await page.locator("main [data-results-back]").click();
     }

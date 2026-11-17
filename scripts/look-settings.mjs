@@ -98,6 +98,26 @@ for (const [name, p] of Object.entries(PAGES)) {
       return F.supabaseRoute(route);
     });
     await context.route("**/api/push", (r) => r.fulfill(F.json({ ok: true })));
+    /* The photo's own route (#485, #488): look-picture's mock, with no
+       photo kept, so the Profile's picture list says "Add a photo".
+       Unmocked, the page's read reached the build's own /api/avatar,
+       which waits on a Supabase host that is not there, and Profile
+       never went quiet enough to shoot (#496). */
+    const avatar = { has: false };
+    await context.route("**/api/avatar", (route) => {
+      const method = route.request().method();
+      if (method === "GET") {
+        return avatar.has
+          ? route.fulfill(F.json({ url: "http://supabase.local/storage/v1/object/sign/avatars/u1/1.jpg?token=look" }))
+          : route.fulfill(F.json({ none: true }, 404));
+      }
+      if (method === "DELETE") {
+        avatar.has = false;
+        return route.fulfill(F.json({ ok: true }));
+      }
+      avatar.has = true;
+      return route.fulfill(F.json({ url: "http://supabase.local/storage/v1/object/sign/avatars/u1/2.jpg?token=look" }));
+    });
     await context.route("**/api/billing/*", F.billingApiRoute);
     await context.addInitScript(F.seed, { theme: size.theme, session, pose: F.POSE_PREF });
     if (p.hour != null) {

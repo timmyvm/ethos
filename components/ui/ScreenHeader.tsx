@@ -112,6 +112,11 @@ export function ScreenHeader({
   const bar = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  /* A coloured card under the bar (`data-bar-solid`, Today's practice
+     card): the frost took the card's colour and the words on it through
+     (#495, the morning tour: a blue smear with "Another topic" ghosting
+     in it), so over one the bar's material is the ground itself. */
+  const [solid, setSolid] = useState(false);
   /* Latched: once the title has handed over, the twin stays mounted and
      only fades, so scrolling back up never unmounts a focused control. */
   const [handedOver, setHandedOver] = useState(false);
@@ -141,6 +146,17 @@ export function ScreenHeader({
       const rect = h.getBoundingClientRect();
       setEdge(y > 2);
       setCollapsed(rect.bottom - 6 < barBottom);
+      /* The material's own reach: the bar and its 14px soft edge. */
+      const reach = barBottom + 14;
+      let under = false;
+      for (const el of document.querySelectorAll("[data-bar-solid]")) {
+        const r = el.getBoundingClientRect();
+        if (r.top < reach && r.bottom > 0) {
+          under = true;
+          break;
+        }
+      }
+      setSolid(under);
       // Overscroll only exists on a rubber-banding browser; elsewhere
       // scrollY never goes negative and this is always 1.
       const swell = y < 0 ? Math.min(1.1, 1 - y / 900) : 1;
@@ -166,6 +182,7 @@ export function ScreenHeader({
         className="screen-bar"
         data-edge={edge || undefined}
         data-collapsed={collapsed || undefined}
+        data-solid={solid || undefined}
       >
         <div className="screen-bar-side">
           {back ? (

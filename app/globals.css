@@ -4334,11 +4334,20 @@ summary::-webkit-details-marker {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
   opacity: 0;
-  transition: opacity 180ms var(--ease-out);
+  transition:
+    opacity 180ms var(--ease-out),
+    background-color 180ms var(--ease-out);
   pointer-events: none;
 }
 .screen-bar[data-edge]::before {
   opacity: 1;
+}
+/* Over a coloured card (`data-bar-solid`, Today's practice card) the
+   material is the ground, opaque (#495, the morning tour: at 74% the
+   frost took the navy foot into a blue smear and "Another topic" ghosted
+   through). The soft edge stays, so the card still slides under one. */
+.screen-bar[data-solid]::before {
+  background: var(--color-ground);
 }
 .screen-bar-side {
   display: flex;

@@ -204,7 +204,20 @@ export function StreakMoment({
           </span>
           <span aria-hidden className="streak-count text-num-xl">
             {calm ? (
-              moment.to
+              /* Today's count at rest, in the same one-line places the
+                 roll turns in, so the screen stands the same with or
+                 without motion. */
+              <span data-count="" className="inline-flex">
+                {String(moment.to)
+                  .split("")
+                  .map((d, i) => (
+                    <span key={i} className="streak-place">
+                      <span>
+                        <span>{d}</span>
+                      </span>
+                    </span>
+                  ))}
+              </span>
             ) : (
               <span data-count="" className="inline-flex">
                 {places.map((p, i) =>

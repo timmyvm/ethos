@@ -7858,12 +7858,17 @@ html[data-test-tile] .test-tile-slot {
 /* The free height goes to the art (#368), and since #496 all of it does
    (the morning tour: at 390x844 the flame stood at 160 with about 200pt
    of bare ground over it and again over Continue). The screen is a
-   column of four bands and the things between them: each band grows to
-   at most 64 (the foot's 48 plus the shelf's own 16 padding), and the
-   flame's slot takes what is left, from 112 up to 340: about 335 at
-   390x844, 190 at 375x667, 150 at 320x568, no band over 64. */
+   column: a band over the flame, the flame, the count close under it, a
+   band to the week, the week, a band to Continue. Each band grows to at
+   most 64 of bare ground, counting the air the flame's square holds over
+   its object (5.7% of it) and the shelf's own 16 under the last; the
+   flame's slot takes the rest, from 112 up to 380 (never wider than the
+   screen): about 360 at 390x844 with no insets, nearer 280 on an iPhone
+   once its status bar and home bar take theirs, 220 at 375x667, 150 at
+   320x568. Whatever a tall phone leaves past that splits over and under. */
 .streak-stage {
   min-height: 0;
+  justify-content: center;
 }
 .streak-gap {
   display: block;
@@ -7871,9 +7876,15 @@ html[data-test-tile] .test-tile-slot {
   min-height: 12px;
   max-height: 64px;
 }
-/* The flame and its count are one figure: a tighter band between them. */
+/* Over the flame: 42, and the square's own air over the object makes 64. */
+.streak-gap[data-gap="top"] {
+  max-height: 42px;
+}
+/* The flame and its count are one figure: a fixed 8, the count's own line
+   box holding the rest of the air over its digits. */
 .streak-gap[data-gap="count"] {
-  max-height: 40px;
+  flex: 0 0 8px;
+  min-height: 8px;
 }
 .streak-gap[data-gap="week"] {
   min-height: 24px;
@@ -7888,7 +7899,7 @@ html[data-test-tile] .test-tile-slot {
   flex: 1 1 112px;
   width: 100%;
   min-height: 112px;
-  max-height: 340px;
+  max-height: min(380px, calc(100vw - 16px));
 }
 .streak-flame {
   /* #487's 3D flame is drawn on a square, centred at one optical size:
@@ -7916,9 +7927,9 @@ html[data-test-tile] .test-tile-slot {
   line-height: 1;
   color: var(--color-ink);
   /* The count is the event: num-xl's 72 on the shortest phone, growing
-     with the screen to 136 (#496), sized to the screen as Today's topic
+     with the screen to 160 (#496), sized to the screen as Today's topic
      is (DESIGN principle 3: a hero at display size). */
-  font-size: clamp(var(--text-num-xl), 16dvh, 8.5rem);
+  font-size: clamp(var(--text-num-xl), 19dvh, 10rem);
 }
 /* One place of the odometer: a clip one line tall, the column inside it
    holding yesterday's digit over today's. */

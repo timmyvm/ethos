@@ -247,27 +247,36 @@ describe("the moment's room", () => {
     expect(at.every((v, i) => v > -1 && (i === 0 || v > at[i - 1])), order.join(" < ")).toBe(true);
   });
 
-  it("lets no band grow past 64, the foot's counting the shelf's own 16", () => {
+  it("lets no band grow past 64: the top's counting the flame's own air, the foot's the shelf's 16", () => {
     expect(px(rule(".streak-gap"), "max-height")).toBe(64);
-    for (const gap of ["count", "week", "foot"]) {
-      expect(px(rule(`.streak-gap[data-gap="${gap}"]`), "max-height"), gap).toBeLessThanOrEqual(64);
-    }
+    // The flame's square holds its object with (192 - 170) / 2 of 192 over it (scripts/cut-stat-icons.mjs).
+    const air = (380 * (192 - 170)) / 2 / 192;
+    expect(px(rule(`.streak-gap[data-gap="top"]`), "max-height") + air).toBeLessThanOrEqual(64);
+    expect(rule(`.streak-gap[data-gap="count"]`)).toMatch(/flex: 0 0 8px/);
+    expect(px(rule(`.streak-gap[data-gap="week"]`), "max-height")).toBeLessThanOrEqual(64);
     // FooterShelf pads 16 over Continue (pt-4), and that padding is ground too.
     expect(readFileSync("components/ui/FooterShelf.tsx", "utf8")).toMatch(/\bpt-4\b/);
     expect(px(rule(`.streak-gap[data-gap="foot"]`), "max-height") + 16).toBeLessThanOrEqual(64);
+    expect(rule(".streak-stage")).toMatch(/justify-content: center/);
   });
 
-  it("gives what is left to the flame, from 112 up to 340, drawn from the large cut", () => {
+  it("gives what is left to the flame, from 112 up to 380 and never wider than the screen, drawn from the large cut", () => {
     const slot = rule(".streak-flame-slot");
     expect(slot).toMatch(/flex: 1 1 112px/);
     expect(px(slot, "min-height")).toBe(112);
-    expect(px(slot, "max-height")).toBe(340);
+    expect(slot).toMatch(/max-height: min\(380px, calc\(100vw - 16px\)\)/);
     expect(rule(".streak-flame")).toMatch(/aspect-ratio: 1 \/ 1/);
     expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{340\} large \/>/g)?.length).toBe(2);
   });
 
-  it("grows the count with the screen, from num-xl's 72 to 136", () => {
-    expect(rule(".streak-count")).toMatch(/font-size: clamp\(var\(--text-num-xl\), 16dvh, 8\.5rem\)/);
+  it("grows the count with the screen, from num-xl's 72 to 160", () => {
+    expect(rule(".streak-count")).toMatch(/font-size: clamp\(var\(--text-num-xl\), 19dvh, 10rem\)/);
     expect(css).toMatch(/--text-num-xl: 4\.5rem;/);
+  });
+
+  it("stands the count in the same one-line places with motion or without, so reduced motion lays out the same", () => {
+    const calm = tsx.slice(tsx.indexOf("{calm ? ("), tsx.indexOf(") : (", tsx.indexOf("{calm ? (")));
+    expect(calm).toMatch(/className="streak-place"/);
+    expect(calm).toMatch(/String\(moment\.to\)/);
   });
 });

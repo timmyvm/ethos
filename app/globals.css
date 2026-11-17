@@ -6284,9 +6284,12 @@ summary::-webkit-details-marker {
   display: block;
   margin-top: 4px;
 }
-/* Today's line: one sentence under its head. */
+/* Today's line: one sentence, at the tile's foot, its last line level
+   with the unit's under the number, as the left half stands its number
+   over its unit (R2F-07: the two halves read on one level). */
 .home-line-sentence {
-  margin-top: 8px;
+  margin-top: auto;
+  padding-top: 8px;
 }
 /* The run's sentence stands at the row's foot, on the number's line. */
 .home-run-line {

@@ -225,12 +225,15 @@ for (const width of [320, 360, 375, 390, 430]) {
   });
   const tight = log.gaps.filter((g) => g.gap < 4);
   ok(`Log at ${width}: every head is 11px and 4px or more from the next`, log.gaps.length >= 6 && log.sizes.join() === "11" && tight.length === 0, tight.length ? JSON.stringify(tight) : `${log.gaps.length} pairs, closest ${Math.min(...log.gaps.map((g) => g.gap))}px`);
-  const long = log.names.find((n) => n.text === "Punctuate with silence");
+  /* The longest name the fixture's Log holds. It was the road's
+     "Punctuate with silence" until #493 named a road take Today's
+     practice, so the check reads whichever name is longest now. */
+  const long = [...log.names].sort((a, b) => b.text.length - a.text.length)[0];
   const most = Math.max(...log.names.map((n) => n.lines));
   ok(
     `Log at ${width}: a recording's name takes ${width >= 390 ? "one line" : "two lines at most"}`,
     !!long && most <= 2 && (width < 390 || long.lines === 1),
-    `“Punctuate with silence” ${long?.lines} line${long?.lines === 1 ? "" : "s"}, most ${most}`
+    `“${long?.text}” ${long?.lines} line${long?.lines === 1 ? "" : "s"}, most ${most}`
   );
   await context.close();
 }

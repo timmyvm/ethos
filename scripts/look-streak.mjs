@@ -275,6 +275,32 @@ for (const scene of SCENES) {
               const f = el.querySelector("[data-fill]");
               return f ? getComputedStyle(f).transform !== "none" : false;
             })(),
+            /* The ground between what is drawn (#496): over the flame,
+               flame to count, words to the week, and the week (or the
+               freeze's line) to Continue. The flame's square holds the
+               object with a little air over and under it (135x170 in
+               192, scripts/cut-stat-icons.mjs), so its band is read from
+               the object, not the square. */
+            bands: (() => {
+              const box = (q) => el.querySelector(q)?.getBoundingClientRect() ?? null;
+              const flame = box(".streak-flame");
+              const air = flame ? (flame.height * (192 - 170)) / 2 / 192 : 0;
+              const count = box(".streak-count");
+              const words = box("h1 [data-line]");
+              const week = box(".streak-week");
+              const freeze = box(".streak-week ~ p[data-line]");
+              const go = box("[data-continue]");
+              const top = el.getBoundingClientRect().top + parseFloat(getComputedStyle(el).paddingTop || "0");
+              if (!flame || !count || !words || !week || !go) return null;
+              return {
+                top: Math.round(flame.top + air - top),
+                count: Math.round(count.top - (flame.bottom - air)),
+                week: Math.round(week.top - words.bottom),
+                foot: Math.round(go.top - (freeze ?? week).bottom),
+                flame: Math.round(flame.height),
+                countPx: Math.round(parseFloat(getComputedStyle(el.querySelector(".streak-count")).fontSize)),
+              };
+            })(),
           };
         });
       if (S.calm) {
@@ -294,6 +320,15 @@ for (const scene of SCENES) {
       await page.screenshot({ path: shot("end") });
       const m = await read();
       console.log(`${at}: ${m.from} to ${m.to}; "${m.line}"; ${m.taps} tap(s); Continue bottom ${m.continueBottom}; frozen days ${m.frozen}; scrolls ${m.scrolls}`);
+      if (m.bands) {
+        const b = m.bands;
+        console.log(`${at}: flame ${b.flame}, count ${b.countPx}px; bands over the flame ${b.top}, to the count ${b.count}, to the week ${b.week}, to Continue ${b.foot}`);
+        /* No band of bare ground over 64 (#496, DESIGN principle 7). A
+           build from before #496 is measured and printed, never failed. */
+        for (const [name, v] of Object.entries({ top: b.top, count: b.count, week: b.week, foot: b.foot })) {
+          if (v > 64 && TAG !== "before") fail(`${at}: ${v}px of ground ${name === "top" ? "over the flame" : name === "foot" ? "over Continue" : `before the ${name}`}`);
+        }
+      } else if (TAG !== "before") fail(`${at}: the moment's parts were not found to measure`);
       if (Number(m.from) !== S.from || Number(m.to) !== S.to) fail(`${at}: rolled ${m.from} to ${m.to}, wanted ${S.from} to ${S.to}`);
       if (m.taps !== 1) fail(`${at}: ${m.taps} filled taps`);
       if (m.continueBottom === null || m.continueBottom > size.h) fail(`${at}: Continue is under the fold (${m.continueBottom} > ${size.h})`);

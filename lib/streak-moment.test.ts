@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CHIME, MILESTONE_CHIME } from "./sfx";
 import { computeStreak } from "./streak";
@@ -217,5 +218,56 @@ describe("the moment's clock", () => {
     expect(t.lineAt).toBeGreaterThan(t.rollAt);
     expect(t.end).toBeGreaterThanOrEqual(t.rollAt + t.rollMs);
     expect(t.end).toBeLessThanOrEqual(1500);
+  });
+});
+
+/*
+ * The moment's room (#496, the morning tour,
+ * docs/look/tour/07-streak-moment-end-390-light.png: a 160pt flame with
+ * about 200pt of bare ground over it and again over Continue). The free
+ * height goes to the flame; four bands share the rest, none over 64.
+ * scripts/look-streak.mjs measures them at 390x844, 375x667 and 320x568.
+ */
+describe("the moment's room", () => {
+  const css = readFileSync("app/globals.css", "utf8");
+  const tsx = readFileSync("components/StreakMoment.tsx", "utf8");
+  const rule = (sel: string) => {
+    const at = css.indexOf(`${sel} {`);
+    expect(at, sel).toBeGreaterThan(-1);
+    return css.slice(at, css.indexOf("}", at));
+  };
+  const px = (block: string, prop: string) => Number(block.match(new RegExp(`${prop}:\\s*(\\d+)px`))?.[1]);
+
+  it("stands four bands round the flame, the count, the words and the week", () => {
+    const gaps = [...tsx.matchAll(/className="streak-gap" data-gap="(\w+)"/g)].map((m) => m[1]);
+    expect(gaps).toEqual(["top", "count", "week", "foot"]);
+    // Each in its place: over the flame, flame to count, words to week, week to Continue.
+    const order = ["data-gap=\"top\"", "streak-flame-slot", "data-gap=\"count\"", "<h1", "data-gap=\"week\"", "streak-week", "data-gap=\"foot\"", "<FooterShelf"];
+    const at = order.map((o) => tsx.indexOf(o));
+    expect(at.every((v, i) => v > -1 && (i === 0 || v > at[i - 1])), order.join(" < ")).toBe(true);
+  });
+
+  it("lets no band grow past 64, the foot's counting the shelf's own 16", () => {
+    expect(px(rule(".streak-gap"), "max-height")).toBe(64);
+    for (const gap of ["count", "week", "foot"]) {
+      expect(px(rule(`.streak-gap[data-gap="${gap}"]`), "max-height"), gap).toBeLessThanOrEqual(64);
+    }
+    // FooterShelf pads 16 over Continue (pt-4), and that padding is ground too.
+    expect(readFileSync("components/ui/FooterShelf.tsx", "utf8")).toMatch(/\bpt-4\b/);
+    expect(px(rule(`.streak-gap[data-gap="foot"]`), "max-height") + 16).toBeLessThanOrEqual(64);
+  });
+
+  it("gives what is left to the flame, from 112 up to 340, drawn from the large cut", () => {
+    const slot = rule(".streak-flame-slot");
+    expect(slot).toMatch(/flex: 1 1 112px/);
+    expect(px(slot, "min-height")).toBe(112);
+    expect(px(slot, "max-height")).toBe(340);
+    expect(rule(".streak-flame")).toMatch(/aspect-ratio: 1 \/ 1/);
+    expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{340\} large \/>/g)?.length).toBe(2);
+  });
+
+  it("grows the count with the screen, from num-xl's 72 to 136", () => {
+    expect(rule(".streak-count")).toMatch(/font-size: clamp\(var\(--text-num-xl\), 16dvh, 8\.5rem\)/);
+    expect(css).toMatch(/--text-num-xl: 4\.5rem;/);
   });
 });

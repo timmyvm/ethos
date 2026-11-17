@@ -1,4 +1,4 @@
-import { STAT_ICON_SRC, type StatKind } from "@/lib/stat-icons";
+import { STAT_ICON_LARGE_SRC, STAT_ICON_SRC, type StatKind } from "@/lib/stat-icons";
 
 /**
  * A stat's 3D icon (#487): the flame, the crowned flame, the freeze, the
@@ -18,6 +18,7 @@ export function StatIcon({
   kind,
   lit = true,
   size = 20,
+  large = false,
   className = "",
 }: {
   kind: StatKind;
@@ -25,12 +26,14 @@ export function StatIcon({
   lit?: boolean;
   /** CSS px, square. */
   size?: number;
+  /** The large cut, where the kind has one: the streak moment's flame (#496). */
+  large?: boolean;
   className?: string;
 }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- a precached file at a fixed path (#274)
     <img
-      src={STAT_ICON_SRC[kind]}
+      src={(large && STAT_ICON_LARGE_SRC[kind]) || STAT_ICON_SRC[kind]}
       width={size}
       height={size}
       alt=""

@@ -7855,14 +7855,49 @@ html[data-test-tile] .test-tile-slot {
  * component's own (Web Animations, so a frame can be sought); reduced
  * motion draws the end.
  */
-.streak-flame {
+/* The free height goes to the art (#368), and since #496 all of it does
+   (the morning tour: at 390x844 the flame stood at 160 with about 200pt
+   of bare ground over it and again over Continue). The screen is a
+   column of four bands and the things between them: each band grows to
+   at most 64 (the foot's 48 plus the shelf's own 16 padding), and the
+   flame's slot takes what is left, from 112 up to 340: about 335 at
+   390x844, 190 at 375x667, 150 at 320x568, no band over 64. */
+.streak-stage {
+  min-height: 0;
+}
+.streak-gap {
+  display: block;
+  flex: 1 1 0;
+  min-height: 12px;
+  max-height: 64px;
+}
+/* The flame and its count are one figure: a tighter band between them. */
+.streak-gap[data-gap="count"] {
+  max-height: 40px;
+}
+.streak-gap[data-gap="week"] {
+  min-height: 24px;
+  max-height: 56px;
+}
+.streak-gap[data-gap="foot"] {
+  min-height: 8px;
+  max-height: 48px;
+}
+.streak-flame-slot {
   position: relative;
-  /* The free height goes to the art (#368): the flame grows with the
-     screen, 160 tall at 390x844, 127 at 375x667, never under 112. Its
-     box is the flame's own (viewBox 5 3 14 16), so the count stands
-     under the flame and not under empty canvas. */
-  height: clamp(112px, 19dvh, 160px);
-  /* #487's 3D flame is drawn on a square, centred at one optical size. */
+  flex: 1 1 112px;
+  width: 100%;
+  min-height: 112px;
+  max-height: 340px;
+}
+.streak-flame {
+  /* #487's 3D flame is drawn on a square, centred at one optical size:
+     the slot's height, centred across it. */
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  translate: -50% 0;
   aspect-ratio: 1 / 1;
 }
 .streak-flame > span {
@@ -7880,6 +7915,10 @@ html[data-test-tile] .test-tile-slot {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--color-ink);
+  /* The count is the event: num-xl's 72 on the shortest phone, growing
+     with the screen to 136 (#496), sized to the screen as Today's topic
+     is (DESIGN principle 3: a hero at display size). */
+  font-size: clamp(var(--text-num-xl), 16dvh, 8.5rem);
 }
 /* One place of the odometer: a clip one line tall, the column inside it
    holding yesterday's digit over today's. */

@@ -5,7 +5,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { StatIcon } from "@/components/StatIcon";
 import { StreakBadge } from "@/components/StreakBadge";
-import { STAT_ICON_MAX_BYTES, STAT_ICON_PX, STAT_ICON_SRC, STAT_KINDS } from "./stat-icons";
+import {
+  STAT_ICON_LARGE_MAX_BYTES,
+  STAT_ICON_LARGE_PX,
+  STAT_ICON_LARGE_SRC,
+  STAT_ICON_MAX_BYTES,
+  STAT_ICON_PX,
+  STAT_ICON_SRC,
+  STAT_KINDS,
+} from "./stat-icons";
 
 /*
  * The stat icons (#487): every count's mark is a 3D file. Each kind
@@ -56,6 +64,41 @@ describe("the stat icon files (#487)", () => {
     for (const kind of STAT_KINDS) expect(sw).toContain(`"${STAT_ICON_SRC[kind]}"`);
     const v = Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1]);
     expect(v).toBeGreaterThanOrEqual(19);
+  });
+});
+
+/*
+ * The streak moment's flame takes the screen's free height since #496,
+ * up to 340pt: its own cut at the render's resolution, so a 3x phone
+ * draws it from 840px rather than stretching 192px five times.
+ */
+describe("the large flame (#496)", () => {
+  it("ships at 840px with alpha, under its ceiling, and only the flame has one", () => {
+    expect(Object.keys(STAT_ICON_LARGE_SRC)).toEqual(["streak"]);
+    const file = pub(STAT_ICON_LARGE_SRC.streak!);
+    expect(existsSync(file)).toBe(true);
+    expect(statSync(file).size).toBeLessThanOrEqual(STAT_ICON_LARGE_MAX_BYTES);
+    expect(webpSize(file)).toEqual({ w: STAT_ICON_LARGE_PX, h: STAT_ICON_LARGE_PX, hasAlpha: true });
+    expect(STAT_ICON_LARGE_PX).toBeGreaterThanOrEqual(2.4 * 340);
+  });
+
+  it("is cut by the same script, beside the small one", () => {
+    const cut = read("scripts/cut-stat-icons.mjs");
+    expect(cut).toMatch(/const LARGE = \{ streak: 840 \};/);
+    expect(cut).toMatch(/`\$\{OUT\}\$\{m\.name\}-large\.webp`/);
+  });
+
+  it("is precached, a new path beside the small one", () => {
+    expect(read("public/sw.js")).toContain(`"${STAT_ICON_LARGE_SRC.streak}"`);
+  });
+
+  it("is what StatIcon draws when asked for large, and the small file otherwise", () => {
+    const html = (props: Parameters<typeof StatIcon>[0]) => renderToStaticMarkup(createElement(StatIcon, props));
+    expect(html({ kind: "streak", size: 340, large: true })).toContain('src="/icons/3d/streak-large.webp"');
+    expect(html({ kind: "streak", size: 340, large: true, lit: false })).toContain('data-lit="false"');
+    expect(html({ kind: "streak", size: 20 })).toContain('src="/icons/3d/streak.webp"');
+    // A kind with no large cut keeps its own file.
+    expect(html({ kind: "xp", size: 64, large: true })).toContain('src="/icons/3d/xp.webp"');
   });
 });
 

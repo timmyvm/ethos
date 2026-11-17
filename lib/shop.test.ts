@@ -200,3 +200,26 @@ describe("stagePose", () => {
     }
   });
 });
+
+/*
+ * A pose's name is a picture's name, read in the Shop and in every
+ * picture list (lib/picture.ts `rowName`). Since #490 the pause words
+ * are the app's plain words for a pause ("between sentences", the one
+ * that counts, and "mid-sentence", the one that does not), so a pose
+ * called "mid-sentence" read as a fault worn as a picture (#496, the
+ * morning tour, docs/look/tour/sheet-4-you-settings.jpg). The ids are
+ * ledger keys and stay.
+ */
+describe("the poses' names", () => {
+  it("never borrow the pause words", () => {
+    for (const item of SHOP.filter((i) => i.kind === "cosmetic")) {
+      expect(item.name, item.id).not.toMatch(/mid-sentence|between sentences|\bpause/i);
+    }
+  });
+
+  it("keep the speaking pose's id, so a pose bought or worn before the rename is still owned and worn", () => {
+    expect(pose.id).toBe("pose_speaking");
+    expect(pose.name).toBe("Demos, talking");
+    expect(stagePose("pose_speaking", ownedFrom([spend("shop:pose_speaking")]))).toBe("speaking");
+  });
+});

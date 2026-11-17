@@ -153,7 +153,7 @@ describe("the choices", () => {
     expect(rowName(PHOTO, "T")).toBe("Your photo");
     expect(rowName(INITIAL, "T")).toBe("Your initial");
     expect(rowName(HELLO, "T")).toBe("Hello");
-    expect(rowName("pose_speaking", "T")).toBe("Mid-sentence");
+    expect(rowName("pose_speaking", "T")).toBe("Talking");
     expect(rowName("pose_workout", "T")).toBe("Mid-practice");
     expect(rowName("pose_celebrate", "T")).toBe("Celebrating");
     expect(rowPose(PHOTO)).toBeNull();

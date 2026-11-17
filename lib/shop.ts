@@ -60,8 +60,15 @@ export const SHOP: ShopItem[] = [
       "Covers one missed day automatically. Three is the most you can hold.",
   },
   {
+    /*
+     * The id is a ledger key, kept for the reason `pose_workout` keeps
+     * its own (below). The name was "Demos, mid-sentence" until #496:
+     * since #490 "mid-sentence" is the app's word for the pause that
+     * does not count, so a pose wearing it read as a fault. Talking is
+     * what the pose shows.
+     */
     id: "pose_speaking",
-    name: "Demos, mid-sentence",
+    name: "Demos, talking",
     price: 8,
     kind: "cosmetic",
     blurb: SHOP_PICTURE.blurb,

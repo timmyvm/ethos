@@ -141,9 +141,14 @@
      translucent trough lands at #e2e2e2, a step under the row. The
      segmented controls only. */
   --color-trough: rgba(32, 30, 29, 0.085);
-  /* Destructive (D39): deleting an account, cancelling a plan. Its own
-     red so terracotta-600 stays Stop's alone. 5.4:1 on white, 4.9:1 on
-     surface. */
+  /* Destructive (D39, named in #496): iOS's own delete red, for the
+     words of a row or confirm whose tap deletes or cancels something
+     kept (Remove photo, Delete my recordings, Delete my account, Cancel
+     plan) and nothing else: never a fill, never a warning (rust is),
+     never Stop. Not rust: in light rust is terracotta-600's #b2432c,
+     Stop's red, so a delete in rust would read as a take running.
+     lib/destructive.test.ts holds where it may stand. 5.4:1 on white,
+     4.9:1 on surface. */
   --color-destructive: #d70015;
 
   /*

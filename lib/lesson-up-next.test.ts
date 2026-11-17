@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { LESSONS } from "@/content/lessons";
-import { lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
+import { FOCUS_ASIDE, lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
 
 const byId = (id: string) => LESSONS.find((l) => l.id === id)!;
 
@@ -211,4 +211,28 @@ describe("the lesson tones clear AA", () => {
       expect(ratio(t["tone-ink"], t["tone-wash"])).toBeGreaterThanOrEqual(4.5);
     });
   }
+});
+
+/*
+ * The aside on the focus trait's head (#496, the morning tour,
+ * docs/look/tour/11-lessons-390-light.png: "You said fillers" over the
+ * Fillers head). It names the introduction's pick as Settings names it.
+ */
+describe("the focus trait's aside", () => {
+  const page = readFileSync(path.join(__dirname, "../app/lessons/page.tsx"), "utf8").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+
+  it("says Your focus, the word Settings uses for the pick", () => {
+    expect(FOCUS_ASIDE).toBe("Your focus");
+    expect(readFileSync(path.join(__dirname, "../app/settings/practice/page.tsx"), "utf8")).toMatch(/label="Focus"/);
+    expect(page).toMatch(/\{FOCUS_ASIDE\}/);
+  });
+
+  it("never quotes the pick back as something said", () => {
+    expect(page).not.toMatch(/You said/);
+  });
+
+  it("still marks only the trait the pick points at", () => {
+    expect(page).toMatch(/focus === t\.id && <span className="section-head-aside text-stone-500">\{FOCUS_ASIDE\}<\/span>/);
+    expect(traitForSaid("fillers")).toBe("fillers");
+  });
 });

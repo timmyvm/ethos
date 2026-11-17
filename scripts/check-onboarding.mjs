@@ -510,12 +510,14 @@ await page.goto(`${BASE}/lessons`);
 /* The mark is set in an effect after mount; `isVisible()` read before
    it landed, which is the whole reason this check was red since before
    #284 (#294). Waiting is the check. */
+/* Since #496 the mark names the pick as Settings does, "Your focus",
+   on the head of the trait it points at: rushing is Pace. */
 const marked = await page
-  .getByText("You said rushing")
+  .locator('section[data-trait="pace"] .section-head-aside', { hasText: "Your focus" })
   .waitFor({ timeout: 5000 })
   .then(() => true)
   .catch(() => false);
-ok("the lesson list marks the unit for what they said, in their words", marked);
+ok("the lesson list marks the trait their pick points at, Your focus", marked && (await page.getByText("Your focus").count()) === 1);
 await shot("11b-lessons");
 await page.goto(`${BASE}/`);
 /* The second visit to Today recompiles on a shared dev server more

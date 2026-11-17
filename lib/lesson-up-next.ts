@@ -37,6 +37,15 @@ export function upNextLesson(
 }
 
 /**
+ * The aside on the Lessons head of the trait the introduction's pick
+ * points at (`traitForSaid`). It read "You said fillers" (#231), a quote
+ * nobody remembered saying, over a head that already said Fillers (#496,
+ * the morning tour). It names the pick the way Settings names it, Focus
+ * (Settings, Practice, Focus), where the pick is changed.
+ */
+export const FOCUS_ASIDE = "Your focus";
+
+/**
  * Which trait an introduction answer points at, by the pain's own
  * metric rather than by sniffing its words (#294): "sounding flat" is
  * measured as range and never matched a substring. The two structure

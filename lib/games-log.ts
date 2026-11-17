@@ -30,7 +30,7 @@ import { recordingName } from "./log";
 import { topicFromLessonId } from "./rep-config";
 import { BEAT_MIN_S } from "./metrics";
 import { INTERVIEW_WINDOW, type GameRound } from "./round";
-import { clock, clockTenth, decidingCutIn, secs } from "./round-copy";
+import { clock, clockTenth, decidingCutIn, gapSecs, secs } from "./round-copy";
 
 /** A stored take as the Games side reads it: a game round, a boss, a Hostile take. */
 export interface GamesLogRow {
@@ -137,8 +137,8 @@ export function roundLine(round: GameRound): string {
     const f = decidingCutIn(round);
     if (!f || f.verdict === "through" || f.gap === null || f.gap < BEAT_MIN_S) return "Talked over Demos";
     if (f.verdict === "filled") return f.fillerWord ? `${heading(f.fillerWord)} broke the pause` : "A sound broke the pause";
-    if (f.verdict === "held") return `Paused ${secs(f.gap)}, just right`;
-    return `Paused ${secs(f.gap)}, ${f.verdict === "long" ? "too long" : "too short"}`;
+    if (f.verdict === "held") return `Paused ${gapSecs(f)}, just right`;
+    return `Paused ${gapSecs(f)}, ${f.verdict === "long" ? "too long" : "too short"}`;
   }
   if (round.game === "rush") {
     if (round.stoppedBy === "clock" || round.lastWord === null) return `Clock ran out at ${clock(round.cap)}`;

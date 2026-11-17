@@ -193,6 +193,24 @@ describe("every round", () => {
     expect(lines.join(" ")).not.toMatch(/at the cut-in|^Held /);
   });
 
+  /* #494 review: to the tenth, a 0.77s pause read "Paused 0.8s, too
+     short" a row from "Paused 0.8s, just right". The number never lands
+     on the far side of the line its verdict names. */
+  it("never writes a number that contradicts its verdict", () => {
+    const cut = qa.cutIns[0];
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "breath", gap: 0.77 }] })).toBe("Paused 0.77s, too short");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "long", gap: 3.52 }] })).toBe("Paused 3.52s, too long");
+    for (let h = 30; h <= 800; h++) {
+      const gap = h / 100;
+      const verdict = gap < 0.8 ? "breath" : gap <= 3.5 ? "held" : "long";
+      const line = roundLine({ ...qa, cutIns: [{ ...cut, verdict, gap }] });
+      const n = Number.parseFloat(line.replace(/^Paused /, ""));
+      const ok = verdict === "breath" ? n < 0.8 : verdict === "held" ? n >= 0.8 && n <= 3.5 : n > 3.5;
+      expect(ok, line).toBe(true);
+      expect(line.length, line).toBeLessThanOrEqual(27);
+    }
+  });
+
   it("holds every round's line to one line of the Log's row at 320", () => {
     const cut = qa.cutIns[0];
     const iv: InterviewRound = {

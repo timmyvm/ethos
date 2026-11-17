@@ -582,14 +582,16 @@ export default function HostilePage() {
               the claim card's top edge, as he does on the recording
               screen's topic card (TopicCard), the full-body render with
               its contact shadow and his idle clip, as big as the room
-              between the line and the card allows (112 at the least, 264
-              at the most), so the screen has no band of empty ground and
-              the title's "Demos" is the biggest thing on it. The room is
-              a size container over a flex-grown slot (the `.demos-fit`
-              pattern), so he reads its height. */}
+              between the title and the card allows (112 at the least, up
+              to 330 or the column, as the question's Demos below), so the
+              screen has no band of empty ground and the title's "Demos" is
+              the biggest thing on it. At 264 he left 114pt of bare ground
+              under the title at 390x844 once the subtitle went (#494
+              review). The room is a size container over a flex-grown slot
+              (the `.demos-fit` pattern), so he reads its height. */}
           <div aria-hidden className="relative mt-3 min-h-[100px] flex-1">
             <div className="absolute inset-0 [container-type:size]">
-              <div className="topic-demos pointer-events-none absolute -bottom-3 left-1/2 w-[clamp(112px,calc(100cqh+12px),264px)] -translate-x-1/2">
+              <div className="topic-demos pointer-events-none absolute -bottom-3 left-1/2 w-[clamp(112px,calc(100cqh+12px),min(330px,100cqw))] -translate-x-1/2">
                 <span className="rep-ground" />
                 <DemosFigure
                   pose="speaking"

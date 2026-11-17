@@ -259,4 +259,12 @@ describe("Hostile's lobby says the mode once and names no tier", () => {
   it("still counts the free plan's rounds on the card, in words", () => {
     expect(lobby).toContain("hostileLeftLine(capped ? 0 : allowance.left)");
   });
+
+  /* #494 review: with the subtitle gone, Demos at his old 264 cap left
+     114pt of bare ground under the title at 390x844 (principle 7). The
+     room is his, up to the question's own cap. */
+  it("gives the room the subtitle left to Demos, up to the question's cap", () => {
+    expect(lobby).toContain("w-[clamp(112px,calc(100cqh+12px),min(330px,100cqw))]");
+    expect(lobby).not.toContain("264px)]");
+  });
 });

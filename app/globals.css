@@ -3383,8 +3383,16 @@ summary::-webkit-details-marker {
   width: 18px;
   height: 18px;
 }
-/* An open day: the flame is unlit until today's recording lands. It
-   replaces the words, which the chip keeps as sr-only text. */
+/* An open day: the chip is neutral and the flame unlit until today's
+   recording lands (#495, the morning tour: a sage wash, the earned
+   register, held a grey flame on a day not yet spoken). The surface step
+   and the ink: the count is still the person's, only today is not yet
+   earned. The flame replaces the words, which the chip keeps as sr-only
+   text. */
+.today-earned[data-open="true"] {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
 .today-earned[data-open="true"] .today-earned-mark {
   color: var(--color-stone-400);
 }

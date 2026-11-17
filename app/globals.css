@@ -3144,7 +3144,11 @@ summary::-webkit-details-marker {
    (centred in the box, a one-line topic stood 23px off its eyebrow), and
    the stage's line stands under the box, the house's foot line. On
    /boss the box is the reel's window too (`--reel-cell`), so Spin turns
-   in the title's own slot. */
+   in the title's own slot. A one-word topic wider than the column at
+   320 ("Superconductivity", 166px in 142) hyphenates where the browser
+   has the dictionary (Safari, Chrome on Android) and breaks where it
+   has none, so it is never clipped by the reel's window nor run under
+   Demos (#494 review). */
 .boss-topic {
   --boss-topic-lh: 1.15;
   --reel-cell: calc(3 * var(--boss-topic-lh) * var(--text-lead));
@@ -3157,6 +3161,9 @@ summary::-webkit-details-marker {
   font-weight: 800;
   text-wrap: balance;
   hyphens: auto;
+  /* `anywhere`, not `break-word`: the topic is a flex item on Practice,
+     and only `anywhere` lets its min-content width shrink below a word. */
+  overflow-wrap: anywhere;
 }
 /* A game's ladder, a dot per count it takes toward the next level:
    sage once counted (earned), and not yet on the level meter's own track

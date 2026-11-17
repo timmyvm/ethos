@@ -62,6 +62,18 @@ describe("the boss card says the boss, not its clocks", () => {
     expect(stage).toContain('{taken === null ? "\\u00a0" : takenThisWeek ? BOSS_DONE_LINE : BOSS_ASK_LINE}');
   });
 
+  /* #494 review: at 320 the stage's column is 142px and three topics are
+     one word wider than it ("Superconductivity" is 166px at 20/800).
+     Where the browser has no hyphenation dictionary the reel's window
+     clipped it to "Superconductiv" and Practice ran it under Demos. */
+  it("never clips or overruns a one-word topic wider than the column", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    const at = css.indexOf(".boss-topic {");
+    const rule = css.slice(at, css.indexOf("}", at));
+    expect(rule).toContain("hyphens: auto");
+    expect(rule).toContain("overflow-wrap: anywhere");
+  });
+
   it("names the tier once at the head of Premium's section, on Practice and /boss", () => {
     for (const file of ["app/games/page.tsx", "app/boss/page.tsx"]) {
       const page = readFileSync(file, "utf8");

@@ -591,8 +591,8 @@ function GameTile({
 }
 
 /**
- * The ladder's two lines: "Level 2" with its dots (sage counted, sand
- * not yet), or "Mastered" in their place; then the best. The dots are
+ * The ladder's two lines: "Level 2" with its dots (sage counted, the
+ * level meter's track not yet), or "Mastered" in their place; then the best. The dots are
  * pictures; the sentence beside them is what a screen reader hears.
  * Round and unoutlined since #494: two 8px squares in a 1px outline on
  * sand read as a font's missing-glyph boxes.
@@ -611,7 +611,7 @@ function LadderLines({ ladder }: { ladder: TileLadder }) {
                 <span
                   key={i}
                   data-counted={i < ladder.counted || undefined}
-                  className={`ladder-dot ${i < ladder.counted ? "bg-sage-600" : "bg-sand"}`}
+                  className={`ladder-dot ${i < ladder.counted ? "bg-sage-600" : ""}`}
                 />
               ))}
             </span>

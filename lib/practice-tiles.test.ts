@@ -203,9 +203,15 @@ describe("Practice's tiles say what they hold (#494)", () => {
     expect(tile).toContain('noteQuiet={hostile.line.startsWith("Next in")}');
   });
 
-  it("draws the ladder as round dots, sage counted and sand not yet, never outlined squares", () => {
+  it("draws the ladder as round dots, sage counted and the level meter's track not yet, never outlined squares", () => {
     const ladder = page.slice(page.indexOf("function LadderLines"), page.indexOf("function WideTile"));
-    expect(ladder).toContain('`ladder-dot ${i < ladder.counted ? "bg-sage-600" : "bg-sand"}`');
+    expect(ladder).toContain('data-counted={i < ladder.counted || undefined}');
+    expect(ladder).toContain('`ladder-dot ${i < ladder.counted ? "bg-sage-600" : ""}`');
+    // Not yet is the level meter's track (ink at 13%), which holds on the dark tile.
+    const track = css.slice(css.indexOf(".level-track {"), css.indexOf("}", css.indexOf(".level-track {")));
+    const empty = css.slice(css.indexOf(".ladder-dot:not([data-counted]) {"), css.indexOf("}", css.indexOf(".ladder-dot:not([data-counted]) {")));
+    expect(empty).toContain("color-mix(in srgb, var(--color-ink) 13%, transparent)");
+    expect(track).toContain("color-mix(in srgb, var(--color-ink) 13%, transparent)");
     expect(ladder).not.toMatch(/rounded-\[2px\]|shadow-\[inset_0_0_0_1px/);
     const rule = css.slice(css.indexOf(".ladder-dot {"), css.indexOf("}", css.indexOf(".ladder-dot {")));
     expect(rule).toContain("width: 6px");

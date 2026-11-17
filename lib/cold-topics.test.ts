@@ -80,6 +80,39 @@ describe("the week's boss topic", () => {
     expect(weeklyTopic(monday).id).toBe(seen[0]);
   });
 
+  /* #494 review: every hour of 2026 and 2027, on three calendars whose
+     clocks change on different Sundays (Melbourne's, New York's and
+     London's), and on one whose midnight is skipped (Santiago's spring
+     change lands at Saturday 24:00). The week is counted here from the
+     local date alone, Monday first, so the check leans on nothing the
+     code under test computes: the topic never changes inside a Monday
+     to Sunday week, and changes with every Monday. */
+  it("holds one topic a week and turns on every Monday, every hour of 2026 and 2027, on four calendars", () => {
+    /** Monday-first weeks since 1970 from the local date (1 Jan 1970 was a Thursday). */
+    const calendarWeek = (at: Date) =>
+      Math.floor((Date.UTC(at.getFullYear(), at.getMonth(), at.getDate()) / 86_400_000 + 3) / 7);
+    for (const tz of ["Australia/Melbourne", "America/New_York", "Europe/London", "America/Santiago"]) {
+      process.env.TZ = tz;
+      let prev: { week: number; id: string } | null = null;
+      let turns = 0;
+      const end = new Date(2028, 0, 1).getTime();
+      for (let t = new Date(2026, 0, 1).getTime(); t < end; t += 3_600_000) {
+        const at = new Date(t);
+        const week = calendarWeek(at);
+        const id = weeklyTopic(at).id;
+        if (prev && week === prev.week) expect(id, `${tz} ${at.toString()}`).toBe(prev.id);
+        if (prev && week !== prev.week) {
+          turns++;
+          expect(at.getDay(), `${tz} ${at.toString()}`).toBe(1);
+          expect(id, `${tz} ${at.toString()}`).not.toBe(prev.id);
+        }
+        prev = { week, id };
+      }
+      expect(turns, tz).toBe(104);
+    }
+    process.env.TZ = "Australia/Melbourne";
+  });
+
   it("still names a topic on a clock set before the first Monday", () => {
     expect(bossWeekNumber(new Date(2025, 11, 31))).toBe(-1);
     expect(weeklyTopic(new Date(2025, 11, 31)).id).toBe(COLD_TOPICS[COLD_TOPICS.length - 1].id);

@@ -5794,6 +5794,16 @@ summary::-webkit-details-marker {
     0 8px 18px -10px rgb(0 0 0 / 0.3);
   transition: opacity var(--duration-max) var(--ease-out);
 }
+/* The recorder's topic card with no object on it (#496, the morning
+   tour at 320x568: the card dropped its glass object for want of room
+   and kept the lit corner that stands behind it, a pale blotch on the
+   blue): the light goes with the object; the low glow and the fall of
+   the family's colour stay. */
+.family-fill[data-object="none"]::before {
+  background:
+    radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
+    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 76%);
+}
 /* One family per trait. Light: the tone lit at the top falling to its
    ink. Dark: the same hue a step deeper and quieter. White 13px type
    holds 4.5:1 on every top colour in both themes, and the lit corner

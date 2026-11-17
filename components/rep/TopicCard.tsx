@@ -332,6 +332,10 @@ export function TopicCard({
       ref={card}
       aria-label="Your topic"
       data-family={family}
+      /* No object on the card (none to stand, or no room for it at 320):
+         the lit corner that sits behind the object goes with it (#496),
+         or it stands alone as a pale blotch in the card's corner. */
+      data-object={measured && !show ? "none" : undefined}
       /* Today's card moves into this one (E51): one name, both screens. */
       style={{ viewTransitionName: "practice-card" }}
       /* Idle, it stands as tall as the room allows (Today's card is

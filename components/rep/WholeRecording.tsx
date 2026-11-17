@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
-import { usePaywallHeadStays } from "@/lib/paywall-head";
 
 /**
  * The sheet's name: its head, its dialog label, and the door's visible
@@ -25,9 +24,12 @@ export const SHEET_NAME = "Every number";
  *
  * The app's sheet (components/ui/Overlay.tsx): it rises on the sheet
  * spring, a finger pulls it down from anywhere not mid-scroll, Escape and
- * the scrim close it, and focus comes back to the door. Its head never
- * scrolls on a screen 640pt or taller (the paywall's rule,
- * lib/paywall-head.ts); under that only the grabber stays. The take's one
+ * the scrim close it, and focus comes back to the door. Its head (the
+ * title and Done, 44px) never scrolls, at any height (#493): it took the
+ * paywall's rule (lib/paywall-head.ts), and under 640pt its Done
+ * scrolled away with the body, so on an SE the way out was gone once
+ * you read past the first row. The paywall's head is a third of the
+ * glass; this one is 44px, which a short screen can afford. The take's one
  * <audio> stays on the page under it, so a moment started on the glance
  * keeps playing here. Its foot repeats the glance's tap, so whoever reads
  * to the end goes on without closing it; the glance's own tap is under
@@ -59,7 +61,6 @@ export function WholeRecording({
 
 function Body({ onClose, foot, children }: { onClose: () => void; foot: ReactNode; children: ReactNode }) {
   const close = useOverlayClose(onClose);
-  const headStays = usePaywallHeadStays();
   const head = useRef<HTMLHeadingElement>(null);
   /* A hairline under the head once the body scrolls under it, as an iOS
      sheet's bar draws one; at the top the head and the body are one. */
@@ -92,19 +93,19 @@ function Body({ onClose, foot, children }: { onClose: () => void; foot: ReactNod
       className="elev-3 flex max-h-[calc(100dvh-max(12px,env(safe-area-inset-top)))] w-full max-w-[430px] flex-col overflow-hidden rounded-t-sheet border border-b-0 border-transparent bg-ground text-ink dark:border-card-edge dark:bg-surface"
     >
       <div
+        data-sheet-head
         className={`shrink-0 border-b px-5 pt-2 transition-colors duration-(--duration-base) ${
-          under && headStays ? "border-hairline" : "border-transparent"
+          under ? "border-hairline" : "border-transparent"
         }`}
       >
         <div aria-hidden className="mx-auto h-1 w-10 rounded-full bg-stone-300" />
-        {headStays ? <div className="mt-1">{title}</div> : <div className="h-2" />}
+        <div className="mt-1">{title}</div>
       </div>
       <div
         data-sheet-scroll
         onScroll={(e) => setUnder(e.currentTarget.scrollTop > 2)}
         className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pt-3 pb-8"
       >
-        {!headStays && <div className="mb-3">{title}</div>}
         {children}
       </div>
       <div className="shrink-0 border-t border-hairline px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">{foot}</div>

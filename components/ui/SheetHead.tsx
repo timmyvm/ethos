@@ -14,31 +14,41 @@ import { useOverlayClose } from "@/components/ui/Overlay";
  * hit area; it plays the sheet's own exit (useOverlayClose), the one
  * Escape and the scrim play. The row carries no margin of its own past
  * the sheet's top: the sheet's padding is the parent's.
+ *
+ * `title` puts the sheet's name in the same row, at the left in the
+ * information sheets' 17/700 head, as Every number's sheet stands its
+ * own (components/rep/WholeRecording.tsx): one row, name left, Done
+ * right (#496, the morning tour: You's picture sheet had Done alone on
+ * a row over a centred title, two rows for one head).
  */
 export function SheetHead({
   onClose,
   plum = false,
   label = "Done",
+  title,
 }: {
   onClose: () => void;
   /** On a plum sheet (.card-premium): a cream grabber and a white Done. */
   plum?: boolean;
   label?: string;
+  /** The sheet's name, at the left of Done's row. */
+  title?: string;
 }) {
   const close = useOverlayClose(onClose);
   return (
-    <div className="relative -mr-3 flex min-h-11 items-center justify-end">
+    <div className={`relative -mr-3 flex min-h-11 items-center gap-3 ${title ? "justify-between" : "justify-end"}`}>
       <div
         aria-hidden
         className={`absolute left-1/2 top-0 h-1 w-10 -translate-x-1/2 rounded-full ${
           plum ? "bg-cream/30" : "bg-stone-300"
         } -ml-1.5`}
       />
+      {title && <h2 className="detail-head min-w-0">{title}</h2>}
       <button
         type="button"
         onClick={close}
         data-look="sheet-done"
-        className={`press font-display min-h-11 min-w-11 rounded-control px-3 text-detail font-semibold ${
+        className={`press font-display min-h-11 min-w-11 shrink-0 rounded-control px-3 text-detail font-semibold ${
           plum ? "text-white" : "text-ink"
         }`}
       >

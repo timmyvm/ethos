@@ -109,8 +109,9 @@ export function PictureSheet({ state, onClose }: { state: PictureState; onClose:
         data-look="picture-sheet"
         className="elev-3 max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-sheet bg-raised px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2"
       >
-        <SheetHead onClose={onClose} />
-        <h2 className="detail-head text-center">{PICTURE_COPY.sheetTitle}</h2>
+        {/* The information sheet's head (#496): the name at the left of
+            Done's row, as Every number's sheet has it. */}
+        <SheetHead onClose={onClose} title={PICTURE_COPY.sheetTitle} />
         <SheetChoices state={state} onClose={onClose} />
       </div>
     </Overlay>
@@ -121,7 +122,7 @@ export function PictureSheet({ state, onClose }: { state: PictureState; onClose:
 function SheetChoices({ state, onClose }: { state: PictureState; onClose: () => void }) {
   const close = useOverlayClose(onClose);
   return (
-    <div className="inset-group picture-sheet-group mt-4">
+    <div className="inset-group picture-sheet-group mt-3">
       <PictureChoices state={state} onPicked={close} />
     </div>
   );

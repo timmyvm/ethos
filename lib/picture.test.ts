@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PictureCoin } from "@/components/picture/PictureCoin";
 import { ItemArt } from "@/components/shop/ItemArt";
+import { SheetHead } from "@/components/ui/SheetHead";
 import {
   HELLO,
   INITIAL,
@@ -213,6 +214,36 @@ describe("Demos in a coin", () => {
     const freeze = renderToStaticMarkup(createElement(ItemArt, { id: "streak_freeze" }));
     expect(freeze).toContain('src="/icons/3d/freeze.webp"');
     expect(freeze).not.toMatch(/picture-coin/);
+  });
+});
+
+/*
+ * You's picture sheet is an information sheet, so its head is theirs:
+ * one row, its name at the left and Done at the right, as Every
+ * number's sheet stands its own (#496, the morning tour: "Done" alone
+ * on a row over a centred "Your picture").
+ */
+describe("the picture sheet's head", () => {
+  it("is one row: the name at the left, Done at the right", () => {
+    const head = renderToStaticMarkup(createElement(SheetHead, { onClose: () => {}, title: "Your picture" }));
+    expect(head).toMatch(/justify-between/);
+    const name = head.indexOf("<h2");
+    const done = head.indexOf('data-look="sheet-done"');
+    expect(name).toBeGreaterThan(-1);
+    expect(name).toBeLessThan(done);
+    expect(head).toMatch(/<h2 class="detail-head[^"]*">Your picture<\/h2>/);
+    expect(head).not.toMatch(/text-center/);
+    // Without a name it is the Done row every other sheet has.
+    const bare = renderToStaticMarkup(createElement(SheetHead, { onClose: () => {} }));
+    expect(bare).toMatch(/justify-end/);
+    expect(bare).not.toMatch(/<h2/);
+  });
+
+  it("is what You's sheet draws, with no second head under it", () => {
+    const sheet = readFileSync("components/picture/PictureChoices.tsx", "utf8");
+    const body = sheet.slice(sheet.indexOf("export function PictureSheet"), sheet.indexOf("function SheetChoices"));
+    expect(body).toMatch(/<SheetHead onClose=\{onClose\} title=\{PICTURE_COPY\.sheetTitle\} \/>/);
+    expect(body).not.toMatch(/<h2/);
   });
 });
 

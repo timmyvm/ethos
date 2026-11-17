@@ -322,7 +322,7 @@ function plainSweepLines(): string[] {
       const cueTake = { metrics, tier1: { pause: 40 } };
       const ev = cueEvidence({ kind, word: null }, cueTake);
       add(ev.line.sentence, ev.short.sentence, warmupLead({ kind, word: null, last: 2 }), cueTitle({ kind, word: null }));
-      add(cueSentence({ kind, word: null }), cueSentence({ kind, word: null }, true), cueShortSentence({ kind, word: null }));
+      add(cueSentence({ kind, word: null }), cueShortSentence({ kind, word: null }));
       for (const [now, before] of [[0, 3], [1, 3], [2, 2], [3, 1]]) {
         const a = answerLine({ kind, word: null, now, before, held: now < before, rested: false });
         add(a.line.sentence, a.short.sentence);

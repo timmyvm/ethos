@@ -215,6 +215,14 @@ describe("Demos in a coin", () => {
     expect(freeze).toContain('src="/icons/3d/freeze.webp"');
     expect(freeze).not.toMatch(/picture-coin/);
   });
+
+  it("stands the freeze bare in the poses' 56 slot, with no tile behind it (#496)", () => {
+    const freeze = renderToStaticMarkup(createElement(ItemArt, { id: "streak_freeze" }));
+    expect(freeze).toContain('width="56"');
+    expect(freeze).toContain('height="56"');
+    expect(freeze).toMatch(/class="flex h-14 w-14 shrink-0 items-center justify-center"/);
+    expect(freeze).not.toMatch(/\bbg-|rounded-control|overflow-hidden/);
+  });
 });
 
 /*

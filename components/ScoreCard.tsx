@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { CountUp } from "@/components/CountUp";
 import { DemosArt } from "@/components/DemosArt";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { DURATION } from "@/lib/motion";
-import { TrendMark } from "@/components/ui/TrendMark";
+import { Trend } from "@/components/ui/TrendMark";
+import { EthosScore } from "@/components/ui/EthosScore";
 
 /**
  * The score card: the hero of every data screen (#18, #165, #217).
@@ -32,7 +32,7 @@ import { TrendMark } from "@/components/ui/TrendMark";
  * no other Demos (`demos`, the Log) he stands in its place, the empty
  * state's figure, the way he stands on every other tab's stage.
  *
- * Before any recording the hero is the Index's own dash over "/ 1000",
+ * Before any recording the hero is the Index's own dash beside "/1000",
  * the populated layout with the number not yet known (E33): the stage
  * read "Your Ethos 0" when it led with the count, an Ethos of zero on a
  * new account's first Log. "Your first recording sets it." stands on
@@ -107,27 +107,24 @@ export function ScoreCard({
         </div>
       }
     >
-      <div className="mt-1 flex items-baseline gap-1.5">
-        {/* The hero counts on arrival like every number under it
-            (#245). Not when it is unknown: before a recording, or with
-            none scored, the Index is a dash, and a dash is not a number. */}
-        {empty || index === null ? (
-          <span className="font-display text-num-hero font-extrabold tabular-nums">—</span>
-        ) : (
-          <CountUp
-            value={index}
-            durationMs={DURATION.max}
-            className="font-display text-num-hero font-extrabold tabular-nums"
-          />
-        )}
-        <span className="stage-ink whitespace-nowrap text-body">/ 1000</span>
-      </div>
+      {/* The hero counts on arrival like every number under it
+          (#245). Not when it is unknown: before a recording, or with
+          none scored, the Index is a dash, and a dash is not a number.
+          One drawing with the glance and a stored recording (#493). */}
+      <EthosScore
+        value={empty ? null : index}
+        size="hero"
+        count
+        durationMs={DURATION.max}
+        onStage
+        className="mt-1"
+      />
       {/* The change, read with the number it changes (log-15): a line
-          under the hero, in words, in the stage's ink with its arrow. */}
+          under the hero, in words, in the stage's ink with its arrow,
+          and no sign after it (#493). */}
       {delta !== null && delta !== 0 && (
         <div className="stage-ink font-display mt-0.5 text-link font-bold tabular-nums">
-          <TrendMark up={delta > 0} /> {delta > 0 ? "+" : ""}
-          {Math.abs(delta)} since day one
+          <Trend delta={delta} against="since day one" />
         </div>
       )}
       {children}

@@ -98,6 +98,7 @@ import {
   proMomentShown,
 } from "@/lib/pro-moment";
 import { starsByLesson } from "@/lib/path";
+import { EthosScore } from "@/components/ui/EthosScore";
 import { wayOn as wayOnFor } from "@/lib/way-on";
 import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
@@ -3967,15 +3968,14 @@ function SaveGate({
       <div className="eyebrow">Before you go</div>
 
       <div className="flex flex-1 flex-col justify-center">
+        {/* The Ethos number as every screen draws it (#493), under its
+            eyebrow; it read "/1000 · your baseline", and the title under
+            it already says this is day 1. */}
         {index !== null && (
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-num-hero tabular-nums">
-              {index}
-            </span>
-            <span className="text-link font-normal text-stone-500">
-              /1000{moment === "rep1" && " · your baseline"}
-            </span>
-          </div>
+          <>
+            <p className="eyebrow">Your Ethos</p>
+            <EthosScore value={index} size="hero" className="mt-1" />
+          </>
         )}
         <h1 className="font-display mt-4 text-title">
           {moment === "rep1"

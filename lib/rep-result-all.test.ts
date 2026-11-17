@@ -97,6 +97,9 @@ const view: ResultView = {
 };
 
 describe("RepResult section=\"all\", the Log's page (#427)", () => {
+  /* Updated once, for #493: "Your Ethos" over the number as the Log's
+     stage draws it, and the change under the row (it read "616 your
+     Ethos /1000" with the change beside). Nothing else moved. */
   it("renders exactly as it did at #484", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }))).toMatchSnapshot();
   });

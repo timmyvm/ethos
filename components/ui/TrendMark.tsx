@@ -15,6 +15,21 @@ export function TrendMark({ up }: { up: boolean }) {
 }
 
 /**
+ * A change, written one way (#493): the triangle and the size, with no
+ * sign, then what it is against. The morning tour found four ways ("▲ 3
+ * since last time", "▲ +51 since day one", "▲ +1", "▼ 6.5"); the arrow
+ * is the sign, so a "+" after it said the same thing twice.
+ */
+export function Trend({ delta, against }: { delta: number; against?: string }) {
+  return (
+    <>
+      <TrendMark up={delta > 0} /> {Math.abs(delta)}
+      {against ? ` ${against}` : ""}
+    </>
+  );
+}
+
+/**
  * The two halves of a swap, said: "Instead of" before the words that
  * were struck through, "say" before the words that replace them. A
  * strike-through and an arrow are both silent, so the pair read as one

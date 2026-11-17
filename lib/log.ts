@@ -58,10 +58,11 @@ function fmt(v: number, decimals = 0): string {
   return v.toFixed(decimals);
 }
 
-/** "▲ +131", "▼ 3.3": the sign is the arrow, the number is the size. */
+/** "▲ 131", "▼ 3.3": the sign is the arrow, the number is the size, so
+    no "+" after it (#493: the arrow and a plus said it twice). */
 function signed(delta: number, decimals = 0): string {
   const size = fmt(Math.abs(delta), decimals);
-  return delta >= 0 ? `▲ +${size}` : `▼ ${size}`;
+  return delta >= 0 ? `▲ ${size}` : `▼ ${size}`;
 }
 
 function endpoints(

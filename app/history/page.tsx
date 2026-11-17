@@ -712,7 +712,7 @@ function Line({ className, width }: { className: string; width: string }) {
 }
 
 /**
- * A row's change as lib/log writes it ("▲ +131", "▼ 3.3", or words like
+ * A row's change as lib/log writes it ("▲ 131", "▼ 3.3", or words like
  * "in 130 to 160"): the triangle for the eye, Up or Down for a screen
  * reader (#448). One span, so the cell's flex row keeps the space
  * between the mark and its number.

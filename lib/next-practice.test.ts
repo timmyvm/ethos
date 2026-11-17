@@ -342,7 +342,7 @@ describe("standing", () => {
 describe("because", () => {
   it("quotes the measurement while the scale is provisional", () => {
     expect(because(reading("fillers", 2.3))).toBe(
-      "2.3 um or uh per hundred words. Your weakest number right now."
+      "2.3 um or uh in 100 words. Your weakest number right now."
     );
   });
 
@@ -351,6 +351,6 @@ describe("because", () => {
   });
 
   it("takes the singular from the printed value", () => {
-    expect(because(reading("repairs", 0.997))).toContain("1 restart per hundred words");
+    expect(because(reading("repairs", 0.997))).toContain("1 restart in 100 words");
   });
 });

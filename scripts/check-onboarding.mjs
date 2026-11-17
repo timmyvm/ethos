@@ -533,12 +533,14 @@ ok("the roulette never draws a job prompt for an under-18", !job, `${drawn.size}
 // 9. /you: the plan row, and reopening the plan to change an answer.
 await page.goto(`${BASE}/you`);
 await page.getByText("The road", { exact: true }).waitFor();
-/* The caption names the unit, and no count of stars to its gate: the
-   total of every lesson's stars left every screen in #486. */
+/* The caption names the trait as Lessons heads its section (#493: it
+   named the road's unit, "Pace Control", which no tab lists), and no
+   count of stars to its gate: that total left every screen in #486. */
 ok(
-  "/you shows the road card with the unit",
+  "/you shows the road card with the trait Lessons names",
   await page
-    .getByText(/^Pace Control$/)
+    .getByRole("link", { name: /The road/ })
+    .getByText(/^Pace$/)
     .waitFor({ timeout: 8000 })
     .then(() => true)
     .catch(() => false)

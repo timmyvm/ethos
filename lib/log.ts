@@ -212,6 +212,8 @@ export function skillRows(reps: RepRow[]): MovedRow[] {
  * practice", and its own titles ("Punctuate with silence") are lessons
  * the Lessons tab does not list (the morning tour, 17 Nov).
  */
+const TODAYS_PRACTICE = "Today's practice";
+
 export function recordingName(
   r: Pick<RepRow, "lesson_id" | "mode"> & { round?: { game?: unknown; level?: unknown } | null }
 ): string {

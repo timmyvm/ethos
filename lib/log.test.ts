@@ -2,7 +2,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ComparisonCard } from "@/components/ComparisonCard";
+import { LESSONS } from "@/content/lessons";
 import type { RepRow } from "./client-data";
+import { DRILLS } from "./drills";
 import {
   movedRows,
   presenceRow,
@@ -162,9 +164,21 @@ describe("skillRows", () => {
 
 describe("recordingName", () => {
   it("names the lesson, or the boss, never the id", () => {
-    expect(recordingName({ lesson_id: "f1", mode: "daily" })).toBe("The baseline");
     expect(recordingName({ lesson_id: null, mode: "boss" })).toBe("Boss");
     expect(recordingName({ lesson_id: "nope", mode: "daily" })).toBe("Recording");
+  });
+
+  /* #493, the morning tour (17 Nov): the Log and the stored recording
+     named a road lesson ("Punctuate with silence", lib/drills.ts) that
+     the Lessons tab does not list. The road was the day's practice. */
+  it("names a road lesson's take Today's practice, never by the road's title", () => {
+    expect(recordingName({ lesson_id: "f1", mode: "daily" })).toBe("Today's practice");
+    const lessonTitles = new Set(LESSONS.map((l) => l.title));
+    for (const d of DRILLS) {
+      const name = recordingName({ lesson_id: d.id, mode: "daily" });
+      if (!lessonTitles.has(d.title)) expect(name).not.toBe(d.title);
+      expect(name).toBe("Today's practice");
+    }
   });
 });
 

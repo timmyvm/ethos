@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { dayKey } from "./challenge";
 import { askedIdsFrom, gameById, gameOfTheDay, type Game } from "./games";
@@ -13,6 +14,8 @@ import {
   tileLadder,
   tomorrowLine,
 } from "./practice-tiles";
+import { hostileTile } from "./home-modes";
+import { HOSTILE_TAKE_ID } from "./hostile";
 import { bestParts, secondsLabel } from "./round-live";
 import type { GameRound } from "./round";
 
@@ -171,5 +174,48 @@ describe("Practice's copy (COPY-RULES)", () => {
       expect(l).not.toMatch(/—/);
       expect(l).not.toMatch(/\b(reps?|gym|workout|drill|training)\b/i);
     }
+  });
+});
+
+/*
+ * #494, the morning tour (docs/look/tour/08-practice-390-light.png):
+ * Hostile Q&A's tile had nothing under its name, the Q&A ladder's two
+ * pale outlined squares read as a font's missing-glyph boxes, and the
+ * "Premium" head stood over a PREMIUM chip.
+ */
+describe("Practice's tiles say what they hold (#494)", () => {
+  const page = readFileSync("app/games/page.tsx", "utf8");
+  const css = readFileSync("app/globals.css", "utf8");
+
+  it("gives Hostile Q&A's tile the allowance Today's tile says", () => {
+    const tile = page.slice(page.indexOf('name="Hostile Q&A"'), page.indexOf("<WideTile"));
+    expect(page).toContain("const hostile = hostileTile({ now, premium, rows });");
+    expect(tile).toContain("note={hostile.line}");
+    // What the line says, in each state, comes from the one function.
+    const now = on(6, 18);
+    const take = (h: number) => ({ lesson_id: HOSTILE_TAKE_ID, created_at: on(6, h).toISOString() });
+    expect(hostileTile({ now, premium: false, rows: [] }).line).toBe("3 free today");
+    expect(hostileTile({ now, premium: false, rows: [take(9), take(10), take(11)] }).line).toMatch(/^Next in about /);
+    expect(hostileTile({ now, premium: true, rows: [] }).line).toBe("Argue either side");
+    // Unknown is a no-break space at the line's height, never a zero.
+    expect(hostileTile({ now: null, premium: null, rows: null }).line).toBe("\u00a0");
+    // At the cap the line is a date, not a door: stone, as a spent game's is.
+    expect(tile).toContain('noteQuiet={hostile.line.startsWith("Next in")}');
+  });
+
+  it("draws the ladder as round dots, sage counted and sand not yet, never outlined squares", () => {
+    const ladder = page.slice(page.indexOf("function LadderLines"), page.indexOf("function WideTile"));
+    expect(ladder).toContain('`ladder-dot ${i < ladder.counted ? "bg-sage-600" : "bg-sand"}`');
+    expect(ladder).not.toMatch(/rounded-\[2px\]|shadow-\[inset_0_0_0_1px/);
+    const rule = css.slice(css.indexOf(".ladder-dot {"), css.indexOf("}", css.indexOf(".ladder-dot {")));
+    expect(rule).toContain("width: 6px");
+    expect(rule).toContain("height: 6px");
+    expect(rule).toContain("border-radius: 9999px");
+  });
+
+  it("names the tier once: the chip keeps the tier, the head says what is in it", () => {
+    expect(page).toContain('<h2 className="section-head">More games</h2>');
+    expect(page).not.toContain('<h2 className="section-head">Premium</h2>');
+    expect(page.match(/<PremiumMark variant="chip" \/>/g)).toHaveLength(1);
   });
 });

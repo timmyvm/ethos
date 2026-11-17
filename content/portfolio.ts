@@ -60,8 +60,8 @@ export const GOALS = [
  * plan names that number, `said` how the app repeats the answer back.
  */
 export const PAINS = [
-  { id: "fillers", label: "Um, like, you know", said: "fillers", unit: "filler", metric: "fillers", line: "fillers a minute, counted with timestamps.", reply: "I'll count every filler, with its timestamp." },
-  { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "words a minute against the 130 to 160 zone.", reply: "I'll measure how fast you talk." },
+  { id: "fillers", label: "Um, like, you know", said: "fillers", unit: "filler", metric: "fillers", line: "your fillers a minute, counted with timestamps.", reply: "I'll count every filler, with its timestamp." },
+  { id: "rushing", label: "I rush", said: "rushing", unit: "pace", metric: "wpm", line: "your words a minute against the 130 to 160 zone.", reply: "I'll measure how fast you talk." },
   { id: "trailing", label: "I trail off", said: "trailing off", unit: "structure", metric: "structure", line: "whether you end on your point, quoted from your words.", reply: "I'll check whether you end on your point." },
   { id: "freezing", label: "I freeze on the spot", said: "freezing", unit: "fire", metric: "pause", line: "pauses between sentences, and pauses mid-sentence.", reply: "I'll count where you pause." },
   { id: "flat", label: "I sound flat", said: "sounding flat", unit: "pace", metric: "range", line: "how much your speed changes, and words you repeat.", reply: "I'll count the words you repeat." },

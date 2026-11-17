@@ -176,3 +176,30 @@ describe("Premium by code", () => {
     expect(have).not.toMatch(/card-premium|Start at|PAYWALL_COPY|Stair/);
   });
 });
+
+/*
+ * A lexicon row at 320 (#496, the morning tour, docs/look/tour/16-you-top-320-light.png):
+ * "doing stuff for →" broke after the arrow and the pill dropped to a
+ * line of its own. The arrow and the upgrade are one unit, so a row
+ * that wraps carries both to the next line.
+ */
+describe("a lexicon swap", () => {
+  const swap = fn(you, "Swap");
+
+  it("keeps the arrow and the upgrade together in one unit that wraps whole", () => {
+    const unit = swap.slice(swap.indexOf("<span data-swap-to"));
+    expect(unit).toMatch(/^<span data-swap-to="" className="flex min-w-0 max-w-full items-center gap-2\.5">/);
+    const arrow = unit.indexOf("<svg");
+    const pill = unit.indexOf('<span className="you-word');
+    const close = unit.lastIndexOf("</span>\n      </span>");
+    expect(arrow).toBeGreaterThan(0);
+    expect(pill).toBeGreaterThan(arrow);
+    expect(close).toBeGreaterThan(pill);
+    // What was said stays outside it, the one part that may sit alone.
+    expect(swap.indexOf("line-through")).toBeLessThan(swap.indexOf("<span data-swap-to"));
+  });
+
+  it("stands in a row that wraps, so the unit moves down whole", () => {
+    expect(you).toMatch(/const SWAP_ROW = "flex min-h-14 flex-wrap items-center/);
+  });
+});

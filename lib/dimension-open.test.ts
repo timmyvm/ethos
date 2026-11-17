@@ -70,3 +70,30 @@ describe("the opened rows say what the counts count (the review of #490)", () =>
     expect([UNVOICED_MIN_S, UNVOICED_MAX_S]).toEqual([0.3, 1.2]);
   });
 });
+
+/* #493, the morning tour (docs/look/tour/06-every-number-pause-*.png): the
+   rows drew a 3x14 tick of their own where the Log, You and Lessons draw
+   the trait's 8px square. One swatch; the four untaught rows keep the
+   same 8px slot, blank, so the nine names share one left edge. */
+describe("DimensionList's swatch", () => {
+  it("is the shared 8px square on a trait's row and a blank slot on the rest", () => {
+    const dim = (score: number) => ({ score, citedMoment: '"ready is a feeling"', improve: "Name one number." });
+    const coach = {
+      coachLine: "",
+      dimensions: { structure: dim(64), credibility: dim(58), engagement: dim(61), confidence: dim(66) },
+    } as unknown as Parameters<typeof DimensionList>[0]["coach"];
+    const html = renderToStaticMarkup(
+      createElement(DimensionList, { tier1, anchors: { hedgeCount: 2, restartCount: 1 }, metrics, coach })
+    );
+    const rows = [...html.matchAll(/<summary[^>]*>[\s\S]*?<\/summary>/g)].map((m) => m[0]);
+    expect(rows.length).toBeGreaterThanOrEqual(9);
+    for (const row of rows) {
+      const slot = /<span aria-hidden="true" class="([^"]*size-2[^"]*)"><\/span>/.exec(row)?.[1] ?? "";
+      expect(slot, row.slice(0, 80)).toMatch(/size-2 shrink-0/);
+      if (/data-trait="/.test(row)) expect(slot).toContain("trait-dot");
+      else expect(slot).not.toContain("trait-dot");
+      expect(row).not.toMatch(/w-\[3px\]|tone-fill/);
+    }
+    expect(rows.filter((r) => /trait-dot/.test(r))).toHaveLength(5);
+  });
+});

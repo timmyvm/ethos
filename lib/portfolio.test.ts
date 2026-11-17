@@ -156,7 +156,7 @@ describe("the portfolio", () => {
     const plan = buildPortfolio({ ...EMPTY_ANSWERS, pains: ["rushing"] });
     expect(plan.stepParts).toEqual([
       { lead: "Day 1", detail: "Your first 60 seconds set the baseline." },
-      { lead: "First number", detail: "Words per minute against the 130 to 160 zone." },
+      { lead: "First number", detail: "Words a minute against the 130 to 160 zone." },
       { lead: "Then Pace Control", detail: `Unit ${UNITS.indexOf(pace) + 1} of ${UNITS.length}, the one for rushing.` },
     ]);
     expect(buildPortfolio({ ...EMPTY_ANSWERS, pains: ["fillers"] }).stepParts[2]).toEqual({

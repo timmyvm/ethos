@@ -13,10 +13,10 @@
  *    under /boss's stage ("Last six weeks"), which read as nothing to
  *    someone who had never taken one and as little to someone who had.
  *  - Every round: each game round and each Hostile Q&A take, newest
- *    first, its name ("Q&A, level 2"), the round's one number in words
- *    that stand alone in a list ("Held 1.2s at the cut-in", `roundLine`),
- *    or Hostile's first verdict ("Held the claim 72 of 100"), and the
- *    Index.
+ *    first, its name ("Q&A, level 2"), the round's outcome in words that
+ *    stand alone in a list and carry their verdict ("Paused 1.2s, just
+ *    right", `roundLine`), or Hostile's first verdict ("Held the claim
+ *    72 of 100"), and the Index.
  *
  * Pure: the rows come from `fetchGameRounds` and `fetchPracticeTakes`
  * (lib/client-data.ts), in any order.
@@ -102,31 +102,43 @@ export function bossWeekRows(rows: readonly GamesLogRow[]): BossWeekRow[] {
         id: take.id,
         at: take.created_at,
         week: new Date(key),
-        topic: topicFromLessonId(take.lesson_id)?.title ?? "Cold Topic",
+        topic: topicFromLessonId(take.lesson_id)?.title ?? "Weekly boss",
         index: take.ethos_index,
         accuracy: typeof score === "number" && Number.isFinite(score) ? Math.round(score) : null,
       };
     });
 }
 
+/** The filler that broke a pause, quoted at the head of its line: "“Um”", "“You know”". */
+function heading(word: string): string {
+  return `“${word.charAt(0).toUpperCase()}${word.slice(1)}”`;
+}
+
 /**
- * A game round's one number, in words that stand on their own in a list
+ * A game round's outcome, in words that stand on their own in a list
  * (the round card's own lines lean on the card around them: "0.5s after
- * he cut in" names nobody out of it). Each traces to the measured round
- * (lib/round.ts) and to the number its card shows.
- *   Q&A        "Held 1.2s at the cut-in", "Paused 0.5s at the cut-in",
- *              "Talked through the cut-in", "Demos didn't get in"
+ * he cut in" names nobody out of it) and that say whether it went well
+ * (#494, the morning tour: "Paused 0.5s at the cut-in" beside "Held
+ * 1.2s at the cut-in" never said which was the good one). Each traces
+ * to the measured round (lib/round.ts) and to the number its card shows.
+ *   Q&A        "Paused 1.2s, just right" (held: 0.8 to 3.5s, nothing on
+ *              it), "Paused 0.5s, too short", "Paused 4.1s, too long",
+ *              "“Um” broke the pause", "Talked over Demos" (no pause
+ *              at all), "Ended before Demos cut in"
  *   Speed rush "Finished 2.4s early", "Clock ran out at 0:20"
  *   Interview  "Ended at 1:13, in time", "Ended at 0:48, 12s short",
  *              "Ended at 1:31.2, too long", "Clock ran out at 1:30"
+ * Each holds one line in the Log's row at 320.
  */
 export function roundLine(round: GameRound): string {
   if (round.game === "qa") {
     const fired = round.cutIns.filter((f) => f.at !== null);
-    if (fired.length === 0) return "Demos didn't get in";
+    if (fired.length === 0) return "Ended before Demos cut in";
     const f = decidingCutIn(round);
-    if (!f || f.verdict === "through" || f.gap === null || f.gap < BEAT_MIN_S) return "Talked through the cut-in";
-    return `${f.verdict === "held" ? "Held" : "Paused"} ${secs(f.gap)} at the cut-in`;
+    if (!f || f.verdict === "through" || f.gap === null || f.gap < BEAT_MIN_S) return "Talked over Demos";
+    if (f.verdict === "filled") return f.fillerWord ? `${heading(f.fillerWord)} broke the pause` : "A sound broke the pause";
+    if (f.verdict === "held") return `Paused ${secs(f.gap)}, just right`;
+    return `Paused ${secs(f.gap)}, ${f.verdict === "long" ? "too long" : "too short"}`;
   }
   if (round.game === "rush") {
     if (round.stoppedBy === "clock" || round.lastWord === null) return `Clock ran out at ${clock(round.cap)}`;

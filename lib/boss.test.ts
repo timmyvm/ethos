@@ -34,18 +34,46 @@ describe("the boss card says the boss, not its clocks", () => {
       ]) {
         expect(page, `${file} ${gone}`).not.toMatch(gone);
       }
-      // The card is still the house stage, with its eyebrow and its name.
+      // The card is still the house stage: "Weekly boss" over the week's
+      // topic, one name and one face (#494).
       expect(page).toMatch(/<HeroStage\b/);
-      expect(page).toContain(`eyebrow="This week's boss"`);
-      expect(page).toContain("Cold Topic");
+      expect(page).toContain(`eyebrow="Weekly boss"`);
+      expect(page).toMatch(/<h[12] (id="boss-title" )?className="boss-topic font-display/);
+      expect(page).not.toMatch(/eyebrow="This week's boss"|"Cold Topic"|>\s*Cold Topic\s*</);
       // A taken week says so, from the one string.
       expect(page).toContain("BOSS_DONE_LINE");
+    }
+  });
+
+  /* #494, the morning tour (docs/look/tour/09-boss-390-light.png): /boss
+     had two titles, "Cold Topic" on a stage that took the free height
+     (300pt of empty sky) and the topic again on the ground under it. */
+  it("gives /boss one title, the topic, on a stage at the house's height", () => {
+    const page = readFileSync("app/boss/page.tsx", "utf8");
+    const lobby = page.slice(page.indexOf('phase === "lobby" && ('), page.indexOf('phase === "research" && topic && ('));
+    const stage = lobby.slice(lobby.indexOf("<HeroStage"), lobby.indexOf("</HeroStage>"));
+    expect(stage).toContain("center");
+    expect(stage).not.toMatch(/artGrow|flex-1"|className="mt-4 flex-1/);
+    // The reel turns in the title's slot, and nowhere else.
+    expect(stage).toMatch(/<h1 className="boss-topic font-display mt-1\.5">\s*<Reel/);
+    expect(lobby.match(/<Reel\b/g)).toHaveLength(1);
+    expect(lobby.match(/<h1\b/g)).toHaveLength(1);
+    // The taken week's slot is drawn from the first frame, as Practice's is.
+    expect(stage).toContain('{takenThisWeek ? BOSS_DONE_LINE : "\\u00a0"}');
+  });
+
+  it("names the tier once at the head of Premium's section, on Practice and /boss", () => {
+    for (const file of ["app/games/page.tsx", "app/boss/page.tsx"]) {
+      const page = readFileSync(file, "utf8");
+      expect(page, file).not.toContain('<h2 className="section-head">Premium</h2>');
+      expect(page, file).toContain('<PremiumMark variant="chip" />');
     }
   });
 
   it("says no time frame in the page's own description either", () => {
     const layout = readFileSync("app/boss/layout.tsx", "utf8");
     expect(layout).not.toMatch(/\d+\s*(minutes?|seconds?)/);
+    expect(layout).toContain('title: "Weekly boss · Ethos"');
   });
 
   /* #486 review: Practice's words stand at the stage's middle height,

@@ -226,11 +226,30 @@ for (const scene of ["first", "one", "two", "more", "none"]) {
     await page.click('button[aria-label="Stop and score this recording"]', { force: true });
     await page.waitForSelector("[data-step-action]", { timeout: 30000 });
     await sleep(3200);
-    const m = await page.evaluate(() => ({
-      earned: document.querySelector("main [data-earned]")?.textContent ?? null,
-      scroll: document.scrollingElement.scrollHeight - innerHeight,
-    }));
-    console.log(`  ${scene} ${size.name}: earned ${JSON.stringify(m.earned)}, scroll ${m.scroll}`);
+    /* The earned line, Demos's cue under his line (the #498 review: a
+       level-up must not push the cue off the glance where a shorter form
+       of it fits), and the glance's visible words as look-glance counts
+       them. */
+    const m = await page.evaluate(() => {
+      const visible = (el) => {
+        const s = getComputedStyle(el);
+        return s.visibility !== "hidden" && s.display !== "none" && !el.closest("[aria-hidden='true'], .sr-only, [role='dialog']");
+      };
+      let words = 0;
+      const walk = document.createTreeWalker(document.querySelector("main") ?? document.body, NodeFilter.SHOW_TEXT);
+      while (walk.nextNode()) {
+        const p = walk.currentNode.parentElement;
+        if (!p || !visible(p) || p.closest("select, script, style")) continue;
+        words += (walk.currentNode.nodeValue ?? "").split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+      }
+      return {
+        earned: document.querySelector("main [data-earned]")?.textContent ?? null,
+        cue: document.querySelector("main [data-glance-cue]")?.textContent ?? null,
+        words,
+        scroll: document.scrollingElement.scrollHeight - innerHeight,
+      };
+    });
+    console.log(`  ${scene} ${size.name}: earned ${JSON.stringify(m.earned)}, cue ${JSON.stringify(m.cue)}, ${m.words} words, scroll ${m.scroll}`);
     await page.screenshot({ path: `${OUT}${TAG}-result-${scene}-${size.name}.png` });
     console.log(`shot  result ${scene} ${size.name}`);
     await context.close();

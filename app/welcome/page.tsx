@@ -57,6 +57,7 @@ import {
   NAME_FIELD,
   PLAN_COPY,
   QUESTIONS,
+  ACCOUNT_LINE,
   roomDue,
   storedAccount,
   type QuestionId,
@@ -653,7 +654,7 @@ function AccountStep({
       onBack={onBack}
       header={bar}
       title={name ? `Keep this, ${name}.` : "Keep this."}
-      line="Your plan and every number you're about to make, on any phone you open."
+      line={ACCOUNT_LINE}
       /* intro-b-13: the title and the line share his axis. He says
          hello (intro-b-21): the plan's clipboard was one screen ago.
          D19, D49: he stands at 240 on the intro's sky stage, which takes

@@ -1,5 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { accountIn, GATE_STREAK, gateMoment, isFirstRun, roomDue, WELCOMED_KEY } from "./onboarding";
+import {
+  ACCOUNT_LINE,
+  accountIn,
+  GATE_STREAK,
+  gateMoment,
+  isFirstRun,
+  PLAN_COPY,
+  QUESTIONS,
+  ROAD_INVITE,
+  ROAD_INVITE_STEP,
+  roomDue,
+  WELCOMED_KEY,
+} from "./onboarding";
+
+/*
+ * The guide (#501, #501 review): the last two screens before the first
+ * recording each say it comes next, and /you counts the questions it
+ * opens on truthfully.
+ */
+describe("the walk's guide to the first recording", () => {
+  it("the plan and the account ask both say the 60 seconds come next", () => {
+    for (const line of [PLAN_COPY.next, PLAN_COPY.start, ACCOUNT_LINE]) expect(line).toMatch(/speak for 60 seconds\.$/);
+  });
+
+  it("/you's way into an unfinished walk counts the questions it opens on", () => {
+    const from = QUESTIONS.findIndex((q) => q.id === ROAD_INVITE_STEP);
+    const words = ["One", "Two", "Three", "Four", "Five", "Six", "Seven"];
+    expect(from).toBeGreaterThanOrEqual(0);
+    expect(ROAD_INVITE.startsWith(`${words[QUESTIONS.length - from - 1]} questions`)).toBe(true);
+  });
+});
 
 /**
  * The room (#475): a first run opens on it, and so does anyone whose

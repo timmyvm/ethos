@@ -110,6 +110,23 @@ export const PLAN_COPY = {
   start: "Tap Start, then speak for 60 seconds.",
 } as const;
 
+/**
+ * The account ask's line (#501 review): the guide, like every step
+ * before it, says what the taps here do and what comes after them. It
+ * was "Your plan and every number you're about to make, on any phone you
+ * open.", which said why and left a stranger at the walk's one wall not
+ * knowing the recording was next.
+ */
+export const ACCOUNT_LINE = "Save your plan, then you speak for 60 seconds.";
+
+/**
+ * /you's way into an unfinished walk opens on the age (`ROAD_INVITE_STEP`),
+ * so it counts the questions from there: four since #501 (it said
+ * "Five" over six before). lib/onboarding.test.ts holds the count.
+ */
+export const ROAD_INVITE_STEP: QuestionId = "ageBand";
+export const ROAD_INVITE = "Four questions, then a first month.";
+
 /** Supabase-js persists its session under `sb-<project-ref>-auth-token`. */
 const SB_SESSION = /^sb-.+-auth-token$/;
 

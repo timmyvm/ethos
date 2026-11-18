@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DRILLS } from "./drills";
-import { PLAN_COPY, QUESTIONS } from "./onboarding";
+import { ACCOUNT_LINE, PLAN_COPY, QUESTIONS } from "./onboarding";
 import { INTERVIEW, ROOM_COPY } from "./room-script";
 import { AGE_BANDS, CONTEXTS, GOALS, LEVELS, PAINS } from "@/content/portfolio";
 import { UNITS } from "./path";
@@ -311,7 +311,7 @@ describe("the screen template", () => {
     const over: string[] = [];
 
     /* The plan's guide (#501); the beat went with it, its line now the hour's. */
-    for (const s of [PLAN_COPY.next]) {
+    for (const s of [PLAN_COPY.next, ACCOUNT_LINE]) {
       if (count(s) > WORDS) over.push(s);
     }
 

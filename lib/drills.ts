@@ -59,7 +59,7 @@ export const DRILLS: Drill[] = [
     tips: [
       "Where you'd say \"um\", stay silent instead.",
       "Pause for one full second. It feels long, but it sounds calm.",
-      "Said \"um\" anyway? Keep going. Starting over costs more.",
+      "Said \"um\" anyway? Keep going. A sentence restart costs more.",
     ],
   },
   {
@@ -70,11 +70,11 @@ export const DRILLS: Drill[] = [
     tips: [
       "Need a moment? Slow down instead of saying \"um\".",
       "Know your next point before this one ends. Most ums come in between.",
-      /* The stars read every "um", "like", "basically" and restart
-         together as slips (lib/metrics.ts, starsFor), so a line naming
-         only ums and restarts promised a star a "like" takes. The third
+      /* The stars read every "um", "like", "basically" and sentence
+         restart together as slips (lib/metrics.ts, starsFor), so a line
+         naming only ums and restarts promised a star a "like" takes. The third
          star is under 3 a minute since #504; it said "every star". */
-      "Three stars means under 3 slips a minute: an \"um\", a \"like\" or a restart.",
+      "Three stars means under 3 slips a minute: an \"um\", a \"like\" or a sentence restart.",
     ],
   },
   {
@@ -325,9 +325,9 @@ export const DRILLS: Drill[] = [
     title: "Finish every sentence",
     prompt: "What you'd change about your city. Every sentence you start, you finish.",
     tips: [
-      "Starting over once a minute costs a third of your Restart control score.",
+      "Restart one sentence a minute and your Sentence restarts score drops by a third.",
       "Sentence going wrong? Finish it anyway, then fix it in the next one.",
-      "Start a little slower and you'll start over less.",
+      "Start a little slower and you'll restart fewer sentences.",
     ],
   },
 ];

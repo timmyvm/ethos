@@ -307,7 +307,7 @@ async function extra(v, scene) {
   await sleep(1800);
   if (scene === "you-traits") {
     await page.evaluate(() => {
-      const el = [...document.querySelectorAll("main *")].find((e) => e.children.length === 0 && e.textContent.trim() === "Restart control");
+      const el = [...document.querySelectorAll("main *")].find((e) => e.children.length === 0 && e.textContent.trim() === "Sentence restarts");
       if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 260);
     });
   }

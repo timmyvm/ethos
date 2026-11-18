@@ -30,12 +30,13 @@ export interface TraitDef {
    * named for the fault is named for the skill there. Where the number
    * is a count of the thing itself (Today's tile, a lesson's "Your
    * number", "4 fillers" on the glance) the name stays the fault's,
-   * which reads right. The same as `name` where that is already a skill.
+   * which reads right. The same as `name` where that is already a skill,
+   * and for Sentence restarts, which keeps one name everywhere (#502).
    */
   skill: string;
   /** The raw unit, for the number under the ring. */
   unit: string;
-  /** The same unit at one. "1 restarts a minute" is a tell. */
+  /** The same unit at one. "1 sentence restarts in 100 words" is a tell. */
   unitOne: string;
   /** One sentence: what this measures. */
   what: string;
@@ -148,20 +149,26 @@ export const TRAITS: TraitDef[] = [
   },
   {
     id: "repairs",
-    name: "Restarts",
-    /* "Follow-through" failed the two-second test (#490): finishing
-       what, a plan or a sentence? Named like Filler control beside it,
-       so a high number reads as fewer restarts. */
-    skill: "Restart control",
+    /* One name everywhere since #502 (Timothy, 18 Nov: "I don't really
+       understand restarts either"). Three readers read eight labels cold
+       on a tile; "Restarted sentences" and "Sentence restarts" were the
+       only ones all three got in two seconds, because "sentence" says it
+       is your speech and not the recording. "Restarts", "Start-overs"
+       and "Do-overs" read as restarting the recording, "Self-corrections"
+       as grammar fixes. Its score row wears the same name: the band word
+       and the bar say which way is good, and a second name for one count
+       ("Restart control", #490) was the confusion. */
+    name: "Sentence restarts",
+    skill: "Sentence restarts",
     /* Per hundred words, like fillers and for the same reason: the
        published rate (Bortfeld's 1.94) is reported that way, and a
        per-minute count drops when somebody simply speeds up. */
-    unit: "restarts in 100 words",
-    unitOne: "restart in 100 words",
+    unit: "sentence restarts in 100 words",
+    unitOne: "sentence restart in 100 words",
     what: "Sentences you abandoned and began again a different way.",
-    why: "A listener hears a restart the way they hear an um, and it costs more.",
+    why: "A listener hears a sentence restart the way they hear an um, and it costs more.",
     distinction:
-      "A restart is not an error to fix mid-flight. Finishing the weaker sentence beats abandoning it.",
+      "A sentence restart is not an error to fix mid-flight. Finishing the weaker sentence beats abandoning it.",
     howTo: [
       "Finish the sentence you started, even if a better one comes to mind.",
       "Said it wrong? Finish the sentence, then say the right version as a new one.",

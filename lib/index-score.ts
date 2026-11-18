@@ -94,7 +94,7 @@ export function fillerScore(fillersPerMin: number): number {
 }
 
 /**
- * Self-corrections /100 — a steeper curve than fillers, on purpose.
+ * Sentence restarts /100 — a steeper curve than fillers, on purpose.
  *
  * Repairs are rarer and cost more when they land: an "um" is half a
  * second of nothing, an abandoned sentence makes a listener drop the
@@ -224,7 +224,7 @@ export function countHedges(transcript: string): number {
 }
 
 /**
- * Restarts / self-corrections.
+ * Sentence restarts (the stored key is `repairs`, #502).
  *
  * The v1 version only caught a doubled word ("the the") and a handful of
  * explicit markers, which misses the commonest repair by far: you say a

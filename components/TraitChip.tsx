@@ -10,7 +10,7 @@ import { TRAIT, type TraitId } from "@/content/traits";
  * from white, near-black, every wash and the amber floor card alike.
  * The outer span carries `data-trait` and the inner label `tone-fill
  * tone-on`, so the existing `[data-trait="repairs"] .tone-on` rule and
- * the dark theme's ink reach it (Restarts takes the dark ink on its
+ * the dark theme's ink reach it (Sentence restarts takes the dark ink on its
  * ochre). lib/today-colour.test.ts holds every pair at 4.5:1.
  *
  * Sizes: `sm` 22px, 13/700 (the floor card, a recording); `md` 24px,

@@ -42,7 +42,7 @@ export type TraitKey = keyof typeof INDEX_WEIGHTS;
 export const TRAITS: { key: TraitKey; name: string }[] = [
   { key: "pause", name: "Pause" },
   { key: "fillers", name: "Fillers" },
-  { key: "repairs", name: "Self-corrections" },
+  { key: "repairs", name: "Sentence restarts" },
   { key: "pace", name: "Pace" },
   { key: "range", name: "Range" },
   { key: "structure", name: "Structure" },
@@ -99,7 +99,7 @@ function repScores(rep: TraitRep): Partial<Record<TraitKey, number>> {
  * dimensions or not enough to score: the engine's own substance gate,
  * re-run on the stored transcript ("I don't know" eight times has a
  * clean pace, and must pay nothing). A trait the take did not read (no
- * judge ran, an old rep with no repairs score) is absent, not 0.
+ * judge ran, an old rep with no sentence restarts score) is absent, not 0.
  */
 export function repTraitXp(rep: TraitRep): Partial<Record<TraitKey, number>> {
   if (!rep.dimensions) return {};

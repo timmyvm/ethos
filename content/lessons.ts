@@ -63,7 +63,7 @@ const SEEDS: Seed[] = [
   { id: "the-cold-open", trait: "fillers", title: "Your first sentence", blurb: "Plan your first sentence. Most ums happen in the first five seconds.", topics: ["t1", "t13", "t8"] },
   { id: "closed-mouth", trait: "fillers", title: "The closed mouth", blurb: "Close your mouth between sentences. An open mouth says um on its own.", topics: ["t5", "t14", "t10"] },
   { id: "the-crutch", trait: "fillers", title: "The word you overuse", blurb: "Everyone overuses one word, often \"basically\" or \"literally\". The recording finds yours.", topics: ["t19", "t2", "t16"] },
-  // Restarts
+  // Sentence restarts
   { id: "finish-it", trait: "repairs", title: "Finish it anyway", blurb: "Finish the sentence you started, even if a better one comes to mind.", topics: ["t3", "t11", "t7"] },
   { id: "know-the-landing", trait: "repairs", title: "Know how it ends", blurb: "Know where your sentence ends before you start it.", topics: ["t20", "t6", "t15"] },
   { id: "or-rather", trait: "repairs", title: "Fix it after", blurb: "Said it wrong? Finish, then fix it in a new sentence.", topics: ["t9", "t18", "t1"] },

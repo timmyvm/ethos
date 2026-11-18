@@ -43,8 +43,9 @@ interface Detail {
  * this under that) and a bar that shows the band: sage where it is
  * Strong, because a Strong row is earned, and a neutral where it is
  * not. A trait named for its fault is
- * named for its skill here (Filler control, Restart control), so a high
- * number reads as good on every row. The Index itself is the same
+ * named for its skill here (Filler control), so a high number reads as
+ * good on every row; Sentence restarts keeps its one name (#502), and
+ * its band word and bar say which way is good. The Index itself is the same
  * number: nothing is rescored.
  *
  * The rows end on their last row (#484, Timothy 16 Nov: the foot,
@@ -145,8 +146,8 @@ export function DimensionList({
       // The score runs on every filler a minute, so the rate wears its
       // one label (E32): the row's own name is the skill's. How often, as
       // people feel it (§7: "about one 'um' every 20 seconds"), beside the
-      // count; the Log keeps the rate and the scale, in the Restarts
-      // row's grammar: a bare "8 scores 0" read as 8 fillers.
+      // count; the Log keeps the rate and the scale, in the Sentence
+      // restarts row's grammar: a bare "8 scores 0" read as 8 fillers.
       detail: brief
         ? fillers === 0
           ? `No fillers in ${secs} seconds.`
@@ -160,14 +161,19 @@ export function DimensionList({
     },
     // Scored separately from fillers because they're separate problems
     // with separate fixes. Reps recorded before the split have no
-    // repairs score, and get no row rather than an invented one.
+    // repairs score, and get no row rather than an invented one. One
+    // name for the count everywhere since #502: "sentence restarts".
     repairs: {
-      detail: `${plural(repairs, "restarted phrase")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
-        brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute. 0 restarts a minute scores 100; 3 scores 0.`
-      }`,
+      detail: `${
+        repairs === 0
+          ? `No sentence restarts in ${secs} seconds.`
+          : `${plural(repairs, "sentence restart")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
+              brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute.`
+            }`
+      }${brief ? "" : " 0 sentence restarts a minute scores 100; 3 scores 0."}`,
       improve:
         repairs > 0
-          ? "Finish the sentence, then say the better one. A restart makes the listener start over with you."
+          ? "Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
           : undefined,
     },
     /* The Log's ledger keeps the rule, said with its number (#490: "A
@@ -206,7 +212,7 @@ export function DimensionList({
       ? {
           detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${plural(
             anchors.restartCount,
-            "restart"
+            "sentence restart"
           )}.)`,
           improve: coach.dimensions.confidence.improve,
         }

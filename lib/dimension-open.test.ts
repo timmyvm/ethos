@@ -56,7 +56,7 @@ describe("the opened rows say what the counts count (the review of #490)", () =>
     expect(hedgeWords(0)).toBe("no phrases like “maybe” or “I guess”");
     expect(hedgeWords(1)).toBe("1 phrase like “maybe” or “I guess”");
     expect(hedgeWords(2)).toBe("2 phrases like “maybe” or “I guess”");
-    expect(steadiness(2)).toContain("(2 phrases like “maybe” or “I guess”, 1 restart.)");
+    expect(steadiness(2)).toContain("(2 phrases like “maybe” or “I guess”, 1 sentence restart.)");
     expect(steadiness(2)).not.toMatch(/“I guess” (once|twice|\d+ times)/);
   });
 

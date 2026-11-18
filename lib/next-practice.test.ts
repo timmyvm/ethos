@@ -351,6 +351,6 @@ describe("because", () => {
   });
 
   it("takes the singular from the printed value", () => {
-    expect(because(reading("repairs", 0.997))).toContain("1 restart in 100 words");
+    expect(because(reading("repairs", 0.997))).toContain("1 sentence restart in 100 words");
   });
 });

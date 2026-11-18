@@ -50,7 +50,7 @@ import {
   type TraitLevel,
 } from "@/lib/traits";
 import { LevelMeter } from "@/components/ui/LevelMeter";
-import { practiseHref, sheetReading } from "@/lib/trait-sheet";
+import { practiseHref, practiseLabel, sheetReading } from "@/lib/trait-sheet";
 import { DIMENSION_NAME } from "@/lib/dimension-rows";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { TRAIT, type TraitId } from "@/content/traits";
@@ -92,8 +92,8 @@ const TRAIT_ROWS_FREE = 5;
 
 /**
  * The traits the lessons teach, each with its tone (`[data-trait]`).
- * A toned row takes the lesson's name for it too (Pausing, Restarts,
- * Variety), so the colour and the word match /lessons and Today; the
+ * A toned row takes the lesson's name for it too (Pausing, Sentence
+ * restarts, Variety), so the colour and the word match /lessons and Today; the
  * four the Index only reads keep the Index's names.
  */
 const TONED = new Set<string>(["pause", "fillers", "repairs", "pace", "range"]);
@@ -1483,7 +1483,7 @@ function TraitSheet({
         </div>
         {practise && (
           <Link href={practise} className={`${ACTION_CLASS} mt-6`}>
-            Practise {name}
+            {practiseLabel(trait.key)}
           </Link>
         )}
       </div>

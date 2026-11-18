@@ -143,7 +143,7 @@ export function fmtRaw(n: number): string {
 /**
  * The measurement with its unit, singular where the printed value is
  * one. On the DISPLAYED value and not the raw one, because 0.997 prints
- * as "1" and then reads "1 restarts a minute".
+ * as "1" and then reads "1 sentence restarts in 100 words".
  */
 export function withUnit(id: TraitId, raw: number): string {
   const shown = fmtRaw(raw);
@@ -226,7 +226,7 @@ export function placeWords(r: Pick<TraitReading, "id" | "percentile">): string {
     case "fillers":
       return `Fewer ums and uhs ${than}`;
     case "repairs":
-      return `Fewer restarts ${than}`;
+      return `Fewer sentence restarts ${than}`;
     case "pace": {
       const band = NORMS.pace.band;
       return band ? `Nearer the middle of ${band.lo} to ${band.hi} ${than}` : `Nearer the middle ${than}`;

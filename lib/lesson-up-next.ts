@@ -70,9 +70,9 @@ export function traitForSaid(said: string | null | undefined): TraitId | null {
  * pausing"). A number, not a description (#317: no trait descriptions).
  *
  * Absent, never zero, wherever the row cannot say: no recordings, a row
- * with no length, and Restarts on a row that stored no restarts score
- * (readTraitsFromRow reads that as a rate of 0, which would print "0
- * restarts per hundred words" for a number nobody took). The last row
+ * with no length, and Sentence restarts on a row that stored no repairs
+ * score (readTraitsFromRow reads that as a rate of 0, which would print
+ * "0 sentence restarts in 100 words" for a number nobody took). The last row
  * is the last that measured something: a take too short to score read
  * "7 words a minute" as Your number.
  * `rows` is the log oldest first, as fetchReps returns it.

@@ -137,7 +137,7 @@ export function artBox(id: string): Record<"--art-l" | "--art-t" | "--art-w" | "
 export const LINE_WORDS: Record<TraitId, { noun: string; rate: string }> = {
   pause: { noun: "pauses between sentences", rate: "a minute" },
   fillers: { noun: "um or uh", rate: "in 100 words" },
-  repairs: { noun: "restarts", rate: "in 100 words" },
+  repairs: { noun: "sentence restarts", rate: "in 100 words" },
   pace: { noun: "words", rate: "a minute" },
   range: { noun: "different words", rate: "in every 100" },
 };

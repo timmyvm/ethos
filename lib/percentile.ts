@@ -78,7 +78,7 @@ export function normalQuantile(p: number): number {
 /**
  * How a trait's raw scale relates to its health scale.
  *
- *   lower   fewer is better (fillers a minute, self-corrections)
+ *   lower   fewer is better (fillers a minute, sentence restarts)
  *   higher  more is better (lexical variety)
  *   band    there is a middle, and both sides of it are worse (pace)
  */

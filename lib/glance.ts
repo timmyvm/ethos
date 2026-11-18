@@ -288,9 +288,9 @@ export function glanceLine(p: {
 
   if (trait === "repairs") {
     const n = m.repairCount ?? 0;
-    if (n >= 2) return { ...plain(`${n} restarts in ${secs}s.`), cue: cue(`under ${n}.`) };
-    if (n === 1) return { ...plain(`1 restart in ${secs}s.`), cue: cue("none.") };
-    return { ...plain(`No restarts in ${secs}s.`), cue: cue("none again.") };
+    if (n >= 2) return { ...plain(`${n} sentence restarts in ${secs}s.`), cue: cue(`under ${n}.`) };
+    if (n === 1) return { ...plain(`1 sentence restart in ${secs}s.`), cue: cue("none.") };
+    return { ...plain(`No sentence restarts in ${secs}s.`), cue: cue("none again.") };
   }
 
   if (trait === "pace") {
@@ -517,7 +517,7 @@ export interface PracticeTake {
 /**
  * A practice's count on a lesson's ending, in the lesson's trait: its
  * fillers, its landed pauses (heldPauseMarks, the glance's one count) or
- * its words a minute. Restarts and Variety have no count a stored row
+ * its words a minute. Sentence restarts and Variety have no count a stored row
  * keeps, so those lessons count the Index. Null where there is none.
  */
 export function practiceCount(trait: TraitId, t: PracticeTake): number | null {

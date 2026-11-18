@@ -38,6 +38,15 @@ export interface Command {
 /** The tabs, in the bar's order, as the bar names them (components/Nav.tsx; a test holds the two together). */
 export const TAB_LABELS = ["Today", "Lessons", "Practice", "Log", "You"] as const;
 
+/**
+ * The words a trait answered to before its one name, still found, never
+ * shown (#502: Sentence restarts was Restarts on its card, Restart
+ * control on its score and Self-corrections on its level).
+ */
+export const TRAIT_ALSO: Partial<Record<TraitId, string>> = {
+  repairs: "restarts restart control self corrections false starts start over",
+};
+
 const tabs: Command[] = TAB_HREFS.map((href, i) => ({
   id: `tab:${href}`,
   title: TAB_LABELS[i],
@@ -63,11 +72,18 @@ export const COMMANDS: readonly Command[] = [
       group: "Lessons",
       href: `/lessons/${l.id}`,
       trait: l.trait,
-      also: TRAIT[l.trait].name,
+      also: [TRAIT[l.trait].name, TRAIT_ALSO[l.trait]].filter(Boolean).join(" "),
     })
   ),
   ...TRAITS.map(
-    (t): Command => ({ id: `trait:${t.id}`, title: t.name, group: "Traits", href: `/practice/${t.id}`, trait: t.id })
+    (t): Command => ({
+      id: `trait:${t.id}`,
+      title: t.name,
+      group: "Traits",
+      href: `/practice/${t.id}`,
+      trait: t.id,
+      ...(TRAIT_ALSO[t.id] ? { also: TRAIT_ALSO[t.id] } : {}),
+    })
   ),
   { id: "practice:boss", title: "Weekly boss", group: "Practice", href: "/boss", also: "cold topic read explain" },
   { id: "practice:hostile", title: "Hostile Q&A", group: "Practice", href: "/hostile", also: "questions claim interrogation" },

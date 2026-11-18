@@ -250,7 +250,7 @@ describe("its words: what to do instead", () => {
     expect(e.short.sentence).toBe("“um” 2 times.");
     expect(cueEvidence({ kind: "filler", word: "like" }, take()).line.sentence).toBe("“like” once, at 0:07");
     expect(cueEvidence({ kind: "searching", word: null }, take()).line.sentence).toBe("1 misplaced pause, at 0:20");
-    expect(cueEvidence({ kind: "restarts", word: null }, take()).line.sentence).toBe("1 restart in 62s.");
+    expect(cueEvidence({ kind: "restarts", word: null }, take()).line.sentence).toBe("1 sentence restart in 62s.");
     expect(cueEvidence({ kind: "filler", word: "so" }, take()).line.sentence).toBe("No “so” in 62s.");
   });
 });
@@ -370,7 +370,7 @@ describe("the next day's answer, first on the glance", () => {
     expect(a(152, 178, true, "fast", null).short.sentence).toBe("Pace 152, down from 178.");
     expect(a(2, 0, true, "unheld", null).line.sentence).toBe("2 pauses between sentences, up from none.");
     expect(a(0, 0, false, "unheld", null).line.sentence).toBe("No pauses between sentences again.");
-    expect(a(2, 5, true, "restarts", null).line.sentence).toBe("2 restarts, down from 5.");
+    expect(a(2, 5, true, "restarts", null).line.sentence).toBe("2 sentence restarts, down from 5.");
   });
   /* The review of #490: "Pauses silent, down from 3." left the 3 with no
      unit; the short form counts the ums, still five words at most. */

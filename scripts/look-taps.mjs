@@ -36,7 +36,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const FAMILIES = [
   ["pause", "Pausing"],
   ["fillers", "Fillers"],
-  ["repairs", "Restarts"],
+  ["repairs", "Sentence restarts"],
   ["pace", "Pace"],
   ["range", "Variety"],
   ["none", "No colour yet"],

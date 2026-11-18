@@ -62,7 +62,7 @@ export interface RepMetrics {
    */
   filledPer100: number;
   /**
-   * Self-corrections: a phrase restarted with a different landing.
+   * Sentence restarts (#502): a phrase restarted with a different landing.
    * A listener hears one of these exactly the way they hear an "um".
    */
   repairCount: number;

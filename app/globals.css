@@ -1883,11 +1883,11 @@ body::after {
 @keyframes talk-pop {
   0% {
     opacity: 0;
-    transform: translateY(0.35em) scale(0.5);
+    transform: translateY(0.35em) scale(0.6);
   }
   55% {
     opacity: 1;
-    transform: translateY(-0.04em) scale(1.1);
+    transform: translateY(-0.04em) scale(1.06);
   }
   100% {
     opacity: 1;

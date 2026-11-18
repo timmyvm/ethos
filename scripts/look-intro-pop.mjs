@@ -99,7 +99,7 @@ async function holdDoor(page, cdp) {
 }
 
 /** Frames `every` ms apart for `count` frames, each labelled by when it was actually taken. */
-async function frames(page, name, act, { every = 80, count = 8, dir }) {
+async function frames(page, name, act, { every = 80, count = 8, dir, clip }) {
   mkdirSync(dir, { recursive: true });
   const files = [];
   const t0 = Date.now();
@@ -110,7 +110,7 @@ async function frames(page, name, act, { every = 80, count = 8, dir }) {
     if (wait > 0) await sleep(wait);
     const at = Date.now() - t0;
     const file = `${dir}${name}-${String(k).padStart(2, "0")}.png`;
-    await page.screenshot({ path: file, scale: "css" });
+    await page.screenshot({ path: file, scale: "css", ...(clip ? { clip } : {}) });
     files.push(`${at}ms=${file}`);
   }
   return files;
@@ -125,7 +125,8 @@ async function walk(set) {
     /* Demos finishes what he is saying first (#501): a shot mid-line is
        the strips' job. */
     await until(page, () => !document.querySelector("[data-talking]"), null, 4000);
-    await sleep(120);
+    /* And the last word's own pop (300 ms) has settled. */
+    await sleep(360);
     n += 1;
     const file = `${OUT}${tag}-${String(n).padStart(2, "0")}-${name}.png`;
     await page.screenshot({ path: file });
@@ -205,6 +206,16 @@ async function walk(set) {
       /* The next screen arriving and its line said, frame by frame. */
       const fs = await frames(page, "arrive", () => next.click(), { every: 80, count: 10, dir: frameDir });
       execFileSync("node", [new URL("./sheet.mjs", import.meta.url).pathname, `${OUT}strip-arrive.jpg`, "10", "180", "400", ...fs], { stdio: "inherit" });
+    } else if (strips && h.startsWith("what-do-you-notice")) {
+      /* Close on Demos and his bubble as the next line lands: the bubble
+         springs up, the words pop in one by one, and he bobs. */
+      const fs = await frames(page, "talk", () => next.click(), {
+        every: 80,
+        count: 12,
+        dir: frameDir,
+        clip: { x: 0, y: 44, width: set.width, height: 190 },
+      });
+      execFileSync("node", [new URL("./sheet.mjs", import.meta.url).pathname, `${OUT}strip-talk.jpg`, "4", "390", "190", ...fs], { stdio: "inherit" });
     } else {
       await next.click();
     }

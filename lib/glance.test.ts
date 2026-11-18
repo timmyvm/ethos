@@ -8,6 +8,7 @@ import {
   earnedLine,
   fittedEarned,
   fitGlance,
+  fitGlanceProof,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
@@ -37,7 +38,8 @@ import { computeMetrics, starGoals, substance, type RepMetrics, type Word } from
 import { heldPauseMarks } from "./pause-mark";
 import { endNote, MOST_PAUSES, type RewardMoment } from "./rewards";
 import { levelUpLine } from "./traits";
-import { answerLine, cueSentence, cueShortSentence, type CueKind } from "./carried-cue";
+import { answerLine, cueEvidence, cueSentence, cueShortSentence, type CueKind } from "./carried-cue";
+import { proofWords } from "./say";
 import { DIMENSION_NAME } from "./dimension-rows";
 import { PAUSE_RULES, rulesNote } from "./pause-rules";
 import type { StreakState } from "./streak";
@@ -470,7 +472,7 @@ describe("earnedLine", () => {
     expect(f).toMatchObject({ cue: "Tomorrow: pause where “um” was.", earned: "Pace: level 3", short: true });
     expect(f.words).toBeLessThanOrEqual(starsBudget(GLANCE_WORDS, goals));
   });
-  it("holds its ceiling with everything on it at once: goals, a level-up, the rules note and a carried cue (the 18 Nov merge)", () => {
+  it("holds its ceiling with everything on it at once: goals, a level-up, the rules note, a carried cue and a proof line (the 18 Nov merge)", () => {
     /* The worst a road take can bring, every piece from its own source,
        the fixed words as app/rep/page.tsx lays them: a coin, "▲ 213
        since last time", the #491 note on the jump, #504's three goals,
@@ -480,7 +482,12 @@ describe("earnedLine", () => {
        Whenever any arrangement of the line, the cue and the level-up fits
        the ceiling, the glance takes one that does; where none can, it
        takes the fewest words. The goals, the note, the score and the taps
-       never go, and the level-up always keeps a form. */
+       never go, and the level-up always keeps a form.
+       And #507's proof line on top (the final pass of 18 Nov), at the
+       longest pair #429 lets through and at a common one: it stands only
+       where it costs nothing else (the same cue, the same form of the
+       level-up and of the line), inside the ceiling, and never where the
+       glance is already past it. */
     const name = (k: string) => DIMENSION_NAME[k as keyof typeof DIMENSION_NAME];
     const ups = [
       levelUpLine([{ key: "fillers", from: 2, to: 3, paid: 93 }], name)!,
@@ -503,10 +510,23 @@ describe("earnedLine", () => {
       searching: ["3 misplaced pauses, first 0:20", "3 misplaced pauses."],
       filled: ["3 pauses had an um, first 0:20", "3 pauses had an um."],
       unheld: ["3 pauses between sentences, first 0:20", "3 pauses between sentences."],
-      restarts: ["4 restarts in 300s.", "4 restarts."],
+      /* #502 named it: "4 sentence restarts in 300s." (cueEvidence, checked below). */
+      restarts: ["4 sentence restarts in 300s.", "4 sentence restarts."],
       fast: ["188 words a minute.", "188 words a minute."],
       slow: ["98 words a minute.", "98 words a minute."],
     };
+    {
+      const restarts = cueEvidence({ kind: "restarts", word: null }, { metrics: { ...computeMetrics([], 300), repairCount: 4 } as RepMetrics, tier1: {} });
+      expect([restarts.line.sentence, restarts.short.sentence]).toEqual(EVIDENCE.restarts);
+    }
+    /* The proof line's two pairs: the longest #429 lets through (eight
+       words said, six better) and a common one, each at a two-digit time. */
+    const PROOFS = [
+      null,
+      { key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 },
+      { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 },
+    ];
+    const shown = { full: 0, short: 0 };
     const lines = kinds.flatMap((kind) => {
       const cue = { kind, word: kind === "filler" || kind === "repeat" ? "basically" : null };
       const now = kind === "fast" ? 188 : kind === "slow" ? 98 : 3;
@@ -547,6 +567,24 @@ describe("earnedLine", () => {
                 expect(f.words, what).toBe(fewest);
               }
               expect(levelUp.forms.map((x) => x.text)).toContain(f.earned);
+              for (const pair of PROOFS) {
+                const proof = pair ? { full: proofWords(pair, "full"), short: proofWords(pair, "short") } : null;
+                const g = fitGlanceProof({ fixed, ...said, earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) }, budget, proof);
+                const how = `${what} + ${pair?.better ?? "no proof"}`;
+                // It costs nothing else: the cue, the level-up's form and the line's form are the glance's without it.
+                expect({ cue: g.cue, earned: g.earned, short: g.short }, how).toEqual({ cue: f.cue, earned: f.earned, short: f.short });
+                if (g.proof === null) expect(g.words, how).toBe(f.words);
+                else {
+                  // It stands only inside the ceiling, and its words are counted.
+                  expect(g.words, how).toBeLessThanOrEqual(budget);
+                  expect(g.words, how).toBe(f.words + countWords(g.proof === "full" ? proof!.full : proof!.short));
+                  shown[g.proof] += 1;
+                }
+                if (fewest <= budget) expect(g.words, how).toBeLessThanOrEqual(budget);
+                expect(levelUp.forms.map((x) => x.text)).toContain(g.earned);
+                // Where the glance has room for the short form under its ceiling, it stands.
+                if (proof && budget - f.words >= countWords(proof.short)) expect(g.proof, how).not.toBeNull();
+              }
               checked += 1;
             }
           }
@@ -556,6 +594,11 @@ describe("earnedLine", () => {
     expect(checked).toBe(4 * 2 * 2 * 2 * kinds.length * 2);
     /* Only a long line beside a coin leaves no room for a level-up's shortest form. */
     expect(none).toBeLessThan(checked / 8);
+    /* With everything on it the glance is fitted to its edge (two words
+       spare at most), so the proof waits in every one of these: the
+       page still counts the recording, and the swap stays unheard for
+       the next take to say (lib/say.test.ts has where it stands). */
+    expect(shown).toEqual({ full: 0, short: 0 });
   });
   it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
     /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again were 20 words. */

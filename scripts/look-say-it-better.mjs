@@ -12,7 +12,7 @@
  *   PLAYWRIGHT_MODULE=… LOOK_BASE=http://localhost:4031 node scripts/look-say-it-better.mjs [state…]
  *
  * States: you you-dry you-new page page-dry page-new page-fallback sheet
- * undo walk unheard blocked offline glance words. Shots go to
+ * undo walk after-test unheard blocked offline glance words. Shots go to
  * docs/look/say-it-better/after/<state>-<beat>-<w>x<h>-<theme>.png
  * (LOOK_OUT to move them), at 390x844 and 320x568 in both themes
  * (SIZES=390 for one), deviceScaleFactor 2. A JSON report of what each
@@ -32,7 +32,7 @@ import {
   supabaseRoute,
 } from "./look-fixtures.mjs";
 
-const ALL = ["you", "you-dry", "you-new", "page", "page-dry", "page-new", "page-fallback", "sheet", "undo", "walk", "unheard", "blocked", "offline", "glance", "words"];
+const ALL = ["you", "you-dry", "you-new", "page", "page-dry", "page-new", "page-fallback", "sheet", "undo", "walk", "after-test", "unheard", "blocked", "offline", "glance", "words"];
 const STATES = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const BASE = process.env.LOOK_BASE ?? "http://localhost:4031";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/say-it-better/after/", import.meta.url).pathname).replace(/\/?$/, "/");
@@ -257,6 +257,37 @@ async function run(state, size, theme) {
     }
     await shoot(page, state, "", size, theme, { settle: 900 });
     if (state === "offline") await context.setOffline(false);
+    await context.close();
+    return;
+  }
+  if (state === "after-test") {
+    /* The #507 review: today's three answered (each shown, the quickest
+       walk), then the page and You's card. A fourth swap is overdue in
+       the fixture; it waits for tomorrow, so neither offers a test again. */
+    const { context, page } = await open(state, size, theme);
+    await page.goto(`${BASE}/say/test`);
+    for (let k = 0; k < 3; k++) {
+      await page.waitForSelector('main[data-say-walk="ask"]', { timeout: 20000 });
+      await page.locator("footer button:has-text('Show it instead'), main button:has-text('Show it instead')").last().click();
+      await page.waitForSelector("[data-say-next]", { timeout: 8000 });
+      await page.click("[data-say-next]");
+    }
+    await page.waitForSelector("main[data-say-end]", { timeout: 8000 });
+    await page.click("main a.screen-bar-back");
+    await page.waitForSelector("[data-say-count]", { timeout: 20000 });
+    await shoot(page, state, "page", size, theme, { settle: 1200 });
+    const onPage = await page.evaluate(() => ({
+      test: !!document.querySelector("main [data-say-test]"),
+      dry: document.querySelector("main [data-say-dry]")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+    }));
+    await page.goto(`${BASE}/you`);
+    await page.waitForSelector("[data-look='say-card'] .arrive", { timeout: 30000 });
+    await shoot(page, state, "you", size, theme, { settle: 1200 });
+    const onYou = await page.evaluate(() => ({
+      test: !!document.querySelector("[data-look='say-card'] [data-say-test]"),
+      text: document.querySelector("[data-look='say-card']")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+    }));
+    note(tag, { onPage, onYou });
     await context.close();
     return;
   }

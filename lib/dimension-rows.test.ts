@@ -18,7 +18,7 @@ import {
 } from "./dimension-rows";
 import * as dimensionRowsModule from "./dimension-rows";
 import { ethosIndex, INDEX_WEIGHTS } from "./index-score";
-import { LEVEL_AT } from "./traits";
+import { levelCost } from "./traits";
 import { placeHold, placeLine, placeSource, placeWords } from "./trait-readings";
 
 const tier1 = { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 };
@@ -49,11 +49,11 @@ describe("a row says how it went in one word (#471)", () => {
     expect(bandOf(24, 50)).toBe("work");
   });
 
-  it("calls Strong exactly what can level a trait on You", () => {
-    // One line for both: a row that reads Strong is a row that could level.
-    expect(STRONG_AT).toBe(LEVEL_AT);
-    expect(bandOf(LEVEL_AT)).toBe("strong");
-    expect(bandOf(LEVEL_AT - 1)).not.toBe("strong");
+  it("calls Strong from 70, the XP a trait's first level costs (#498)", () => {
+    expect(STRONG_AT).toBe(70);
+    expect(bandOf(70)).toBe("strong");
+    expect(bandOf(69)).not.toBe("strong");
+    expect(levelCost(1)).toBe(STRONG_AT);
   });
 });
 

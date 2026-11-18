@@ -8,7 +8,7 @@ import { pauseReport, reportJudged, type JudgedPause } from "./pause-quality";
 import { celebrates, personalBests } from "./rewards";
 import { skillStates } from "./schedule";
 import { readTraitsFromRow } from "./trait-readings";
-import { repTraitGain } from "./traits";
+import { repTraitXp, traitLevels } from "./traits";
 import { weekView } from "./home";
 import { achievements } from "./achievements";
 import { insights } from "./insights";
@@ -141,7 +141,8 @@ function readAll(rows: RepRow[]) {
     skills: skillRows(rows),
     schedule: skillStates(rows, NOW),
     traits: rows.map((r) => readTraitsFromRow(r)),
-    gains: rows.map((r) => repTraitGain(r)),
+    traitXp: rows.map((r) => repTraitXp(r)),
+    traitLevels: traitLevels(rows),
     week: weekView(rows, NOW),
     achievements: achievements(rows),
     insights: insights(rows),

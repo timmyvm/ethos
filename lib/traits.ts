@@ -1,27 +1,33 @@
 /**
- * Traits — the nine Index dimensions as levels on the profile.
+ * Traits: the nine Index dimensions as levels on the profile, filled
+ * with trait XP (#498).
  *
- * The mechanic is use-based skill leveling with the attendance taken
- * out. Duolingo's crown levels are the cautionary reference: per-skill
- * levels that rose by finishing lessons rewarded repetition and stood
- * up a second progression competing with the path, and both faults got
- * them retired. So a trait here levels only on measured PERFORMANCE
- * (the same #10 rule stars live by), and levels are a mirror, not a
- * ladder: they gate nothing, buy nothing and feed nothing — not XP,
- * not stars, not the Index. Elevate's EPQ (Me → Performance, a score
- * per skill, your best named) is the display reference; its habit of
- * mixing play-frequency into the number is exactly what this refuses.
+ * Timothy, 18 Nov: "xp that fills with practice". Every scored recording
+ * pays each trait it read that trait's score on it, 0 to 100, as trait
+ * XP: practice fills the bar, a strong recording fills it faster, a
+ * trait read at 0 gets 0, and a take too short to score pays nothing,
+ * so attendance alone never levels anything (CLAUDE.md: stars, streaks
+ * and scores are earned). Level n costs LEVEL_STEP × n XP, so level 1 is
+ * one Strong read (70) and each level after takes a few more strong
+ * recordings than the last (lib/traits.test.ts draws the curve over
+ * synthetic accounts from the production percentiles).
  *
- * The rule, checkable per rep: the rep's best-scoring dimension levels
- * +1 when it clears LEVEL_AT (of its 100), +2 when it clears DOUBLE_AT.
- * One trait per rep, because "what did this rep do best" is one answer.
- * Below the bar, nothing levels — a level is earned or it isn't.
+ * This replaced #159's rule (a take's best row levels its trait at 70,
+ * twice from 90) and #482's closest-try bar on it. Levels renumbered.
  *
- * Levels are DERIVED from stored reps, never incremented (the #132
- * lesson: a stored counter can silently rot; a derivation can only be
- * wrong out loud). Substance is re-checked from the stored transcript
- * with the engine's own gate, so a rep that wasn't enough to score
- * (#55) can never level a trait either.
+ * Levels are still DERIVED from stored reps, never stored or incremented
+ * (the #132 lesson: a stored counter can silently rot; a derivation can
+ * only be wrong out loud), so every account renumbers on its next load
+ * and nothing migrates. A trait's XP only ever grows with another
+ * recording, so no level goes down between two loads of the same
+ * history. Substance is re-checked from the stored transcript with the
+ * engine's own gate, so a take that wasn't enough to score (#55) pays
+ * nothing either.
+ *
+ * Trait XP is never a total and never shown outside its trait (You's
+ * rows draw only the level and its bar; the sheet says the XP under the
+ * trait's own name). Account XP (#485, lib/xp.ts, purple, 10 a
+ * recording) is the one XP with a total.
  */
 
 import { INDEX_WEIGHTS, type Tier1Scores } from "./index-score";
@@ -30,9 +36,8 @@ import { isScorable, substance } from "./metrics";
 export type TraitKey = keyof typeof INDEX_WEIGHTS;
 
 /**
- * Canonical order: the Index's own, measured tier first. Ties in a
- * rep's best dimension break toward the earlier entry, so the same
- * stored rep always levels the same trait.
+ * Canonical order: the Index's own, measured tier first. Ties anywhere
+ * (the ranking, the level-up moment) break toward the earlier entry.
  */
 export const TRAITS: { key: TraitKey; name: string }[] = [
   { key: "pause", name: "Pause" },
@@ -47,38 +52,29 @@ export const TRAITS: { key: TraitKey; name: string }[] = [
   { key: "confidence", name: "Steadiness" },
 ];
 
-/** A dimension levels its trait at 70 of its 100. */
-export const LEVEL_AT = 70;
-/** At 90 the level-up doubles: rare on purpose, and it says why. */
-export const DOUBLE_AT = 90;
+/** Level n costs LEVEL_STEP × n trait XP: 70 for level 1, 140 for level 2, 490 for level 7. */
+export const LEVEL_STEP = 70;
 
-export interface TraitGain {
-  key: TraitKey;
-  name: string;
-  /** The /100 score that earned it, so the moment can name its number. */
-  score: number;
-  levels: 1 | 2;
+/** The XP level `level` costs, from the level under it. */
+export function levelCost(level: number): number {
+  return LEVEL_STEP * Math.max(1, Math.floor(level));
 }
 
-/**
- * The one trait this set of dimension scores levels, if any.
- * Scores are /100 per dimension; absent dimensions (no judge ran, an
- * old rep with no repairs score) simply aren't candidates.
- */
-export function traitGain(
-  scores: Partial<Record<TraitKey, number>>
-): TraitGain | null {
-  let best: { key: TraitKey; name: string; score: number } | null = null;
-  for (const t of TRAITS) {
-    const s = scores[t.key];
-    if (typeof s !== "number" || Number.isNaN(s)) continue;
-    if (!best || s > best.score) best = { ...t, score: s };
-  }
-  if (!best || best.score < LEVEL_AT) return null;
-  return { ...best, levels: best.score >= DOUBLE_AT ? 2 : 1 };
+/** The trait XP it takes to reach `level` from nothing: 70, 210, 420, 700, 1050 ... */
+export function xpFor(level: number): number {
+  const n = Math.max(0, Math.floor(level));
+  return (LEVEL_STEP * n * (n + 1)) / 2;
 }
 
-/** The slice of a rep the derivation reads — RepRow satisfies it. */
+/** Where a trait's XP stands: its level, the XP into it and what the next one costs. */
+export function standing(xp: number): { level: number; into: number; cost: number } {
+  const total = Number.isFinite(xp) && xp > 0 ? Math.floor(xp) : 0;
+  let level = 0;
+  while (xpFor(level + 1) <= total) level++;
+  return { level, into: total - xpFor(level), cost: levelCost(level + 1) };
+}
+
+/** The slice of a rep the derivation reads: RepRow satisfies it. */
 export interface TraitRep {
   transcript: string;
   dimensions: {
@@ -97,116 +93,74 @@ function repScores(rep: TraitRep): Partial<Record<TraitKey, number>> {
   return out;
 }
 
-export function repTraitGain(rep: TraitRep): TraitGain | null {
-  if (!rep.dimensions) return null;
-  // The engine's own substance gate, re-run on the stored transcript:
-  // "I don't know" eight times has a clean pace, and must level nothing.
-  if (!isScorable(substance(rep.transcript))) return null;
-  return traitGain(repScores(rep));
-}
-
 /**
- * The recording that came closest to leveling a trait (#482): the
- * trait's score on it, and the score that recording needed of it to
- * level it, which is LEVEL_AT, or the take's best other row when that
- * was higher (the level goes to the best row, so it had to beat it).
+ * The trait XP one stored recording pays: each trait it read, its score
+ * rounded and held to 0 to 100. Nothing at all for a take with no stored
+ * dimensions or not enough to score: the engine's own substance gate,
+ * re-run on the stored transcript ("I don't know" eight times has a
+ * clean pace, and must pay nothing). A trait the take did not read (no
+ * judge ran, an old rep with no repairs score) is absent, not 0.
  */
-export interface ClosestTry {
-  score: number;
-  need: number;
-  /**
-   * The trait that recording leveled, if one did. On a tie lost (the
-   * score met `need`, and an earlier trait took the level, traitGain)
-   * the sheet names it, so "80 of the 80 it needed" is never said.
-   */
-  leveled: TraitKey | null;
+export function repTraitXp(rep: TraitRep): Partial<Record<TraitKey, number>> {
+  if (!rep.dimensions) return {};
+  if (!isScorable(substance(rep.transcript))) return {};
+  const scores = repScores(rep);
+  const out: Partial<Record<TraitKey, number>> = {};
+  for (const t of TRAITS) {
+    const s = scores[t.key];
+    if (typeof s !== "number" || Number.isNaN(s)) continue;
+    out[t.key] = Math.round(Math.max(0, Math.min(100, s)));
+  }
+  return out;
 }
 
 export interface TraitLevel {
   key: TraitKey;
   name: string;
   level: number;
-  /**
-   * How far into its level the trait is, in whole percent, 0 to 99
-   * (#482): its closest try since the level, as a share of what that
-   * try needed (`levelPercent`). A level is one recording (#159), so
-   * nothing else is kept between two levels; this is how near one came.
-   */
+  /** Every recording's trait XP for this trait, added up. Never shown as a total. */
+  xp: number;
+  /** The XP into the level. */
+  into: number;
+  /** What the next level costs: `into` of `cost` is the bar. */
+  cost: number;
+  /** How far into the level, in whole percent rounded down, 0 to 99: the bar's fill. */
   percent: number;
-  /** That try; null when no scored recording has read the trait since its level. */
-  closest: ClosestTry | null;
+  /** What the newest recording that read the trait paid it; null when none has. */
+  last: number | null;
 }
 
 /**
- * The score `key` had to reach on a take with these scores to level:
- * LEVEL_AT, or the best other row when that is higher. A tie with an
- * earlier trait keeps the level there (traitGain), which `levelPercent`
- * answers by never reaching 100 and `closestLine` by naming the tie.
+ * All nine traits with their derived levels, in canonical order. `reps`
+ * oldest first, as fetchReps returns them (only `last` reads the order).
  */
-export function needToLevel(key: TraitKey, scores: Partial<Record<TraitKey, number>>): number {
-  let need = LEVEL_AT;
-  for (const t of TRAITS) {
-    if (t.key === key) continue;
-    const s = scores[t.key];
-    if (typeof s === "number" && !Number.isNaN(s) && s > need) need = s;
-  }
-  return need;
-}
-
-/**
- * The closest try as a level's bar, in whole percent: rounded down, so
- * it never says more than the try did, and at most 99, because a try
- * that reached what it needed leveled the trait and emptied the bar.
- */
-export function levelPercent(closest: Pick<ClosestTry, "score" | "need"> | null): number {
-  if (!closest || !(closest.need > 0) || !(closest.score > 0)) return 0;
-  return Math.min(99, Math.floor((100 * closest.score) / closest.need + 1e-9));
-}
-
-/**
- * All nine traits with their derived levels, in canonical order, and
- * how near each has come to its next one (#482). `reps` oldest first,
- * as fetchReps returns them: a level empties the trait's closest try,
- * and every scored take after it that read the trait can set a closer
- * one. Derived, like the level, so it is never stored and never rots.
- */
-export function traitLevels(reps: TraitRep[]): TraitLevel[] {
-  const levels = new Map<TraitKey, number>(TRAITS.map((t) => [t.key, 0]));
-  const closest = new Map<TraitKey, ClosestTry | null>(TRAITS.map((t) => [t.key, null]));
+export function traitLevels(reps: readonly TraitRep[]): TraitLevel[] {
+  const xp = new Map<TraitKey, number>(TRAITS.map((t) => [t.key, 0]));
+  const last = new Map<TraitKey, number | null>(TRAITS.map((t) => [t.key, null]));
   for (const rep of reps) {
-    // repTraitGain's gate: no stored dimensions, or not enough to score,
-    // levels nothing and is no try at anything either.
-    if (!rep.dimensions || !isScorable(substance(rep.transcript))) continue;
-    const scores = repScores(rep);
-    const gain = traitGain(scores);
-    for (const t of TRAITS) {
-      const score = scores[t.key];
-      if (typeof score !== "number" || Number.isNaN(score)) continue;
-      if (gain?.key === t.key) {
-        levels.set(t.key, (levels.get(t.key) ?? 0) + gain.levels);
-        closest.set(t.key, null);
-        continue;
-      }
-      const need = needToLevel(t.key, scores);
-      const best = closest.get(t.key) ?? null;
-      if (!best || score / need > best.score / best.need) {
-        closest.set(t.key, { score, need, leveled: gain?.key ?? null });
-      }
+    for (const [key, paid] of Object.entries(repTraitXp(rep)) as [TraitKey, number][]) {
+      xp.set(key, (xp.get(key) ?? 0) + paid);
+      last.set(key, paid);
     }
   }
   return TRAITS.map((t) => {
-    const c = closest.get(t.key) ?? null;
-    return { ...t, level: levels.get(t.key) ?? 0, percent: levelPercent(c), closest: c };
+    const total = xp.get(t.key) ?? 0;
+    const s = standing(total);
+    return {
+      ...t,
+      level: s.level,
+      xp: total,
+      into: s.into,
+      cost: s.cost,
+      percent: Math.min(99, Math.floor((100 * s.into) / s.cost)),
+      last: last.get(t.key) ?? null,
+    };
   });
 }
 
-/**
- * Best first, and at one level the one further into it (#482: the bar
- * beside the number says which); full ties keep canonical order, so the
- * ranking is stable.
- */
+/** Most XP first, which is the higher level, then further into it; ties keep canonical order. */
 export function rankedTraits(levels: TraitLevel[]): TraitLevel[] {
-  return [...levels].sort((a, b) => b.level - a.level || b.percent - a.percent);
+  return [...levels].sort((a, b) => b.xp - a.xp);
 }
 
 /** What a trait's level says wherever it shows (#482): You's rows and the trait's sheet. */
@@ -231,25 +185,70 @@ export function levelLine(t: Pick<TraitLevel, "level" | "percent">): LevelLine {
 }
 
 /**
- * The closest try, said under the level on its sheet (#482), so the bar
- * traces to a number: "Closest since level 6: 28 of the 70 it needed."
- * An empty bar after a level says why ("Closest since level 1: none
- * yet."); null where nothing has read the trait at all, which "Not yet"
- * has said. A tie lost says so ("Closest yet: 100, tied with Filler
- * control, which leveled instead."): its bar stops at 99, and "100 of
- * the 100 it needed" would say it had what it needed and did not level.
- * That is common, not a corner: no ums is Filler control 100, and no
- * restart that same take is Restart control 100. `nameOf` is the name
- * the screen prints (You passes DIMENSION_NAME).
+ * The trait's XP, said under its level on its sheet, so the bar traces
+ * to numbers: "370 XP to level 7. Last recording +45." The XP still to
+ * go, as You's card says its own (#485: "40 of 50 to level 2" failed the
+ * two-second test), then what the newest recording that read the trait
+ * paid it, which is that recording's score here. A trait nothing has
+ * read says only the first.
  */
-export function closestLine(
-  t: Pick<TraitLevel, "level" | "closest">,
-  nameOf: (key: TraitKey) => string = (key) => TRAITS.find((x) => x.key === key)?.name ?? key
-): string | null {
-  const since = t.level > 0 ? `Closest since level ${t.level}` : "Closest yet";
-  const c = t.closest;
-  if (!c) return t.level > 0 ? `${since}: none yet.` : null;
-  const score = Math.round(c.score);
-  if (c.score >= c.need && c.leveled) return `${since}: ${score}, tied with ${nameOf(c.leveled)}, which leveled instead.`;
-  return `${since}: ${score} of the ${Math.round(c.need)} it needed.`;
+export function xpLine(t: Pick<TraitLevel, "level" | "into" | "cost" | "last">): string {
+  const toGo = `${t.cost - t.into} XP to level ${t.level + 1}.`;
+  return t.last === null ? toGo : `${toGo} Last recording +${t.last}.`;
+}
+
+/** A level one recording crossed: from where it stood to where it stands. */
+export interface LevelUp {
+  key: TraitKey;
+  from: number;
+  to: number;
+  /** What the recording paid the trait. */
+  paid: number;
+}
+
+/**
+ * What one recording crossed: the traits whose level is higher after it
+ * than before, under the same rule on both sides, so nothing can read as
+ * a level going down and a recording that crossed nothing returns [].
+ * Biggest first: the most levels crossed, then the higher level reached,
+ * then the more XP paid, then canonical order. `shown` keeps only the
+ * traits the screen the person goes to can show (a free account's You
+ * folds the four the Index only reads).
+ */
+export function levelUps(
+  before: readonly TraitLevel[],
+  after: readonly TraitLevel[],
+  shown: (key: TraitKey) => boolean = () => true
+): LevelUp[] {
+  const was = new Map(before.map((t) => [t.key, t]));
+  const out: (LevelUp & { order: number })[] = [];
+  after.forEach((t, order) => {
+    const b = was.get(t.key);
+    const from = b?.level ?? 0;
+    if (t.level <= from || !shown(t.key)) return;
+    out.push({ key: t.key, from, to: t.level, paid: t.xp - (b?.xp ?? 0), order });
+  });
+  out.sort((a, b) => b.to - b.from - (a.to - a.from) || b.to - a.to || b.paid - a.paid || a.order - b.order);
+  return out.map(({ key, from, to, paid }) => ({ key, from, to, paid }));
+}
+
+/**
+ * The level-up moment, in words: at most two named, biggest first, the
+ * rest counted. "Pace reached level 3", "Pace reached level 3, Pausing
+ * level 2", "Pace reached level 3, Variety level 3 and 3 more". `short`
+ * is what stays when the glance's budget cuts the tail. Null for none.
+ */
+export function levelUpLine(
+  ups: readonly LevelUp[],
+  nameOf: (key: TraitKey) => string
+): { text: string; short: string | null } | null {
+  if (ups.length === 0) return null;
+  const [first, second] = ups;
+  const head = `${nameOf(first.key)} reached level ${first.to}`;
+  if (!second) return { text: head, short: null };
+  const more = ups.length - 2;
+  return {
+    text: `${head}, ${nameOf(second.key)} level ${second.to}${more > 0 ? ` and ${more} more` : ""}`,
+    short: head,
+  };
 }

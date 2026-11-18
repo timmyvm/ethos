@@ -154,8 +154,8 @@ describe("the sheet's body, in order", () => {
   });
 
   it("says no level-up anywhere in the sheet, not even in the row the take levels (#484)", () => {
-    /* A take a gate would score (repTraitGain re-runs the substance gate
-       on the transcript), with Pace at 96: it levels Pace twice on You.
+    /* A take a gate would score (repTraitXp re-runs the substance gate
+       on the transcript), with Pace at 96: it pays Pace 96 XP on You.
        "Leveled twice" stood in that row and failed the two-second test
        on its own: no level is on this screen to read it against. */
     const strong = {

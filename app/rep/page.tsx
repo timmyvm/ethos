@@ -176,7 +176,8 @@ import {
   roundGlance,
   sheetSections,
 } from "@/lib/glance";
-import { fillerTrend } from "@/lib/dimension-rows";
+import { DIMENSION_NAME, fillerTrend, isTraitKey } from "@/lib/dimension-rows";
+import { levelUpLine, levelUps, traitLevels } from "@/lib/traits";
 import { carryCue, cueDay, cueGlance, warmsUp, type CueState } from "@/lib/carried-cue";
 import { skipWarmup, useCarriedCue, warmupSkipped } from "@/lib/cue-store";
 import { CueWarmup } from "@/components/rep/CueWarmup";
@@ -433,6 +434,9 @@ function RepScreen() {
   const routerRef = useRef(router);
   routerRef.current = router;
   const [premium, setPremium] = useState(false);
+  /** The plan as it stands when a take's read lands, for the level-up moment's traits (#498). */
+  const premiumRef = useRef(premium);
+  premiumRef.current = premium;
   /**
    * The plan as read, for the game of the day's gate: null until the
    * read lands, and for good when it fails, because unknown is never
@@ -664,6 +668,12 @@ function RepScreen() {
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
+  /**
+   * The levels this recording crossed (#498), in words, or null for none:
+   * trait levels before it and with it, under the same rule, read off the
+   * history captured before the take and the stored row read after it.
+   */
+  const [levelUp, setLevelUp] = useState<{ text: string; short: string | null } | null>(null);
   /**
    * The first take under #476's pause rules, set beside one scored
    * before them (#491): one line under the delta saying the jump is
@@ -1130,6 +1140,20 @@ function RepScreen() {
             });
             setBests(rewards.bests);
             setClosing(rewards.closing);
+            /* The level-up moment (#498): the stored row, so a save that
+               failed crosses nothing (You would not show it), against the
+               same history without it, so no level can read as going down.
+               Only the traits You shows: a free account's folds four. */
+            const stored = analyzed.repId ? reps.find((r) => r.id === analyzed.repId) : undefined;
+            const prior = before.reps.filter((r) => r.id !== analyzed.repId);
+            setLevelUp(
+              stored
+                ? levelUpLine(
+                    levelUps(traitLevels(prior), traitLevels([...prior, stored]), premiumRef.current ? () => true : isTraitKey),
+                    (key) => DIMENSION_NAME[key]
+                  )
+                : null
+            );
           }
           // The next take on this screen (Retake, Go again, Practice N
           // of 3, Next lesson, Another round all keep it mounted) is
@@ -1737,6 +1761,7 @@ function RepScreen() {
     setRepCount((n) => baselineRef.current?.count ?? n);
     setResult(null);
     setBests([]);
+    setLevelUp(null);
     setRulesNoteNow(null);
     setClosing(null);
     // A streak's moment still owed stays owed (#480): the retake's exit plays it.
@@ -1811,6 +1836,7 @@ function RepScreen() {
     setResult(null);
     setPresence(null);
     setBests([]);
+    setLevelUp(null);
     setRulesNoteNow(null);
     setClosing(null);
     setEarnedNow(false);
@@ -1999,6 +2025,7 @@ function RepScreen() {
           result={result}
           config={config}
           bests={bests}
+          levelUp={levelUp}
           rulesNote={rulesNoteNow}
           closing={closing}
           earned={earnedNow}
@@ -2851,6 +2878,7 @@ function Results({
   result,
   config,
   bests,
+  levelUp,
   rulesNote: rulesNoteFor,
   closing,
   earned,
@@ -2882,6 +2910,8 @@ function Results({
   result: AnalyzeResponse;
   config: RepConfig;
   bests: RewardMoment[];
+  /** The levels this recording crossed, in words (#498): the earned line under the ladder. */
+  levelUp: { text: string; short: string | null } | null;
   /** The first take under #476 beside one scored before it (#491): its line under the delta. */
   rulesNote: RulesNote | null;
   closing: RewardMoment | null;
@@ -3408,6 +3438,7 @@ function Results({
       earnedLine({
         bests,
         ladderMoment: ladder?.moment ?? null,
+        levelUp,
         trait,
         presence:
           presence && premium

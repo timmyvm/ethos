@@ -389,6 +389,19 @@ describe("earnedLine", () => {
     expect(earnedLine({ bests: [round, held], trait: "pause" })?.text).toBe("Most pauses yet");
     expect(earnedLine({ bests: [round, held], trait: "fillers" })?.text).toBe("Best round yet");
   });
+  it("says the levels a recording crossed under the ladder and over a best Index (#498), its tail cut first", () => {
+    const levelUp = { text: "Pace reached level 3, Pausing level 2", short: "Pace reached level 3" };
+    expect(earnedLine({ bests: [index, clean], ladderMoment: ladder, levelUp, trait: "fillers" })?.text).toBe("Level 3 is open");
+    expect(earnedLine({ bests: [index, clean], levelUp, trait: "fillers" })).toEqual({ ...levelUp, tone: "earned" });
+    expect(earnedLine({ bests: [index], levelUp: null, trait: "fillers" })?.text).toBe("Best yet, past your 690");
+    const f = fitGlance({
+      fixed: ["The cold open", "+1", "665", "/1000", "▲ 3 since last time", "Every number", "Practice 2 of 3", "Retake"],
+      line: "4 fillers, first 0:02",
+      cue: "Practice 2: under 4.",
+      earned: earnedLine({ bests: [], levelUp, trait: "fillers" }),
+    });
+    expect([f.cue, f.earned]).toEqual([null, "Pace reached level 3"]);
+  });
   it("is empty when nothing was earned, and ink for a second score", () => {
     expect(earnedLine({ bests: [], trait: "fillers" })).toBeNull();
     /* The #427 review: no bare "▲ 4" beside Presence on the glance; its

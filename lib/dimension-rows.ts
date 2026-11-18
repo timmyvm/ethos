@@ -23,18 +23,18 @@
 import { TRAIT, type TraitId } from "@/content/traits";
 import { dimensionPoints, INDEX_WEIGHTS, type Tier1Scores } from "./index-score";
 import { measured } from "./trait-readings";
-import { LEVEL_AT, type TraitKey } from "./traits";
+import type { TraitKey } from "./traits";
 
 /** How a row went, in one word. */
 export type Band = "strong" | "okay" | "work";
 
 /**
- * Strong from 70 of 100: the bar a trait levels at on You (lib/traits.ts
- * LEVEL_AT), so a row that reads Strong here is exactly a row that could
- * level its trait. One line for both, never two thresholds a person has
- * to reconcile.
+ * Strong from 70 of 100. Since #498 a trait levels on XP, every row's
+ * score paid to its trait, so no row has to read Strong to count; a
+ * Strong read is still worth a trait's whole first level (lib/traits.ts
+ * LEVEL_STEP, also 70).
  */
-export const STRONG_AT = LEVEL_AT;
+export const STRONG_AT = 70;
 /** Okay from half the scale; under half is the one to work on. */
 export const OKAY_AT = 50;
 

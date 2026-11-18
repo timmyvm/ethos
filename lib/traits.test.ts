@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
+import type { Tier1Scores } from "./index-score";
 import {
-  closestLine,
-  DOUBLE_AT,
-  LEVEL_AT,
+  LEVEL_STEP,
+  levelCost,
   levelLine,
-  levelPercent,
-  needToLevel,
+  levelUpLine,
+  levelUps,
   rankedTraits,
-  repTraitGain,
+  repTraitXp,
+  standing,
   TRAITS,
-  traitGain,
   traitLevels,
+  xpFor,
+  xpLine,
   type TraitKey,
+  type TraitLevel,
   type TraitRep,
 } from "./traits";
 
@@ -21,332 +24,414 @@ const SPEECH =
   "using it, walk through one honest morning with the app, and then show " +
   "what the numbers said about that same morning afterwards.";
 
-/** The #54 rep: fluent-sounding nothing. Must never level anything. */
+/** The #54 rep: fluent-sounding nothing. Must never pay anything. */
 const EMPTY_SPEECH =
   "i don't know i don't know i don't know i don't know i don't know " +
   "i don't know i don't know i don't know";
 
-function rep(
-  tier1: Partial<Record<string, number>>,
-  tier2: Partial<Record<string, { score: number }>> | null = null,
-  transcript = SPEECH
-): TraitRep {
+const TIER2 = ["structure", "credibility", "engagement", "confidence"] as const;
+
+/** A stored rep from flat scores: tier-1 keys as they are, judged keys into tier2. */
+function rep(scores: Partial<Record<TraitKey, number>>, transcript = SPEECH): TraitRep {
+  const tier1: Record<string, number> = {};
+  const tier2: Record<string, { score: number }> = {};
+  for (const [k, v] of Object.entries(scores)) {
+    if ((TIER2 as readonly string[]).includes(k)) tier2[k] = { score: v as number };
+    else tier1[k] = v as number;
+  }
   return {
     transcript,
-    dimensions: {
-      tier1: { pause: 0, fillers: 0, pace: 0, range: 0, ...tier1 },
-      tier2,
-    },
-  } as TraitRep;
+    dimensions: { tier1: tier1 as unknown as Tier1Scores, tier2: Object.keys(tier2).length ? tier2 : null },
+  };
 }
 
-describe("traitGain", () => {
-  it("levels the rep's best dimension once it clears the bar", () => {
-    const gain = traitGain({ pause: 40, fillers: 82, pace: 71 });
-    expect(gain).toEqual({
-      key: "fillers",
-      name: "Fillers",
-      score: 82,
-      levels: 1,
-    });
+const of = (levels: TraitLevel[], key: TraitKey) => levels.find((t) => t.key === key)!;
+
+describe("the cost of a level", () => {
+  it("is LEVEL_STEP times the level: one Strong read for level 1, and a little more each level after", () => {
+    expect(LEVEL_STEP).toBe(70);
+    expect([1, 2, 3, 7, 10].map(levelCost)).toEqual([70, 140, 210, 490, 700]);
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8].map(xpFor)).toEqual([0, 70, 210, 420, 700, 1050, 1470, 1960, 2520]);
   });
 
-  it("doubles the level for a truly good score", () => {
-    expect(traitGain({ pause: DOUBLE_AT })?.levels).toBe(2);
-    expect(traitGain({ pause: DOUBLE_AT - 1 })?.levels).toBe(1);
-  });
-
-  it("levels nothing when nothing clears the bar", () => {
-    expect(traitGain({ pause: LEVEL_AT - 1, fillers: 50 })).toBeNull();
-    expect(traitGain({})).toBeNull();
-  });
-
-  it("levels exactly at the bar, not just above it", () => {
-    expect(traitGain({ range: LEVEL_AT })?.key).toBe("range");
-  });
-
-  it("breaks ties toward the canonical order, so reruns agree", () => {
-    expect(traitGain({ structure: 85, pause: 85 })?.key).toBe("pause");
-    expect(traitGain({ confidence: 80, engagement: 80 })?.key).toBe(
-      "engagement"
-    );
-  });
-
-  it("ignores absent dimensions rather than treating them as zero", () => {
-    const gain = traitGain({ fillers: 75 });
-    expect(gain?.key).toBe("fillers");
+  it("stands a total of XP at its level, the XP into it and the next one's cost", () => {
+    expect(standing(0)).toEqual({ level: 0, into: 0, cost: 70 });
+    expect(standing(69)).toEqual({ level: 0, into: 69, cost: 70 });
+    expect(standing(70)).toEqual({ level: 1, into: 0, cost: 140 });
+    expect(standing(1590)).toEqual({ level: 6, into: 120, cost: 490 });
+    for (const bad of [Number.NaN, -40, Number.NEGATIVE_INFINITY]) expect(standing(bad)).toEqual({ level: 0, into: 0, cost: 70 });
   });
 });
 
-describe("repTraitGain", () => {
-  it("reads judged scores alongside the measured tier", () => {
-    const gain = repTraitGain(
-      rep({ pause: 60 }, { structure: { score: 88 } })
-    );
-    expect(gain?.key).toBe("structure");
-    expect(gain?.score).toBe(88);
+describe("repTraitXp", () => {
+  it("pays each trait the take read its score, rounded and held to 0 to 100", () => {
+    expect(repTraitXp(rep({ pause: 44.6, fillers: 100, pace: 0, range: 120, structure: 61 }))).toEqual({
+      pause: 45,
+      fillers: 100,
+      pace: 0,
+      range: 100,
+      structure: 61,
+    });
   });
 
-  /*
-   * The integrity gate. A near-empty rep stores tier1 numbers that are
-   * true in isolation (clean pace, zero fillers) and meaningless as an
-   * achievement — the same lie #54 caught in stars. The derivation
-   * re-runs the engine's own substance gate on the stored transcript.
-   */
-  it("never levels a trait on a rep that wasn't enough to score", () => {
-    expect(
-      repTraitGain(rep({ pace: 95, fillers: 100 }, null, EMPTY_SPEECH))
-    ).toBeNull();
+  it("pays nothing for a take not enough to score, or with no stored dimensions", () => {
+    expect(repTraitXp(rep({ pace: 95, fillers: 100 }, EMPTY_SPEECH))).toEqual({});
+    expect(repTraitXp({ transcript: SPEECH, dimensions: null })).toEqual({});
   });
 
-  it("returns nothing for a rep with no stored dimensions", () => {
-    expect(
-      repTraitGain({ transcript: SPEECH, dimensions: null })
-    ).toBeNull();
+  it("leaves out a trait the take did not read: absent, not 0", () => {
+    const paid = repTraitXp(rep({ pause: 50, fillers: Number.NaN }));
+    expect(paid).toEqual({ pause: 50 });
+    expect("engagement" in paid).toBe(false);
   });
 });
 
 describe("traitLevels", () => {
-  it("derives every trait, level zero included, in canonical order", () => {
+  it("is all nine at level 0 with nothing read", () => {
     const levels = traitLevels([]);
-    expect(levels).toHaveLength(TRAITS.length);
     expect(levels.map((t) => t.key)).toEqual(TRAITS.map((t) => t.key));
-    expect(levels.every((t) => t.level === 0)).toBe(true);
+    for (const t of levels) expect(t).toMatchObject({ level: 0, xp: 0, into: 0, cost: 70, percent: 0, last: null });
   });
 
-  it("sums gains across reps, doubles included", () => {
-    const levels = traitLevels([
-      rep({ fillers: 80 }),
-      rep({ fillers: 92 }),
-      rep({ pause: 75 }),
-      rep({ pause: 40, fillers: 30 }),
-    ]);
-    const byKey = Object.fromEntries(levels.map((t) => [t.key, t.level]));
-    expect(byKey.fillers).toBe(3);
-    expect(byKey.pause).toBe(1);
-    expect(byKey.pace).toBe(0);
+  it("adds every scored recording's score to the trait, and says how far into the level", () => {
+    const levels = traitLevels([rep({ fillers: 92, pace: 60 }), rep({ fillers: 85, pace: 80 }), rep({ fillers: 93, pace: 40 })]);
+    // Filler control: 92 + 85 + 93 = 270, past 210 for level 2, 60 of level 3's 210.
+    expect(of(levels, "fillers")).toMatchObject({ level: 2, xp: 270, into: 60, cost: 210, percent: 28, last: 93 });
+    // Pace: 180, level 1 (70), 110 of level 2's 140.
+    expect(of(levels, "pace")).toMatchObject({ level: 1, xp: 180, into: 110, cost: 140, percent: 78, last: 40 });
+    expect(of(levels, "range")).toMatchObject({ level: 0, xp: 0, last: null });
   });
 
-  it("ranks best first and keeps canonical order through ties", () => {
-    const ranked = rankedTraits(
-      traitLevels([rep({ pause: 75 }), rep({ range: 91 }), rep({ pace: 75 })])
-    );
-    expect(ranked[0].key).toBe("range");
-    expect(ranked[1].key).toBe("pause");
-    expect(ranked[2].key).toBe("pace");
+  it("rounds the bar down and never draws it full", () => {
+    expect(of(traitLevels([rep({ pace: 69 })]), "pace").percent).toBe(98);
+    expect(of(traitLevels([rep({ pace: 1 })]), "pace").percent).toBe(1);
+    expect(of(traitLevels([rep({ pace: 70 })]), "pace")).toMatchObject({ level: 1, percent: 0 });
+  });
+
+  it("reads recordings oldest first: `last` is the newest that read the trait, and the levels are the same in any order", () => {
+    const takes = [rep({ pause: 30, pace: 90 }), rep({ pause: 80 }), rep({ pause: 55, range: 10 })];
+    const forward = traitLevels(takes);
+    const back = traitLevels([...takes].reverse());
+    expect(of(forward, "pause").last).toBe(55);
+    expect(of(back, "pause").last).toBe(30);
+    // Pace was read once, by the oldest: still its last.
+    expect(of(forward, "pace").last).toBe(90);
+    expect(forward.map((t) => [t.level, t.xp])).toEqual(back.map((t) => [t.level, t.xp]));
   });
 });
 
-/*
- * #482: a level's bar. A level is one recording (#159), so the app keeps
- * nothing between two levels; the bar is the closest try since the
- * level, as a share of what that try needed to level the trait.
- */
-describe("needToLevel", () => {
-  it("is the bar when every other row is under it", () => {
-    expect(needToLevel("pace", { pace: 60, fillers: 50, pause: 69 })).toBe(LEVEL_AT);
-  });
+/* ---- the properties --------------------------------------------------------- */
 
-  it("is the best other row when that is higher, since the level goes to the best row", () => {
-    expect(needToLevel("pace", { pace: 76, fillers: 80, pause: 50 })).toBe(80);
-  });
+/** A seeded generator, so every run draws the same accounts (mulberry32). */
+function seeded(seed: number) {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  it("is met or passed on every take that levels the trait, and passed on none that does not", () => {
-    // Met but not passed is a tie lost to an earlier trait (traitGain):
-    // the bar stops at 99 and the sheet names the tie (closestLine).
-    const takes: Partial<Record<TraitKey, number>>[] = [
-      { pause: 80, fillers: 80 },
-      { pause: 79, fillers: 80 },
-      { fillers: 100, repairs: 100, pace: 95 },
-      { fillers: 70, range: 70, structure: 69 },
-      { pace: 69, range: 50 },
-      { structure: 91, confidence: 91, engagement: 90 },
-    ];
-    for (const scores of takes) {
-      const gain = traitGain(scores);
-      for (const [key, score] of Object.entries(scores) as [TraitKey, number][]) {
-        const need = needToLevel(key, scores);
-        const said = `${key} on ${JSON.stringify(scores)}`;
-        if (gain?.key === key) expect(score >= need, said).toBe(true);
-        else expect(score > need, said).toBe(false);
+/** A recording of random scores, some traits unread, some takes too short to score. */
+function randomTake(r: () => number): TraitRep {
+  const s: Partial<Record<TraitKey, number>> = {};
+  for (const t of TRAITS) if (r() > 0.15) s[t.key] = Math.round(r() * 100);
+  return rep(s, r() < 0.1 ? EMPTY_SPEECH : SPEECH);
+}
+
+describe("the rule's properties, over 200 random histories", () => {
+  const r = seeded(4981);
+  const histories = Array.from({ length: 200 }, () => Array.from({ length: 1 + Math.floor(r() * 30) }, () => randomTake(r)));
+
+  it("never lowers a level, or any XP, when a recording is added", () => {
+    for (const h of histories) {
+      let before = traitLevels([]);
+      for (let k = 1; k <= h.length; k++) {
+        const after = traitLevels(h.slice(0, k));
+        for (const t of after) {
+          const b = of(before, t.key);
+          expect(t.level).toBeGreaterThanOrEqual(b.level);
+          expect(t.xp).toBeGreaterThanOrEqual(b.xp);
+        }
+        before = after;
       }
     }
   });
 
-  it("never counts the trait's own score, and skips rows the take does not have", () => {
-    expect(needToLevel("fillers", { fillers: 95 })).toBe(LEVEL_AT);
-    expect(needToLevel("range", { range: 30, structure: Number.NaN })).toBe(LEVEL_AT);
+  it("changes nothing for a take too short to score, whatever its rows read", () => {
+    for (const h of histories.slice(0, 50)) {
+      const unscorable = rep(Object.fromEntries(TRAITS.map((t) => [t.key, 100])), EMPTY_SPEECH);
+      expect(traitLevels([...h, unscorable])).toEqual(traitLevels(h));
+      expect(levelUps(traitLevels(h), traitLevels([...h, unscorable]))).toEqual([]);
+    }
+  });
+
+  it("pays a trait read at 0 nothing: its XP and level stay, and only `last` says the 0", () => {
+    for (const h of histories.slice(0, 50)) {
+      const before = traitLevels(h);
+      const after = traitLevels([...h, rep({ fillers: 0, pace: 0 })]);
+      for (const key of ["fillers", "pace"] as const) {
+        expect(of(after, key)).toEqual({ ...of(before, key), last: 0 });
+      }
+    }
+  });
+
+  it("only ever names a level that went up, and every one that did", () => {
+    for (const h of histories) {
+      const before = traitLevels(h.slice(0, -1));
+      const after = traitLevels(h);
+      const ups = levelUps(before, after);
+      for (const u of ups) expect(u.to).toBeGreaterThan(u.from);
+      const rose = after.filter((t) => t.level > of(before, t.key).level).map((t) => t.key);
+      expect(ups.map((u) => u.key).sort()).toEqual([...rose].sort());
+    }
   });
 });
 
-describe("levelPercent", () => {
-  it("is the try's share of what it needed, in whole percent", () => {
-    expect(levelPercent({ score: 28, need: 70 })).toBe(40);
-    expect(levelPercent({ score: 76, need: 80 })).toBe(95);
+/* ---- the curve, over synthetic accounts drawn from production ---------------- */
+
+/*
+ * Production, 42 accounts (18 Nov): recordings per account p25 1, median
+ * 4.5, p75 7.75, p90 14, max 29. Tier-1 scores per recording, p25 / p50 /
+ * p75 / p90; the judged four assumed at roughly 40 / 60 / 75 / 85.
+ */
+const PERCENTILES: Record<TraitKey, [number, number, number, number]> = {
+  fillers: [7, 61, 100, 100],
+  pace: [42, 75, 90, 100],
+  pause: [11, 20, 45, 85],
+  range: [74, 90, 100, 100],
+  repairs: [0, 0, 52, 100],
+  structure: [40, 60, 75, 85],
+  credibility: [40, 60, 75, 85],
+  engagement: [40, 60, 75, 85],
+  confidence: [40, 60, 75, 85],
+};
+/** The five the lessons teach: a free account's You shows these. */
+const FIVE: TraitKey[] = ["pause", "fillers", "repairs", "pace", "range"];
+
+/** The score at quantile q, straight lines between the percentiles, 0 at the bottom and 100 at the top. */
+function scoreAt(p: [number, number, number, number], q: number): number {
+  const xs = [0, 0.25, 0.5, 0.75, 0.9, 1];
+  const ys = [0, ...p, 100];
+  for (let i = 1; i < xs.length; i++) {
+    if (q <= xs[i]) return ys[i - 1] + ((q - xs[i - 1]) / (xs[i] - xs[i - 1])) * (ys[i] - ys[i - 1]);
+  }
+  return 100;
+}
+
+/** A standard normal (Box-Muller) and its CDF (Abramowitz and Stegun 7.1.26). */
+function normal(r: () => number): number {
+  const u = 1 - r();
+  const v = r();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function phi(z: number): number {
+  const x = Math.abs(z) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * x);
+  const erf = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return 0.5 * (1 + Math.sign(z) * erf);
+}
+
+/*
+ * One synthetic account: thirty recordings, each trait's score drawn at a
+ * quantile that leans on the account's own skill (correlation 0.5), so
+ * every trait's scores across all accounts keep production's percentiles
+ * while a strong speaker stays strong from one take to the next.
+ */
+const RHO = 0.5;
+function account(r: () => number): TraitRep[] {
+  const skill = normal(r);
+  return Array.from({ length: 30 }, () =>
+    rep(
+      Object.fromEntries(
+        TRAITS.map((t) => [t.key, Math.round(scoreAt(PERCENTILES[t.key], phi(RHO * skill + Math.sqrt(1 - RHO * RHO) * normal(r))))])
+      )
+    )
+  );
+}
+
+const median = (xs: number[]) => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+};
+const at = (xs: number[], q: number) => [...xs].sort((a, b) => a - b)[Math.floor(q * (xs.length - 1))];
+
+describe("the curve (#498): what accounts like production's reach", () => {
+  const r = seeded(498);
+  const accounts = Array.from({ length: 400 }, () => account(r));
+  /* The production counts: p25, median, p75, p90, max, and thirty. */
+  const COUNTS = [1, 2, 5, 8, 14, 29, 30];
+  const rows = COUNTS.map((n) => {
+    const best5: number[] = [];
+    const best9: number[] = [];
+    const up5: number[] = [];
+    for (const a of accounts) {
+      const levels = traitLevels(a.slice(0, n));
+      best5.push(Math.max(...FIVE.map((k) => of(levels, k).level)));
+      best9.push(Math.max(...levels.map((t) => t.level)));
+      up5.push(FIVE.filter((k) => of(levels, k).level > 0).length);
+    }
+    return { n, best5, best9, up5 };
+  });
+  const row = (n: number) => rows.find((x) => x.n === n)!;
+  const table = [
+    "recordings | best of the five p25/p50/p75 | best of nine p50 | of the five at level 1+, p50",
+    ...rows.map(
+      (x) =>
+        `${String(x.n).padStart(10)} | ${`${at(x.best5, 0.25)} / ${median(x.best5)} / ${at(x.best5, 0.75)}`.padEnd(27)} | ${String(median(x.best9)).padEnd(16)} | ${median(x.up5)}`
+    ),
+  ].join("\n");
+
+  it("prints the table", () => {
+    expect(table).toBe(
+      [
+        "recordings | best of the five p25/p50/p75 | best of nine p50 | of the five at level 1+, p50",
+        "         1 | 1 / 1 / 1                   | 1                | 2",
+        "         2 | 1 / 1 / 1                   | 1                | 3",
+        "         5 | 2 / 2 / 3                   | 2                | 5",
+        "         8 | 3 / 3 / 4                   | 3                | 5",
+        "        14 | 4 / 5 / 5                   | 5                | 5",
+        "        29 | 7 / 7 / 8                   | 7                | 5",
+        "        30 | 7 / 7 / 8                   | 7                | 5",
+      ].join("\n")
+    );
   });
 
-  it("rounds down, so it never says more than the try did", () => {
-    expect(levelPercent({ score: 50, need: 80 })).toBe(62);
-    expect(levelPercent({ score: 69, need: 70 })).toBe(98);
-    expect(levelPercent({ score: 29, need: 100 })).toBe(29);
+  it("takes one or two traits to level 1 on a first decent recording, and nearly nine first recordings in ten level one", () => {
+    expect(median(row(1).up5)).toBeGreaterThanOrEqual(1);
+    expect(median(row(1).up5)).toBeLessThanOrEqual(2);
+    expect(row(1).up5.filter((x) => x > 0).length / accounts.length).toBeGreaterThan(0.85);
   });
 
-  it("stops at 99: a try that reached what it needed leveled the trait", () => {
-    expect(levelPercent({ score: 80, need: 80 })).toBe(99);
+  it("puts a five-recording account at level 2 to 3 in its best trait", () => {
+    expect(median(row(5).best5)).toBeGreaterThanOrEqual(2);
+    expect(median(row(5).best5)).toBeLessThanOrEqual(3);
   });
 
-  it("is 0 with no try, or a try that scored nothing", () => {
-    expect(levelPercent(null)).toBe(0);
-    expect(levelPercent({ score: 0, need: 70 })).toBe(0);
+  it("puts a thirty-recording account at level 6 to 8 in its best trait", () => {
+    expect(median(row(30).best5)).toBeGreaterThanOrEqual(6);
+    expect(median(row(30).best5)).toBeLessThanOrEqual(8);
+  });
+
+  it("takes several strong recordings for each level past the first, more each level", () => {
+    /* A strong recording pays about 85 (Variety's median 90, Pace's p75 90). */
+    expect(levelCost(2) / 85).toBeGreaterThan(1.5);
+    expect(levelCost(7) / 85).toBeGreaterThan(5);
+    for (let l = 2; l < 20; l++) expect(levelCost(l + 1) - levelCost(l)).toBe(LEVEL_STEP);
   });
 });
 
-describe("traitLevels: how far into the level", () => {
-  /* scripts/look-levels.mjs's eight, oldest first. */
-  const T2 = { structure: { score: 60 }, credibility: { score: 55 }, confidence: { score: 58 } };
-  const MIX = [
-    rep({ pause: 50, fillers: 92, repairs: 30, pace: 60, range: 40 }, T2),
-    rep({ pause: 50, fillers: 60, repairs: 30, pace: 80, range: 40 }, T2),
-    rep({ pause: 50, fillers: 85, repairs: 30, pace: 60, range: 40 }, T2),
-    rep({ pause: 50, fillers: 93, repairs: 30, pace: 60, range: 40 }, T2),
-    rep({ pause: 50, fillers: 60, repairs: 30, pace: 82, range: 40 }, T2),
-    rep({ pause: 50, fillers: 80, repairs: 50, pace: 76, range: 40 }, T2),
-    rep({ pause: 55, fillers: 28, repairs: 30, pace: 60, range: 35 }, T2),
-    rep({ pause: 74, fillers: 20, repairs: 30, pace: 60, range: 35 }, T2),
-  ];
-  const levels = traitLevels(MIX);
-  const byKey = Object.fromEntries(levels.map((t) => [t.key, t]));
-  const one = (reps: TraitRep[], key: string) => traitLevels(reps).find((t) => t.key === key)!;
+/* ---- the level-up moment ------------------------------------------------------ */
 
-  it("keeps every level exactly as the rule counts it", () => {
-    expect(byKey.fillers.level).toBe(6);
-    expect(byKey.pace.level).toBe(2);
-    expect(byKey.pause.level).toBe(1);
-    expect(byKey.repairs.level).toBe(0);
+/* look-fixtures' live recording, which scripts/look-trait-xp.mjs stores after each history. */
+const LIVE = rep({ pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66, structure: 64, credibility: 58, engagement: 61, confidence: 66 });
+const flat = (n: number, s: Partial<Record<TraitKey, number>>) => Array.from({ length: n }, () => rep(s));
+const NAME: Record<TraitKey, string> = {
+  pause: "Pausing",
+  fillers: "Filler control",
+  repairs: "Restart control",
+  pace: "Pace",
+  range: "Variety",
+  structure: "Structure",
+  credibility: "Credibility",
+  engagement: "Engagement",
+  confidence: "Steadiness",
+};
+const nameOf = (k: TraitKey) => NAME[k];
+const five = (k: TraitKey) => FIVE.includes(k);
+/** Before and after one recording, under the same rule. */
+const moment = (history: TraitRep[], take = LIVE, shown = five) => levelUps(traitLevels(history), traitLevels([...history, take]), shown);
+
+describe("levelUps: what one recording crossed", () => {
+  it("names the first recording's levels: Pace and Pausing to 1, biggest payment first", () => {
+    const ups = moment([]);
+    expect(ups).toEqual([
+      { key: "pace", from: 0, to: 1, paid: 93 },
+      { key: "pause", from: 0, to: 1, paid: 72 },
+    ]);
+    expect(levelUpLine(ups, nameOf)).toEqual({ text: "Pace reached level 1, Pausing level 1", short: "Pace reached level 1" });
   });
 
-  it("is the closest try since the level, against what that try needed", () => {
-    expect(byKey.fillers.closest).toEqual({ score: 28, need: 70, leveled: null });
-    expect(byKey.fillers.percent).toBe(40);
-    // 76 on the take Filler control's 80 leveled: Pace had to beat 80.
-    expect(byKey.pace.closest).toEqual({ score: 76, need: 80, leveled: "fillers" });
-    expect(byKey.pace.percent).toBe(95);
-    expect(byKey.repairs.percent).toBe(62);
-    expect(byKey.range.percent).toBe(50);
-    expect(byKey.structure.percent).toBe(85);
+  it("names one level crossed alone", () => {
+    const ups = moment(flat(4, { pace: 95, pause: 55, fillers: 75, repairs: 25, range: 58 }));
+    expect(ups).toEqual([{ key: "pace", from: 2, to: 3, paid: 93 }]);
+    expect(levelUpLine(ups, nameOf)).toEqual({ text: "Pace reached level 3", short: null });
   });
 
-  it("is empty the moment a level lands, with no try since", () => {
-    expect(byKey.pause.closest).toBeNull();
-    expect(byKey.pause.percent).toBe(0);
+  it("names two, the higher level first", () => {
+    const ups = moment(flat(4, { pace: 95, pause: 40, fillers: 75, repairs: 25, range: 58 }));
+    expect(ups.map((u) => [u.key, u.to])).toEqual([
+      ["pace", 3],
+      ["pause", 2],
+    ]);
+    expect(levelUpLine(ups, nameOf)?.text).toBe("Pace reached level 3, Pausing level 2");
   });
 
-  it("is nothing for a trait no recording has read", () => {
-    expect(byKey.engagement.level).toBe(0);
-    expect(byKey.engagement.closest).toBeNull();
-    expect(byKey.engagement.percent).toBe(0);
+  it("names two of five and counts the rest", () => {
+    const ups = moment(flat(4, { pace: 95, pause: 40, fillers: 40, repairs: 5, range: 90 }));
+    expect(ups.map((u) => [u.key, u.to])).toEqual([
+      ["pace", 3],
+      ["range", 3],
+      ["pause", 2],
+      ["fillers", 2],
+      ["repairs", 1],
+    ]);
+    expect(levelUpLine(ups, nameOf)).toEqual({ text: "Pace reached level 3, Variety level 3 and 3 more", short: "Pace reached level 3" });
   });
 
-  it("holds the closest try: a weaker one after it does not lower the bar", () => {
-    const t = one([rep({ pause: 66 }), rep({ pause: 40 })], "pause");
-    expect(t.closest).toEqual({ score: 66, need: 70, leveled: null });
-    expect(t.percent).toBe(94);
+  it("crosses at most one level a trait: a recording pays at most 100, and every level past the first costs 140 or more", () => {
+    const r = seeded(49);
+    for (let i = 0; i < 300; i++) {
+      const h = Array.from({ length: 1 + Math.floor(r() * 25) }, () => randomTake(r));
+      for (const u of levelUps(traitLevels(h.slice(0, -1)), traitLevels(h))) expect(u.to - u.from).toBe(1);
+    }
   });
 
-  it("starts again after each level, so a try before it no longer counts", () => {
-    const t = one([rep({ pace: 69 }), rep({ pace: 72 }), rep({ pace: 35 })], "pace");
-    expect(t.level).toBe(1);
-    expect(t.closest).toEqual({ score: 35, need: 70, leveled: null });
-    expect(t.percent).toBe(50);
+  it("orders by levels crossed, then the level reached, then the XP paid, then canonical order", () => {
+    const at = (key: TraitKey, level: number, xp: number): TraitLevel => ({ key, name: key, level, xp, into: 0, cost: 70, percent: 0, last: null });
+    const before = [at("pause", 0, 0), at("fillers", 0, 0), at("pace", 1, 100), at("range", 1, 100), at("structure", 2, 300)];
+    const after = [at("pause", 2, 300), at("fillers", 1, 80), at("pace", 2, 200), at("range", 2, 180), at("structure", 2, 390)];
+    expect(levelUps(before, after).map((u) => u.key)).toEqual(["pause", "pace", "range", "fillers"]);
   });
 
-  it("never fills on a tie the earlier trait took, and names the tie", () => {
-    const pace = one([rep({ fillers: 80, pace: 80 })], "pace");
-    expect(pace.level).toBe(0);
-    expect(pace.closest).toEqual({ score: 80, need: 80, leveled: "fillers" });
-    expect(pace.percent).toBe(99);
-    expect(closestLine(pace)).toBe("Closest yet: 80, tied with Fillers, which leveled instead.");
+  it("lights nothing for a recording that crossed nothing", () => {
+    const ups = moment(flat(4, { pace: 55, pause: 55, fillers: 75, repairs: 25, range: 58 }));
+    expect(ups).toEqual([]);
+    expect(levelUpLine(ups, nameOf)).toBeNull();
   });
 
-  it("fills to 99 and no further, then empties on the take that levels it", () => {
-    const near = [rep({ pace: 99, fillers: 100 })];
-    expect(one(near, "pace")).toMatchObject({ level: 0, percent: 99 });
-    expect(closestLine(one(near, "pace"))).toBe("Closest yet: 99 of the 100 it needed.");
-    const leveled = one([...near, rep({ pace: 72 })], "pace");
-    expect(leveled).toMatchObject({ level: 1, percent: 0, closest: null });
-    expect(levelLine(leveled).said).toBe("Level 1, 0% of the way to level 2");
-    expect(closestLine(leveled)).toBe("Closest since level 1: none yet.");
-  });
-
-  it("counts no try from a recording that was not enough to score", () => {
-    const t = one([rep({ pause: 68 }, null, EMPTY_SPEECH)], "pause");
-    expect(t.closest).toBeNull();
-    expect(t.percent).toBe(0);
-  });
-
-  it("ranks one level by how far into it", () => {
-    const ranked = rankedTraits(levels);
-    expect(ranked.map((t) => t.key).slice(0, 5)).toEqual(["fillers", "pace", "pause", "structure", "confidence"]);
-    const zero = ranked.filter((t) => t.level === 0).map((t) => t.percent);
-    expect(zero).toEqual([...zero].sort((a, b) => b - a));
+  it("keeps to the traits the screen shows: a free account's moment never names a folded trait", () => {
+    const history = flat(1, { structure: 60, credibility: 60 });
+    expect(moment(history, LIVE, five).map((u) => u.key)).toEqual(["pace", "pause"]);
+    // Structure 60 + 64 and Credibility 60 + 58 cross 70 too; Engagement's 61 and Steadiness's 66 alone do not.
+    expect(moment(history, LIVE, () => true).map((u) => u.key)).toEqual(["pace", "pause", "structure", "credibility"]);
   });
 });
 
-describe("levelLine", () => {
+describe("levelLine and xpLine: what You's rows and sheet say", () => {
   it("says the level, and the bar's share of the way to the next", () => {
-    expect(levelLine({ level: 6, percent: 40 })).toEqual({
-      value: "Level 6",
-      percent: 40,
-      said: "Level 6, 40% of the way to level 7",
-    });
+    expect(levelLine({ level: 6, percent: 24 })).toEqual({ value: "Level 6", percent: 24, said: "Level 6, 24% of the way to level 7" });
+    expect(levelLine({ level: 1, percent: 0 })).toEqual({ value: "Level 1", percent: 0, said: "Level 1, 0% of the way to level 2" });
+    expect(levelLine({ level: 0, percent: 62 })).toMatchObject({ value: "Level 0", said: "Level 0, 62% of the way to level 1" });
   });
 
-  it("draws an empty bar after a level, a level being a real place to be", () => {
-    expect(levelLine({ level: 1, percent: 0 })).toEqual({
-      value: "Level 1",
-      percent: 0,
-      said: "Level 1, 0% of the way to level 2",
-    });
+  it("says Not yet at level 0 with nothing toward 1", () => {
+    expect(levelLine({ level: 0, percent: 0 })).toEqual({ value: "Not yet", percent: null, said: "Not yet at level 1" });
   });
 
-  it("says level 0 where a try has come part of the way", () => {
-    expect(levelLine({ level: 0, percent: 62 }).value).toBe("Level 0");
-    expect(levelLine({ level: 0, percent: 62 }).said).toBe("Level 0, 62% of the way to level 1");
+  it("traces the bar to numbers: the XP to go, and what the last recording paid", () => {
+    const t = of(traitLevels([...flat(16, { fillers: 99 }), rep({ fillers: 45 })]), "fillers");
+    // 16 × 99 + 45 = 1629: level 6 (1470), 159 of level 7's 490.
+    expect(t).toMatchObject({ level: 6, into: 159, cost: 490, last: 45 });
+    expect(xpLine(t)).toBe("331 XP to level 7. Last recording +45.");
+    expect(xpLine(of(traitLevels([rep({ repairs: 0 })]), "repairs"))).toBe("70 XP to level 1. Last recording +0.");
+    expect(xpLine(of(traitLevels([]), "engagement"))).toBe("70 XP to level 1.");
   });
 
-  it("says Not yet, with no bar, at level 0 with nothing toward 1", () => {
-    expect(levelLine({ level: 0, percent: 0 })).toEqual({
-      value: "Not yet",
-      percent: null,
-      said: "Not yet at level 1",
-    });
-  });
-});
-
-describe("closestLine", () => {
-  it("names the closest try and what it needed", () => {
-    expect(closestLine({ level: 6, closest: { score: 28, need: 70, leveled: null } })).toBe(
-      "Closest since level 6: 28 of the 70 it needed."
-    );
-    expect(closestLine({ level: 2, closest: { score: 76, need: 80, leveled: "fillers" } })).toBe(
-      "Closest since level 2: 76 of the 80 it needed."
-    );
-    expect(closestLine({ level: 0, closest: { score: 50, need: 80, leveled: "fillers" } })).toBe("Closest yet: 50 of the 80 it needed.");
-  });
-
-  it("names a tie lost in the screen's own name, never '100 of the 100 it needed'", () => {
-    const tie = { level: 3, closest: { score: 100, need: 100, leveled: "fillers" as const } };
-    expect(closestLine(tie, (k) => (k === "fillers" ? "Filler control" : k))).toBe(
-      "Closest since level 3: 100, tied with Filler control, which leveled instead."
-    );
-    // No ums and no restarts on one take: Filler control 100 levels, Follow-through ties it.
-    const repairs = traitLevels([rep({ fillers: 100, repairs: 100, pace: 80 })]).find((t) => t.key === "repairs")!;
-    expect(repairs).toMatchObject({ level: 0, percent: 99 });
-    expect(closestLine(repairs)).toBe("Closest yet: 100, tied with Fillers, which leveled instead.");
-  });
-
-  it("says why a bar is empty after a level, and nothing where Not yet has said it", () => {
-    expect(closestLine({ level: 1, closest: null })).toBe("Closest since level 1: none yet.");
-    expect(closestLine({ level: 0, closest: null })).toBeNull();
+  it("ranks by XP: the higher level first, and at one level the further into it", () => {
+    const levels = traitLevels([rep({ fillers: 100, pace: 90, pause: 100, range: 30 }), rep({ fillers: 100, pace: 90, pause: 15 })]);
+    expect(rankedTraits(levels).map((t) => t.key).slice(0, 4)).toEqual(["fillers", "pace", "pause", "range"]);
   });
 });

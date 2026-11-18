@@ -6,10 +6,10 @@ import { levelLine } from "@/lib/traits";
  * "trait levels as bars is bad. it should levels like level 6 and a
  * small bar in sage rounded small to communicate how far u are in level
  * 6"): the words "Level 6" and beside them a short, thin, rounded bar,
- * sage on a quiet track, filled as far as the trait's closest try since
- * that level came (lib/traits.ts `levelPercent`). Level 0 with nothing
- * toward 1 is "Not yet" and draws no bar, so an empty track only ever
- * means a level just reached.
+ * sage on a quiet track, filled with the trait XP into that level
+ * (#498, "xp that fills with practice"; lib/traits.ts `traitLevels`).
+ * Level 0 with nothing toward 1 is "Not yet" and draws no bar, so an
+ * empty track only ever means a level just reached.
  *
  * One element carries it for a screen reader: a progressbar named for
  * the trait, its value the sentence ("Level 6, 40% of the way to level

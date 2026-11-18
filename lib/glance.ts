@@ -419,21 +419,26 @@ const TRAIT_RECORD: Partial<Record<TraitId, string>> = {
 };
 
 /**
- * The earned line (DECISIONS #427): the slot that held "Pace leveled
- * twice", now only for something earned, first match wins: a game's
- * ladder moment, a new best Index, a record on the practice's own trait,
- * a game's best round. Otherwise a second score in ink: a Premium video
- * take's Presence, a boss's Accuracy. Otherwise nothing, and the slot
- * takes no height. Every record still stands as its card in the sheet.
+ * The earned line (DECISIONS #427): only for something earned, first
+ * match wins: a game's ladder moment, the levels this recording crossed
+ * (#498: "Pace reached level 3, Pausing level 2", lib/traits.ts
+ * `levelUpLine`), a new best Index, a record on the practice's own
+ * trait, a game's best round. Otherwise a second score in ink: a Premium
+ * video take's Presence, a boss's Accuracy. Otherwise nothing, and the
+ * slot takes no height. A level crossed ranks over a best Index because
+ * the glance is the only place it is said, while a best still stands as
+ * its card in the sheet and in Demos's celebrating pose.
  */
 export function earnedLine(p: {
   bests: RewardMoment[];
   ladderMoment?: RewardMoment | null;
+  levelUp?: { text: string; short: string | null } | null;
   trait: TraitId;
   presence?: { score: number; previous: number | null } | null;
   accuracy?: number | null;
 }): EarnedLine | null {
   if (p.ladderMoment) return { text: p.ladderMoment.headline, short: null, tone: "earned" };
+  if (p.levelUp) return { text: p.levelUp.text, short: p.levelUp.short, tone: "earned" };
   const index = p.bests.find((b) => b.headline === "Best Ethos yet");
   if (index) {
     const past = /past your (\d+)/.exec(index.detail)?.[1];

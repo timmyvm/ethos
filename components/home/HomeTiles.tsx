@@ -29,13 +29,13 @@ import { fmtRaw, measured, readTraitsFromRow, type TraitReading } from "@/lib/tr
  * Nov: "the glow in today traits is bad so lets remove that. fucks w
  * visual hierarchy"): no glass object, no light behind one. A trait's
  * colour is its flat glyph before its name (`TraitGlyph`, the app's
- * line set in the trait's tone) and its bar's fill, never the tile's
- * ground. What is earned (clearing your line, a clean stretch) fills in
- * sage.
+ * line set in the trait's tone), never the tile's ground. What is
+ * earned (clearing your line, a stretch with no filler) is sage: the
+ * line's check and the run's wave.
  *
  * Only the card stands an object (docs/plan-next.md section 1: only the
  * thing to do today glows). Today's line shows once: it lives in the
- * wide tile, where the trait's number already is, as a tick on its bar.
+ * wide tile's right half, beside the trait's number, as one sentence.
  *
  * Unknown is never zero: with no recording a trait prints a dash, and
  * so do today's line (absent under three readings in the week,

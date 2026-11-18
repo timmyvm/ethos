@@ -1,0 +1,6246 @@
+{
+ "meta": {
+  "label": "sketch",
+  "base": "http://localhost:3954",
+  "when": "2026-11-18T02:31:30.426Z",
+  "commit": "c0f4399",
+  "profile": {
+   "name": "phone",
+   "cpu": 4,
+   "downBps": 200000,
+   "upBps": 93750,
+   "rtt": 150,
+   "handshakeRtts": 2,
+   "downKbps": 1600,
+   "upKbps": 750
+  },
+  "supabaseServerMs": 40,
+  "runs": 3,
+  "chromium": "153.0.8010.12",
+  "viewport": "390x844 @3x",
+  "notes": "Times in ms from navigation start (tabs: from the tap). ready = first frame with the screen's own data drawn. Bytes are on the wire (gzip as next start sends it). Cold = empty cache, no service worker; warm = same screen opened again, worker installed.",
+  "merged": [
+   "2026-11-18T02:23:03.224Z",
+   "2026-11-18T02:31:30.426Z"
+  ]
+ },
+ "bundle": {
+  "layout": {
+   "jsRawKB": 762.6,
+   "jsGzKB": 225.3,
+   "css": [
+    {
+     "file": "static/css/6218dba966cdb5bc.css",
+     "gzKB": 0.5,
+     "rawKB": 1.9
+    },
+    {
+     "file": "static/css/57a31cc098060165.css",
+     "gzKB": 35.3,
+     "rawKB": 181.3
+    }
+   ]
+  },
+  "routes": {
+   "/_not-found": {
+    "jsRawKB": 762.9,
+    "jsGzKB": 225.5,
+    "beyondLayoutGzKB": 0.2
+   },
+   "/auth/callback": {
+    "jsRawKB": 864.2,
+    "jsGzKB": 262.1,
+    "beyondLayoutGzKB": 36.9
+   },
+   "/auth/forgot": {
+    "jsRawKB": 793.8,
+    "jsGzKB": 237,
+    "beyondLayoutGzKB": 11.7
+   },
+   "/auth/reset": {
+    "jsRawKB": 795.2,
+    "jsGzKB": 237.5,
+    "beyondLayoutGzKB": 12.2
+   },
+   "/calibrate": {
+    "jsRawKB": 789,
+    "jsGzKB": 235.1,
+    "beyondLayoutGzKB": 9.8
+   },
+   "/hostile": {
+    "jsRawKB": 899.5,
+    "jsGzKB": 279.8,
+    "beyondLayoutGzKB": 54.5
+   },
+   "/lessons/[id]": {
+    "jsRawKB": 873.6,
+    "jsGzKB": 271.5,
+    "beyondLayoutGzKB": 46.2
+   },
+   "/lessons": {
+    "jsRawKB": 854.7,
+    "jsGzKB": 263.2,
+    "beyondLayoutGzKB": 37.9
+   },
+   "/practice/[trait]": {
+    "jsRawKB": 900.8,
+    "jsGzKB": 280.1,
+    "beyondLayoutGzKB": 54.8
+   },
+   "/upload": {
+    "jsRawKB": 927.1,
+    "jsGzKB": 284.9,
+    "beyondLayoutGzKB": 59.6
+   },
+   "/(marketing)/about": {
+    "jsRawKB": 799.3,
+    "jsGzKB": 239.9,
+    "beyondLayoutGzKB": 14.7
+   },
+   "/(marketing)/privacy": {
+    "jsRawKB": 769.9,
+    "jsGzKB": 228,
+    "beyondLayoutGzKB": 2.8
+   },
+   "/(marketing)/terms": {
+    "jsRawKB": 769.9,
+    "jsGzKB": 228,
+    "beyondLayoutGzKB": 2.8
+   },
+   "/path": {
+    "jsRawKB": 762.9,
+    "jsGzKB": 225.5,
+    "beyondLayoutGzKB": 0.2
+   },
+   "/": {
+    "jsRawKB": 1065.3,
+    "jsGzKB": 336.6,
+    "beyondLayoutGzKB": 111.4
+   },
+   "/active": {
+    "jsRawKB": 801.6,
+    "jsGzKB": 238.8,
+    "beyondLayoutGzKB": 13.5
+   },
+   "/boss": {
+    "jsRawKB": 933.3,
+    "jsGzKB": 290.7,
+    "beyondLayoutGzKB": 65.5
+   },
+   "/games": {
+    "jsRawKB": 966.1,
+    "jsGzKB": 303.5,
+    "beyondLayoutGzKB": 78.3
+   },
+   "/history": {
+    "jsRawKB": 995.5,
+    "jsGzKB": 312.4,
+    "beyondLayoutGzKB": 87.1
+   },
+   "/lesson/[unit]": {
+    "jsRawKB": 902.5,
+    "jsGzKB": 281.6,
+    "beyondLayoutGzKB": 56.3
+   },
+   "/settings/accessibility": {
+    "jsRawKB": 788.8,
+    "jsGzKB": 234.6,
+    "beyondLayoutGzKB": 9.3
+   },
+   "/settings/account/email": {
+    "jsRawKB": 807.7,
+    "jsGzKB": 242.2,
+    "beyondLayoutGzKB": 17
+   },
+   "/settings/account": {
+    "jsRawKB": 818,
+    "jsGzKB": 245.6,
+    "beyondLayoutGzKB": 20.3
+   },
+   "/settings/account/password": {
+    "jsRawKB": 808.4,
+    "jsGzKB": 242.5,
+    "beyondLayoutGzKB": 17.2
+   },
+   "/settings/appearance": {
+    "jsRawKB": 787.6,
+    "jsGzKB": 234.3,
+    "beyondLayoutGzKB": 9
+   },
+   "/settings/data": {
+    "jsRawKB": 843.4,
+    "jsGzKB": 254.2,
+    "beyondLayoutGzKB": 28.9
+   },
+   "/settings/data/stored": {
+    "jsRawKB": 782.4,
+    "jsGzKB": 232.4,
+    "beyondLayoutGzKB": 7.1
+   },
+   "/settings/help": {
+    "jsRawKB": 785.2,
+    "jsGzKB": 233.5,
+    "beyondLayoutGzKB": 8.2
+   },
+   "/settings/notifications": {
+    "jsRawKB": 803.6,
+    "jsGzKB": 240.4,
+    "beyondLayoutGzKB": 15.2
+   },
+   "/settings": {
+    "jsRawKB": 913.2,
+    "jsGzKB": 285.1,
+    "beyondLayoutGzKB": 59.8
+   },
+   "/settings/plan": {
+    "jsRawKB": 851.3,
+    "jsGzKB": 256,
+    "beyondLayoutGzKB": 30.7
+   },
+   "/settings/practice/focus": {
+    "jsRawKB": 799.8,
+    "jsGzKB": 238.9,
+    "beyondLayoutGzKB": 13.6
+   },
+   "/settings/practice": {
+    "jsRawKB": 795.9,
+    "jsGzKB": 237.4,
+    "beyondLayoutGzKB": 12.2
+   },
+   "/settings/profile/goal": {
+    "jsRawKB": 786.3,
+    "jsGzKB": 234.3,
+    "beyondLayoutGzKB": 9
+   },
+   "/settings/profile": {
+    "jsRawKB": 919.9,
+    "jsGzKB": 287.8,
+    "beyondLayoutGzKB": 62.5
+   },
+   "/shop": {
+    "jsRawKB": 833.8,
+    "jsGzKB": 253.8,
+    "beyondLayoutGzKB": 28.5
+   },
+   "/signin": {
+    "jsRawKB": 792.1,
+    "jsGzKB": 236.4,
+    "beyondLayoutGzKB": 11.1
+   },
+   "/signup": {
+    "jsRawKB": 792.8,
+    "jsGzKB": 236.5,
+    "beyondLayoutGzKB": 11.3
+   },
+   "/tester": {
+    "jsRawKB": 807,
+    "jsGzKB": 241.7,
+    "beyondLayoutGzKB": 16.5
+   },
+   "/welcome": {
+    "jsRawKB": 1014.9,
+    "jsGzKB": 320.9,
+    "beyondLayoutGzKB": 95.6
+   },
+   "/words": {
+    "jsRawKB": 807.5,
+    "jsGzKB": 242.3,
+    "beyondLayoutGzKB": 17
+   },
+   "/you": {
+    "jsRawKB": 1035.2,
+    "jsGzKB": 327,
+    "beyondLayoutGzKB": 101.7
+   },
+   "/rep/[id]": {
+    "jsRawKB": 1055.1,
+    "jsGzKB": 334.2,
+    "beyondLayoutGzKB": 108.9
+   },
+   "/rep": {
+    "jsRawKB": 1245.4,
+    "jsGzKB": 394.2,
+    "beyondLayoutGzKB": 168.9
+   }
+  }
+ },
+ "routes": {
+  "today": {
+   "url": "/",
+   "cold": {
+    "median": {
+     "ttfb": 472,
+     "fcp": 1360,
+     "lcp": 5808,
+     "ready": 4807,
+     "cls": 0,
+     "tbt": 625,
+     "longTaskMs": 1101,
+     "bytes": 789954,
+     "requests": 76
+    },
+    "runs": [
+     {
+      "ttfb": 493,
+      "fcp": 1716,
+      "lcp": 6076,
+      "ready": 4807,
+      "cls": 0,
+      "tbt": 625,
+      "longTaskMs": 1319,
+      "bytes": 789954,
+      "requests": 76
+     },
+     {
+      "ttfb": 472,
+      "fcp": 1320,
+      "lcp": 5808,
+      "ready": 4634,
+      "cls": 0,
+      "tbt": 651,
+      "longTaskMs": 1101,
+      "bytes": 769169,
+      "requests": 74
+     },
+     {
+      "ttfb": 462,
+      "fcp": 1360,
+      "lcp": 5644,
+      "ready": 5085,
+      "cls": 0,
+      "tbt": 437,
+      "longTaskMs": 935,
+      "bytes": 851098,
+      "requests": 81
+     }
+    ],
+    "medianRun": {
+     "lcpWhat": "img /lessons/large/inside-or-after.webp",
+     "fromWorker": false,
+     "docTransfer": 9541,
+     "readyPath": "/",
+     "domContentLoaded": 1388,
+     "load": 3432,
+     "longTasks": 10,
+     "byKind": {
+      "doc": {
+       "requests": 3,
+       "bytes": 26953
+      },
+      "font": {
+       "requests": 2,
+       "bytes": 52412
+      },
+      "css": {
+       "requests": 2,
+       "bytes": 36904
+      },
+      "img": {
+       "requests": 5,
+       "bytes": 89546
+      },
+      "js": {
+       "requests": 43,
+       "bytes": 493154
+      },
+      "preflight": {
+       "requests": 7,
+       "bytes": 0
+      },
+      "rsc": {
+       "requests": 7,
+       "bytes": 36099
+      },
+      "data": {
+       "requests": 7,
+       "bytes": 54886
+      }
+     },
+     "waterfall": [
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/",
+       "start": 17,
+       "ttfb": 503,
+       "end": 505,
+       "bytes": 9241,
+       "status": 200,
+       "handshake": true
+      },
+      {
+       "kind": "font",
+       "method": "GET",
+       "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
+       "start": 599,
+       "ttfb": 822,
+       "end": 946,
+       "bytes": 32228,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/6218dba966cdb5bc.css",
+       "start": 599,
+       "ttfb": 842,
+       "end": 854,
+       "bytes": 552,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/57a31cc098060165.css",
+       "start": 599,
+       "ttfb": 844,
+       "end": 1345,
+       "bytes": 36352,
+       "status": 200
+      },
+      {
+       "kind": "font",
+       "method": "GET",
+       "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
+       "start": 600,
+       "ttfb": 842,
+       "end": 1160,
+       "bytes": 20184,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/splash-demos.webp",
+       "start": 600,
+       "ttfb": 844,
+       "end": 1414,
+       "bytes": 38018,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/webpack-a46534dc1e8d4ba5.js",
+       "start": 1412,
+       "ttfb": 1627,
+       "end": 1673,
+       "bytes": 2000,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9b81ea1e-e30c8ff8590566d4.js",
+       "start": 1413,
+       "ttfb": 1627,
+       "end": 2486,
+       "bytes": 54364,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5456-b1d4b94ad755ddf8.js",
+       "start": 1413,
+       "ttfb": 1628,
+       "end": 2390,
+       "bytes": 46700,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/main-app-e26091174ba3827d.js",
+       "start": 1413,
+       "ttfb": 1627,
+       "end": 1673,
+       "bytes": 574,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/b87512dc-e3cda148b6770e48.js",
+       "start": 1414,
+       "ttfb": 1628,
+       "end": 1808,
+       "bytes": 13825,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6762-c7410061e3cc09a6.js",
+       "start": 1457,
+       "ttfb": 1673,
+       "end": 1773,
+       "bytes": 3416,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/97-db0f42cefb3b96c0.js",
+       "start": 1683,
+       "ttfb": 1921,
+       "end": 2609,
+       "bytes": 49220,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2271-4ed447a7db361c3c.js",
+       "start": 1683,
+       "ttfb": 1921,
+       "end": 2047,
+       "bytes": 3132,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2503-af514d5381b18a99.js",
+       "start": 1777,
+       "ttfb": 1940,
+       "end": 2062,
+       "bytes": 3778,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9513-78c8f203e1a02cf0.js",
+       "start": 1810,
+       "ttfb": 1962,
+       "end": 2124,
+       "bytes": 5112,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2517-32c85d632b313263.js",
+       "start": 2048,
+       "ttfb": 2211,
+       "end": 2445,
+       "bytes": 7768,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3426-705c81d961202097.js",
+       "start": 2062,
+       "ttfb": 2215,
+       "end": 2446,
+       "bytes": 5409,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/4858-362ab5780e113228.js",
+       "start": 2130,
+       "ttfb": 2286,
+       "end": 2445,
+       "bytes": 7289,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6927-c97b6f16c2ccf852.js",
+       "start": 2437,
+       "ttfb": 2609,
+       "end": 2629,
+       "bytes": 5892,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8950-09a190a344d6c862.js",
+       "start": 2450,
+       "ttfb": 2629,
+       "end": 2633,
+       "bytes": 2165,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5920-e2ac6ae56701d493.js",
+       "start": 2450,
+       "ttfb": 2629,
+       "end": 2633,
+       "bytes": 2659,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/layout-e1f9b7e805afe790.js",
+       "start": 2451,
+       "ttfb": 2629,
+       "end": 2710,
+       "bytes": 18243,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6223-a3afc826833cd183.js",
+       "start": 2515,
+       "ttfb": 2690,
+       "end": 2731,
+       "bytes": 5839,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3396-59f0ca50fb8ea8dd.js",
+       "start": 2615,
+       "ttfb": 2772,
+       "end": 2779,
+       "bytes": 8169,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/error-efc31151bf39aed2.js",
+       "start": 2629,
+       "ttfb": 2782,
+       "end": 2784,
+       "bytes": 1317,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/7959-7fbd8d0465d26857.js",
+       "start": 2633,
+       "ttfb": 2792,
+       "end": 2805,
+       "bytes": 5230,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/not-found-9bbd6410cd46e71e.js",
+       "start": 2634,
+       "ttfb": 2792,
+       "end": 2796,
+       "bytes": 241,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6882-b63d6b1423f397ad.js",
+       "start": 2710,
+       "ttfb": 2867,
+       "end": 2867,
+       "bytes": 3369,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5671-d7a92672833307df.js",
+       "start": 2731,
+       "ttfb": 2931,
+       "end": 2936,
+       "bytes": 11952,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5529-cff85460e301409c.js",
+       "start": 2780,
+       "ttfb": 2940,
+       "end": 2950,
+       "bytes": 5200,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3957-e12d69032fa6aee7.js",
+       "start": 2815,
+       "ttfb": 3012,
+       "end": 3018,
+       "bytes": 11712,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3834-9da441648976bd0f.js",
+       "start": 2815,
+       "ttfb": 3012,
+       "end": 3018,
+       "bytes": 5628,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9711-815125cc259708ca.js",
+       "start": 2815,
+       "ttfb": 3012,
+       "end": 3018,
+       "bytes": 4151,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/1794-3641c17201869ffe.js",
+       "start": 2871,
+       "ttfb": 3028,
+       "end": 3039,
+       "bytes": 4800,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/914-5e429acfd251ea30.js",
+       "start": 2938,
+       "ttfb": 3089,
+       "end": 3091,
+       "bytes": 2991,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8054-80b56b4d0d50a349.js",
+       "start": 2953,
+       "ttfb": 3106,
+       "end": 3111,
+       "bytes": 1980,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5481-6e697a4be7ae4bb2.js",
+       "start": 3022,
+       "ttfb": 3181,
+       "end": 3182,
+       "bytes": 2455,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/4546-4e5ad06c8835a3d3.js",
+       "start": 3023,
+       "ttfb": 3182,
+       "end": 3182,
+       "bytes": 7175,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3118-2d87e0028c8f9689.js",
+       "start": 3023,
+       "ttfb": 3182,
+       "end": 3237,
+       "bytes": 20557,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/page-d3cd370fd1d7e009.js",
+       "start": 3040,
+       "ttfb": 3196,
+       "end": 3320,
+       "bytes": 21087,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/_vercel/speed-insights/script.js",
+       "start": 3645,
+       "ttfb": 3945,
+       "end": 3969,
+       "bytes": 7595,
+       "status": 404
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/demos-bust/speaking.webp",
+       "start": 3649,
+       "ttfb": 3871,
+       "end": 3877,
+       "bytes": 15802,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 3659,
+       "ttfb": 4160,
+       "end": 4161,
+       "bytes": 0,
+       "status": 204,
+       "handshake": true
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 3666,
+       "ttfb": 3885,
+       "end": 3886,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 3666,
+       "ttfb": 3886,
+       "end": 3886,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 3666,
+       "ttfb": 3886,
+       "end": 3886,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 3669,
+       "ttfb": 3886,
+       "end": 3886,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 3670,
+       "ttfb": 3886,
+       "end": 3886,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/you?_rsc=1p-R_iEY6bj0jY31",
+       "start": 3705,
+       "ttfb": 3946,
+       "end": 3970,
+       "bytes": 5226,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep?trait=pause&_rsc=1p-R_iEY6bj0jY31",
+       "start": 3705,
+       "ttfb": 3946,
+       "end": 3990,
+       "bytes": 5201,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/hostile?from=today&_rsc=1p-R_iEY6bj0jY31",
+       "start": 3705,
+       "ttfb": 3946,
+       "end": 3970,
+       "bytes": 5159,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/boss?from=today&_rsc=1p-R_iEY6bj0jY31",
+       "start": 3705,
+       "ttfb": 3946,
+       "end": 3970,
+       "bytes": 5147,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/lessons",
+       "start": 3883,
+       "ttfb": 4063,
+       "end": 4081,
+       "bytes": 10117,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 3896,
+       "ttfb": 4107,
+       "end": 4107,
+       "bytes": 97,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 3896,
+       "ttfb": 4107,
+       "end": 4107,
+       "bytes": 2,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 3896,
+       "ttfb": 4107,
+       "end": 4666,
+       "bytes": 50254,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 3896,
+       "ttfb": 4114,
+       "end": 4115,
+       "bytes": 2007,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 3896,
+       "ttfb": 4114,
+       "end": 4115,
+       "bytes": 2280,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/lessons?_rsc=1p-R_iEY6bj0jY31",
+       "start": 3988,
+       "ttfb": 4158,
+       "end": 4303,
+       "bytes": 5057,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/you/page-d762a13088ba58a9.js",
+       "start": 3988,
+       "ttfb": 4158,
+       "end": 4701,
+       "bytes": 22090,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/games?_rsc=1p-R_iEY6bj0jY31",
+       "start": 3988,
+       "ttfb": 4158,
+       "end": 4344,
+       "bytes": 5142,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9195-3544302ca8eb35dd.js",
+       "start": 3988,
+       "ttfb": 4158,
+       "end": 4205,
+       "bytes": 2745,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9980-95715f9e1936b099.js",
+       "start": 3991,
+       "ttfb": 4165,
+       "end": 4320,
+       "bytes": 4675,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/hostile/page-6cecebf4b12a2e49.js",
+       "start": 4085,
+       "ttfb": 4241,
+       "end": 4477,
+       "bytes": 12943,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 4165,
+       "ttfb": 4356,
+       "end": 4370,
+       "bytes": 220,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/history?_rsc=1p-R_iEY6bj0jY31",
+       "start": 4207,
+       "ttfb": 4368,
+       "end": 4506,
+       "bytes": 5167,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/boss/page-8e672920f0807c36.js",
+       "start": 4304,
+       "ttfb": 4458,
+       "end": 4712,
+       "bytes": 7699,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/1203-68aa304f0057130f.js",
+       "start": 4323,
+       "ttfb": 4487,
+       "end": 5019,
+       "bytes": 21604,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/rep/page-1e3498536f5cfc72.js",
+       "start": 4354,
+       "ttfb": 4511,
+       "end": 5537,
+       "bytes": 58492,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/lessons/the-landing.webp",
+       "start": 4487,
+       "ttfb": 4650,
+       "end": 4959,
+       "bytes": 11096,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/lessons/inside-or-after.webp",
+       "start": 4506,
+       "ttfb": 4662,
+       "end": 4959,
+       "bytes": 12752,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 4700,
+       "ttfb": 4905,
+       "end": 4905,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/lessons/the-long-one.webp",
+       "start": 4711,
+       "ttfb": 4863,
+       "end": 5085,
+       "bytes": 11878,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/lessons/page-99b2947e5c66030d.js",
+       "start": 4714,
+       "ttfb": 4866,
+       "end": 5003,
+       "bytes": 7507,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 4908,
+       "ttfb": 5101,
+       "end": 5105,
+       "bytes": 26,
+       "status": 200
+      }
+     ],
+     "afterReady": {
+      "requests": 11,
+      "bytes": 62118,
+      "byKind": {
+       "img": {
+        "requests": 2,
+        "bytes": 27844
+       },
+       "js": {
+        "requests": 2,
+        "bytes": 33152
+       },
+       "rsc": {
+        "requests": 1,
+        "bytes": 148
+       },
+       "preflight": {
+        "requests": 3,
+        "bytes": 0
+       },
+       "data": {
+        "requests": 3,
+        "bytes": 974
+       }
+      }
+     },
+     "afterWaterfall": [
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/lessons/large/inside-or-after.webp",
+       "start": 4960,
+       "ttfb": 5123,
+       "end": 5524,
+       "bytes": 21654,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/icons/3d/streak.webp",
+       "start": 4960,
+       "ttfb": 5123,
+       "end": 5278,
+       "bytes": 6190,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/games/page-1f6d55b58408d2f9.js",
+       "start": 5004,
+       "ttfb": 5160,
+       "end": 5441,
+       "bytes": 14941,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/history/page-3f66c636ef6d41a2.js",
+       "start": 5021,
+       "ttfb": 5178,
+       "end": 5551,
+       "bytes": 18211,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/practice/pause?_rsc=1p-R_iEY6bj0jY31",
+       "start": 5085,
+       "ttfb": 5268,
+       "end": 5294,
+       "bytes": 148,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 5119,
+       "ttfb": 5328,
+       "end": 5329,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 5333,
+       "ttfb": 5524,
+       "end": 5556,
+       "bytes": 926,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 5831,
+       "ttfb": 6038,
+       "end": 6038,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 6040,
+       "ttfb": 6231,
+       "end": 6234,
+       "bytes": 24,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 6272,
+       "ttfb": 6463,
+       "end": 6464,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "POST",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 6466,
+       "ttfb": 6679,
+       "end": 6684,
+       "bytes": 24,
+       "status": 200
+      }
+     ]
+    },
+    "imgs": [
+     {
+      "src": "/splash-demos.webp",
+      "natural": [
+       384,
+       384
+      ],
+      "box": [
+       0,
+       0
+      ],
+      "inView": false,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/demos-bust/speaking.webp",
+      "natural": [
+       256,
+       256
+      ],
+      "box": [
+       44,
+       44
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/streak.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       20,
+       20
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/lessons/large/inside-or-after.webp",
+      "natural": [
+       560,
+       560
+      ],
+      "box": [
+       222,
+       222
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     }
+    ],
+    "media": [],
+    "fonts": [
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Outfit Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Figtree Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     }
+    ]
+   },
+   "warm": {
+    "median": {
+     "ttfb": 465,
+     "fcp": 780,
+     "lcp": 2212,
+     "ready": 1782,
+     "cls": 0,
+     "tbt": 49,
+     "longTaskMs": 280,
+     "bytes": 98554,
+     "requests": 23
+    },
+    "runs": [
+     {
+      "ttfb": 465,
+      "fcp": 888,
+      "lcp": 2352,
+      "ready": 1903,
+      "cls": 0,
+      "tbt": 31,
+      "longTaskMs": 280,
+      "bytes": 98554,
+      "requests": 23
+     },
+     {
+      "ttfb": 491,
+      "fcp": 732,
+      "lcp": 2212,
+      "ready": 1782,
+      "cls": 0,
+      "tbt": 73,
+      "longTaskMs": 334,
+      "bytes": 98554,
+      "requests": 23
+     },
+     {
+      "ttfb": 463,
+      "fcp": 780,
+      "lcp": 2104,
+      "ready": 1680,
+      "cls": 0,
+      "tbt": 49,
+      "longTaskMs": 260,
+      "bytes": 98702,
+      "requests": 24
+     }
+    ],
+    "medianRun": {
+     "lcpWhat": "img /lessons/large/inside-or-after.webp",
+     "fromWorker": true,
+     "docTransfer": 46835,
+     "readyPath": "/",
+     "domContentLoaded": 707,
+     "load": 956,
+     "longTasks": 4,
+     "byKind": {
+      "other": {
+       "requests": 2,
+       "bytes": 0
+      },
+      "doc": {
+       "requests": 1,
+       "bytes": 7595
+      },
+      "rsc": {
+       "requests": 7,
+       "bytes": 36099
+      },
+      "preflight": {
+       "requests": 7,
+       "bytes": 0
+      },
+      "data": {
+       "requests": 6,
+       "bytes": 54860
+      }
+     },
+     "waterfall": [
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/",
+       "start": 12,
+       "ttfb": 468,
+       "end": 468,
+       "bytes": 0,
+       "status": 304,
+       "handshake": true
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/_vercel/speed-insights/script.js",
+       "start": 1011,
+       "ttfb": 1199,
+       "end": 1202,
+       "bytes": 7595,
+       "status": 404
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/you?_rsc=1p-R_iEY6bj0jY31",
+       "start": 1011,
+       "ttfb": 1170,
+       "end": 1173,
+       "bytes": 5226,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep?trait=pause&_rsc=1p-R_iEY6bj0jY31",
+       "start": 1011,
+       "ttfb": 1199,
+       "end": 1202,
+       "bytes": 5201,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 1011,
+       "ttfb": 1507,
+       "end": 1507,
+       "bytes": 0,
+       "status": 204,
+       "handshake": true
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 1011,
+       "ttfb": 1212,
+       "end": 1212,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 1011,
+       "ttfb": 1212,
+       "end": 1212,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 1011,
+       "ttfb": 1212,
+       "end": 1212,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 1011,
+       "ttfb": 1218,
+       "end": 1218,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 1011,
+       "ttfb": 1218,
+       "end": 1218,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/hostile?from=today&_rsc=1p-R_iEY6bj0jY31",
+       "start": 1012,
+       "ttfb": 1199,
+       "end": 1202,
+       "bytes": 5159,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/boss?from=today&_rsc=1p-R_iEY6bj0jY31",
+       "start": 1012,
+       "ttfb": 1199,
+       "end": 1202,
+       "bytes": 5147,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/lessons?_rsc=1p-R_iEY6bj0jY31",
+       "start": 1013,
+       "ttfb": 1199,
+       "end": 1218,
+       "bytes": 5057,
+       "status": 200
+      },
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/lessons",
+       "start": 1185,
+       "ttfb": 1345,
+       "end": 1345,
+       "bytes": 0,
+       "status": 304
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 1228,
+       "ttfb": 1424,
+       "end": 1424,
+       "bytes": 97,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 1229,
+       "ttfb": 1424,
+       "end": 1424,
+       "bytes": 2,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 1229,
+       "ttfb": 1426,
+       "end": 1623,
+       "bytes": 50254,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 1229,
+       "ttfb": 1426,
+       "end": 1430,
+       "bytes": 2007,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 1229,
+       "ttfb": 1427,
+       "end": 1430,
+       "bytes": 2280,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/games?_rsc=1p-R_iEY6bj0jY31",
+       "start": 1321,
+       "ttfb": 1477,
+       "end": 1548,
+       "bytes": 5142,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/history?_rsc=1p-R_iEY6bj0jY31",
+       "start": 1321,
+       "ttfb": 1480,
+       "end": 1562,
+       "bytes": 5167,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 1509,
+       "ttfb": 1702,
+       "end": 1702,
+       "bytes": 220,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 1652,
+       "ttfb": 1842,
+       "end": 1842,
+       "bytes": 0,
+       "status": 204
+      }
+     ],
+     "afterReady": {
+      "requests": 9,
+      "bytes": 1148,
+      "byKind": {
+       "rsc": {
+        "requests": 1,
+        "bytes": 148
+       },
+       "data": {
+        "requests": 4,
+        "bytes": 1000
+       },
+       "preflight": {
+        "requests": 3,
+        "bytes": 0
+       },
+       "js": {
+        "requests": 1,
+        "bytes": 0
+       }
+      }
+     },
+     "afterWaterfall": [
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/practice/pause?_rsc=1p-R_iEY6bj0jY31",
+       "start": 1851,
+       "ttfb": 2005,
+       "end": 2006,
+       "bytes": 148,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 1852,
+       "ttfb": 2045,
+       "end": 2047,
+       "bytes": 26,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 2066,
+       "ttfb": 2258,
+       "end": 2258,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 2262,
+       "ttfb": 2454,
+       "end": 2456,
+       "bytes": 926,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 2471,
+       "ttfb": 2662,
+       "end": 2662,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 2667,
+       "ttfb": 2858,
+       "end": 2860,
+       "bytes": 24,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 2874,
+       "ttfb": 3064,
+       "end": 3064,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "POST",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 3068,
+       "ttfb": 3261,
+       "end": 3261,
+       "bytes": 24,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/sw.js",
+       "start": 3867,
+       "ttfb": 4020,
+       "end": 4020,
+       "bytes": 0,
+       "status": 304
+      }
+     ]
+    },
+    "imgs": [
+     {
+      "src": "/splash-demos.webp",
+      "natural": [
+       384,
+       384
+      ],
+      "box": [
+       0,
+       0
+      ],
+      "inView": false,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/demos-bust/speaking.webp",
+      "natural": [
+       256,
+       256
+      ],
+      "box": [
+       44,
+       44
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/streak.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       20,
+       20
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/lessons/large/inside-or-after.webp",
+      "natural": [
+       560,
+       560
+      ],
+      "box": [
+       222,
+       222
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     }
+    ],
+    "media": [],
+    "fonts": [
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Outfit Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Figtree Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     }
+    ]
+   },
+   "serviceWorker": {
+    "ready": true,
+    "installMs": 11721,
+    "precache": null
+   }
+  },
+  "log-daily": {
+   "url": "/history",
+   "cold": {
+    "median": {
+     "ttfb": 463,
+     "fcp": 1344,
+     "lcp": 4656,
+     "ready": 4346,
+     "cls": 0,
+     "tbt": 470,
+     "longTaskMs": 870,
+     "bytes": 673334,
+     "requests": 63
+    },
+    "runs": [
+     {
+      "ttfb": 461,
+      "fcp": 1344,
+      "lcp": 4744,
+      "ready": 4592,
+      "cls": 0,
+      "tbt": 470,
+      "longTaskMs": 870,
+      "bytes": 673334,
+      "requests": 63
+     },
+     {
+      "ttfb": 466,
+      "fcp": 1360,
+      "lcp": 4488,
+      "ready": 4326,
+      "cls": 0,
+      "tbt": 395,
+      "longTaskMs": 800,
+      "bytes": 673334,
+      "requests": 63
+     },
+     {
+      "ttfb": 463,
+      "fcp": 1260,
+      "lcp": 4656,
+      "ready": 4346,
+      "cls": 0,
+      "tbt": 544,
+      "longTaskMs": 912,
+      "bytes": 674115,
+      "requests": 68
+     }
+    ],
+    "medianRun": {
+     "lcpWhat": "span.font-display.text-num-hero \"648\"",
+     "fromWorker": false,
+     "docTransfer": 9135,
+     "readyPath": "/history",
+     "domContentLoaded": 1324,
+     "load": 3077,
+     "longTasks": 7,
+     "byKind": {
+      "doc": {
+       "requests": 4,
+       "bytes": 36645
+      },
+      "font": {
+       "requests": 2,
+       "bytes": 52412
+      },
+      "css": {
+       "requests": 2,
+       "bytes": 36904
+      },
+      "img": {
+       "requests": 1,
+       "bytes": 38018
+      },
+      "js": {
+       "requests": 44,
+       "bytes": 436396
+      },
+      "preflight": {
+       "requests": 3,
+       "bytes": 0
+      },
+      "rsc": {
+       "requests": 9,
+       "bytes": 21382
+      },
+      "data": {
+       "requests": 3,
+       "bytes": 52358
+      }
+     },
+     "waterfall": [
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/history",
+       "start": 3,
+       "ttfb": 460,
+       "end": 461,
+       "bytes": 8835,
+       "status": 200,
+       "handshake": true
+      },
+      {
+       "kind": "font",
+       "method": "GET",
+       "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
+       "start": 524,
+       "ttfb": 681,
+       "end": 816,
+       "bytes": 32228,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/6218dba966cdb5bc.css",
+       "start": 524,
+       "ttfb": 684,
+       "end": 693,
+       "bytes": 552,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/57a31cc098060165.css",
+       "start": 524,
+       "ttfb": 684,
+       "end": 1145,
+       "bytes": 36352,
+       "status": 200
+      },
+      {
+       "kind": "font",
+       "method": "GET",
+       "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
+       "start": 525,
+       "ttfb": 684,
+       "end": 993,
+       "bytes": 20184,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/splash-demos.webp",
+       "start": 530,
+       "ttfb": 693,
+       "end": 1189,
+       "bytes": 38018,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/webpack-a46534dc1e8d4ba5.js",
+       "start": 1153,
+       "ttfb": 1312,
+       "end": 1312,
+       "bytes": 2000,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9b81ea1e-e30c8ff8590566d4.js",
+       "start": 1194,
+       "ttfb": 1358,
+       "end": 1835,
+       "bytes": 54364,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5456-b1d4b94ad755ddf8.js",
+       "start": 1196,
+       "ttfb": 1370,
+       "end": 2286,
+       "bytes": 46700,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/main-app-e26091174ba3827d.js",
+       "start": 1196,
+       "ttfb": 1370,
+       "end": 1377,
+       "bytes": 574,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/b87512dc-e3cda148b6770e48.js",
+       "start": 1196,
+       "ttfb": 1370,
+       "end": 1635,
+       "bytes": 13825,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6762-c7410061e3cc09a6.js",
+       "start": 1196,
+       "ttfb": 1370,
+       "end": 1448,
+       "bytes": 3416,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/97-db0f42cefb3b96c0.js",
+       "start": 1314,
+       "ttfb": 1472,
+       "end": 2326,
+       "bytes": 49220,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2271-4ed447a7db361c3c.js",
+       "start": 1380,
+       "ttfb": 1542,
+       "end": 1630,
+       "bytes": 3132,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2503-af514d5381b18a99.js",
+       "start": 1449,
+       "ttfb": 1608,
+       "end": 1675,
+       "bytes": 3778,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9513-78c8f203e1a02cf0.js",
+       "start": 1631,
+       "ttfb": 1785,
+       "end": 1924,
+       "bytes": 5112,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2517-32c85d632b313263.js",
+       "start": 1636,
+       "ttfb": 1790,
+       "end": 1974,
+       "bytes": 7768,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3426-705c81d961202097.js",
+       "start": 1684,
+       "ttfb": 1837,
+       "end": 1970,
+       "bytes": 5409,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/4858-362ab5780e113228.js",
+       "start": 1836,
+       "ttfb": 1992,
+       "end": 2081,
+       "bytes": 7289,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6927-c97b6f16c2ccf852.js",
+       "start": 1928,
+       "ttfb": 2081,
+       "end": 2179,
+       "bytes": 5892,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8950-09a190a344d6c862.js",
+       "start": 1970,
+       "ttfb": 2156,
+       "end": 2195,
+       "bytes": 2165,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5920-e2ac6ae56701d493.js",
+       "start": 1975,
+       "ttfb": 2190,
+       "end": 2239,
+       "bytes": 2659,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/layout-e1f9b7e805afe790.js",
+       "start": 2096,
+       "ttfb": 2252,
+       "end": 2425,
+       "bytes": 18243,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6223-a3afc826833cd183.js",
+       "start": 2203,
+       "ttfb": 2355,
+       "end": 2427,
+       "bytes": 5839,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3396-59f0ca50fb8ea8dd.js",
+       "start": 2203,
+       "ttfb": 2355,
+       "end": 2465,
+       "bytes": 8169,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/error-efc31151bf39aed2.js",
+       "start": 2239,
+       "ttfb": 2428,
+       "end": 2443,
+       "bytes": 1317,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/7959-7fbd8d0465d26857.js",
+       "start": 2288,
+       "ttfb": 2445,
+       "end": 2480,
+       "bytes": 5230,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/not-found-9bbd6410cd46e71e.js",
+       "start": 2329,
+       "ttfb": 2508,
+       "end": 2514,
+       "bytes": 241,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5671-d7a92672833307df.js",
+       "start": 2429,
+       "ttfb": 2637,
+       "end": 2717,
+       "bytes": 11952,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5529-cff85460e301409c.js",
+       "start": 2429,
+       "ttfb": 2637,
+       "end": 2642,
+       "bytes": 5200,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3957-e12d69032fa6aee7.js",
+       "start": 2444,
+       "ttfb": 2637,
+       "end": 2688,
+       "bytes": 11712,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3834-9da441648976bd0f.js",
+       "start": 2466,
+       "ttfb": 2637,
+       "end": 2688,
+       "bytes": 5628,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9711-815125cc259708ca.js",
+       "start": 2480,
+       "ttfb": 2637,
+       "end": 2701,
+       "bytes": 4151,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/1794-3641c17201869ffe.js",
+       "start": 2514,
+       "ttfb": 2688,
+       "end": 2729,
+       "bytes": 4800,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/914-5e429acfd251ea30.js",
+       "start": 2646,
+       "ttfb": 2798,
+       "end": 2803,
+       "bytes": 2991,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5481-6e697a4be7ae4bb2.js",
+       "start": 2700,
+       "ttfb": 2863,
+       "end": 2864,
+       "bytes": 2455,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/4546-4e5ad06c8835a3d3.js",
+       "start": 2701,
+       "ttfb": 2863,
+       "end": 2864,
+       "bytes": 7175,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5447-d12ba30fd29b3948.js",
+       "start": 2703,
+       "ttfb": 2864,
+       "end": 2864,
+       "bytes": 2595,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/504-5a13e2cafe82c5bb.js",
+       "start": 2719,
+       "ttfb": 2873,
+       "end": 2874,
+       "bytes": 4430,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8897-b486e143222fc981.js",
+       "start": 2730,
+       "ttfb": 2882,
+       "end": 2883,
+       "bytes": 2732,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/history/page-3f66c636ef6d41a2.js",
+       "start": 2807,
+       "ttfb": 2963,
+       "end": 2963,
+       "bytes": 18211,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/_vercel/speed-insights/script.js",
+       "start": 3178,
+       "ttfb": 3332,
+       "end": 3336,
+       "bytes": 7595,
+       "status": 404
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 3199,
+       "ttfb": 3691,
+       "end": 3691,
+       "bytes": 0,
+       "status": 204,
+       "handshake": true
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 3209,
+       "ttfb": 3400,
+       "end": 3400,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 3209,
+       "ttfb": 3400,
+       "end": 3400,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 3214,
+       "ttfb": 3369,
+       "end": 3372,
+       "bytes": 5176,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/lessons?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 3215,
+       "ttfb": 3371,
+       "end": 3372,
+       "bytes": 5057,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/games?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 3216,
+       "ttfb": 3378,
+       "end": 3381,
+       "bytes": 5142,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/you?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 3217,
+       "ttfb": 3379,
+       "end": 3381,
+       "bytes": 5226,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/games",
+       "start": 3289,
+       "ttfb": 3444,
+       "end": 3450,
+       "bytes": 8732,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/you",
+       "start": 3341,
+       "ttfb": 3507,
+       "end": 3509,
+       "bytes": 11483,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6882-b63d6b1423f397ad.js",
+       "start": 3397,
+       "ttfb": 3551,
+       "end": 3553,
+       "bytes": 3369,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8054-80b56b4d0d50a349.js",
+       "start": 3400,
+       "ttfb": 3553,
+       "end": 3558,
+       "bytes": 1980,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3118-2d87e0028c8f9689.js",
+       "start": 3402,
+       "ttfb": 3555,
+       "end": 3585,
+       "bytes": 20557,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 3403,
+       "ttfb": 3596,
+       "end": 4209,
+       "bytes": 50254,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/page-d3cd370fd1d7e009.js",
+       "start": 3403,
+       "ttfb": 3558,
+       "end": 3971,
+       "bytes": 21087,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 3403,
+       "ttfb": 3599,
+       "end": 3632,
+       "bytes": 2007,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/lessons/page-99b2947e5c66030d.js",
+       "start": 3450,
+       "ttfb": 3606,
+       "end": 3793,
+       "bytes": 7507,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/games/page-1f6d55b58408d2f9.js",
+       "start": 3510,
+       "ttfb": 3667,
+       "end": 4008,
+       "bytes": 14941,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2395-b701c87824e039fe.js",
+       "start": 3554,
+       "ttfb": 3710,
+       "end": 3810,
+       "bytes": 3406,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3841-975caf4baf35ba50.js",
+       "start": 3564,
+       "ttfb": 3726,
+       "end": 3883,
+       "bytes": 5085,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/you/page-d762a13088ba58a9.js",
+       "start": 3585,
+       "ttfb": 3740,
+       "end": 4116,
+       "bytes": 22090,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 3702,
+       "ttfb": 3893,
+       "end": 3919,
+       "bytes": 97,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-22?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 4559,
+       "ttfb": 4713,
+       "end": 4738,
+       "bytes": 156,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-21?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 4559,
+       "ttfb": 4723,
+       "end": 4738,
+       "bytes": 157,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-20?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 4560,
+       "ttfb": 4728,
+       "end": 4738,
+       "bytes": 156,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-19?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 4560,
+       "ttfb": 4762,
+       "end": 4765,
+       "bytes": 156,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-18?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 4560,
+       "ttfb": 4762,
+       "end": 4765,
+       "bytes": 156,
+       "status": 200
+      }
+     ],
+     "afterReady": {
+      "requests": 0,
+      "bytes": 0,
+      "byKind": {}
+     },
+     "afterWaterfall": []
+    },
+    "imgs": [
+     {
+      "src": "/splash-demos.webp",
+      "natural": [
+       384,
+       384
+      ],
+      "box": [
+       0,
+       0
+      ],
+      "inView": false,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     }
+    ],
+    "media": [],
+    "fonts": [
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Outfit Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "error",
+      "range": "U+0-10FFFF"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Figtree Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     }
+    ]
+   },
+   "warm": {
+    "median": {
+     "ttfb": 468,
+     "fcp": 1004,
+     "lcp": 2092,
+     "ready": 2042,
+     "cls": 0,
+     "tbt": 78,
+     "longTaskMs": 228,
+     "bytes": 81335,
+     "requests": 19
+    },
+    "runs": [
+     {
+      "ttfb": 468,
+      "fcp": 1004,
+      "lcp": 2092,
+      "ready": 2042,
+      "cls": 0,
+      "tbt": 48,
+      "longTaskMs": 148,
+      "bytes": 81335,
+      "requests": 19
+     },
+     {
+      "ttfb": 480,
+      "fcp": 1024,
+      "lcp": 2244,
+      "ready": 2309,
+      "cls": 0,
+      "tbt": 237,
+      "longTaskMs": 627,
+      "bytes": 81335,
+      "requests": 19
+     },
+     {
+      "ttfb": 464,
+      "fcp": 696,
+      "lcp": 1848,
+      "ready": 1857,
+      "cls": 0,
+      "tbt": 78,
+      "longTaskMs": 228,
+      "bytes": 81335,
+      "requests": 19
+     }
+    ],
+    "medianRun": {
+     "lcpWhat": "span.font-display.text-num-hero \"648\"",
+     "fromWorker": true,
+     "docTransfer": 46377,
+     "readyPath": "/history",
+     "domContentLoaded": 1044,
+     "load": 1120,
+     "longTasks": 2,
+     "byKind": {
+      "other": {
+       "requests": 3,
+       "bytes": 0
+      },
+      "doc": {
+       "requests": 1,
+       "bytes": 7595
+      },
+      "preflight": {
+       "requests": 3,
+       "bytes": 0
+      },
+      "rsc": {
+       "requests": 9,
+       "bytes": 21382
+      },
+      "data": {
+       "requests": 3,
+       "bytes": 52358
+      }
+     },
+     "waterfall": [
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/history",
+       "start": 7,
+       "ttfb": 463,
+       "end": 464,
+       "bytes": 0,
+       "status": 304,
+       "handshake": true
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/_vercel/speed-insights/script.js",
+       "start": 1150,
+       "ttfb": 1307,
+       "end": 1310,
+       "bytes": 7595,
+       "status": 404
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 1157,
+       "ttfb": 1713,
+       "end": 1713,
+       "bytes": 0,
+       "status": 204,
+       "handshake": true
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 1157,
+       "ttfb": 1347,
+       "end": 1347,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 1162,
+       "ttfb": 1353,
+       "end": 1353,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1177,
+       "ttfb": 1341,
+       "end": 1342,
+       "bytes": 5176,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/lessons?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1179,
+       "ttfb": 1345,
+       "end": 1346,
+       "bytes": 5057,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/games?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1185,
+       "ttfb": 1347,
+       "end": 1350,
+       "bytes": 5142,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/you?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1185,
+       "ttfb": 1350,
+       "end": 1353,
+       "bytes": 5226,
+       "status": 200
+      },
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/games",
+       "start": 1229,
+       "ttfb": 1382,
+       "end": 1383,
+       "bytes": 0,
+       "status": 304
+      },
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/you",
+       "start": 1315,
+       "ttfb": 1523,
+       "end": 1523,
+       "bytes": 0,
+       "status": 304
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 1360,
+       "ttfb": 1586,
+       "end": 1723,
+       "bytes": 50254,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 1360,
+       "ttfb": 1586,
+       "end": 1590,
+       "bytes": 2007,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 1722,
+       "ttfb": 1913,
+       "end": 1915,
+       "bytes": 97,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-22?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1979,
+       "ttfb": 2136,
+       "end": 2136,
+       "bytes": 156,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-21?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1979,
+       "ttfb": 2136,
+       "end": 2137,
+       "bytes": 157,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-20?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1979,
+       "ttfb": 2138,
+       "end": 2140,
+       "bytes": 156,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-19?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1989,
+       "ttfb": 2142,
+       "end": 2145,
+       "bytes": 156,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/rep/rep-18?_rsc=Ag5rlQH0_KB8fl4X",
+       "start": 1989,
+       "ttfb": 2145,
+       "end": 2156,
+       "bytes": 156,
+       "status": 200
+      }
+     ],
+     "afterReady": {
+      "requests": 0,
+      "bytes": 0,
+      "byKind": {}
+     },
+     "afterWaterfall": []
+    },
+    "imgs": [
+     {
+      "src": "/splash-demos.webp",
+      "natural": [
+       384,
+       384
+      ],
+      "box": [
+       0,
+       0
+      ],
+      "inView": false,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     }
+    ],
+    "media": [],
+    "fonts": [
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Outfit Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "error",
+      "range": "U+0-10FFFF"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Figtree Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     }
+    ]
+   },
+   "serviceWorker": {
+    "ready": true,
+    "installMs": 13571,
+    "precache": null
+   }
+  },
+  "you": {
+   "url": "/you",
+   "cold": {
+    "median": {
+     "ttfb": 457,
+     "fcp": 1288,
+     "lcp": 3564,
+     "ready": 4766,
+     "cls": 0.032,
+     "tbt": 352,
+     "longTaskMs": 787,
+     "bytes": 758053,
+     "requests": 87
+    },
+    "runs": [
+     {
+      "ttfb": 456,
+      "fcp": 1428,
+      "lcp": 3532,
+      "ready": 4753,
+      "cls": 0.032,
+      "tbt": 352,
+      "longTaskMs": 787,
+      "bytes": 758053,
+      "requests": 87
+     },
+     {
+      "ttfb": 465,
+      "fcp": 1240,
+      "lcp": 3856,
+      "ready": 5077,
+      "cls": 0.032,
+      "tbt": 583,
+      "longTaskMs": 933,
+      "bytes": 758053,
+      "requests": 87
+     },
+     {
+      "ttfb": 457,
+      "fcp": 1288,
+      "lcp": 3564,
+      "ready": 4766,
+      "cls": 0.032,
+      "tbt": 335,
+      "longTaskMs": 709,
+      "bytes": 758053,
+      "requests": 87
+     }
+    ],
+    "medianRun": {
+     "lcpWhat": "img /demos-bust/speaking.webp",
+     "fromWorker": false,
+     "docTransfer": 11783,
+     "readyPath": "/you",
+     "domContentLoaded": 1322,
+     "load": 3194,
+     "longTasks": 6,
+     "byKind": {
+      "doc": {
+       "requests": 3,
+       "bytes": 27913
+      },
+      "font": {
+       "requests": 2,
+       "bytes": 52412
+      },
+      "css": {
+       "requests": 3,
+       "bytes": 38045
+      },
+      "img": {
+       "requests": 5,
+       "bytes": 73744
+      },
+      "js": {
+       "requests": 48,
+       "bytes": 478295
+      },
+      "preflight": {
+       "requests": 10,
+       "bytes": 0
+      },
+      "api": {
+       "requests": 1,
+       "bytes": 60
+      },
+      "rsc": {
+       "requests": 7,
+       "bytes": 30990
+      },
+      "data": {
+       "requests": 8,
+       "bytes": 56594
+      }
+     },
+     "waterfall": [
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/you",
+       "start": 5,
+       "ttfb": 459,
+       "end": 460,
+       "bytes": 11483,
+       "status": 200,
+       "handshake": true
+      },
+      {
+       "kind": "font",
+       "method": "GET",
+       "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
+       "start": 488,
+       "ttfb": 672,
+       "end": 1047,
+       "bytes": 32228,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/6218dba966cdb5bc.css",
+       "start": 488,
+       "ttfb": 673,
+       "end": 678,
+       "bytes": 552,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/57a31cc098060165.css",
+       "start": 488,
+       "ttfb": 673,
+       "end": 1118,
+       "bytes": 36352,
+       "status": 200
+      },
+      {
+       "kind": "font",
+       "method": "GET",
+       "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
+       "start": 488,
+       "ttfb": 672,
+       "end": 885,
+       "bytes": 20184,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/splash-demos.webp",
+       "start": 518,
+       "ttfb": 750,
+       "end": 1184,
+       "bytes": 38018,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/webpack-a46534dc1e8d4ba5.js",
+       "start": 1122,
+       "ttfb": 1303,
+       "end": 1349,
+       "bytes": 2000,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9b81ea1e-e30c8ff8590566d4.js",
+       "start": 1184,
+       "ttfb": 1350,
+       "end": 2083,
+       "bytes": 54364,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5456-b1d4b94ad755ddf8.js",
+       "start": 1184,
+       "ttfb": 1350,
+       "end": 2083,
+       "bytes": 46700,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/main-app-e26091174ba3827d.js",
+       "start": 1184,
+       "ttfb": 1349,
+       "end": 1358,
+       "bytes": 574,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/b87512dc-e3cda148b6770e48.js",
+       "start": 1184,
+       "ttfb": 1392,
+       "end": 1658,
+       "bytes": 13825,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6762-c7410061e3cc09a6.js",
+       "start": 1186,
+       "ttfb": 1468,
+       "end": 1567,
+       "bytes": 3416,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/97-db0f42cefb3b96c0.js",
+       "start": 1350,
+       "ttfb": 1506,
+       "end": 2172,
+       "bytes": 49220,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2271-4ed447a7db361c3c.js",
+       "start": 1358,
+       "ttfb": 1541,
+       "end": 1658,
+       "bytes": 3132,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2503-af514d5381b18a99.js",
+       "start": 1576,
+       "ttfb": 1804,
+       "end": 1968,
+       "bytes": 3778,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9513-78c8f203e1a02cf0.js",
+       "start": 1662,
+       "ttfb": 1815,
+       "end": 1968,
+       "bytes": 5112,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2517-32c85d632b313263.js",
+       "start": 1662,
+       "ttfb": 1816,
+       "end": 1968,
+       "bytes": 7768,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3426-705c81d961202097.js",
+       "start": 1984,
+       "ttfb": 2207,
+       "end": 2262,
+       "bytes": 5409,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/4858-362ab5780e113228.js",
+       "start": 1984,
+       "ttfb": 2207,
+       "end": 2262,
+       "bytes": 7289,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6927-c97b6f16c2ccf852.js",
+       "start": 1985,
+       "ttfb": 2207,
+       "end": 2210,
+       "bytes": 5892,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8950-09a190a344d6c862.js",
+       "start": 2100,
+       "ttfb": 2259,
+       "end": 2286,
+       "bytes": 2165,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5920-e2ac6ae56701d493.js",
+       "start": 2100,
+       "ttfb": 2259,
+       "end": 2287,
+       "bytes": 2659,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/layout-e1f9b7e805afe790.js",
+       "start": 2172,
+       "ttfb": 2331,
+       "end": 2375,
+       "bytes": 18243,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6223-a3afc826833cd183.js",
+       "start": 2216,
+       "ttfb": 2376,
+       "end": 2404,
+       "bytes": 5839,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3396-59f0ca50fb8ea8dd.js",
+       "start": 2264,
+       "ttfb": 2418,
+       "end": 2464,
+       "bytes": 8169,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/error-efc31151bf39aed2.js",
+       "start": 2264,
+       "ttfb": 2419,
+       "end": 2441,
+       "bytes": 1317,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/7959-7fbd8d0465d26857.js",
+       "start": 2287,
+       "ttfb": 2441,
+       "end": 2483,
+       "bytes": 5230,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/not-found-9bbd6410cd46e71e.js",
+       "start": 2287,
+       "ttfb": 2441,
+       "end": 2454,
+       "bytes": 241,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/6882-b63d6b1423f397ad.js",
+       "start": 2375,
+       "ttfb": 2533,
+       "end": 2534,
+       "bytes": 3369,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5671-d7a92672833307df.js",
+       "start": 2405,
+       "ttfb": 2592,
+       "end": 2596,
+       "bytes": 11952,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5529-cff85460e301409c.js",
+       "start": 2443,
+       "ttfb": 2596,
+       "end": 2600,
+       "bytes": 5200,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3957-e12d69032fa6aee7.js",
+       "start": 2464,
+       "ttfb": 2618,
+       "end": 2670,
+       "bytes": 11712,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3834-9da441648976bd0f.js",
+       "start": 2465,
+       "ttfb": 2625,
+       "end": 2670,
+       "bytes": 5628,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/9711-815125cc259708ca.js",
+       "start": 2515,
+       "ttfb": 2670,
+       "end": 2708,
+       "bytes": 4151,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/1794-3641c17201869ffe.js",
+       "start": 2536,
+       "ttfb": 2690,
+       "end": 2712,
+       "bytes": 4800,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/914-5e429acfd251ea30.js",
+       "start": 2598,
+       "ttfb": 2783,
+       "end": 2789,
+       "bytes": 2991,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8054-80b56b4d0d50a349.js",
+       "start": 2604,
+       "ttfb": 2783,
+       "end": 2789,
+       "bytes": 1980,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5481-6e697a4be7ae4bb2.js",
+       "start": 2679,
+       "ttfb": 2833,
+       "end": 2836,
+       "bytes": 2455,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/4546-4e5ad06c8835a3d3.js",
+       "start": 2679,
+       "ttfb": 2832,
+       "end": 2836,
+       "bytes": 7175,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/5447-d12ba30fd29b3948.js",
+       "start": 2710,
+       "ttfb": 2870,
+       "end": 2870,
+       "bytes": 2595,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/504-5a13e2cafe82c5bb.js",
+       "start": 2716,
+       "ttfb": 2898,
+       "end": 2898,
+       "bytes": 4430,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/2395-b701c87824e039fe.js",
+       "start": 2810,
+       "ttfb": 2996,
+       "end": 2996,
+       "bytes": 3406,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3841-975caf4baf35ba50.js",
+       "start": 2810,
+       "ttfb": 2996,
+       "end": 2996,
+       "bytes": 5085,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/you/page-d762a13088ba58a9.js",
+       "start": 2897,
+       "ttfb": 3050,
+       "end": 3052,
+       "bytes": 22090,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/_vercel/speed-insights/script.js",
+       "start": 3374,
+       "ttfb": 3535,
+       "end": 3535,
+       "bytes": 7595,
+       "status": 404
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/demos-bust/speaking.webp",
+       "start": 3376,
+       "ttfb": 3535,
+       "end": 3535,
+       "bytes": 15802,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 3389,
+       "ttfb": 3910,
+       "end": 3910,
+       "bytes": 0,
+       "status": 204,
+       "handshake": true
+      },
+      {
+       "kind": "api",
+       "method": "GET",
+       "url": "/api/avatar",
+       "start": 3392,
+       "ttfb": 3572,
+       "end": 3576,
+       "bytes": 60,
+       "status": 401
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 3394,
+       "ttfb": 3585,
+       "end": 3585,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 3395,
+       "ttfb": 3585,
+       "end": 3585,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/lexicon?select=id%2Coriginal%2Cupgrade%2Ccreated_at&order=created_at.desc&limit=100",
+       "start": 3395,
+       "ttfb": 3585,
+       "end": 3585,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 3396,
+       "ttfb": 3591,
+       "end": 3591,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 3396,
+       "ttfb": 3591,
+       "end": 3591,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/settings?_rsc=skx1D1yfvEwKlpI8",
+       "start": 3441,
+       "ttfb": 3602,
+       "end": 3605,
+       "bytes": 5115,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/words?_rsc=skx1D1yfvEwKlpI8",
+       "start": 3441,
+       "ttfb": 3602,
+       "end": 3605,
+       "bytes": 144,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/?_rsc=skx1D1yfvEwKlpI8",
+       "start": 3441,
+       "ttfb": 3605,
+       "end": 3608,
+       "bytes": 5176,
+       "status": 200
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/history",
+       "start": 3541,
+       "ttfb": 3697,
+       "end": 3697,
+       "bytes": 8835,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/lessons?_rsc=skx1D1yfvEwKlpI8",
+       "start": 3541,
+       "ttfb": 3697,
+       "end": 3697,
+       "bytes": 5057,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/games?_rsc=skx1D1yfvEwKlpI8",
+       "start": 3577,
+       "ttfb": 3732,
+       "end": 3735,
+       "bytes": 5142,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 3589,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 2,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 3589,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/xp_events?select=amount%2Ccreated_at&order=created_at.asc&offset=0&limit=1000",
+       "start": 3589,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 3594,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 97,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/lexicon?select=id%2Coriginal%2Cupgrade%2Ccreated_at&order=created_at.desc&limit=100",
+       "start": 3594,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 545,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/settings/page-09ab13332e21c895.js",
+       "start": 3621,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 9936,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/history?_rsc=skx1D1yfvEwKlpI8",
+       "start": 3626,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 5167,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/welcome?step=plan&_rsc=skx1D1yfvEwKlpI8",
+       "start": 3646,
+       "ttfb": 3799,
+       "end": 3799,
+       "bytes": 5189,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/3118-2d87e0028c8f9689.js",
+       "start": 3699,
+       "ttfb": 3952,
+       "end": 3957,
+       "bytes": 20557,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/page-d3cd370fd1d7e009.js",
+       "start": 3700,
+       "ttfb": 4002,
+       "end": 4292,
+       "bytes": 21087,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/lessons/page-99b2947e5c66030d.js",
+       "start": 3746,
+       "ttfb": 4002,
+       "end": 4040,
+       "bytes": 7507,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 3816,
+       "ttfb": 4032,
+       "end": 4076,
+       "bytes": 2280,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 3816,
+       "ttfb": 4032,
+       "end": 4731,
+       "bytes": 50254,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 3816,
+       "ttfb": 4032,
+       "end": 4138,
+       "bytes": 2007,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/xp_events?select=amount%2Ccreated_at&order=created_at.asc&offset=0&limit=1000",
+       "start": 3816,
+       "ttfb": 4032,
+       "end": 4091,
+       "bytes": 1189,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/games/page-1f6d55b58408d2f9.js",
+       "start": 3816,
+       "ttfb": 4002,
+       "end": 4369,
+       "bytes": 14941,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/8897-b486e143222fc981.js",
+       "start": 3828,
+       "ttfb": 4002,
+       "end": 4091,
+       "bytes": 2732,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/history/page-3f66c636ef6d41a2.js",
+       "start": 3829,
+       "ttfb": 4002,
+       "end": 4369,
+       "bytes": 18211,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 3927,
+       "ttfb": 4119,
+       "end": 4181,
+       "bytes": 220,
+       "status": 200
+      },
+      {
+       "kind": "css",
+       "method": "GET",
+       "url": "/_next/static/css/5440b1f6c795b3cf.css",
+       "start": 3958,
+       "ttfb": 4123,
+       "end": 4181,
+       "bytes": 1141,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/1344-5546e60c1afc779e.js",
+       "start": 4044,
+       "ttfb": 4256,
+       "end": 4392,
+       "bytes": 6685,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/973-b1d5424a4003e332.js",
+       "start": 4130,
+       "ttfb": 4306,
+       "end": 4473,
+       "bytes": 7905,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/_next/static/chunks/app/welcome/page-23e3598732506498.js",
+       "start": 4189,
+       "ttfb": 4369,
+       "end": 4643,
+       "bytes": 17373,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/icons/3d/xp.webp",
+       "start": 4305,
+       "ttfb": 4470,
+       "end": 4608,
+       "bytes": 5934,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 4752,
+       "ttfb": 4961,
+       "end": 4961,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 4752,
+       "ttfb": 4961,
+       "end": 4961,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/icons/3d/streak.webp",
+       "start": 4779,
+       "ttfb": 4940,
+       "end": 4943,
+       "bytes": 6190,
+       "status": 200
+      },
+      {
+       "kind": "img",
+       "method": "GET",
+       "url": "/icons/3d/best.webp",
+       "start": 4779,
+       "ttfb": 4941,
+       "end": 4943,
+       "bytes": 7800,
+       "status": 200
+      }
+     ],
+     "afterReady": {
+      "requests": 10,
+      "bytes": 3282,
+      "byKind": {
+       "data": {
+        "requests": 6,
+        "bytes": 3282
+       },
+       "preflight": {
+        "requests": 4,
+        "bytes": 0
+       }
+      }
+     },
+     "afterWaterfall": [
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 4976,
+       "ttfb": 5166,
+       "end": 5170,
+       "bytes": 26,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 4976,
+       "ttfb": 5166,
+       "end": 5170,
+       "bytes": 2280,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 5201,
+       "ttfb": 5394,
+       "end": 5394,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?on_conflict=user_id%2Creason%2Cearned_on&columns=%22user_id%22%2C%22kind%22%2C%22amount%22%2C%22re…",
+       "start": 5201,
+       "ttfb": 5394,
+       "end": 5394,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 5416,
+       "ttfb": 5620,
+       "end": 5620,
+       "bytes": 926,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "POST",
+       "url": "http://supabase.local/rest/v1/coin_ledger?on_conflict=user_id%2Creason%2Cearned_on&columns=%22user_id%22%2C%22kind%22%2C%22amount%22%2C%22re…",
+       "start": 5416,
+       "ttfb": 5620,
+       "end": 5620,
+       "bytes": 2,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 5685,
+       "ttfb": 5876,
+       "end": 5876,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 5878,
+       "ttfb": 6070,
+       "end": 6076,
+       "bytes": 24,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 6133,
+       "ttfb": 6325,
+       "end": 6326,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "POST",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 6347,
+       "ttfb": 6552,
+       "end": 6556,
+       "bytes": 24,
+       "status": 200
+      }
+     ]
+    },
+    "imgs": [
+     {
+      "src": "/splash-demos.webp",
+      "natural": [
+       384,
+       384
+      ],
+      "box": [
+       0,
+       0
+      ],
+      "inView": false,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/demos-bust/speaking.webp",
+      "natural": [
+       256,
+       256
+      ],
+      "box": [
+       64,
+       64
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/streak.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       22,
+       22
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/best.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       22,
+       22
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/xp.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       22,
+       22
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     }
+    ],
+    "media": [],
+    "fonts": [
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Outfit Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Figtree Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     }
+    ]
+   },
+   "warm": {
+    "median": {
+     "ttfb": 476,
+     "fcp": 940,
+     "lcp": 1152,
+     "ready": 2103,
+     "cls": 0.032,
+     "tbt": 123,
+     "longTaskMs": 329,
+     "bytes": 95239,
+     "requests": 29
+    },
+    "runs": [
+     {
+      "ttfb": 477,
+      "fcp": 892,
+      "lcp": 1140,
+      "ready": 2002,
+      "cls": 0.032,
+      "tbt": 123,
+      "longTaskMs": 273,
+      "bytes": 95239,
+      "requests": 29
+     },
+     {
+      "ttfb": 468,
+      "fcp": 984,
+      "lcp": 1152,
+      "ready": 2103,
+      "cls": 0.032,
+      "tbt": 324,
+      "longTaskMs": 658,
+      "bytes": 97545,
+      "requests": 31
+     },
+     {
+      "ttfb": 476,
+      "fcp": 940,
+      "lcp": 1304,
+      "ready": 2244,
+      "cls": 0.032,
+      "tbt": 0,
+      "longTaskMs": 329,
+      "bytes": 95239,
+      "requests": 29
+     }
+    ],
+    "medianRun": {
+     "lcpWhat": "img /demos-bust/speaking.webp",
+     "fromWorker": true,
+     "docTransfer": 58181,
+     "readyPath": "/you",
+     "domContentLoaded": 1019,
+     "load": 1104,
+     "longTasks": 5,
+     "byKind": {
+      "other": {
+       "requests": 2,
+       "bytes": 0
+      },
+      "doc": {
+       "requests": 1,
+       "bytes": 7595
+      },
+      "preflight": {
+       "requests": 10,
+       "bytes": 0
+      },
+      "api": {
+       "requests": 1,
+       "bytes": 60
+      },
+      "rsc": {
+       "requests": 7,
+       "bytes": 30990
+      },
+      "data": {
+       "requests": 10,
+       "bytes": 58900
+      }
+     },
+     "waterfall": [
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/you",
+       "start": 12,
+       "ttfb": 465,
+       "end": 465,
+       "bytes": 0,
+       "status": 304,
+       "handshake": true
+      },
+      {
+       "kind": "doc",
+       "method": "GET",
+       "url": "/_vercel/speed-insights/script.js",
+       "start": 1119,
+       "ttfb": 1277,
+       "end": 1283,
+       "bytes": 7595,
+       "status": 404
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 1119,
+       "ttfb": 1619,
+       "end": 1619,
+       "bytes": 0,
+       "status": 204,
+       "handshake": true
+      },
+      {
+       "kind": "api",
+       "method": "GET",
+       "url": "/api/avatar",
+       "start": 1121,
+       "ttfb": 1277,
+       "end": 1283,
+       "bytes": 60,
+       "status": 401
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 1124,
+       "ttfb": 1315,
+       "end": 1315,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 1124,
+       "ttfb": 1315,
+       "end": 1315,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/lexicon?select=id%2Coriginal%2Cupgrade%2Ccreated_at&order=created_at.desc&limit=100",
+       "start": 1124,
+       "ttfb": 1315,
+       "end": 1315,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 1124,
+       "ttfb": 1315,
+       "end": 1315,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 1124,
+       "ttfb": 1315,
+       "end": 1315,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/words?_rsc=skx1D1yfvEwKlpI8",
+       "start": 1132,
+       "ttfb": 1288,
+       "end": 1288,
+       "bytes": 144,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/settings?_rsc=skx1D1yfvEwKlpI8",
+       "start": 1133,
+       "ttfb": 1293,
+       "end": 1300,
+       "bytes": 5115,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/?_rsc=skx1D1yfvEwKlpI8",
+       "start": 1134,
+       "ttfb": 1302,
+       "end": 1304,
+       "bytes": 5176,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/lessons?_rsc=skx1D1yfvEwKlpI8",
+       "start": 1134,
+       "ttfb": 1302,
+       "end": 1304,
+       "bytes": 5057,
+       "status": 200
+      },
+      {
+       "kind": "other",
+       "method": "GET",
+       "url": "/history",
+       "start": 1290,
+       "ttfb": 1475,
+       "end": 1475,
+       "bytes": 0,
+       "status": 304
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/games?_rsc=skx1D1yfvEwKlpI8",
+       "start": 1290,
+       "ttfb": 1475,
+       "end": 1476,
+       "bytes": 5142,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 1355,
+       "ttfb": 1557,
+       "end": 1557,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/xp_events?select=amount%2Ccreated_at&order=created_at.asc&offset=0&limit=1000",
+       "start": 1355,
+       "ttfb": 1558,
+       "end": 1558,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+       "start": 1355,
+       "ttfb": 1558,
+       "end": 1560,
+       "bytes": 2,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+       "start": 1355,
+       "ttfb": 1558,
+       "end": 1560,
+       "bytes": 97,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/lexicon?select=id%2Coriginal%2Cupgrade%2Ccreated_at&order=created_at.desc&limit=100",
+       "start": 1355,
+       "ttfb": 1560,
+       "end": 1560,
+       "bytes": 545,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/history?_rsc=skx1D1yfvEwKlpI8",
+       "start": 1356,
+       "ttfb": 1524,
+       "end": 1528,
+       "bytes": 5167,
+       "status": 200
+      },
+      {
+       "kind": "rsc",
+       "method": "GET",
+       "url": "/welcome?step=plan&_rsc=skx1D1yfvEwKlpI8",
+       "start": 1382,
+       "ttfb": 1557,
+       "end": 1560,
+       "bytes": 5189,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 1627,
+       "ttfb": 1817,
+       "end": 1821,
+       "bytes": 2280,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst…",
+       "start": 1627,
+       "ttfb": 1819,
+       "end": 1973,
+       "bytes": 50254,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/xp_events?select=amount%2Ccreated_at&order=created_at.asc&offset=0&limit=1000",
+       "start": 1687,
+       "ttfb": 1883,
+       "end": 1919,
+       "bytes": 1189,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/reps?select=created_at%2Clesson_id%2Cstars%2Cethos_index&order=created_at.asc&offset=0&limit=1000",
+       "start": 1687,
+       "ttfb": 1883,
+       "end": 1919,
+       "bytes": 2007,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/auth/v1/user",
+       "start": 1688,
+       "ttfb": 1883,
+       "end": 1919,
+       "bytes": 220,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 2075,
+       "ttfb": 2271,
+       "end": 2271,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 2075,
+       "ttfb": 2271,
+       "end": 2271,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streak_freezes?select=used_on&order=used_on.asc",
+       "start": 2280,
+       "ttfb": 2476,
+       "end": 2483,
+       "bytes": 26,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=id%2Ckind%2Camount%2Creason%2Cearned_on%2Ccreated_at&order=created_at.asc&offset=0&limit=10…",
+       "start": 2280,
+       "ttfb": 2476,
+       "end": 2483,
+       "bytes": 2280,
+       "status": 200
+      }
+     ],
+     "afterReady": {
+      "requests": 9,
+      "bytes": 976,
+      "byKind": {
+       "preflight": {
+        "requests": 4,
+        "bytes": 0
+       },
+       "data": {
+        "requests": 4,
+        "bytes": 976
+       },
+       "js": {
+        "requests": 1,
+        "bytes": 0
+       }
+      }
+     },
+     "afterWaterfall": [
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 2551,
+       "ttfb": 2742,
+       "end": 2742,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/coin_ledger?on_conflict=user_id%2Creason%2Cearned_on&columns=%22user_id%22%2C%22kind%22%2C%22amount%22%2C%22re…",
+       "start": 2552,
+       "ttfb": 2742,
+       "end": 2742,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "POST",
+       "url": "http://supabase.local/rest/v1/coin_ledger?on_conflict=user_id%2Creason%2Cearned_on&columns=%22user_id%22%2C%22kind%22%2C%22amount%22%2C%22re…",
+       "start": 2746,
+       "ttfb": 2943,
+       "end": 2947,
+       "bytes": 2,
+       "status": 200
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/coin_ledger?select=kind%2Creason%2Camount&kind=eq.spent&reason=eq.shop%3Astreak_freeze",
+       "start": 2746,
+       "ttfb": 2938,
+       "end": 2940,
+       "bytes": 926,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 2993,
+       "ttfb": 3231,
+       "end": 3231,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "GET",
+       "url": "http://supabase.local/rest/v1/streaks?select=freezes_equipped",
+       "start": 3235,
+       "ttfb": 3425,
+       "end": 3427,
+       "bytes": 24,
+       "status": 200
+      },
+      {
+       "kind": "preflight",
+       "method": "OPTIONS",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 3441,
+       "ttfb": 3631,
+       "end": 3632,
+       "bytes": 0,
+       "status": 204
+      },
+      {
+       "kind": "data",
+       "method": "POST",
+       "url": "http://supabase.local/rest/v1/streaks?on_conflict=user_id",
+       "start": 3634,
+       "ttfb": 3825,
+       "end": 3829,
+       "bytes": 24,
+       "status": 200
+      },
+      {
+       "kind": "js",
+       "method": "GET",
+       "url": "/sw.js",
+       "start": 4831,
+       "ttfb": 4983,
+       "end": 4983,
+       "bytes": 0,
+       "status": 304
+      }
+     ]
+    },
+    "imgs": [
+     {
+      "src": "/splash-demos.webp",
+      "natural": [
+       384,
+       384
+      ],
+      "box": [
+       0,
+       0
+      ],
+      "inView": false,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/demos-bust/speaking.webp",
+      "natural": [
+       256,
+       256
+      ],
+      "box": [
+       64,
+       64
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/streak.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       22,
+       22
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/best.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       22,
+       22
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     },
+     {
+      "src": "/icons/3d/xp.webp",
+      "natural": [
+       192,
+       192
+      ],
+      "box": [
+       22,
+       22
+      ],
+      "inView": true,
+      "loading": null,
+      "priority": null,
+      "nextImage": false
+     }
+    ],
+    "media": [],
+    "fonts": [
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Outfit",
+      "weight": "100 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Outfit Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "unloaded",
+      "range": "U+100-2BA, U+2BD-2C5, U+"
+     },
+     {
+      "family": "Figtree",
+      "weight": "300 900",
+      "display": "swap",
+      "status": "loaded",
+      "range": "U+0-FF, U+131, U+152-153"
+     },
+     {
+      "family": "Figtree Fallback",
+      "weight": "normal",
+      "display": "auto",
+      "status": "unloaded",
+      "range": "U+0-10FFFF"
+     }
+    ]
+   },
+   "serviceWorker": {
+    "ready": true,
+    "installMs": 11897,
+    "precache": null
+   }
+  }
+ },
+ "room": {
+  "welcome": {
+   "url": "/welcome",
+   "cold": {
+    "ttfb": 465,
+    "fcp": 1256,
+    "lcp": 3276,
+    "ready": 3136,
+    "cls": 0,
+    "tbt": 414,
+    "longTaskMs": 714,
+    "bytes": 623756,
+    "requests": 46
+   },
+   "warm": {
+    "ttfb": 496,
+    "fcp": 800,
+    "lcp": 1188,
+    "ready": 1098,
+    "cls": 0,
+    "tbt": 5,
+    "longTaskMs": 64,
+    "bytes": 12522,
+    "requests": 5
+   },
+   "readyPath": "/welcome",
+   "lcpWhat": "a.room-link \"Tester code\"",
+   "byKind": {
+    "doc": {
+     "requests": 2,
+     "bytes": 14556
+    },
+    "font": {
+     "requests": 2,
+     "bytes": 52412
+    },
+    "css": {
+     "requests": 3,
+     "bytes": 38045
+    },
+    "img": {
+     "requests": 3,
+     "bytes": 177630
+    },
+    "js": {
+     "requests": 34,
+     "bytes": 331125
+    },
+    "rsc": {
+     "requests": 2,
+     "bytes": 9988
+    }
+   },
+   "waterfall": [
+    {
+     "kind": "doc",
+     "method": "GET",
+     "url": "/welcome",
+     "start": 10,
+     "ttfb": 466,
+     "end": 469,
+     "bytes": 6961,
+     "status": 200,
+     "handshake": true
+    },
+    {
+     "kind": "font",
+     "method": "GET",
+     "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
+     "start": 523,
+     "ttfb": 675,
+     "end": 895,
+     "bytes": 32228,
+     "status": 200
+    },
+    {
+     "kind": "font",
+     "method": "GET",
+     "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
+     "start": 525,
+     "ttfb": 677,
+     "end": 919,
+     "bytes": 20184,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/6218dba966cdb5bc.css",
+     "start": 527,
+     "ttfb": 680,
+     "end": 696,
+     "bytes": 552,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/57a31cc098060165.css",
+     "start": 530,
+     "ttfb": 682,
+     "end": 1192,
+     "bytes": 36352,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/5440b1f6c795b3cf.css",
+     "start": 530,
+     "ttfb": 684,
+     "end": 727,
+     "bytes": 1141,
+     "status": 200
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/splash-demos.webp",
+     "start": 530,
+     "ttfb": 683,
+     "end": 1183,
+     "bytes": 38018,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/webpack-a46534dc1e8d4ba5.js",
+     "start": 1191,
+     "ttfb": 1344,
+     "end": 1348,
+     "bytes": 2000,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9b81ea1e-e30c8ff8590566d4.js",
+     "start": 1199,
+     "ttfb": 1362,
+     "end": 1809,
+     "bytes": 54364,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5456-b1d4b94ad755ddf8.js",
+     "start": 1245,
+     "ttfb": 1418,
+     "end": 2272,
+     "bytes": 46700,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/main-app-e26091174ba3827d.js",
+     "start": 1246,
+     "ttfb": 1416,
+     "end": 1424,
+     "bytes": 574,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/b87512dc-e3cda148b6770e48.js",
+     "start": 1249,
+     "ttfb": 1418,
+     "end": 1780,
+     "bytes": 13825,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6762-c7410061e3cc09a6.js",
+     "start": 1249,
+     "ttfb": 1418,
+     "end": 1540,
+     "bytes": 3416,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/97-db0f42cefb3b96c0.js",
+     "start": 1351,
+     "ttfb": 1511,
+     "end": 2247,
+     "bytes": 49220,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2271-4ed447a7db361c3c.js",
+     "start": 1424,
+     "ttfb": 1586,
+     "end": 1679,
+     "bytes": 3132,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2503-af514d5381b18a99.js",
+     "start": 1541,
+     "ttfb": 1718,
+     "end": 1825,
+     "bytes": 3778,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9513-78c8f203e1a02cf0.js",
+     "start": 1682,
+     "ttfb": 1838,
+     "end": 1929,
+     "bytes": 5112,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2517-32c85d632b313263.js",
+     "start": 1783,
+     "ttfb": 1938,
+     "end": 2123,
+     "bytes": 7768,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3426-705c81d961202097.js",
+     "start": 1809,
+     "ttfb": 1963,
+     "end": 2135,
+     "bytes": 5409,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/4858-362ab5780e113228.js",
+     "start": 1826,
+     "ttfb": 1978,
+     "end": 2151,
+     "bytes": 7289,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6927-c97b6f16c2ccf852.js",
+     "start": 1929,
+     "ttfb": 2082,
+     "end": 2224,
+     "bytes": 5892,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/8950-09a190a344d6c862.js",
+     "start": 2125,
+     "ttfb": 2283,
+     "end": 2286,
+     "bytes": 2165,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5920-e2ac6ae56701d493.js",
+     "start": 2138,
+     "ttfb": 2290,
+     "end": 2294,
+     "bytes": 2659,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/layout-e1f9b7e805afe790.js",
+     "start": 2152,
+     "ttfb": 2309,
+     "end": 2387,
+     "bytes": 18243,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6223-a3afc826833cd183.js",
+     "start": 2224,
+     "ttfb": 2386,
+     "end": 2418,
+     "bytes": 5839,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3396-59f0ca50fb8ea8dd.js",
+     "start": 2248,
+     "ttfb": 2418,
+     "end": 2467,
+     "bytes": 8169,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/error-efc31151bf39aed2.js",
+     "start": 2272,
+     "ttfb": 2426,
+     "end": 2438,
+     "bytes": 1317,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/7959-7fbd8d0465d26857.js",
+     "start": 2286,
+     "ttfb": 2438,
+     "end": 2506,
+     "bytes": 5230,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/not-found-9bbd6410cd46e71e.js",
+     "start": 2294,
+     "ttfb": 2467,
+     "end": 2484,
+     "bytes": 241,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6882-b63d6b1423f397ad.js",
+     "start": 2389,
+     "ttfb": 2547,
+     "end": 2549,
+     "bytes": 3369,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5671-d7a92672833307df.js",
+     "start": 2420,
+     "ttfb": 2582,
+     "end": 2587,
+     "bytes": 11952,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5529-cff85460e301409c.js",
+     "start": 2465,
+     "ttfb": 2617,
+     "end": 2619,
+     "bytes": 5200,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3957-e12d69032fa6aee7.js",
+     "start": 2467,
+     "ttfb": 2621,
+     "end": 2650,
+     "bytes": 11712,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9711-815125cc259708ca.js",
+     "start": 2505,
+     "ttfb": 2657,
+     "end": 2681,
+     "bytes": 4151,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/8054-80b56b4d0d50a349.js",
+     "start": 2507,
+     "ttfb": 2661,
+     "end": 2681,
+     "bytes": 1980,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5481-6e697a4be7ae4bb2.js",
+     "start": 2551,
+     "ttfb": 2743,
+     "end": 2749,
+     "bytes": 2455,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/1344-5546e60c1afc779e.js",
+     "start": 2588,
+     "ttfb": 2744,
+     "end": 2750,
+     "bytes": 6685,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5447-d12ba30fd29b3948.js",
+     "start": 2620,
+     "ttfb": 2881,
+     "end": 2882,
+     "bytes": 2595,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2395-b701c87824e039fe.js",
+     "start": 2651,
+     "ttfb": 2881,
+     "end": 2882,
+     "bytes": 3406,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/973-b1d5424a4003e332.js",
+     "start": 2682,
+     "ttfb": 2881,
+     "end": 2882,
+     "bytes": 7905,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/welcome/page-23e3598732506498.js",
+     "start": 2682,
+     "ttfb": 2881,
+     "end": 2910,
+     "bytes": 17373,
+     "status": 200
+    },
+    {
+     "kind": "doc",
+     "method": "GET",
+     "url": "/_vercel/speed-insights/script.js",
+     "start": 3123,
+     "ttfb": 3383,
+     "end": 3387,
+     "bytes": 7595,
+     "status": 404
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/demos-onboard-hello.webp",
+     "start": 3123,
+     "ttfb": 3457,
+     "end": 4140,
+     "bytes": 100546,
+     "status": 200
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/demos-512/demos-onboard-speaking.webp",
+     "start": 3271,
+     "ttfb": 3493,
+     "end": 4017,
+     "bytes": 39066,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/signin?_rsc=1EdXwHG8Bw8yICiH",
+     "start": 3271,
+     "ttfb": 3495,
+     "end": 3654,
+     "bytes": 4927,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/tester?from=welcome&_rsc=1EdXwHG8Bw8yICiH",
+     "start": 3271,
+     "ttfb": 3495,
+     "end": 3654,
+     "bytes": 5061,
+     "status": 200
+    }
+   ],
+   "imgs": [
+    {
+     "src": "/splash-demos.webp",
+     "natural": [
+      384,
+      384
+     ],
+     "box": [
+      0,
+      0
+     ],
+     "inView": false,
+     "loading": null,
+     "priority": null,
+     "nextImage": false
+    }
+   ],
+   "media": []
+  },
+  "start-url": {
+   "url": "/",
+   "cold": {
+    "ttfb": 476,
+    "fcp": 1460,
+    "lcp": 1460,
+    "ready": 4336,
+    "cls": 0,
+    "tbt": 609,
+    "longTaskMs": 1050,
+    "bytes": 706748,
+    "requests": 65
+   },
+   "warm": {
+    "ttfb": 487,
+    "fcp": 1004,
+    "lcp": 2700,
+    "ready": 2081,
+    "cls": 0,
+    "tbt": 199,
+    "longTaskMs": 768,
+    "bytes": 70521,
+    "requests": 24
+   },
+   "readyPath": "/welcome",
+   "lcpWhat": "button.home-another.press \"Another topic\"",
+   "byKind": {
+    "doc": {
+     "requests": 3,
+     "bytes": 26953
+    },
+    "font": {
+     "requests": 2,
+     "bytes": 52412
+    },
+    "css": {
+     "requests": 3,
+     "bytes": 38045
+    },
+    "img": {
+     "requests": 3,
+     "bytes": 61866
+    },
+    "js": {
+     "requests": 44,
+     "bytes": 509911
+    },
+    "rsc": {
+     "requests": 9,
+     "bytes": 46477
+    },
+    "preflight": {
+     "requests": 2,
+     "bytes": 0
+    },
+    "data": {
+     "requests": 2,
+     "bytes": 99
+    }
+   },
+   "waterfall": [
+    {
+     "kind": "doc",
+     "method": "GET",
+     "url": "/",
+     "start": 4,
+     "ttfb": 477,
+     "end": 477,
+     "bytes": 9241,
+     "status": 200,
+     "handshake": true
+    },
+    {
+     "kind": "font",
+     "method": "GET",
+     "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
+     "start": 538,
+     "ttfb": 696,
+     "end": 980,
+     "bytes": 32228,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/6218dba966cdb5bc.css",
+     "start": 538,
+     "ttfb": 696,
+     "end": 696,
+     "bytes": 552,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/57a31cc098060165.css",
+     "start": 539,
+     "ttfb": 700,
+     "end": 1159,
+     "bytes": 36352,
+     "status": 200
+    },
+    {
+     "kind": "font",
+     "method": "GET",
+     "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
+     "start": 539,
+     "ttfb": 696,
+     "end": 946,
+     "bytes": 20184,
+     "status": 200
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/splash-demos.webp",
+     "start": 565,
+     "ttfb": 719,
+     "end": 1253,
+     "bytes": 38018,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/webpack-a46534dc1e8d4ba5.js",
+     "start": 1252,
+     "ttfb": 1500,
+     "end": 1500,
+     "bytes": 2000,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9b81ea1e-e30c8ff8590566d4.js",
+     "start": 1253,
+     "ttfb": 1500,
+     "end": 2404,
+     "bytes": 54364,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5456-b1d4b94ad755ddf8.js",
+     "start": 1253,
+     "ttfb": 1500,
+     "end": 2222,
+     "bytes": 46700,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/main-app-e26091174ba3827d.js",
+     "start": 1253,
+     "ttfb": 1450,
+     "end": 1452,
+     "bytes": 574,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/b87512dc-e3cda148b6770e48.js",
+     "start": 1253,
+     "ttfb": 1500,
+     "end": 1631,
+     "bytes": 13825,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6762-c7410061e3cc09a6.js",
+     "start": 1259,
+     "ttfb": 1500,
+     "end": 1569,
+     "bytes": 3416,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/97-db0f42cefb3b96c0.js",
+     "start": 1466,
+     "ttfb": 1622,
+     "end": 2430,
+     "bytes": 49220,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2271-4ed447a7db361c3c.js",
+     "start": 1506,
+     "ttfb": 1667,
+     "end": 1746,
+     "bytes": 3132,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2503-af514d5381b18a99.js",
+     "start": 1569,
+     "ttfb": 1722,
+     "end": 1788,
+     "bytes": 3778,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9513-78c8f203e1a02cf0.js",
+     "start": 1633,
+     "ttfb": 1788,
+     "end": 1894,
+     "bytes": 5112,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/2517-32c85d632b313263.js",
+     "start": 1746,
+     "ttfb": 1900,
+     "end": 2085,
+     "bytes": 7768,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3426-705c81d961202097.js",
+     "start": 1789,
+     "ttfb": 1944,
+     "end": 2097,
+     "bytes": 5409,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/4858-362ab5780e113228.js",
+     "start": 1894,
+     "ttfb": 2049,
+     "end": 2233,
+     "bytes": 7289,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6927-c97b6f16c2ccf852.js",
+     "start": 2086,
+     "ttfb": 2253,
+     "end": 2404,
+     "bytes": 5892,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/8950-09a190a344d6c862.js",
+     "start": 2097,
+     "ttfb": 2254,
+     "end": 2316,
+     "bytes": 2165,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5920-e2ac6ae56701d493.js",
+     "start": 2225,
+     "ttfb": 2404,
+     "end": 2448,
+     "bytes": 2659,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/layout-e1f9b7e805afe790.js",
+     "start": 2233,
+     "ttfb": 2404,
+     "end": 2554,
+     "bytes": 18243,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6223-a3afc826833cd183.js",
+     "start": 2317,
+     "ttfb": 2494,
+     "end": 2550,
+     "bytes": 5839,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3396-59f0ca50fb8ea8dd.js",
+     "start": 2417,
+     "ttfb": 2571,
+     "end": 2617,
+     "bytes": 8169,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/error-efc31151bf39aed2.js",
+     "start": 2418,
+     "ttfb": 2571,
+     "end": 2589,
+     "bytes": 1317,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/7959-7fbd8d0465d26857.js",
+     "start": 2431,
+     "ttfb": 2583,
+     "end": 2630,
+     "bytes": 5230,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/not-found-9bbd6410cd46e71e.js",
+     "start": 2448,
+     "ttfb": 2601,
+     "end": 2614,
+     "bytes": 241,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/6882-b63d6b1423f397ad.js",
+     "start": 2553,
+     "ttfb": 2709,
+     "end": 2709,
+     "bytes": 3369,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5671-d7a92672833307df.js",
+     "start": 2555,
+     "ttfb": 2709,
+     "end": 2709,
+     "bytes": 11952,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5529-cff85460e301409c.js",
+     "start": 2589,
+     "ttfb": 2743,
+     "end": 2746,
+     "bytes": 5200,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3957-e12d69032fa6aee7.js",
+     "start": 2614,
+     "ttfb": 2789,
+     "end": 2840,
+     "bytes": 11712,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3834-9da441648976bd0f.js",
+     "start": 2618,
+     "ttfb": 2789,
+     "end": 2825,
+     "bytes": 5628,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9711-815125cc259708ca.js",
+     "start": 2630,
+     "ttfb": 2794,
+     "end": 2837,
+     "bytes": 4151,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/1794-3641c17201869ffe.js",
+     "start": 2714,
+     "ttfb": 2888,
+     "end": 2891,
+     "bytes": 4800,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/914-5e429acfd251ea30.js",
+     "start": 2714,
+     "ttfb": 2889,
+     "end": 2891,
+     "bytes": 2991,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/8054-80b56b4d0d50a349.js",
+     "start": 2748,
+     "ttfb": 2901,
+     "end": 2905,
+     "bytes": 1980,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/5481-6e697a4be7ae4bb2.js",
+     "start": 2826,
+     "ttfb": 2981,
+     "end": 2984,
+     "bytes": 2455,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/4546-4e5ad06c8835a3d3.js",
+     "start": 2837,
+     "ttfb": 2991,
+     "end": 2992,
+     "bytes": 7175,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/3118-2d87e0028c8f9689.js",
+     "start": 2840,
+     "ttfb": 2994,
+     "end": 3040,
+     "bytes": 20557,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/page-d3cd370fd1d7e009.js",
+     "start": 2893,
+     "ttfb": 3054,
+     "end": 3143,
+     "bytes": 21087,
+     "status": 200
+    },
+    {
+     "kind": "doc",
+     "method": "GET",
+     "url": "/_vercel/speed-insights/script.js",
+     "start": 3516,
+     "ttfb": 3693,
+     "end": 3697,
+     "bytes": 7595,
+     "status": 404
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/welcome?_rsc=ZmCQ44b92m4mXe_R",
+     "start": 3517,
+     "ttfb": 3674,
+     "end": 3677,
+     "bytes": 5189,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/you?_rsc=1p-R_iEY6bj0jY31",
+     "start": 3517,
+     "ttfb": 3687,
+     "end": 3692,
+     "bytes": 5226,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/rep?trait=pause&_rsc=1p-R_iEY6bj0jY31",
+     "start": 3517,
+     "ttfb": 3692,
+     "end": 3693,
+     "bytes": 5201,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/hostile?from=today&_rsc=1p-R_iEY6bj0jY31",
+     "start": 3517,
+     "ttfb": 3693,
+     "end": 3697,
+     "bytes": 5159,
+     "status": 200
+    },
+    {
+     "kind": "preflight",
+     "method": "OPTIONS",
+     "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+     "start": 3518,
+     "ttfb": 4038,
+     "end": 4039,
+     "bytes": 0,
+     "status": 204,
+     "handshake": true
+    },
+    {
+     "kind": "preflight",
+     "method": "OPTIONS",
+     "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+     "start": 3518,
+     "ttfb": 3711,
+     "end": 3711,
+     "bytes": 0,
+     "status": 204
+    },
+    {
+     "kind": "doc",
+     "method": "GET",
+     "url": "/lessons",
+     "start": 3555,
+     "ttfb": 3711,
+     "end": 3737,
+     "bytes": 10117,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/welcome?_rsc=ZmCQ44b92m4mXe_R",
+     "start": 3679,
+     "ttfb": 3903,
+     "end": 3903,
+     "bytes": 5189,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/5440b1f6c795b3cf.css",
+     "start": 3706,
+     "ttfb": 3954,
+     "end": 3985,
+     "bytes": 1141,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/1344-5546e60c1afc779e.js",
+     "start": 3711,
+     "ttfb": 3955,
+     "end": 3987,
+     "bytes": 6685,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/973-b1d5424a4003e332.js",
+     "start": 3711,
+     "ttfb": 3955,
+     "end": 3989,
+     "bytes": 7905,
+     "status": 200
+    },
+    {
+     "kind": "data",
+     "method": "GET",
+     "url": "http://supabase.local/rest/v1/billing?select=status%2Cladder_month%2Cprice_cents%2Cnext_price_cents%2Ccurrent_period_end%2Ccancel_at_period_…",
+     "start": 3713,
+     "ttfb": 3913,
+     "end": 3918,
+     "bytes": 2,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/welcome/page-23e3598732506498.js",
+     "start": 3717,
+     "ttfb": 3955,
+     "end": 4014,
+     "bytes": 17373,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/boss?from=today&_rsc=1p-R_iEY6bj0jY31",
+     "start": 3738,
+     "ttfb": 3909,
+     "end": 3913,
+     "bytes": 5147,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/you/page-d762a13088ba58a9.js",
+     "start": 3906,
+     "ttfb": 4112,
+     "end": 4113,
+     "bytes": 22090,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/lessons?_rsc=1p-R_iEY6bj0jY31",
+     "start": 3914,
+     "ttfb": 4114,
+     "end": 4140,
+     "bytes": 5057,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/1203-68aa304f0057130f.js",
+     "start": 3993,
+     "ttfb": 4181,
+     "end": 4425,
+     "bytes": 21604,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/rep/page-1e3498536f5cfc72.js",
+     "start": 3995,
+     "ttfb": 4182,
+     "end": 5015,
+     "bytes": 58492,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/games?_rsc=1p-R_iEY6bj0jY31",
+     "start": 3995,
+     "ttfb": 4188,
+     "end": 4308,
+     "bytes": 5142,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9195-3544302ca8eb35dd.js",
+     "start": 4024,
+     "ttfb": 4198,
+     "end": 4294,
+     "bytes": 2745,
+     "status": 200
+    },
+    {
+     "kind": "data",
+     "method": "GET",
+     "url": "http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose",
+     "start": 4064,
+     "ttfb": 4256,
+     "end": 4284,
+     "bytes": 97,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/9980-95715f9e1936b099.js",
+     "start": 4119,
+     "ttfb": 4282,
+     "end": 4392,
+     "bytes": 4675,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/app/hostile/page-6cecebf4b12a2e49.js",
+     "start": 4141,
+     "ttfb": 4297,
+     "end": 4558,
+     "bytes": 12943,
+     "status": 200
+    },
+    {
+     "kind": "rsc",
+     "method": "GET",
+     "url": "/history?_rsc=1p-R_iEY6bj0jY31",
+     "start": 4297,
+     "ttfb": 4472,
+     "end": 4664,
+     "bytes": 5167,
+     "status": 200
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/lessons/the-landing.webp",
+     "start": 4308,
+     "ttfb": 4472,
+     "end": 4592,
+     "bytes": 11096,
+     "status": 200
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/lessons/inside-or-after.webp",
+     "start": 4394,
+     "ttfb": 4550,
+     "end": 4816,
+     "bytes": 12752,
+     "status": 200
+    }
+   ],
+   "imgs": [
+    {
+     "src": "/splash-demos.webp",
+     "natural": [
+      384,
+      384
+     ],
+     "box": [
+      0,
+      0
+     ],
+     "inView": false,
+     "loading": null,
+     "priority": null,
+     "nextImage": false
+    }
+   ],
+   "media": []
+  }
+ }
+}

@@ -579,7 +579,7 @@ results.bundle = bundleTable();
 
 const ROUTES = [
   ["today", "/"],
-  ["rep-ready", "/rep?ready=1"],
+  ["recorder", "/rep?ready=1"],
   ["result", "/rep/rep-22"],
   ["log-daily", "/history"],
   ["log-games", "/history?view=games"],

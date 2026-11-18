@@ -2569,7 +2569,7 @@
     "precache": null
    }
   },
-  "rep-ready": {
+  "recorder": {
    "url": "/rep?ready=1",
    "cold": {
     "median": {

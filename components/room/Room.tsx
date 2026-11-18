@@ -881,7 +881,9 @@ export function Room({
                 <IntroDemos pose="wave" size={88} fit pop halo={{ tone: "sky", kind: "coin" }} />
               </Talker>
               <div className="room-guide-say talk-bubble talk-bubble-left min-w-0">
-                <SpeechBubble tail="left">
+                {/* The introduction's voice, as every other bubble he
+                    speaks from in it (DESIGN principle 9, #501 review). */}
+                <SpeechBubble tail="left" voice="lead">
                   <TalkLines
                     lines={[ROOM_COPY.guide]}
                     lead={420}

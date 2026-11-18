@@ -480,12 +480,18 @@ if (want("returning")) {
   await browser.close();
 }
 if (want("returning")) {
-  /* A guest (no account) on the door keeps both doors. */
+  /* A guest (no account) on the door keeps both doors, Tester code only
+     until the test is over (#496: the `tester` scene holds its clock). */
   const { browser, page } = await open();
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("[data-room-hold]");
   const links = await page.locator("main.room .room-top a").allTextContents();
-  ok("returning: without an account the door keeps Sign in and Tester code", links.length === 2, JSON.stringify(links));
+  const doors = TEST_OVER ? ["Sign in"] : ["Sign in", "Tester code"];
+  ok(
+    `returning: without an account the door keeps ${doors.join(" and ")}`,
+    links.length === doors.length && doors.every((d) => links.some((l) => l.includes(d))),
+    JSON.stringify(links)
+  );
   await browser.close();
 }
 

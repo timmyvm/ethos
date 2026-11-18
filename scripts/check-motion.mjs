@@ -188,8 +188,13 @@ await sleep(600);
 // 2. Home: fetched content arrives once; the mods reveal; the sheet rises and leaves.
 await page.goto(`${BASE}/`);
 await page.getByText("Day one starts today.").waitFor();
-a = await anim(page, "main > .arrive");
-ok("home's fetched block arrives once", a.name === "arrive", `${a.name}`);
+/* What lands after the first paint on a first day: the two games' rows
+   take their claim and topic once the clock is read (#500, ModeRows).
+   The tiles' block that used to be `main > .arrive` went with #500, and
+   a first day has no foot (TodayFoot is the fetched block on any other). */
+await page.waitForSelector("main .home-mode-subject > .arrive");
+a = await anim(page, "main .home-mode-subject > .arrive");
+ok("home's late words arrive once", a.name === "arrive", `${a.name}`);
 const navT = await page.$eval("nav a", (el) => getComputedStyle(el).transitionDuration);
 ok("nav tab colour steps at the press duration", navT === "0.12s", navT);
 await page.getByRole("button", { name: "Turn up the difficulty" }).click();
@@ -328,10 +333,15 @@ ok(
   moment.lit !== null && moment.lit.delay === moment.lightAt && moment.lit.easing.startsWith("linear("),
   JSON.stringify(moment.lit)
 );
+/* The count rolls on the streak sound's landing note (#505): its D6 at
+   0.32s after a 0.06s lead, 380ms after the light (lib/sound-recipes.ts
+   STREAK_LAND_S.daily; lib/streak-moment.test.ts holds the timeline to
+   the recipe). It was the old chime's 320 until the sound kit. */
+const LAND_MS = 380;
 ok(
-  "the count rolls one place on the chime's landing note (320ms after the light)",
-  moment.turn !== null && moment.turn.delay === moment.rollAt && moment.rollAt - moment.lightAt === 320 && moment.turn.end === "translateY(-50%)",
-  JSON.stringify(moment.turn)
+  `the count rolls one place on the sound's landing note (${LAND_MS}ms after the light)`,
+  moment.turn !== null && moment.turn.delay === moment.rollAt && moment.rollAt - moment.lightAt === LAND_MS && moment.turn.end === "translateY(-50%)",
+  `${moment.rollAt - moment.lightAt}ms after the light; ${JSON.stringify({ delay: moment.turn?.delay, end: moment.turn?.end })}`
 );
 ok("today's day fills with the roll", moment.fill !== null && moment.fill.delay === moment.rollAt, JSON.stringify(moment.fill));
 // STREAK_SHOT=path keeps a frame of the moment, landed, for the look loop.

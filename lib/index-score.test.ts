@@ -4,6 +4,7 @@ import {
   INDEX_WEIGHTS,
   REPAIR_ZERO_AT,
   repairScore,
+  repairsFromScore,
   countHedges,
   countRestarts,
   ethosIndex,
@@ -253,6 +254,30 @@ describe("fillers and repairs are scored apart", () => {
     expect(repairScore(1)).toBe(67);
     expect(repairScore(REPAIR_ZERO_AT)).toBe(0);
     expect(repairScore(9)).toBe(0);
+  });
+
+  /* The review of #502: a stored row keeps the score, not the count, and
+     the Log's page drew a count of 0 under every score. */
+  it("reads a stored recording's sentence restarts back from its score, exactly", () => {
+    for (const durationS of [12.4, 30, 45.5, 62, 65.25, 90, 180, 300]) {
+      const minutes = durationS / 60;
+      for (let n = 0; n < REPAIR_ZERO_AT * minutes; n++) {
+        const perMin = Math.round((n / minutes) * 100) / 100;
+        const back = repairsFromScore(repairScore(perMin), durationS);
+        expect(back, `${n} in ${durationS}s`).toEqual({ repairCount: n, repairsPerMin: perMin, atLeast: false });
+      }
+    }
+  });
+
+  it("says at least where the score has run out, and nothing where there is no score", () => {
+    expect(repairsFromScore(0, 60)).toEqual({ repairCount: 3, repairsPerMin: 3, atLeast: true });
+    expect(repairsFromScore(undefined, 60)).toBeNull();
+    expect(repairsFromScore(null, 60)).toBeNull();
+    expect(repairsFromScore(66, 0)).toBeNull();
+    /* A score no whole count makes (the cameras' fixture: 66 at 65s,
+       where 1 scores 69 and 2 scores 38) takes the nearest count. */
+    expect(repairsFromScore(66, 65)?.repairCount).toBe(1);
+    expect(repairsFromScore(99, 65)?.repairCount).toBe(0);
   });
 
   it("costs a repair more per occurrence than a filler", () => {

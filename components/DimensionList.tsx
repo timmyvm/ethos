@@ -165,7 +165,11 @@ export function DimensionList({
     // name for the count everywhere since #502: "sentence restarts".
     repairs: {
       detail: `${
-        repairs === 0
+        /* A stored score of 0 says 3 a minute or more, never how many
+           (index-score.ts repairsFromScore). */
+        metrics.repairsAtLeast
+          ? "3 or more sentence restarts a minute."
+          : repairs === 0
           ? `No sentence restarts in ${secs} seconds.`
           : `${plural(repairs, "sentence restart")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
               brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute.`
@@ -212,11 +216,15 @@ export function DimensionList({
        A hedge is "maybe", "I guess", "sort of" or "I feel like"
        (index-score.ts countHedges), so the line gives two as examples
        and never says the count was only those two. */
+    /* The restarts it counts are the Sentence restarts row's own, where
+       that row is on the card (the review of #502): the judge's anchor
+       also counts every "I mean", "wait no" and "sorry"
+       (index-score.ts countRestarts), so one take read "No sentence
+       restarts" on one row and "2 sentence restarts" two rows down. */
     confidence: coach
       ? {
-          detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${plural(
-            anchors.restartCount,
-            "sentence restart"
+          detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${restartWords(
+            typeof tier1.repairs === "number" && !metrics.repairsAtLeast ? repairs : anchors.restartCount
           )}.)`,
           improve: coach.dimensions.confidence.improve,
         }
@@ -268,6 +276,11 @@ export function hedgeWords(n: number): string {
   const like = "like “maybe” or “I guess”";
   if (!(n > 0)) return `no phrases ${like}`;
   return `${n} ${n === 1 ? "phrase" : "phrases"} ${like}`;
+}
+
+/** "no sentence restarts", "1 sentence restart", "3 sentence restarts": hedgeWords' grammar beside it. */
+export function restartWords(n: number): string {
+  return n > 0 ? plural(n, "sentence restart") : "no sentence restarts";
 }
 
 /** The band's word, in the colour it means: sage where earned, ink where it asks for work. */

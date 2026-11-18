@@ -222,3 +222,62 @@ describe("one name for restarts (#502)", () => {
     }
   });
 });
+
+/*
+ * The review of #502. One name made two counts that disagreed read as a
+ * contradiction, and two lines read the wrong way round.
+ */
+describe("one name, one number (the review of #502)", () => {
+  const take = (repairCount: number, extra: Partial<RepMetrics> = {}) =>
+    ({ ...computeMetrics([], 65), repairCount, repairsPerMin: repairCount, substance: SAID_WELL, ...extra }) as RepMetrics;
+  const rows = (metrics: RepMetrics, restartCount: number, brief = false) =>
+    visibleText(
+      renderToStaticMarkup(
+        createElement(DimensionList, {
+          tier1: { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 },
+          anchors: { hedgeCount: 2, restartCount },
+          metrics,
+          coach: COACH,
+          brief,
+        })
+      ).replace(/<details(?![^>]*open)/g, "<details open")
+    );
+
+  it("Steadiness counts the Sentence restarts row's restarts, not the judge's wider count", () => {
+    /* countRestarts adds every "I mean", "wait no" and "sorry" to the
+       row's count; the take below had 1 restart and 2 of those. */
+    for (const brief of [true, false]) {
+      const text = rows(take(1), 3, brief);
+      expect(text).toContain("1 sentence restart in 65 seconds");
+      expect(text).toContain("2 phrases like “maybe” or “I guess”, 1 sentence restart.)");
+      expect(text).not.toMatch(/3 sentence restarts/);
+    }
+    expect(rows(take(0), 2)).toContain("“I guess”, no sentence restarts.)");
+    expect(rows(take(0), 2)).toContain("No sentence restarts in 65 seconds.");
+  });
+
+  it("keeps the judge's count where no Sentence restarts row is drawn", () => {
+    const html = renderToStaticMarkup(
+      createElement(DimensionList, {
+        tier1: { pause: 72, fillers: 55, pace: 93, range: 66 },
+        anchors: { hedgeCount: 2, restartCount: 3 },
+        metrics: take(0),
+        coach: COACH,
+      })
+    );
+    expect(visibleText(html.replace(/<details(?![^>]*open)/g, "<details open"))).toContain(", 3 sentence restarts.)");
+  });
+
+  it("never says how many where a stored score of 0 cannot say", () => {
+    const text = rows(take(4, { repairsAtLeast: true }), 6);
+    expect(text).toContain("3 or more sentence restarts a minute.");
+    expect(text).not.toMatch(/No sentence restarts|4 sentence restarts in/);
+    expect(text).toContain(", 6 sentence restarts.)");
+  });
+
+  it("opens no tip with an order to restart, and never calls a restart not an error", () => {
+    for (const tip of everyTip()) expect(tip, tip).not.toMatch(/^Restart\b/);
+    expect(TRAIT.repairs.distinction).not.toMatch(/restarts? is not/i);
+    expect(TRAIT.repairs.distinction).toMatch(/restart the sentence/);
+  });
+});

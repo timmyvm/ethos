@@ -5,7 +5,17 @@ import { DimensionList, hedgeWords } from "@/components/DimensionList";
 import { computeMetrics, UNVOICED_MAX_S, UNVOICED_MIN_S, type RepMetrics } from "./metrics";
 
 /* "The whole recording" opens the practice's own trait row (#427). */
-const metrics: RepMetrics = { ...computeMetrics([], 62), fillerCount: 4, fillersPerMin: 3.9, topFiller: "um", wpm: 145 };
+/* One sentence restart, as the anchors and the score of 66 say: since the
+   review of #502 Steadiness counts the Sentence restarts row's own. */
+const metrics: RepMetrics = {
+  ...computeMetrics([], 62),
+  fillerCount: 4,
+  fillersPerMin: 3.9,
+  topFiller: "um",
+  wpm: 145,
+  repairCount: 1,
+  repairsPerMin: 0.97,
+};
 const tier1 = { pause: 72, fillers: 55, repairs: 66, pace: 93, range: 66 };
 const render = (open?: "fillers" | "pause" | "pace") =>
   renderToStaticMarkup(

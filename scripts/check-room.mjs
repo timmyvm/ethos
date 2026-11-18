@@ -27,7 +27,9 @@
  *              page's scripts held back): a finger put down then and kept
  *              there fills from when it landed once the door wakes, and
  *              its lift opens the room; one lifted before the door woke
- *              leaves it a door (the final pass of 18 Nov)
+ *              leaves it a door; and Demos's bubble is held back, its
+ *              room kept, until his words can land, never drawn empty
+ *              (the final pass of 18 Nov)
  *   frames     no frame loop runs while nothing moves
  *   places     a finished walk, and a walk left part way through the
  *              old three-screen pitch, never land on the room or off
@@ -620,6 +622,17 @@ if (want("early")) {
   {
     const { browser, page, cdp, errors, wake, awake } = await asleep();
     ok("early: the server's door stands before its code has run", (await room(page))?.stage === "door");
+    /* Demos's words land only once the code runs, so the server's frame
+       holds his bubble back (its room kept) rather than show it empty. */
+    const guide = () =>
+      page.$eval(".room-guide-say", (el) => ({
+        seen: getComputedStyle(el).visibility === "visible",
+        h: el.offsetHeight,
+        said: el.querySelectorAll(".talk-word[data-on]").length,
+      }));
+    await page.evaluate(() => document.fonts.ready.then(() => new Promise((r) => requestAnimationFrame(() => r()))));
+    const asleepGuide = await guide();
+    ok("early: no empty bubble on the server's door, its room kept", !asleepGuide.seen && asleepGuide.h > 40, JSON.stringify(asleepGuide));
     const p = await at(page);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
     await sleep(500);
@@ -629,6 +642,8 @@ if (want("early")) {
     const filling = await page.$eval("[data-room-hold]", (b) => Number(b.style.getPropertyValue("--hold") || 0));
     ok("early: a finger down before the door woke fills it from when it landed", filling >= 0.6, filling.toFixed(2));
     await sleep(700);
+    const awakeGuide = await guide();
+    ok("early: awake, his bubble is there in the same room, his words landing", awakeGuide.seen && awakeGuide.h === asleepGuide.h && awakeGuide.said > 0, JSON.stringify(awakeGuide));
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await page.waitForFunction(() => document.querySelector("main.room")?.dataset.stage === "scene", null, { timeout: 3000 }).catch(() => {});
     ok("early: and its lift opens the room", (await room(page))?.stage === "scene");

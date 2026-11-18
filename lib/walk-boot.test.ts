@@ -291,6 +291,16 @@ describe("the page", () => {
     expect(walk).toMatch(/useLayoutEffect\(\(\) => \{\s*const asked = new URLSearchParams\(window\.location\.search\)\.get\("step"\);/);
   });
 
+  it("holds Demos's bubble back on the server's door, its room kept, and pops it in on waking", () => {
+    // His words land only once the code runs: the server's frame drew an
+    // empty bubble for as long as the door stood before it (18 Nov).
+    const room = readFileSync(path.join(root, "components/room/Room.tsx"), "utf8");
+    expect(room).toMatch(/const awake = useSyncExternalStore\(unchanging, \(\) => true, \(\) => false\);/);
+    expect(room).toMatch(/className=\{`room-guide-say talk-bubble-left min-w-0 \$\{awake \? "talk-bubble" : "invisible"\}`\}/);
+    // The class that pops it in is the awake one alone, so the pop plays when it is seen.
+    expect(room).not.toMatch(/"room-guide-say talk-bubble /);
+  });
+
   it("hides the door from a resuming walk and an account's links from its door", () => {
     expect(css).toMatch(/:root\[data-walk="resume"\] main\.room \{\s*visibility: hidden;/);
     expect(css).toMatch(/:root\[data-room-account\] \.room-door-layer \.room-top > \.room-link \{\s*display: none;/);

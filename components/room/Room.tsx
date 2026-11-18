@@ -555,6 +555,12 @@ export function Room({
      the one read; the server's frame draws none, and a live test's door
      joins it in the render after hydration (#508). */
   const testerDoor = useSyncExternalStore(unchanging, () => !testOver(), () => false);
+  /* The door's code has run. The server's frame holds Demos's bubble
+     back, its room kept, until it has (the final pass of 18 Nov): his
+     words land only once the code runs, so a phone showed an empty bubble
+     for the two seconds the server's door stands first. It pops in on
+     waking, as it did before the door was drawn by the server. */
+  const awake = useSyncExternalStore(unchanging, () => true, () => false);
 
   const [stage, setStage] = useState<Stage>("door");
   const [doorFading, setDoorFading] = useState(false);
@@ -926,7 +932,10 @@ export function Room({
               <Talker talking={doorTalking} className="room-guide-coin [container-type:size]">
                 <IntroDemos pose="wave" size={88} fit pop halo={{ tone: "sky", kind: "coin" }} />
               </Talker>
-              <div className="room-guide-say talk-bubble talk-bubble-left min-w-0">
+              <div
+                className={`room-guide-say talk-bubble-left min-w-0 ${awake ? "talk-bubble" : "invisible"}`}
+                data-room-guide={awake ? "" : "asleep"}
+              >
                 {/* The introduction's voice, as every other bubble he
                     speaks from in it (DESIGN principle 9, #501 review). */}
                 <SpeechBubble tail="left" voice="lead">

@@ -427,7 +427,7 @@ export async function restoreSwap(item: SayItem): Promise<void> {
   holdHidden(item.swap.key, false);
 }
 
-/** For the glance: the swaps and their states, read once a visit. */
+/** For the glance: the swaps and their states, read again for every take the recorder opens to (#509 review), never held. */
 export async function fetchSwapsForProof(): Promise<{ swaps: Swap[]; states: SwapStates }> {
   const [swaps, states] = await Promise.all([fetchSwaps(), fetchStates()]);
   return { swaps, states };

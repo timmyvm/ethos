@@ -27,6 +27,11 @@
  *   door       the token tapped: the swap's sheet over the results, no
  *              streak moment, Done back to the token; the chip tapped
  *              plays and opens nothing
+ *   nostar     a take with no star that says the better phrase (twelve
+ *              words, not scored, no Ethos number, 0 XP; #510 with #509,
+ *              the final pass of 19 Nov): "Not scored", no token, no
+ *              note and no pulse, and the swap left unheard for a scored
+ *              take to prove
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 4081
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
@@ -49,7 +54,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright")
 import { mkdirSync } from "node:fs";
 const F = await import("./look-fixtures.mjs");
 
-const ALL = ["returning", "level", "first", "none", "worst", "late", "door"];
+const ALL = ["returning", "level", "first", "none", "worst", "late", "door", "nostar"];
 const SCENES = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const BASE = process.env.LOOK_BASE ?? "http://localhost:4081";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/proof/after/", import.meta.url).pathname).replace(/\/?$/, "/");
@@ -67,6 +72,7 @@ const SIZES_OF = {
   worst: ["390x844-light", "375x667-light", "320x568-light"],
   late: ["390x844-light"],
   door: ["390x844-light", "390x844-dark"],
+  nostar: ["390x844-light", "390x844-dark", "320x568-light", "320x568-dark"],
 };
 const ONLY = process.env.LOOK_SIZES ? process.env.LOOK_SIZES.split(",") : null;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -88,6 +94,25 @@ const rewrite = (from, to) => {
 };
 /* "the point is" at 0:11. */
 const TAKE = rewrite("Um, the mistake people make is waiting to feel ready.", "Um, the point is, people just wait to feel ready.");
+/* A take with no star (#504, #510): twelve words over nine seconds, the
+   better phrase among them, as look-glance's unscored take; not scored,
+   so no Ethos number, no coach and nothing paid. */
+const NO_STAR = (() => {
+  const said = ["So", "the", "point", "is", "habits", "um", "they", "compound", "over", "time", "you", "know"];
+  const words = said.map((word, i) => ({ word, start: 0.4 + i * 0.7, end: 0.9 + i * 0.7 }));
+  return {
+    ...A,
+    transcript: "So the point is, habits, um, they compound over time, you know.",
+    words,
+    metrics: { ...A.metrics, durationS: 9, wordCount: 12, wpm: 80, fillerCount: 1, fillersPerMin: 6.7, fillers: [{ word: "um", t: 3.9 }], fillerCounts: { um: 1 }, topFiller: "um", repairCount: 0, repairsPerMin: 0, disfluenciesPerMin: 6.7, pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 0, substance: { wordCount: 12, distinctRatio: 1, repeatShare: 0 } },
+    coach: null,
+    ethosIndex: null,
+    scorable: false,
+    xp: 0,
+    repId: "rep-live-nostar",
+    judged: { ran: false, unlimited: false, remaining: 1, capped: false },
+  };
+})();
 /* #429's longest better phrase, "a week nobody could survive at all". */
 const LONG_TAKE = rewrite("a week nobody could really do, then miss", "a week nobody could survive at all, miss");
 const COMMON = F.SAY_LEXICON[0];
@@ -124,6 +149,7 @@ const SCENE = {
   worst: { history: flat(4, CROSSING), take: LONG_TAKE, lexicon: [LONGEST], asks: true },
   late: { history: flat(4, STEADY), take: TAKE, lexicon: F.SAY_LEXICON, asks: false, lexiconAfterMs: 14000 },
   door: { history: flat(4, STEADY), take: TAKE, lexicon: F.SAY_LEXICON, asks: false },
+  nostar: { history: flat(4, STEADY), take: NO_STAR, lexicon: F.SAY_LEXICON, asks: false },
 };
 
 /* ---- yesterday's cue (look-sticks' "answer") ----------------------------- */
@@ -297,7 +323,9 @@ for (const scene of SCENES) {
         created_at: new Date().toISOString(),
         transcript: body.transcript,
         ethos_index: body.ethosIndex,
-        dimensions: { tier1: body.tier1, anchors: body.anchors, tier2: body.coach.dimensions },
+        dimensions: { tier1: body.tier1, anchors: body.anchors, tier2: body.coach?.dimensions ?? null },
+        /* A take with no star is stored with none (nostar). */
+        stars: body.metrics.stars,
       });
       await route.fulfill(F.json(body));
     });
@@ -383,7 +411,7 @@ for (const scene of SCENES) {
       report[at] = { ...m, pulses, sounds: clusters.map((c) => `${c.t}ms×${c.n}`) };
       console.log(`  ${at}: ${JSON.stringify(report[at])}`);
 
-      const wantsToken = scene !== "none" && scene !== "late";
+      const wantsToken = scene !== "none" && scene !== "late" && scene !== "nostar";
       if (wantsToken && m.tokens !== 1) fail(`${at}: ${m.tokens} proof tokens`);
       if (!wantsToken && m.tokens !== 0) fail(`${at}: a proof token where none belongs`);
       if (m.scrolls) fail(`${at}: the glance scrolls ${m.overflow}pt`);
@@ -394,6 +422,13 @@ for (const scene of SCENES) {
       if (scene === "worst" && m.struck !== "none") fail(`${at}: the longest pair's struck phrase is on the token`);
       if (wantsToken && pulses.length !== 1) fail(`${at}: ${pulses.length} pulses for the proof`);
       if (!wantsToken && pulses.length !== 0) fail(`${at}: a pulse with no proof`);
+      if (scene === "nostar") {
+        /* It won nothing: no note says it did, and it says why it was not scored. */
+        if (clusters.length !== 0) fail(`${at}: ${clusters.length} note(s) on a take with no star`);
+        const text = await page.evaluate(() => document.querySelector("main")?.innerText ?? "");
+        if (!/Not scored/.test(text)) fail(`${at}: no "Not scored" on a take with no star`);
+        if (/\+\s*\d+\s*XP/.test(text)) fail(`${at}: XP shown on a take that paid none`);
+      }
 
       if (scene === "late") {
         /* The read lands after the first frame: nothing arrives and nothing moves. */

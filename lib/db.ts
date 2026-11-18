@@ -18,7 +18,7 @@ import type { RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
-import { xpPaid } from "./xp";
+import { xpForTake } from "./xp";
 
 export function supabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -266,6 +266,12 @@ export interface SavedRep {
   /** The recording was already stored under its key (a resend): this is
    *  that row, and nothing was written twice. */
   duplicate?: boolean;
+  /**
+   * The account XP this save paid (#510, lib/xp.ts `xpForTake`): 0 for a
+   * take that earned no star, for a take with no account and for a
+   * resend. The server's answer says it, so no screen says another.
+   */
+  xp?: number;
 }
 
 /**
@@ -455,15 +461,21 @@ export async function saveRep(params: {
     );
   }
 
-  if (params.userId) {
-    // Difficulty multiplies EFFORT credit only. Stars and the Index are
-    // untouched by mods (DECISIONS #10, #16). XP is the effort currency
-    // (DECISIONS #16), and every stored take pays it, Today's practice
-    // and a lesson's alike: lib/xp.ts holds the one figure (#485).
+  /*
+   * Difficulty multiplies EFFORT credit only. Stars and the Index are
+   * untouched by mods (DECISIONS #10, #16). XP is the effort currency
+   * (DECISIONS #16), and every stored take that earns a star pays it,
+   * Today's practice and a lesson's alike: lib/xp.ts holds the one figure
+   * (#485). A take that earns none, too short or too thin to score
+   * (#504), pays nothing and writes no XP row (#510). The measured stars,
+   * never `attempt.stars`, which a table before 0035 holds at 1.
+   */
+  const xp = params.userId ? xpForTake(metrics.stars, params.xpMultiplier ?? 1) : 0;
+  if (params.userId && xp > 0) {
     writes.push(
       db.from("xp_events").insert({
         user_id: params.userId,
-        amount: xpPaid(params.xpMultiplier ?? 1),
+        amount: xp,
         source:
           params.mode === "boss"
             ? "boss"
@@ -478,5 +490,5 @@ export async function saveRep(params: {
   }
   await Promise.all(writes);
 
-  return { id: data.id, audioPath };
+  return { id: data.id, audioPath, xp };
 }

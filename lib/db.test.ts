@@ -160,7 +160,60 @@ describe("saveRep", () => {
   });
 
   it("pays no XP to a take with no account", async () => {
-    await saveRep(params({ userId: undefined }));
+    const saved = await saveRep(params({ userId: undefined }));
+    expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
+    expect(saved?.xp).toBe(0);
+  });
+
+  it("says what it paid, so the server's answer can say it too", async () => {
+    expect((await saveRep(params()))?.xp).toBe(10);
+    expect((await saveRep(params({ mods: ["tight"], xpMultiplier: 1.5 })))?.xp).toBe(15);
+  });
+});
+
+/*
+ * #510, Timothy 18 Nov, on "a recording with no stars still earns 10 XP":
+ * "drop it". Every way a recording is stored goes through saveRep, so
+ * this is every path: the daily, a lesson, the boss, a game round,
+ * Hostile Q&A, an upload. Each, with no star, writes no XP row.
+ */
+describe("saveRep, the XP of a take of no stars (#510)", () => {
+  const zero = { ...(metrics as object), stars: 0 } as unknown as Parameters<typeof saveRep>[0]["metrics"];
+  const paths: [string, Partial<Parameters<typeof saveRep>[0]>][] = [
+    ["Today's practice", { mode: "daily", lessonId: "topic:t12:pause" }],
+    ["a lesson", { mode: "daily", lessonId: "lesson:the-landing:1" }],
+    ["the weekly boss", { mode: "boss", lessonId: "boss:crispr", xpMultiplier: 1, bossTopicId: "crispr" }],
+    ["a game round", { mode: "daily", lessonId: "game:qa:qa3", mods: ["interrupt"], xpMultiplier: 2 }],
+    ["Hostile Q&A", { mode: "daily", lessonId: "hostile-take" }],
+    ["an upload", { mode: "daily" }],
+  ];
+
+  for (const [name, extra] of paths) {
+    it(`pays nothing on ${name}, and stores the recording as before`, async () => {
+      const saved = await saveRep(params({ ...extra, metrics: zero, ethosIndex: null }));
+      expect(saved?.id).toBe("rep-1");
+      expect(saved?.xp).toBe(0);
+      expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
+      expect(inserts.filter((i) => i.table === "reps")).toHaveLength(1);
+    });
+
+    it(`pays ${name} as before once it earns a star`, async () => {
+      const one = { ...(metrics as object), stars: 1 } as unknown as Parameters<typeof saveRep>[0]["metrics"];
+      const saved = await saveRep(params({ ...extra, metrics: one }));
+      const row = inserts.find((i) => i.table === "xp_events")!.row;
+      expect(row.amount).toBe(Math.round(10 * (extra.xpMultiplier ?? 1)));
+      expect(saved?.xp).toBe(row.amount);
+    });
+  }
+
+  it("reads the measured stars, not the 1 a table before 0035 stores for a 0", async () => {
+    repAnswer = (row) =>
+      row.stars === 0
+        ? { data: null, error: { code: "23514", message: 'new row for relation "reps" violates check constraint "reps_stars_check"' } }
+        : { data: { id: "rep-0" }, error: null };
+    const saved = await saveRep(params({ metrics: zero, ethosIndex: null }));
+    expect(inserts.filter((i) => i.table === "reps").map((i) => i.row.stars)).toEqual([0, 1]);
+    expect(saved?.xp).toBe(0);
     expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
   });
 
@@ -250,7 +303,7 @@ describe("saveRep and the coach's upgrade", () => {
 
   it("stores a coached take with no upgrade, pays its XP and writes no lexicon row", async () => {
     const saved = await saveRep(params({ coach: coach(null) }));
-    expect(saved).toEqual({ id: "rep-1", audioPath: expect.any(String) });
+    expect(saved).toEqual({ id: "rep-1", audioPath: expect.any(String), xp: 10 });
     const rep = inserts.find((i) => i.table === "reps")!.row;
     expect(rep.supply).toBeNull();
     expect(rep.focus).toBe("Hold a pause.");

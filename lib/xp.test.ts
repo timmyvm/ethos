@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { levelFromXp, xpForLevel } from "./level";
+import { computeMetrics, starGoals, type Word } from "./metrics";
+import { xpTicksOwed } from "./sound-recipes";
 import { XP_PER_RECORDING as ROUND_XP } from "./round-copy";
 import {
   XP_PER_RECORDING,
@@ -9,6 +11,7 @@ import {
   levelLine,
   reachLine,
   streakFlame,
+  xpForTake,
   xpPaid,
   xpStanding,
   xpToday,
@@ -56,18 +59,29 @@ describe("the distance to the next level", () => {
 });
 
 describe("what reaches it", () => {
-  it("names today's practice and what it pays, before today is spoken", () => {
-    expect(reachLine(1195, false)).toBe(`Today's practice pays ${XP_PER_RECORDING} XP.`);
+  /*
+   * #510: a take pays only when it earns a star, and star 1 is "20+
+   * words" (the goal the glance draws under it), so the line names it.
+   */
+  it("names today and what a real answer pays, before today is spoken", () => {
+    expect(reachLine(1195, false)).toBe(`Speak 20+ words today for ${XP_PER_RECORDING} XP.`);
   });
 
   it("names the next recording once today is spoken", () => {
-    expect(reachLine(1195, true)).toBe(`One more recording pays ${XP_PER_RECORDING} XP.`);
+    expect(reachLine(1195, true)).toBe(`Speak 20+ words again for ${XP_PER_RECORDING} XP.`);
   });
 
   it("says when one recording closes the gap", () => {
-    expect(reachLine(40, false)).toBe("Today's practice gets you to level 2.");
-    expect(reachLine(45, true)).toBe("One more recording gets you to level 2.");
-    expect(reachLine(39, false)).toBe("Today's practice pays 10 XP.");
+    expect(reachLine(40, false)).toBe("Speak 20+ words today to reach level 2.");
+    expect(reachLine(45, true)).toBe("Speak 20+ words again to reach level 2.");
+    expect(reachLine(39, false)).toBe("Speak 20+ words today for 10 XP.");
+  });
+
+  it("names star 1's own goal, the words the glance draws under it", () => {
+    const goal = starGoals(60)[0];
+    for (const line of [reachLine(1195, false), reachLine(1195, true), reachLine(40, false)]) {
+      expect(line).toContain(` ${goal} `);
+    }
   });
 
   it("promises the figure the server pays, from one number", () => {
@@ -76,21 +90,70 @@ describe("what reaches it", () => {
     expect(xpPaid()).toBe(XP_PER_RECORDING);
     expect(xpPaid(1.5)).toBe(15);
     expect(xpPaid(0)).toBe(XP_PER_RECORDING);
-    // The save pays through it; no second copy of the figure is left in it.
+    // The save pays through it, on the measured stars; no second copy of the figure is left in it.
     const db = readFileSync("lib/db.ts", "utf8");
-    expect(db).toMatch(/amount: xpPaid\(params\.xpMultiplier \?\? 1\)/);
+    expect(db).toMatch(/xpForTake\(metrics\.stars, params\.xpMultiplier \?\? 1\)/);
+    expect(db).toMatch(/amount: xp,/);
     expect(db).not.toMatch(/XP_PER_REP\b/);
+  });
+
+  it("stays one line at 320 wide: no longer than the longest line it replaced", () => {
+    // "One more recording gets you to level 8." held one line in You's card at 320.
+    const longest = "One more recording gets you to level 8.".length;
+    for (const total of [0, 39, 40, 1195, 9620]) {
+      for (const spoke of [false, true]) expect(reachLine(total, spoke).length).toBeLessThanOrEqual(longest + 1);
+    }
   });
 
   it("passes the two-second test: a number and its unit, no internal word", () => {
     for (const line of [levelLine(40), reachLine(40, false), reachLine(1195, false), reachLine(1195, true)]) {
       expect(line).toMatch(/\d/);
       expect(line).not.toMatch(/\bof\b \d+ to/);
-      expect(line).not.toMatch(/multiplier|xp_|event|rep\b/i);
+      expect(line).not.toMatch(/multiplier|xp_|event|rep\b|scorable|substance/i);
       expect(line).not.toMatch(/—/);
     }
   });
 });
+
+/*
+ * #510, Timothy 18 Nov, on "a recording with no stars still earns 10
+ * XP": "drop it". A take that earned no star pays nothing, at any
+ * multiplier; one that earned a star pays what it always did.
+ */
+describe("what one take pays (#510)", () => {
+  it("pays nothing for no star, at any multiplier", () => {
+    for (const m of [1, 1.5, 2, 3, 0, NaN]) expect(xpForTake(0, m)).toBe(0);
+    expect(xpForTake(NaN)).toBe(0);
+    expect(xpForTake(-1)).toBe(0);
+  });
+
+  it("pays every star count what a recording always paid", () => {
+    for (const stars of [1, 2, 3]) {
+      expect(xpForTake(stars)).toBe(XP_PER_RECORDING);
+      expect(xpForTake(stars, 1.5)).toBe(15);
+      expect(xpForTake(stars, 2)).toBe(20);
+    }
+  });
+
+  it("agrees with the star rule: a take too thin to score pays nothing", () => {
+    const thin = computeMetrics(words("so um yes I think that is it"), 9);
+    expect(thin.stars).toBe(0);
+    expect(xpForTake(thin.stars)).toBe(0);
+    const real = computeMetrics(
+      words(
+        "I moved here for the work and stayed for the people because the city is small enough that you see the same faces every morning on the train"
+      ),
+      30
+    );
+    expect(real.stars).toBeGreaterThan(0);
+    expect(xpForTake(real.stars)).toBe(XP_PER_RECORDING);
+  });
+});
+
+/** Words a second apart, as Whisper times them. */
+function words(text: string): Word[] {
+  return text.split(" ").map((word, i) => ({ word, start: i, end: i + 0.8 }));
+}
 
 describe("XP today", () => {
   const now = new Date(2026, 10, 16, 18, 0);
@@ -102,6 +165,25 @@ describe("XP today", () => {
     ];
     expect(xpToday(rows, now)).toBe(25);
     expect(xpToday([], now)).toBe(0);
+  });
+
+  /*
+   * #510: a take with no star writes no XP row, so You's XP today stands
+   * where it was and its tick and sound are not owed (`xpTicksOwed`).
+   */
+  it("does not climb, or tick, for a take that earned no star", () => {
+    const day = "2026-11-16";
+    const morning = [{ amount: xpForTake(2), created_at: new Date(2026, 10, 16, 9, 0).toISOString() }];
+    const heard = { day, xp: xpToday(morning, now) };
+    // The no-star take at 17:00 pays nothing, so it adds no row.
+    const paid = xpForTake(0);
+    const after = paid > 0 ? [...morning, { amount: paid, created_at: new Date(2026, 10, 16, 17, 0).toISOString() }] : morning;
+    expect(xpToday(after, now)).toBe(10);
+    expect(xpTicksOwed(xpToday(after, now), day, heard)).toBe(false);
+    // A first take of the day with no star leaves XP today at 0: nothing to tick.
+    expect(xpTicksOwed(xpToday([], now), day, null)).toBe(false);
+    // One with a star ticks, as before.
+    expect(xpTicksOwed(xpToday(morning, now), day, null)).toBe(true);
   });
 });
 

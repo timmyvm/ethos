@@ -301,25 +301,44 @@ describe("the round card, Interview (F3)", () => {
 
 describe("the XP line (F3)", () => {
   it("names what multiplied it, from the stored multiplier", () => {
-    expect(xpLine({ gameId: "qa", xpMultiplier: 2, mods: ["interrupt"], level: 1 })).toEqual({
+    expect(xpLine({ gameId: "qa", xpMultiplier: 2, mods: ["interrupt"], level: 1, stars: 2 })).toEqual({
       amount: "+20 XP",
       note: "×2 for the cut-in",
     });
-    expect(xpLine({ gameId: "rush", xpMultiplier: 1.5, mods: ["tight"], level: 1 })).toEqual({
+    expect(xpLine({ gameId: "rush", xpMultiplier: 1.5, mods: ["tight"], level: 1, stars: 2 })).toEqual({
       amount: "+15 XP",
       note: "×1.5 for the tight timer",
     });
-    expect(xpLine({ gameId: "qa", xpMultiplier: 2.5, mods: ["interrupt"], level: 2 }).note).toBe(
+    expect(xpLine({ gameId: "qa", xpMultiplier: 2.5, mods: ["interrupt"], level: 2, stars: 3 })?.note).toBe(
       "×2.5 for the cut-in at level 2"
     );
-    expect(xpLine({ gameId: "interview", xpMultiplier: 3, mods: ["interrupt"], level: 3 }).note).toBe(
+    expect(xpLine({ gameId: "interview", xpMultiplier: 3, mods: ["interrupt"], level: 3, stars: 1 })?.note).toBe(
       "×3 for the follow-up at level 3"
     );
-    expect(xpLine({ gameId: "interview", xpMultiplier: 1.25, mods: [], level: 2 }).note).toBe("×1.25 for level 2");
+    expect(xpLine({ gameId: "interview", xpMultiplier: 1.25, mods: [], level: 2, stars: 2 })?.note).toBe("×1.25 for level 2");
   });
 
   it("says nothing more at ×1: no cut-in, no multiplier", () => {
-    expect(xpLine({ gameId: "qa", xpMultiplier: 1, mods: [], level: 1 })).toEqual({ amount: "+10 XP", note: null });
+    expect(xpLine({ gameId: "qa", xpMultiplier: 1, mods: [], level: 1, stars: 2 })).toEqual({ amount: "+10 XP", note: null });
+  });
+
+  /*
+   * #510, Timothy 18 Nov, on "a recording with no stars still earns 10
+   * XP": "drop it". A round that earned no star paid nothing, so the card
+   * says no XP at all, at any level and any multiplier.
+   */
+  it("says no XP for a round that earned no star (#510)", () => {
+    expect(xpLine({ gameId: "qa", xpMultiplier: 2, mods: ["interrupt"], level: 1, stars: 0 })).toBeNull();
+    expect(xpLine({ gameId: "interview", xpMultiplier: 3, mods: ["interrupt"], level: 3, stars: 0 })).toBeNull();
+  });
+
+  it("says the server's own figure when the answer carries one", () => {
+    // The server paid nothing (no account, a failed save): the card agrees, whatever the stars.
+    expect(xpLine({ gameId: "qa", xpMultiplier: 2, mods: ["interrupt"], level: 1, stars: 3, paid: 0 })).toBeNull();
+    expect(xpLine({ gameId: "qa", xpMultiplier: 2, mods: ["interrupt"], level: 1, stars: 3, paid: 20 })).toEqual({
+      amount: "+20 XP",
+      note: "×2 for the cut-in",
+    });
   });
 });
 

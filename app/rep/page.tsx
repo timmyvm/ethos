@@ -3296,6 +3296,8 @@ function Results({
       buzz([12, 40, 18]);
     }
   };
+  /* What the round paid, as the server says it (#510): none for a round
+     that earned no star, and then the card carries no XP line. */
   const xp =
     gameRound
       ? xpLine({
@@ -3303,6 +3305,8 @@ function Results({
           xpMultiplier: result.xpMultiplier,
           mods: result.mods,
           level: gameRound.level,
+          stars: result.metrics.stars,
+          paid: result.xp,
         })
       : null;
   /* The round card, whole (its track, its number, its line and the XP),
@@ -3312,7 +3316,7 @@ function Results({
      the sheet it is drawn at its end state; its line keeps its card, so
      "after it" has its cut-in beside it. */
   const roundCard =
-    gameRound && reveal && xp ? (
+    gameRound && reveal ? (
       <RoundCard
         round={gameRound}
         reveal={reveal}

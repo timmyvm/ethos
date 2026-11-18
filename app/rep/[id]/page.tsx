@@ -314,7 +314,9 @@ export default function RepDetail({
               {modById(m)?.name ?? m}
             </span>
           ))}
-          {mods.length > 0 && (
+          {/* What the difficulty multiplied, on a take that paid: a take
+              with no star pays no XP at any multiplier (#510). */}
+          {mods.length > 0 && rep.stars > 0 && (
             <span className="ml-0.5 text-caption font-semibold text-stone-500">
               ×{rep.xp_multiplier} XP
             </span>

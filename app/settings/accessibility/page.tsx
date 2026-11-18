@@ -82,7 +82,7 @@ export default function AccessibilityPage() {
       <Section title={canBuzz ? "Sound and haptics" : "Sound"}>
         <Toggle
           label="Sound"
-          note="Plays when you earn stars, finish a lesson or keep your streak."
+          note="For stars, lessons and your streak."
           on={prefs.sound}
           onChange={(v) => {
             update({ sound: v });

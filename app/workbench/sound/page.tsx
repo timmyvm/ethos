@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { IconPlay } from "@/components/Icon";
 import { PAGE_CLASS, Section } from "@/components/settings/Rows";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { CueRunner, playSound, unlockSound, type Playing } from "@/lib/sound";
@@ -86,13 +87,17 @@ export default function SoundAudition() {
         <p className="text-body font-semibold">{name}</p>
         <p className="text-caption text-stone-500">{seconds(cues)}</p>
       </div>
+      {/* Hear it back's key (components/AudioScrubber.tsx): surface,
+          hairline, the play mark in terracotta. Twenty rows of filled
+          taps would break the one-tap rule (principle 2). */}
       <button
         type="button"
         onClick={() => play(key, cues)}
+        aria-label={`Play ${name}`}
         aria-pressed={playing === key}
-        className="press h-11 min-w-[76px] shrink-0 rounded-tap bg-ink px-4 text-row font-semibold text-ground"
+        className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-control border border-edge bg-surface text-terracotta-500 aria-pressed:bg-raised"
       >
-        {playing === key ? "Again" : "Play"}
+        <IconPlay size={16} />
       </button>
     </div>
   );

@@ -91,26 +91,30 @@ describe("the week's boss topic", () => {
     /** Monday-first weeks since 1970 from the local date (1 Jan 1970 was a Thursday). */
     const calendarWeek = (at: Date) =>
       Math.floor((Date.UTC(at.getFullYear(), at.getMonth(), at.getDate()) / 86_400_000 + 3) / 7);
-    for (const tz of ["Australia/Melbourne", "America/New_York", "Europe/London", "America/Santiago"]) {
-      process.env.TZ = tz;
-      let prev: { week: number; id: string } | null = null;
-      let turns = 0;
-      const end = new Date(2028, 0, 1).getTime();
-      for (let t = new Date(2026, 0, 1).getTime(); t < end; t += 3_600_000) {
-        const at = new Date(t);
-        const week = calendarWeek(at);
-        const id = weeklyTopic(at).id;
-        if (prev && week === prev.week) expect(id, `${tz} ${at.toString()}`).toBe(prev.id);
-        if (prev && week !== prev.week) {
-          turns++;
-          expect(at.getDay(), `${tz} ${at.toString()}`).toBe(1);
-          expect(id, `${tz} ${at.toString()}`).not.toBe(prev.id);
+    try {
+      for (const tz of ["Australia/Melbourne", "America/New_York", "Europe/London", "America/Santiago"]) {
+        process.env.TZ = tz;
+        let prev: { week: number; id: string } | null = null;
+        let turns = 0;
+        const end = new Date(2028, 0, 1).getTime();
+        for (let t = new Date(2026, 0, 1).getTime(); t < end; t += 3_600_000) {
+          const at = new Date(t);
+          const week = calendarWeek(at);
+          const id = weeklyTopic(at).id;
+          if (prev && week === prev.week) expect(id, `${tz} ${at.toString()}`).toBe(prev.id);
+          if (prev && week !== prev.week) {
+            turns++;
+            expect(at.getDay(), `${tz} ${at.toString()}`).toBe(1);
+            expect(id, `${tz} ${at.toString()}`).not.toBe(prev.id);
+          }
+          prev = { week, id };
         }
-        prev = { week, id };
+        expect(turns, tz).toBe(104);
       }
-      expect(turns, tz).toBe(104);
+    } finally {
+      // A failure on one calendar never leaves the next test on it.
+      process.env.TZ = "Australia/Melbourne";
     }
-    process.env.TZ = "Australia/Melbourne";
   });
 
   it("still names a topic on a clock set before the first Monday", () => {

@@ -12,7 +12,9 @@ type Row = Record<string, unknown> & { created_at: string };
 let tables: Record<string, Row[]> = {};
 
 function query(table: string) {
-  let out = [...(tables[table] ?? [])];
+  // Every row is the session's own, as the policy hands them; the read
+  // names its account too (lib/own-rows.ts), and this filter honours it.
+  let out: Row[] = (tables[table] ?? []).map((r) => ({ user_id: "u1", ...r }));
   const q: Record<string, unknown> = {
     select: () => q,
     eq: (col: string, v: unknown) => {

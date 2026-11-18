@@ -52,13 +52,25 @@ import {
   clientIp,
   consumeRateLimit,
   limitMessage,
+  noteGuestFull,
   refundRateLimit,
   type LimitTier,
 } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
+import { isFileFault } from "@/lib/whisper-fault";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+/*
+ * Inside the two minutes (docs/scale/audit.md M7): Whisper has the words
+ * in by 60 seconds, a question is asked within 25 seconds of them (a
+ * stalled one falls back to a written question instead of holding the
+ * person at the mic until the kill), and every model call is done by 100
+ * seconds, so a slow verdict answers 502 instead of the platform's 504.
+ */
+const WHISPER_BY_MS = 60_000;
+const QUESTION_WITHIN_MS = 25_000;
+const MODELS_BY_MS = 100_000;
 
 /** Under this, there is nothing to interrogate. */
 const MIN_WORDS = 10;
@@ -191,6 +203,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handle(req: NextRequest, spend: Spend) {
+  const startedAt = Date.now();
   let form: FormData;
   try {
     form = await req.formData();
@@ -244,6 +257,7 @@ async function handle(req: NextRequest, spend: Spend) {
   if (!auth || auth.anonymous) {
     const all = await consumeRateLimit(GUEST_CEILING, "guestall");
     if (!all.allowed) {
+      noteGuestFull("hostile", all);
       return NextResponse.json(
         { error: GUEST_FULL_COPY, guestFull: true, retryAfterS: all.retryAfterS },
         { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
@@ -296,7 +310,7 @@ async function handle(req: NextRequest, spend: Spend) {
     // The model is called from here on: the slot is spent unless there
     // is no key to call it with.
     spend.keep = !!process.env.ANTHROPIC_API_KEY;
-    const v = await hostileVerdict(full, ctx.roundNumbers ?? []).catch((e) => {
+    const v = await hostileVerdict(full, ctx.roundNumbers ?? [], startedAt + MODELS_BY_MS).catch((e) => {
       console.error("hostile verdict failed", e);
       return null;
     });
@@ -338,11 +352,11 @@ async function handle(req: NextRequest, spend: Spend) {
 
   let t;
   try {
-    t = await transcribe(audio, "hostile.webm");
+    t = await transcribe(audio, "hostile.webm", { deadline: startedAt + WHISPER_BY_MS });
   } catch (e) {
     console.error("hostile transcription failed", e);
     const message = e instanceof Error ? e.message : "";
-    spend.keep = /^Whisper API (400|413|415):/.test(message);
+    spend.keep = isFileFault(message);
     // A file Whisper refused starts no round: the screen says nothing was lost.
     spend.roundBack = true;
     return NextResponse.json(
@@ -381,7 +395,10 @@ async function handle(req: NextRequest, spend: Spend) {
   const finished = nextCtx.rounds.length >= HOSTILE_ROUNDS;
   let question = null;
   if (!finished) {
-    question = await hostileQuestion(nextCtx).catch((e) => {
+    question = await hostileQuestion(
+      nextCtx,
+      Math.min(Date.now() + QUESTION_WITHIN_MS, startedAt + MODELS_BY_MS)
+    ).catch((e) => {
       console.error("hostile question failed", e);
       return null;
     });

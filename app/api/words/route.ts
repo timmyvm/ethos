@@ -26,6 +26,8 @@ import { WORDS_VERSION, cleanWordAsk, wordCacheKey } from "@/lib/words";
 import { recallAnswer, rememberAnswer, suggestAnswer } from "@/lib/words-server";
 
 export const runtime = "nodejs";
+/** A lookup is one Haiku call cut off at 20 seconds (lib/words-server.ts); the default was Fluid's 300. */
+export const maxDuration = 30;
 
 const BODY_CHARS = 2000;
 

@@ -32,7 +32,7 @@ import {
   type AnalyzeLine,
 } from "@/lib/analyze-stream";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
-import { StageClock, stageLine } from "@/lib/analyze-timing";
+import { StageClock, providerError, stageLine } from "@/lib/analyze-timing";
 import { tokenSubject } from "@/lib/token-subject";
 import { COLD_TOPICS } from "@/lib/cold-topics";
 import { bossXpMultiplier, lastBossWeek, parseBossWeek } from "@/lib/boss";
@@ -58,6 +58,7 @@ import {
   clientIp,
   consumeRateLimit,
   limitMessage,
+  noteGuestFull,
   refundRateLimit,
   analyzeTier,
 } from "@/lib/rate-limit";
@@ -91,16 +92,39 @@ import {
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { spokenAt } from "@/lib/spoken-at";
 import { transcribe } from "@/lib/transcribe";
+import { isFileFault } from "@/lib/whisper-fault";
 import { UNHEARD_COPY, unheard } from "@/lib/unheard";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // Vercel Hobby cap
+/*
+ * The route's own minute, not the plan's ceiling: hostile deploys at 120,
+ * so Fluid compute allows more (docs/scale/audit.md M12). A minute is
+ * Whisper plus the coach with room to store.
+ */
+export const maxDuration = 60;
 /**
  * The coach is done this long after the request came in, or gives up:
  * the rest of the minute stores the recording. A function killed at the
  * cap stores nothing and keeps the slot, and the phone sends it again.
  */
 const COACH_BUDGET_MS = 45_000;
+/**
+ * Whisper has its words in by this long after the request came in, or is
+ * cut off and answered as Whisper being down: a 502, the slot given back
+ * and the audio taken back out of the bucket, with ten seconds left to do
+ * it. Killed at the minute instead, the take kept its slot, left its
+ * audio in the bucket with no row, and was sent again whole
+ * (docs/scale/audit.md M7, FAIL-1). Upload's longest file is a few
+ * seconds of Whisper; only an OpenAI slowdown reaches this.
+ */
+const WHISPER_BUDGET_MS = 50_000;
+/**
+ * However late the take arrived, Whisper is never given past this: the
+ * minute counts from the request, the upload included, and a slow upload
+ * that reached Whisper after 55 s used to get "now + 5 s", past the kill
+ * at 60, which is the ending the budget above exists to prevent.
+ */
+const WHISPER_LAST_MS = 55_000;
 
 export interface AnalyzeResponse {
   transcript: string;
@@ -483,6 +507,7 @@ async function handleTake(
     );
   }
   if (all && !all.allowed) {
+    noteGuestFull("analyze", all);
     return NextResponse.json(
       { error: GUEST_FULL_COPY, rateLimited: true, guestFull: true, retryAfterS: all.retryAfterS },
       { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
@@ -590,7 +615,12 @@ async function handleTake(
   clock.mark("whisperStart");
   let transcription;
   try {
-    transcription = await transcribe(audio, filename);
+    transcription = await transcribe(audio, filename, {
+      deadline: Math.min(
+        Math.max(startedAt + WHISPER_BUDGET_MS, Date.now() + 5_000),
+        startedAt + WHISPER_LAST_MS
+      ),
+    });
     clock.mark("whisperEnd");
     clock.takeS = transcription.durationS;
   } catch (e) {
@@ -600,9 +630,11 @@ async function handleTake(
     const unconfigured = message.includes("OPENAI_API_KEY");
     // Whisper's own verdict on the FILE (it can't decode it, it's too
     // big, the type is wrong) is final: a resend gets the same answer,
-    // so it is 422, which the outbox lets go of. Its 401 or 429 is a
-    // fault on our side and stays a 502 to retry.
-    const undecodable = /^Whisper API (400|413|415):/.test(message);
+    // so it is 422, which the outbox lets go of. Its 401 or 429, a 400
+    // about the model (whisper-1 retired, lib/whisper-fault.ts)
+    // and a Whisper cut off at its deadline are faults on our side and
+    // stay a 502 to retry.
+    const undecodable = isFileFault(message);
     // The slot was spent on our outage, not on the person's upload: give
     // it back, or each retry of one recording costs another. Only the
     // file's own fault (the 422 above) keeps its slot: a 401, 403 or 404
@@ -729,15 +761,31 @@ async function handleTake(
   if (scorable && judgedAllowed) {
     clock.mark("coachStart");
     const [coachResult, accuracyResult] = await Promise.allSettled([
-      coachRep(transcription.text, metrics, tier1, anchors, startedAt + COACH_BUDGET_MS, (n) => {
-        clock.coachAttempts = n;
-      }),
+      coachRep(
+        transcription.text,
+        metrics,
+        tier1,
+        anchors,
+        startedAt + COACH_BUDGET_MS,
+        (n) => {
+          clock.coachAttempts = n;
+        },
+        (u) => clock.addUsage(u)
+      ),
       bossTopic
-        ? judgeAccuracy(transcription.text, bossTopic)
+        ? judgeAccuracy(transcription.text, bossTopic, startedAt + COACH_BUDGET_MS)
         : Promise.resolve(null),
     ]);
     clock.mark("coachEnd");
     coach = coachResult.status === "fulfilled" ? coachResult.value : null;
+    /* A coach that threw used to vanish into allSettled: a spend cap or an
+       outage at Anthropic read in the logs as nothing at all (docs/scale/
+       audit.md M2, M9). Its status and error type go on the take's line;
+       the take is stored measured, the read not spent, as before. */
+    if (coachResult.status === "rejected") {
+      clock.coachError = providerError(coachResult.reason);
+      console.error("analyze coach failed", clock.coachError);
+    }
     accuracy =
       accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }

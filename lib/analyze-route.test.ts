@@ -232,6 +232,62 @@ describe("POST /api/analyze", () => {
     }
   });
 
+  it("holds a take when Whisper refuses the model, never letting it go as the file's fault (scale audit M1)", async () => {
+    // whisper-1 is retired on 26 Feb 2027; a retired model may answer 400.
+    // As 422 the outbox would throw every take away, phone and server.
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockRejectedValue(
+      new Error('Whisper API 400: {"error":{"message":"The model `whisper-1` has been deprecated.","param":"model","code":"model_not_found"}}')
+    );
+    expect((await post(audioForm())).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-1");
+  });
+
+  it("gives Whisper until 50 seconds after the request, and answers one cut off as down: 502, slot back, audio out (scale audit M7)", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(uploadRepAudio).mockResolvedValueOnce("u-1/cut.webm");
+    vi.mocked(removeRepAudio).mockClear();
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper timed out after 49990 ms."));
+    const before = Date.now();
+    const res = await post(audioForm());
+    expect(res.status).toBe(502);
+    const deadline = (vi.mocked(transcribe).mock.calls[0][2] as { deadline: number }).deadline;
+    expect(deadline).toBeGreaterThanOrEqual(before + 49_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 50_000);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-1");
+    expect(removeRepAudio).toHaveBeenCalledWith("u-1/cut.webm");
+  });
+
+  it("never lets Whisper's deadline pass the route's own minute, however long the upload took (scale review)", async () => {
+    // The minute counts from the request, the upload included. A take that
+    // took 57 s to arrive used to get "now + 5 s", 62 s, past the platform's
+    // kill at 60: the slot kept and the audio left in the bucket, the very
+    // ending the deadline was built to stop. It must end by 55 s and answer
+    // 502 with the slot given back.
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper timed out before it was asked."));
+    const t0 = Date.now();
+    let at = t0;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => at);
+    onTestFinished(() => clock.mockRestore());
+    const req = new Request("http://test.local/api/analyze", { method: "POST", body: audioForm() });
+    const read = req.formData.bind(req);
+    // The upload lands 57 seconds after the request came in.
+    req.formData = async () => {
+      const form = await read();
+      at = t0 + 57_000;
+      return form;
+    };
+    const res = await POST(req as unknown as NextRequest);
+    expect(res.status).toBe(502);
+    const deadline = (vi.mocked(transcribe).mock.calls.at(-1)![2] as { deadline: number }).deadline;
+    expect(deadline).toBeLessThanOrEqual(t0 + 55_000);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-1");
+  });
+
   it("keeps 502 for a Whisper refusal that is ours, not the file's, and gives the slot back", async () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
     for (const code of [401, 403, 404, 408, 429]) {
@@ -355,6 +411,11 @@ describe("POST /api/analyze", () => {
     expect(body.xpMultiplier).toBe(1.5);
     expect(body.accuracy.score).toBe(25);
     expect(vi.mocked(judgeAccuracy).mock.calls[0][1].id).toBe("crispr");
+    // The coach's deadline, so a stalled check cannot hold the take past
+    // the minute (docs/scale/audit.md M7).
+    const deadline = vi.mocked(judgeAccuracy).mock.calls[0][2] as number;
+    expect(deadline).toBeGreaterThan(Date.now() + 40_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 45_000);
   });
 
   /* The games plan, item 16: the boss is the week's benchmark. */
@@ -841,6 +902,8 @@ describe("guests on one address share a ceiling (#416)", () => {
   });
 
   it("turns a guest away at the ceiling before Whisper, says how to go on, and gives its own slots back", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    onTestFinished(() => warn.mockRestore());
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-3", anonymous: true });
     vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
@@ -859,6 +922,8 @@ describe("guests on one address share a ceiling (#416)", () => {
     expect(refundRateLimit).toHaveBeenCalledWith("u:anon-3");
     expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
     expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+    // The day the ceiling fills is said in the log (scale audit M3).
+    expect(warn.mock.calls.map((c) => String(c[0])).some((l) => l.includes('"evt":"limit.guestall"') && l.includes('"route":"analyze"'))).toBe(true);
     vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
   });
 
@@ -1923,6 +1988,26 @@ describe("the stage log", () => {
     onTestFinished(() => spy.mockRestore());
     await post(audioForm());
     expect(stageLines(spy)[0].coach_attempts).toBe(2);
+  });
+
+  it("adds the coach's billed tokens, and names a coach that failed (scale audit M9)", async () => {
+    coachedFixture();
+    vi.mocked(coachRep).mockImplementation(async (...args: Parameters<typeof coachRep>) => {
+      args[5]?.(1);
+      args[6]?.({ input_tokens: 800, cache_read_input_tokens: 2_300, cache_creation_input_tokens: 0, output_tokens: 900 } as never);
+      throw Object.assign(new Error("usage limits"), { status: 429, error: { type: "error", error: { type: "rate_limit_error" } } });
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    onTestFinished(() => {
+      info.mockRestore();
+      error.mockRestore();
+    });
+    const res = await post(audioForm());
+    expect(res.status).toBe(200);
+    const [line] = stageLines(info);
+    expect(line).toMatchObject({ coach_in_tok: 800, coach_cache_read_tok: 2_300, coach_out_tok: 900, coach_error: "429 rate_limit_error" });
+    expect(error).toHaveBeenCalledWith("analyze coach failed", "429 rate_limit_error");
   });
 
   it("writes one line for a turned-away take too, with no Whisper time", async () => {

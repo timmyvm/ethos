@@ -10,6 +10,7 @@
  */
 
 import { currentSession, supabaseBrowser } from "./supabase-browser";
+import { own } from "./own-rows";
 
 export interface SavedWord {
   id: string;
@@ -41,9 +42,8 @@ export class SaveFailed extends Error {
 export async function fetchSavedWords(limit = 500): Promise<SavedWord[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data, error } = await db
-    .from("saved_words")
-    .select(COLUMNS)
+  const me = (await currentSession())?.userId;
+  const { data, error } = await own(db.from("saved_words").select(COLUMNS), me)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;

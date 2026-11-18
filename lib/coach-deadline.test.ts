@@ -32,7 +32,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
           }
           vi.setSystemTime(Date.now() + sdk.takesMs);
           // Never valid JSON: every attempt is retried while time allows.
-          return { stop_reason: "end_turn", content: [{ type: "text", text: "not json" }] };
+          return { stop_reason: "end_turn", content: [{ type: "text", text: "not json" }], usage: { input_tokens: 10, output_tokens: 5 } };
         },
       },
     };
@@ -113,6 +113,17 @@ describe("the coach's deadline", () => {
     expect(sdk.calls[0].signal?.aborted).toBe(true);
     expect(asked[0]).toBeGreaterThan(29_000);
     expect(asked[0]).toBeLessThanOrEqual(30_000);
+  });
+
+  it("tells each answered attempt's billed tokens, for the take's line (scale audit M9)", async () => {
+    const f = fixture();
+    const seen: unknown[] = [];
+    await coachRep(f.transcript, f.metrics, f.tier1, f.anchors, undefined, undefined, (u) => seen.push(u));
+    expect(seen).toEqual([
+      { input_tokens: 10, output_tokens: 5 },
+      { input_tokens: 10, output_tokens: 5 },
+      { input_tokens: 10, output_tokens: 5 },
+    ]);
   });
 
   it("still throws what is not the deadline, as before", async () => {

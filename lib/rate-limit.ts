@@ -246,6 +246,16 @@ export function clientIp(headers: Headers): string {
 export const GUEST_FULL_COPY =
   "Recording without an account is full for now. Create an account to keep going.";
 
+/**
+ * One line each time the shared guest ceiling turns someone away
+ * (docs/scale/audit.md M3): the day it first fills is the day to size it,
+ * and until now nothing said so. Which route and which window; nothing
+ * personal, no address.
+ */
+export function noteGuestFull(route: "analyze" | "hostile" | "say", v: RateVerdict): void {
+  console.warn(JSON.stringify({ evt: "limit.guestall", route, window: v.window, retry_after_s: v.retryAfterS }));
+}
+
 /** The sentence the recording screen shows on a 429. */
 export function limitMessage(v: RateVerdict): string {
   const mins = Math.max(1, Math.ceil(v.retryAfterS / 60));

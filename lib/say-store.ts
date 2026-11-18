@@ -22,6 +22,7 @@
 
 import { held, heldMark, hold, once } from "./held";
 import { currentSession, supabaseBrowser } from "./supabase-browser";
+import { own } from "./own-rows";
 import {
   fetchSavedWords,
   noteRemoved,
@@ -149,6 +150,9 @@ const fromRow = (r: Row): SwapState => ({
   at: r.updated_at,
 });
 
+/** The session's account id, which every read of its rows names (lib/own-rows.ts); null with none. */
+const myId = async (): Promise<string | null> => (await currentSession())?.userId ?? null;
+
 /** A key 0036's check takes: "c:" or "w:" and a uuid. A fixture's short id stays on the phone. */
 const ROW_KEY = /^[cw]:[0-9a-f-]{36}$/;
 
@@ -162,9 +166,7 @@ export async function fetchStates(): Promise<SwapStates> {
   const me = await currentSession();
   if (!db || !me) return {};
   const local = readLocal(me.userId);
-  const { data, error } = await db
-    .from("say_better")
-    .select("swap, step, due, last, tested_on, heard_at, hidden, updated_at")
+  const { data, error } = await own(db.from("say_better").select("swap, step, due, last, tested_on, heard_at, hidden, updated_at"), me.userId)
     .limit(2000);
   if (error) {
     if (missingSayTable(error as { code?: string; message?: string })) return local;
@@ -231,9 +233,8 @@ export interface LexiconPair {
 async function readPairs(): Promise<LexiconPair[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data, error } = await db
-    .from("lexicon")
-    .select("id, original, upgrade, rep_id, created_at")
+  const me = await myId();
+  const { data, error } = await own(db.from("lexicon").select("id, original, upgrade, rep_id, created_at"), me)
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
@@ -254,9 +255,8 @@ export const TAKES_READ = 200;
 async function readTakes(since: string): Promise<TakeText[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data, error } = await db
-    .from("reps")
-    .select("id, created_at, transcript")
+  const me = await myId();
+  const { data, error } = await own(db.from("reps").select("id, created_at, transcript"), me)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(TAKES_READ);
@@ -277,11 +277,10 @@ async function readTakesById(ids: readonly string[]): Promise<TakeText[]> {
   const db = supabaseBrowser();
   const want = [...new Set(ids)];
   if (!db || want.length === 0) return [];
+  const me = await myId();
   const out: TakeText[] = [];
   for (let i = 0; i < want.length; i += 100) {
-    const { data, error } = await db
-      .from("reps")
-      .select("id, created_at, transcript")
+    const { data, error } = await own(db.from("reps").select("id, created_at, transcript"), me)
       .in("id", want.slice(i, i + 100));
     if (error) throw error;
     for (const r of (data as { id: string; created_at: string; transcript: string | null }[] | null) ?? []) {
@@ -297,7 +296,8 @@ export async function fetchTakeWords(ids: readonly string[]): Promise<Map<string
   const want = [...new Set(ids)].slice(0, 24);
   const db = supabaseBrowser();
   if (!db || want.length === 0) return out;
-  const { data, error } = await db.from("reps").select("id, words:whisper_raw->words").in("id", want);
+  const me = await myId();
+  const { data, error } = await own(db.from("reps").select("id, words:whisper_raw->words"), me).in("id", want);
   if (error) throw error;
   for (const r of (data as { id: string; words: TimedWord[] | null }[] | null) ?? []) {
     out.set(r.id, Array.isArray(r.words) ? r.words : null);

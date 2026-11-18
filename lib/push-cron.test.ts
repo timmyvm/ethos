@@ -31,6 +31,10 @@ let notes: { subject: string; at: string }[] = [];
 let recent: { filler_count: number; duration_s: number }[] = [];
 /** A push service error's statusCode for the next sends, or null. */
 let sendFails: number | null = null;
+/** How long each send takes, in turns of the event loop; and how many were in flight at once. */
+let sendTurns = 0;
+let inFlight = 0;
+let mostInFlight = 0;
 const stamped: string[] = [];
 const sent: string[] = [];
 const payloads: { title: string; body: string; url: string }[] = [];
@@ -212,12 +216,19 @@ vi.mock("web-push", () => ({
   default: {
     setVapidDetails: () => {},
     sendNotification: async (s: { endpoint: string }, body: string, options?: unknown) => {
-      // A real send takes a moment: two ticks at once interleave here.
-      await Promise.resolve();
-      sendOptions.push(options);
-      if (sendFails !== null) throw Object.assign(new Error("push service"), { statusCode: sendFails });
-      sent.push(s.endpoint);
-      payloads.push(JSON.parse(body));
+      inFlight++;
+      mostInFlight = Math.max(mostInFlight, inFlight);
+      try {
+        // A real send takes a moment: two ticks at once interleave here.
+        await Promise.resolve();
+        for (let i = 0; i < sendTurns; i++) await Promise.resolve();
+        sendOptions.push(options);
+        if (sendFails !== null) throw Object.assign(new Error("push service"), { statusCode: sendFails });
+        sent.push(s.endpoint);
+        payloads.push(JSON.parse(body));
+      } finally {
+        inFlight--;
+      }
     },
   },
 }));
@@ -262,6 +273,9 @@ beforeEach(() => {
   notes = [];
   recent = [];
   sendFails = null;
+  sendTurns = 0;
+  inFlight = 0;
+  mostInFlight = 0;
   stamped.length = 0;
   sent.length = 0;
   payloads.length = 0;
@@ -285,6 +299,18 @@ describe("the reminder cron", () => {
     expect(body.sent).toBe(0);
     expect(sent).toEqual([]);
     expect(stamped).toEqual([]);
+  });
+
+  it("sends sixteen at a time, each person once (scale audit DB-4)", async () => {
+    // One at a time, a minute served about 240 and pg_net gave up at 30 s.
+    subs = Array.from({ length: 40 }, (_, i) => due(i));
+    sendTurns = 20;
+    const body = await (await tick()).json();
+    expect(body.sent).toBe(40);
+    expect(new Set(sent).size).toBe(40);
+    expect(mostInFlight).toBe(16);
+    // Each day claimed once, so no lane rang anyone twice.
+    expect(stamped).toHaveLength(40);
   });
 
   it("reaches every subscriber, past the 1000 rows one read returns", async () => {

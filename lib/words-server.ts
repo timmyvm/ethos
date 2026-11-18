@@ -214,24 +214,35 @@ export function markWord(ask: WordAsk): string {
  * (lib/words.ts cleanAnswer), or null when there is no key, the model
  * declined, or what came back is not an answer.
  */
+/**
+ * How long a lookup may take before it is cut off and answered as a
+ * failed one (a 502 the sheet already says): the route's own 30 seconds
+ * hold it, where the SDK's ten minutes and two retries held an instance
+ * for the platform's 300 (docs/scale/audit.md M12).
+ */
+export const WORDS_TIMEOUT_MS = 20_000;
+
 export async function suggestAnswer(ask: WordAsk): Promise<WordAnswer | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
   const client = new Anthropic();
-  const response = await client.messages.create({
-    model: WORDS_MODEL,
-    max_tokens: 1024,
-    system: [{ type: "text", text: WORDS_SYSTEM, cache_control: { type: "ephemeral" } }],
-    output_config: {
-      effort: WORDS_EFFORT,
-      format: { type: "json_schema", schema: WORDS_SCHEMA },
-    },
-    messages: [
-      {
-        role: "user",
-        content: `Tapped: ${JSON.stringify(ask.word)}\nSentence: ${JSON.stringify(markWord(ask))}`,
+  const response = await client.messages.create(
+    {
+      model: WORDS_MODEL,
+      max_tokens: 1024,
+      system: [{ type: "text", text: WORDS_SYSTEM, cache_control: { type: "ephemeral" } }],
+      output_config: {
+        effort: WORDS_EFFORT,
+        format: { type: "json_schema", schema: WORDS_SCHEMA },
       },
-    ],
-  });
+      messages: [
+        {
+          role: "user",
+          content: `Tapped: ${JSON.stringify(ask.word)}\nSentence: ${JSON.stringify(markWord(ask))}`,
+        },
+      ],
+    },
+    { signal: AbortSignal.timeout(WORDS_TIMEOUT_MS) }
+  );
   if (response.stop_reason === "refusal") return null;
   const text = response.content.find((b) => b.type === "text")?.text ?? "";
   let parsed: unknown;

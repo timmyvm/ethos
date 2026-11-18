@@ -881,3 +881,335 @@ describe("0037 reps scorable and words", () => {
     await db.close();
   }, 60_000);
 });
+
+/**
+ * The database holds up as it grows (0038, docs/scale/audit.md, #512).
+ * Fifteen policies run auth.uid() once a statement instead of once a row,
+ * five indexes, and an hourly sweep. The policies must allow and refuse
+ * exactly what they did, so this proves it two ways on Postgres (PGlite,
+ * every migration applied, Supabase's roles stubbed as
+ * scripts/check-testers-sql.mjs stubs them): Postgres's own print of each
+ * expression is the old one with each auth.uid() wrapped and nothing else
+ * moved, and every read and write the browser's roles can make answers the
+ * same before and after.
+ */
+describe("0038 scale", () => {
+  const raw = readFileSync(path.join(DIR, "0038_scale.sql"), "utf8");
+  const sql = code("0038_scale.sql");
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+  const C = "33333333-3333-4333-8333-333333333333";
+  const HOST_ONLY = new Set(["0027_push_tick.sql", "0028_db_held_secrets.sql"]);
+  const STUBS = `
+    create role anon nologin;
+    create role authenticated nologin;
+    create role service_role nologin bypassrls;
+    create schema auth;
+    create table auth.users (id uuid primary key, email text, is_anonymous boolean default false);
+    create function auth.uid() returns uuid language sql stable as $$
+      select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    create function auth.role() returns text language sql stable as $$
+      select current_setting('request.jwt.claim.role', true) $$;
+    create schema storage;
+    create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+    grant usage on schema public to anon, authenticated, service_role;
+    grant usage on schema auth to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+  `;
+  /** The fifteen the advisor's auth_rls_initplan named (18 Nov). */
+  const FIFTEEN = [
+    "billing/own billing",
+    "coin_ledger/own coins",
+    "coin_ledger/own coins insert",
+    "lexicon/own lexicon",
+    "onboarding/onboarding: own row",
+    "profiles/own profile",
+    "profiles/own profile insert",
+    "profiles/own profile update",
+    "reps/own reps",
+    "streak_freezes/own freezes",
+    "streak_freezes/own freezes insert",
+    "streaks/own streak",
+    "streaks/own streak insert",
+    "streaks/own streak update",
+    "xp_events/own xp",
+  ];
+
+  type PG = import("@electric-sql/pglite").PGlite;
+  /** Every migration up to 0036, the schema production has, and a few rows to read. */
+  async function before(): Promise<PG> {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const db = new PGlite();
+    await db.exec(STUBS);
+    for (const f of files.filter((f) => Number(f.slice(0, 4)) <= 36 && !HOST_ONLY.has(f))) {
+      await db.exec(readFileSync(path.join(DIR, f), "utf8"));
+    }
+    // A recorded on five days of the week of 2 Nov (a challenge week); B once.
+    await db.exec(`
+      insert into auth.users (id) values ('${A}'), ('${B}'), ('${C}');
+      insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars)
+        select gen_random_uuid(), '${A}', timestamptz '2026-11-02 12:00+00' + g * interval '1 day', 60, 'hello', 140, 2, 2
+          from generate_series(0, 4) g;
+      insert into public.reps (user_id, created_at, duration_s, transcript, wpm, filler_count, stars)
+        values ('${B}', '2026-11-02 12:00+00', 60, 'hello', 150, 4, 1);
+      insert into public.lexicon (user_id, original, upgrade, rep_id)
+        select user_id, 'thing', 'point', id from public.reps;
+      insert into public.xp_events (user_id, amount, source, rep_id)
+        select user_id, 10, 'rep', id from public.reps;
+      insert into public.profiles (user_id, display_name) values ('${A}', 'Ana');
+      insert into public.streaks (user_id) values ('${A}');
+      insert into public.billing (user_id, stripe_customer_id, status) values ('${A}', 'cus_a', 'active');
+      insert into public.onboarding (user_id, goal) values ('${B}', 'sharper');
+    `);
+    return db;
+  }
+
+  const policies = async (db: PG) =>
+    Object.fromEntries(
+      (
+        await db.query<{ k: string; cmd: string; roles: string; qual: string | null; with_check: string | null }>(
+          `select tablename || '/' || policyname as k, cmd, roles::text as roles, qual, with_check
+             from pg_policies where schemaname = 'public' order by 1`
+        )
+      ).rows.map((p) => [p.k, p])
+    );
+
+  /**
+   * Every read and write the browser's two roles hold a grant for on the
+   * fifteen policies' tables, as A, B and a caller with no session, each
+   * answered as a count or a refusal. Run in order on two databases from
+   * the same rows, the answers can only match if the policies do.
+   */
+  async function probe(db: PG): Promise<string[]> {
+    const who = (sub: string | null) =>
+      sub
+        ? `reset role; select set_config('request.jwt.claim.sub', '${sub}', false); set role authenticated;`
+        : `reset role; select set_config('request.jwt.claim.sub', '', false); set role anon;`;
+    const out: string[] = [];
+    const run = async (label: string, sub: string | null, q: string) => {
+      await db.exec(who(sub));
+      try {
+        const r = await db.query<{ n?: number }>(q);
+        out.push(`${label}: ok ${r.rows[0]?.n ?? r.affectedRows ?? 0}`);
+      } catch (e) {
+        out.push(`${label}: refused ${(e as Error).message.split("\n")[0]}`);
+      } finally {
+        await db.exec("reset role;");
+      }
+    };
+    const tables = ["reps", "lexicon", "xp_events", "coin_ledger", "billing", "streak_freezes", "streaks", "profiles", "onboarding"];
+    for (const t of tables) {
+      for (const [name, sub] of [["A", A], ["B", B], ["C", C], ["anon", null]] as const) {
+        await run(`${name} reads ${t}`, sub, `select count(*)::int as n from public.${t}`);
+        await run(`${name} reads ${t} as A's`, sub, `select count(*)::int as n from public.${t} where user_id = '${A}'`);
+      }
+    }
+    // Profiles: own insert, someone else's, own update, someone else's.
+    await run("B makes its profile", B, `insert into public.profiles (user_id, display_name) values ('${B}', 'Ben')`);
+    await run("A makes C's profile", A, `insert into public.profiles (user_id, display_name) values ('${C}', 'x')`);
+    await run("A renames itself", A, `update public.profiles set display_name = 'Ann' where true`);
+    await run("A renames B", A, `update public.profiles set display_name = 'x' where user_id = '${B}'`);
+    await run("anon makes a profile", null, `insert into public.profiles (user_id, display_name) values ('${C}', 'x')`);
+    // Streaks.
+    await run("B starts its streak", B, `insert into public.streaks (user_id) values ('${B}')`);
+    await run("A starts C's streak", A, `insert into public.streaks (user_id) values ('${C}')`);
+    await run("A moves its streak", A, `update public.streaks set current = 3 where true`);
+    await run("A moves B's streak", A, `update public.streaks set current = 9 where user_id = '${B}'`);
+    await run("A hands its streak to C", A, `update public.streaks set user_id = '${C}' where user_id = '${A}'`);
+    // Freezes.
+    await run("A spends a freeze", A, `insert into public.streak_freezes (user_id, used_on) values ('${A}', current_date - 1)`);
+    await run("A spends B's freeze", A, `insert into public.streak_freezes (user_id, used_on) values ('${B}', current_date - 1)`);
+    await run("A moves its freeze", A, `update public.streak_freezes set used_on = current_date - 2 where true`);
+    // The introduction's answers.
+    await run("A answers", A, `insert into public.onboarding (user_id, goal) values ('${A}', 'present')`);
+    await run("A answers for C", A, `insert into public.onboarding (user_id, goal) values ('${C}', 'present')`);
+    await run("A changes its answer", A, `update public.onboarding set goal = 'feet' where true`);
+    await run("A changes B's answer", A, `update public.onboarding set goal = 'feet' where user_id = '${B}'`);
+    await run("A hands its answers to C", A, `update public.onboarding set user_id = '${C}' where user_id = '${A}'`);
+    // Coins: earned only, only for a day with a recording, a challenge week only with five days.
+    const coin = (who: string, reason: string, on: string) =>
+      `insert into public.coin_ledger (user_id, kind, amount, reason, earned_on) values ('${who}', 'earned', 1, '${reason}', '${on}')`;
+    await run("A earns a streak day it recorded", A, coin(A, "streak_day", "2026-11-03"));
+    await run("A earns a streak day it did not", A, coin(A, "streak_day", "2026-10-01"));
+    await run("A earns its challenge week", A, coin(A, "challenge_week", "2026-11-02"));
+    await run("B earns a challenge week of one day", B, coin(B, "challenge_week", "2026-11-02"));
+    await run("A earns B's streak day", A, coin(B, "streak_day", "2026-11-02"));
+    await run("A spends coins it never earned", A,
+      `insert into public.coin_ledger (user_id, kind, amount, reason) values ('${A}', 'spent', -5, 'shop:x')`);
+    await run("A pays itself 50", A, coin(A, "streak_day", "2026-11-04").replace(", 1, 'streak_day'", ", 50, 'streak_day'"));
+    await run("A changes its coin", A, `update public.coin_ledger set amount = 99 where true`);
+    // And everything as it stands at the end.
+    for (const t of tables) await run(`A reads ${t} at the end`, A, `select count(*)::int as n from public.${t}`);
+    return out;
+  }
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+    expect(sql).toMatch(/'de' \|\| 'lete'/);
+  });
+
+  it("builds every index plainly, once, with nothing taken off", () => {
+    for (const ix of [
+      /create index if not exists lexicon_user_created_idx\s+on public\.lexicon \(user_id, created_at desc\)/,
+      /create index if not exists lexicon_rep_id_idx on public\.lexicon \(rep_id\)/,
+      /create index if not exists xp_events_rep_id_idx on public\.xp_events \(rep_id\)/,
+      /create index if not exists coin_ledger_rep_id_idx on public\.coin_ledger \(rep_id\)/,
+      /create index if not exists rate_limits_at_idx on public\.rate_limits \(at\)/,
+    ]) {
+      expect(sql).toMatch(ix);
+    }
+    // One transaction through the connector: CONCURRENTLY cannot run in one.
+    expect(sql).not.toMatch(/concurrently/i);
+    expect(sql).not.toMatch(/create policy/);
+  });
+
+  it("wraps exactly the fifteen, each as it was with auth.uid() run once, and allows and refuses what it did", async () => {
+    const old = await before();
+    const now = (await old.clone()) as PG;
+    await now.exec(raw);
+    await now.exec(raw); // idempotent
+
+    const was = await policies(old);
+    const is = await policies(now);
+    expect(Object.keys(is)).toEqual(Object.keys(was));
+    const wrap = (s: string | null) => s && s.replaceAll("auth.uid()", "( SELECT auth.uid() AS uid)");
+    const moved = Object.keys(was).filter((k) => JSON.stringify(was[k]) !== JSON.stringify(is[k]));
+    expect(moved).toEqual(FIFTEEN);
+    for (const k of moved) {
+      expect(is[k].cmd, k).toBe(was[k].cmd);
+      expect(is[k].roles, k).toBe(was[k].roles);
+      expect(is[k].qual, k).toBe(wrap(was[k].qual));
+      expect(is[k].with_check, k).toBe(wrap(was[k].with_check));
+    }
+    // What the advisor looks for: no policy left calling it bare.
+    const bare = Object.values(is).filter((p) => /(?<!SELECT )auth\.uid\(\)/.test(`${p.qual ?? ""} ${p.with_check ?? ""}`));
+    expect(bare.map((p) => p.k)).toEqual([]);
+
+    const answered = await probe(old);
+    expect(await probe(now)).toEqual(answered);
+    // The probes reach both sides of every rule, so matching means something.
+    for (const line of [
+      "A reads reps: ok 5",
+      "B reads reps: ok 1",
+      "B reads reps as A's: ok 0",
+      "anon reads reps: ok 0",
+      "B makes its profile: ok 1",
+      "A renames B: ok 0",
+      "A earns a streak day it recorded: ok 1",
+      "A earns its challenge week: ok 1",
+      "A changes its coin: ok 0",
+      "A changes B's answer: ok 0",
+    ]) {
+      expect(answered).toContain(line);
+    }
+    for (const refused of [
+      "A makes C's profile",
+      "anon makes a profile",
+      "A starts C's streak",
+      "A hands its streak to C",
+      "A spends B's freeze",
+      "A answers for C",
+      "A hands its answers to C",
+      "A earns a streak day it did not",
+      "B earns a challenge week of one day",
+      "A earns B's streak day",
+      "A spends coins it never earned",
+      "A pays itself 50",
+    ]) {
+      expect(answered.find((l) => l.startsWith(`${refused}:`)), refused).toMatch(/refused/);
+    }
+    await old.close();
+    await now.close();
+  }, 120_000);
+
+  it("reads an account's newest pairs through the new index, and a recording's rows by rep_id", async () => {
+    const db = await before();
+    await db.exec(raw);
+    const idx = await db.query<{ indexname: string }>(
+      `select indexname from pg_indexes where schemaname = 'public'
+          and indexname in ('lexicon_user_created_idx', 'lexicon_rep_id_idx', 'xp_events_rep_id_idx', 'coin_ledger_rep_id_idx', 'rate_limits_at_idx')
+        order by 1`
+    );
+    expect(idx.rows.map((r) => r.indexname)).toEqual([
+      "coin_ledger_rep_id_idx",
+      "lexicon_rep_id_idx",
+      "lexicon_user_created_idx",
+      "rate_limits_at_idx",
+      "xp_events_rep_id_idx",
+    ]);
+    // A table big enough that a scan costs more than the index.
+    await db.exec(`
+      insert into auth.users (id) select gen_random_uuid() from generate_series(1, 400);
+      insert into public.lexicon (user_id, original, upgrade, created_at)
+        select u.id, 'thing', 'point', now() - g * interval '1 hour' from auth.users u, generate_series(1, 25) g;
+      analyze public.lexicon;
+    `);
+    const plan = async (q: string) =>
+      (await db.query<{ "QUERY PLAN": string }>(`explain ${q}`)).rows.map((r) => r["QUERY PLAN"]).join("\n");
+    await db.exec(`select set_config('request.jwt.claim.sub', '${A}', false); set role authenticated;`);
+    const read = await plan(
+      `select id, original, upgrade, rep_id, created_at from public.lexicon where user_id = '${A}' order by created_at desc limit 500`
+    );
+    await db.exec("reset role;");
+    // The account named in the query reaches the index; the policy is
+    // asked once, as a one-time filter, never once a row.
+    expect(read).toMatch(/Index (Only )?Scan (Backward )?(using|on) lexicon_user_created_idx/);
+    expect(read).toMatch(/One-Time Filter: \(\(InitPlan 1\)\.col1 = /);
+    expect(read).not.toMatch(/Seq Scan/);
+    await db.exec("set enable_seqscan = off;");
+    expect(await plan(`update public.lexicon set rep_id = null where rep_id = '00000000-0000-4000-8000-000000000000'`)).toMatch(/lexicon_rep_id_idx/);
+    expect(await plan(`update public.xp_events set rep_id = null where rep_id = '00000000-0000-4000-8000-000000000000'`)).toMatch(/xp_events_rep_id_idx/);
+    expect(await plan(`update public.coin_ledger set rep_id = null where rep_id = '00000000-0000-4000-8000-000000000000'`)).toMatch(/coin_ledger_rep_id_idx/);
+    await db.close();
+  }, 120_000);
+
+  it("sweeps limiter rows past two days and pg_cron's history past a week, hourly, out of the browser's reach", async () => {
+    const db = await before();
+    // pg_cron as the host has it: its history table and its scheduler,
+    // which here only writes down what it was asked.
+    await db.exec(`
+      create schema cron;
+      create table cron.job_run_details (runid bigserial primary key, end_time timestamptz);
+      create table cron.asked (name text, schedule text, command text);
+      create function cron.schedule(job_name text, schedule text, command text) returns bigint
+        language sql as $$ insert into cron.asked values (job_name, schedule, command); select 1::bigint $$;
+    `);
+    await db.exec(raw);
+    await db.exec(raw); // idempotent: scheduling by name replaces the job
+    const asked = await db.query("select name, schedule, command from cron.asked");
+    expect(asked.rows[0]).toEqual({ name: "sweep-kept-rows", schedule: "31 * * * *", command: "select private.sweep_kept_rows()" });
+
+    await db.exec(`
+      insert into public.rate_limits (subject, at) values
+        ('u:old', now() - interval '3 days'),
+        ('ip:old', now() - interval '49 hours'),
+        ('push-tick:PUSH_TICK_SECRET:database', now() - interval '47 hours'),
+        ('u:now', now());
+      insert into cron.job_run_details (end_time) values (now() - interval '8 days'), (now() - interval '6 days'), (null);
+    `);
+    const swept = await db.query<{ r: { rate_limits: number; job_run_details: number } }>("select private.sweep_kept_rows() as r");
+    expect(swept.rows[0].r).toEqual({ rate_limits: 2, job_run_details: 1 });
+    const left = await db.query<{ subject: string }>("select subject from public.rate_limits order by at");
+    expect(left.rows.map((r) => r.subject)).toEqual(["push-tick:PUSH_TICK_SECRET:database", "u:now"]);
+    expect((await db.query("select * from cron.job_run_details")).rows).toHaveLength(2);
+
+    for (const role of ["anon", "authenticated"]) {
+      const r = await db.query<{ ok: boolean }>(
+        `select has_function_privilege('${role}', 'private.sweep_kept_rows()', 'execute') as ok`
+      );
+      expect(r.rows[0].ok, role).toBe(false);
+    }
+    await db.close();
+  }, 120_000);
+
+  it("applies where pg_cron is not, and the sweep still runs", async () => {
+    const db = await before();
+    await db.exec(raw);
+    await db.exec(`insert into public.rate_limits (subject, at) values ('u:old', now() - interval '3 days')`);
+    const swept = await db.query<{ r: { rate_limits: number; job_run_details: number } }>("select private.sweep_kept_rows() as r");
+    expect(swept.rows[0].r).toEqual({ rate_limits: 1, job_run_details: 0 });
+    await db.close();
+  }, 120_000);
+});

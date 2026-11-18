@@ -36,7 +36,8 @@ import type { AnalyzeResponse } from "@/app/api/analyze/route";
  */
 
 /**
- * The scoring function has 60 seconds of wall time (Vercel Hobby), and
+ * The scoring function has 60 seconds of wall time (its own maxDuration;
+ * Whisper is cut off at 50, docs/scale/audit.md M7), and
  * Whisper on a long meeting blows straight through it, reported live
  * as "the scoring server didn't answer" on a meeting upload. Gate by
  * DURATION before spending the upload, with the honest reason.

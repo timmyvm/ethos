@@ -587,7 +587,9 @@ export async function coachRep(
   anchors: Tier2Anchors,
   deadline?: number,
   /** Told each attempt as it starts: the route's stage log counts them (#508). */
-  onAttempt?: (attempt: number) => void
+  onAttempt?: (attempt: number) => void,
+  /** Told each answer's billed tokens: the stage log adds them up (docs/scale/audit.md M9). */
+  onUsage?: (usage: Anthropic.Beta.BetaUsage) => void
 ): Promise<CoachOutput | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
 
@@ -629,6 +631,7 @@ export async function coachRep(
       console.warn(`[coach] cut off at the deadline on attempt ${attempt}`);
       return null;
     }
+    onUsage?.(response.usage);
 
     if (response.stop_reason === "refusal") return null;
 

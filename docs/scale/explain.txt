@@ -1,0 +1,396 @@
+# 0038 before and after (2026-11-18, PGlite)
+
+Seed: 3000 accounts, {"recordings":31435,"lexicon":20800,"xp_events":31435,"coin_ledger":18783}. Heavy accounts: 365, 1,000 and 100 recordings.
+Run as authenticated with a 545-byte claims JSON, as PostgREST sets it. Median of 5.
+
+## Before 0038 (production today)
+
+### Say it better's pairs, newest 500 (lib/say-store.ts readPairs)
+  7 recordings, the policy alone: 170.4 ms
+      Limit  (cost=1006.10..1006.12 rows=7 width=63) (actual rows=5.00 loops=1)
+      Sort Method: quicksort  Memory: 17kB
+      ->  Seq Scan on lexicon  (cost=0.00..1006.00 rows=7 width=63) (actual rows=5.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      Rows Removed by Filter: 20795
+  7 recordings, account named: 2.8 ms
+      Limit  (cost=538.12..538.14 rows=7 width=63) (actual rows=5.00 loops=1)
+      Sort Method: quicksort  Memory: 17kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Seq Scan on lexicon  (cost=0.02..538.02 rows=7 width=63) (actual rows=5.00 loops=1)
+      Filter: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      Rows Removed by Filter: 20795
+  365 recordings, the policy alone: 162.2 ms
+      Limit  (cost=1015.54..1016.14 rows=241 width=63) (actual rows=241.00 loops=1)
+      Sort Method: quicksort  Memory: 49kB
+      ->  Seq Scan on lexicon  (cost=0.00..1006.00 rows=241 width=63) (actual rows=241.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      Rows Removed by Filter: 20559
+  365 recordings, account named: 4.3 ms
+      Limit  (cost=547.56..548.16 rows=241 width=63) (actual rows=241.00 loops=1)
+      Sort Method: quicksort  Memory: 49kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Seq Scan on lexicon  (cost=0.02..538.02 rows=241 width=63) (actual rows=241.00 loops=1)
+      Filter: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      Rows Removed by Filter: 20559
+  1,000 recordings, the policy alone: 161.9 ms
+      Limit  (cost=1036.10..1037.35 rows=500 width=63) (actual rows=500.00 loops=1)
+      Sort Method: quicksort  Memory: 102kB
+      ->  Seq Scan on lexicon  (cost=0.00..1006.00 rows=645 width=63) (actual rows=645.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      Rows Removed by Filter: 20155
+  1,000 recordings, account named: 5.7 ms
+      Limit  (cost=568.12..569.37 rows=500 width=63) (actual rows=500.00 loops=1)
+      Sort Method: quicksort  Memory: 102kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Seq Scan on lexicon  (cost=0.02..538.02 rows=645 width=63) (actual rows=645.00 loops=1)
+      Filter: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      Rows Removed by Filter: 20155
+### Today's newest 90 recordings (lib/client-data.ts readReps)
+  7 recordings, the policy alone: 0.9 ms
+      Limit  (cost=43.49..43.51 rows=10 width=787) (actual rows=10.00 loops=1)
+      Sort Method: quicksort  Memory: 27kB
+      ->  Bitmap Heap Scan on reps  (cost=4.39..43.32 rows=10 width=787) (actual rows=10.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.38 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  7 recordings, account named: 0.7 ms
+      Limit  (cost=43.27..43.29 rows=10 width=787) (actual rows=10.00 loops=1)
+      Sort Method: quicksort  Memory: 27kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=4.39..43.10 rows=10 width=787) (actual rows=10.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 2.4 ms
+      Limit  (cost=0.31..350.35 rows=90 width=787) (actual rows=90.00 loops=1)
+      ->  Index Scan using reps_user_created_idx on reps  (cost=0.31..1423.79 rows=366 width=787) (actual rows=90.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  365 recordings, account named: 2.9 ms
+      Limit  (cost=0.29..350.32 rows=90 width=787) (actual rows=90.00 loops=1)
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Index Scan using reps_user_created_idx on reps  (cost=0.29..1423.76 rows=366 width=787) (actual rows=90.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 2.6 ms
+      Limit  (cost=0.31..327.57 rows=90 width=787) (actual rows=90.00 loops=1)
+      ->  Index Scan using reps_user_created_idx on reps  (cost=0.31..3658.39 rows=1006 width=787) (actual rows=90.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  1,000 recordings, account named: 1.6 ms
+      Limit  (cost=0.29..327.55 rows=90 width=787) (actual rows=90.00 loops=1)
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Index Scan using reps_user_created_idx on reps  (cost=0.29..3658.37 rows=1006 width=787) (actual rows=90.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+### The spine, first page of 1,000 (readAll on reps)
+  7 recordings, the policy alone: 0.8 ms
+      Limit  (cost=43.49..43.51 rows=10 width=45) (actual rows=10.00 loops=1)
+      Sort Method: quicksort  Memory: 17kB
+      ->  Bitmap Heap Scan on reps  (cost=4.39..43.32 rows=10 width=45) (actual rows=10.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.38 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  7 recordings, account named: 0.7 ms
+      Limit  (cost=43.27..43.29 rows=10 width=45) (actual rows=10.00 loops=1)
+      Sort Method: quicksort  Memory: 17kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=4.39..43.10 rows=10 width=45) (actual rows=10.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 6.9 ms
+      Limit  (cost=1155.90..1156.81 rows=366 width=45) (actual rows=365.00 loops=1)
+      Sort Method: quicksort  Memory: 42kB
+      ->  Bitmap Heap Scan on reps  (cost=15.15..1140.32 rows=366 width=45) (actual rows=365.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..15.06 rows=366 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  365 recordings, account named: 3.8 ms
+      Limit  (cost=1147.67..1148.58 rows=366 width=45) (actual rows=365.00 loops=1)
+      Sort Method: quicksort  Memory: 42kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=15.15..1132.08 rows=366 width=45) (actual rows=365.00 loops=1)
+      Recheck Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..15.03 rows=366 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 23.1 ms
+      Limit  (cost=2522.72..2525.22 rows=1000 width=45) (actual rows=1000.00 loops=1)
+      Sort Method: quicksort  Memory: 87kB
+      ->  Bitmap Heap Scan on reps  (cost=36.11..2472.54 rows=1006 width=45) (actual rows=1000.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on reps_user_created_idx  (cost=0.00..35.86 rows=1006 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  1,000 recordings, account named: 11.2 ms
+      Limit  (cost=2500.08..2502.58 rows=1000 width=45) (actual rows=1000.00 loops=1)
+      Sort Method: quicksort  Memory: 87kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=36.11..2449.91 rows=1006 width=45) (actual rows=1000.00 loops=1)
+      Recheck Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Index Scan on reps_user_created_idx  (cost=0.00..35.83 rows=1006 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+### XP, first page of 1,000 (fetchXp)
+  7 recordings, the policy alone: 0.7 ms
+      Limit  (cost=39.89..39.91 rows=10 width=12) (actual rows=10.00 loops=1)
+      Sort Method: quicksort  Memory: 17kB
+      ->  Bitmap Heap Scan on xp_events  (cost=4.39..39.72 rows=10 width=12) (actual rows=10.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..4.38 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  7 recordings, account named: 0.6 ms
+      Limit  (cost=39.67..39.69 rows=10 width=12) (actual rows=10.00 loops=1)
+      Sort Method: quicksort  Memory: 17kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on xp_events  (cost=4.39..39.50 rows=10 width=12) (actual rows=10.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 5.1 ms
+      Limit  (cost=415.03..415.94 rows=367 width=12) (actual rows=365.00 loops=1)
+      Sort Method: quicksort  Memory: 31kB
+      ->  Bitmap Heap Scan on xp_events  (cost=15.15..399.39 rows=367 width=12) (actual rows=365.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..15.06 rows=367 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  365 recordings, account named: 1.9 ms
+      Limit  (cost=406.77..407.69 rows=367 width=12) (actual rows=365.00 loops=1)
+      Sort Method: quicksort  Memory: 31kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Heap Scan on xp_events  (cost=15.16..391.14 rows=367 width=12) (actual rows=365.00 loops=1)
+      Recheck Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..15.04 rows=367 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 13.1 ms
+      Limit  (cost=478.69..481.18 rows=998 width=12) (actual rows=1000.00 loops=1)
+      Sort Method: quicksort  Memory: 56kB
+      ->  Bitmap Heap Scan on xp_events  (cost=36.04..428.97 rows=998 width=12) (actual rows=1000.00 loops=1)
+      Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = user_id)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..35.80 rows=998 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = (COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)
+  1,000 recordings, account named: 4.2 ms
+      Limit  (cost=456.24..458.73 rows=998 width=12) (actual rows=1000.00 loops=1)
+      Sort Method: quicksort  Memory: 56kB
+      One-Time Filter: ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Heap Scan on xp_events  (cost=36.05..406.52 rows=998 width=12) (actual rows=1000.00 loops=1)
+      Recheck Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..35.77 rows=998 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+
+## Before 0038: Delete my recordings for the 365-recording account (service role, rolled back)
+
+  2227 ms
+      ->  Bitmap Heap Scan on reps  (cost=15.12..1132.06 rows=366 width=6) (actual rows=365.00 loops=1)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..15.03 rows=366 width=0) (actual rows=365.00 loops=1)
+      Trigger for constraint lexicon_rep_id_fkey: calls=365
+      Trigger for constraint xp_events_rep_id_fkey: calls=365
+      Trigger for constraint coin_ledger_rep_id_fkey: calls=365
+
+## After 0038_scale.sql
+
+### Say it better's pairs, newest 500 (lib/say-store.ts readPairs)
+  7 recordings, the policy alone: 0.6 ms
+      Limit  (cost=29.23..29.25 rows=7 width=63) (actual rows=5.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 17kB
+      ->  Bitmap Heap Scan on lexicon  (cost=4.34..29.10 rows=7 width=63) (actual rows=5.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on lexicon_user_created_idx  (cost=0.00..4.34 rows=7 width=0) (actual rows=5.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  7 recordings, account named: 0.6 ms
+      Limit  (cost=29.23..29.25 rows=7 width=63) (actual rows=5.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 17kB
+      One-Time Filter: ((InitPlan 1).col1 = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on lexicon  (cost=4.34..29.10 rows=7 width=63) (actual rows=5.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on lexicon_user_created_idx  (cost=0.00..4.34 rows=7 width=0) (actual rows=5.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 2.3 ms
+      Limit  (cost=29.23..29.25 rows=7 width=63) (actual rows=241.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 49kB
+      ->  Bitmap Heap Scan on lexicon  (cost=4.34..29.10 rows=7 width=63) (actual rows=241.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on lexicon_user_created_idx  (cost=0.00..4.34 rows=7 width=0) (actual rows=241.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  365 recordings, account named: 2.3 ms
+      Limit  (cost=303.44..304.04 rows=241 width=63) (actual rows=241.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 49kB
+      One-Time Filter: ((InitPlan 1).col1 = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Heap Scan on lexicon  (cost=10.16..293.87 rows=241 width=63) (actual rows=241.00 loops=1)
+      Recheck Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Index Scan on lexicon_user_created_idx  (cost=0.00..10.09 rows=241 width=0) (actual rows=241.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 4.1 ms
+      Limit  (cost=29.23..29.25 rows=7 width=63) (actual rows=500.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 102kB
+      ->  Bitmap Heap Scan on lexicon  (cost=4.34..29.10 rows=7 width=63) (actual rows=645.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on lexicon_user_created_idx  (cost=0.00..4.34 rows=7 width=0) (actual rows=645.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  1,000 recordings, account named: 4.1 ms
+      Limit  (cost=337.48..338.73 rows=500 width=63) (actual rows=500.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 102kB
+      One-Time Filter: ((InitPlan 1).col1 = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Heap Scan on lexicon  (cost=21.29..307.35 rows=645 width=63) (actual rows=645.00 loops=1)
+      Recheck Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Index Scan on lexicon_user_created_idx  (cost=0.00..21.12 rows=645 width=0) (actual rows=645.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+### Today's newest 90 recordings (lib/client-data.ts readReps)
+  7 recordings, the policy alone: 0.8 ms
+      Limit  (cost=43.27..43.30 rows=10 width=787) (actual rows=10.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 27kB
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.07 rows=10 width=787) (actual rows=10.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  7 recordings, account named: 0.8 ms
+      Limit  (cost=43.28..43.30 rows=10 width=787) (actual rows=10.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 27kB
+      One-Time Filter: ((InitPlan 1).col1 = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.08 rows=10 width=787) (actual rows=10.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 1.9 ms
+      Limit  (cost=43.27..43.30 rows=10 width=787) (actual rows=90.00 loops=1)
+      InitPlan 1
+      Sort Method: top-N heapsort  Memory: 107kB
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.07 rows=10 width=787) (actual rows=365.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  365 recordings, account named: 1.9 ms
+      Limit  (cost=0.32..351.06 rows=90 width=787) (actual rows=90.00 loops=1)
+      InitPlan 1
+      One-Time Filter: ((InitPlan 1).col1 = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Index Scan using reps_user_created_idx on reps  (cost=0.29..1387.66 rows=356 width=787) (actual rows=90.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 2.4 ms
+      Limit  (cost=43.27..43.30 rows=10 width=787) (actual rows=90.00 loops=1)
+      InitPlan 1
+      Sort Method: top-N heapsort  Memory: 107kB
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.07 rows=10 width=787) (actual rows=1000.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  1,000 recordings, account named: 1.7 ms
+      Limit  (cost=0.32..327.84 rows=90 width=787) (actual rows=90.00 loops=1)
+      InitPlan 1
+      One-Time Filter: ((InitPlan 1).col1 = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Index Scan using reps_user_created_idx on reps  (cost=0.29..3650.33 rows=1003 width=787) (actual rows=90.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+### The spine, first page of 1,000 (readAll on reps)
+  7 recordings, the policy alone: 0.7 ms
+      Limit  (cost=43.27..43.30 rows=10 width=45) (actual rows=10.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 17kB
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.07 rows=10 width=45) (actual rows=10.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  7 recordings, account named: 0.7 ms
+      Limit  (cost=43.28..43.30 rows=10 width=45) (actual rows=10.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 17kB
+      One-Time Filter: ((InitPlan 1).col1 = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.08 rows=10 width=45) (actual rows=10.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 3.8 ms
+      Limit  (cost=43.27..43.30 rows=10 width=45) (actual rows=365.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 42kB
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.07 rows=10 width=45) (actual rows=365.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  365 recordings, account named: 3.7 ms
+      Limit  (cost=1122.24..1123.13 rows=356 width=45) (actual rows=365.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 42kB
+      One-Time Filter: ((InitPlan 1).col1 = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=15.05..1107.12 rows=356 width=45) (actual rows=365.00 loops=1)
+      Recheck Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..14.96 rows=356 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 8.9 ms
+      Limit  (cost=43.27..43.30 rows=10 width=45) (actual rows=1000.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 87kB
+      ->  Bitmap Heap Scan on reps  (cost=4.37..43.07 rows=10 width=45) (actual rows=1000.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..4.36 rows=10 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  1,000 recordings, account named: 8.9 ms
+      Limit  (cost=2495.90..2498.40 rows=1000 width=45) (actual rows=1000.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 87kB
+      One-Time Filter: ((InitPlan 1).col1 = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Heap Scan on reps  (cost=36.06..2445.87 rows=1003 width=45) (actual rows=1000.00 loops=1)
+      Recheck Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Index Scan on reps_user_created_idx  (cost=0.00..35.81 rows=1003 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+### XP, first page of 1,000 (fetchXp)
+  7 recordings, the policy alone: 0.6 ms
+      Limit  (cost=39.67..39.70 rows=10 width=12) (actual rows=10.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 17kB
+      ->  Bitmap Heap Scan on xp_events  (cost=4.37..39.48 rows=10 width=12) (actual rows=10.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  7 recordings, account named: 0.6 ms
+      Limit  (cost=39.68..39.70 rows=10 width=12) (actual rows=10.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 17kB
+      One-Time Filter: ((InitPlan 1).col1 = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Heap Scan on xp_events  (cost=4.37..39.48 rows=10 width=12) (actual rows=10.00 loops=1)
+      Recheck Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..4.36 rows=10 width=0) (actual rows=10.00 loops=1)
+      Index Cond: (user_id = '4ddc7ab3-b6cb-40a3-bfa3-1375d0096499'::uuid)
+  365 recordings, the policy alone: 2.0 ms
+      Limit  (cost=39.67..39.70 rows=10 width=12) (actual rows=365.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 31kB
+      ->  Bitmap Heap Scan on xp_events  (cost=4.37..39.48 rows=10 width=12) (actual rows=365.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..4.36 rows=10 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  365 recordings, account named: 1.9 ms
+      Limit  (cost=406.78..407.70 rows=367 width=12) (actual rows=365.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 31kB
+      One-Time Filter: ((InitPlan 1).col1 = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Heap Scan on xp_events  (cost=15.13..391.12 rows=367 width=12) (actual rows=365.00 loops=1)
+      Recheck Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..15.04 rows=367 width=0) (actual rows=365.00 loops=1)
+      Index Cond: (user_id = 'e4595cdd-3696-412d-aa10-5f0e0f75c01a'::uuid)
+  1,000 recordings, the policy alone: 4.2 ms
+      Limit  (cost=39.67..39.70 rows=10 width=12) (actual rows=1000.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 56kB
+      ->  Bitmap Heap Scan on xp_events  (cost=4.37..39.48 rows=10 width=12) (actual rows=1000.00 loops=1)
+      Recheck Cond: ((InitPlan 1).col1 = user_id)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..4.36 rows=10 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = (InitPlan 1).col1)
+  1,000 recordings, account named: 4.1 ms
+      Limit  (cost=456.94..459.44 rows=1000 width=12) (actual rows=1000.00 loops=1)
+      InitPlan 1
+      Sort Method: quicksort  Memory: 56kB
+      One-Time Filter: ((InitPlan 1).col1 = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Heap Scan on xp_events  (cost=36.09..406.68 rows=1007 width=12) (actual rows=1000.00 loops=1)
+      Recheck Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+      ->  Bitmap Index Scan on xp_events_user_created_idx  (cost=0.00..35.84 rows=1007 width=0) (actual rows=1000.00 loops=1)
+      Index Cond: (user_id = 'b24ac66f-bc66-4965-a3e3-af1d71a51899'::uuid)
+
+## After 0038_scale.sql: Delete my recordings for the 365-recording account (service role, rolled back)
+
+  37 ms
+      ->  Bitmap Heap Scan on reps  (cost=15.05..1107.12 rows=356 width=6) (actual rows=365.00 loops=1)
+      ->  Bitmap Index Scan on reps_user_client_id_uniq  (cost=0.00..14.96 rows=356 width=0) (actual rows=365.00 loops=1)
+      Trigger for constraint lexicon_rep_id_fkey: calls=365
+      Trigger for constraint xp_events_rep_id_fkey: calls=365
+      Trigger for constraint coin_ledger_rep_id_fkey: calls=365

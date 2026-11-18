@@ -27,6 +27,8 @@ vi.mock("./supabase-browser", () => {
       order: () => api,
       limit: () => api,
       gte: () => api,
+      // Every read names its account (lib/own-rows.ts); this table has one.
+      eq: () => api,
       in: (_c: string, ids: string[]) => {
         byId = ids;
         return api;

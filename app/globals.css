@@ -168,6 +168,11 @@
    */
   --color-edge: rgba(32, 30, 29, 0.14);
   --color-card-edge: rgba(32, 30, 29, 0.09);
+  /* The card's hairline on an ink fill (#499): the toast is ink where
+   * the page is ground, a piece of the other theme, so its edge is the
+   * other theme's card-edge, light on the dark capsule and dark on the
+   * pale one. Without it the capsule had no rim on the room's dark sky. */
+  --color-ink-edge: rgba(242, 242, 242, 0.12);
   /* The dark material the rep-loop signature moments sit on (pause
    * bar, comparison card). Warm, never #000. The score card is NOT
    * stage — it sits on sage-900. */
@@ -524,6 +529,7 @@ body {
    * a near-black ground carries less than a surface step. */
   --color-edge: rgba(242, 242, 242, 0.16);
   --color-card-edge: rgba(242, 242, 242, 0.12);
+  --color-ink-edge: rgba(32, 30, 29, 0.09);
 
   /* Light washes become dark washes of the same hue; the accent-text
    * steps lift to the peach that reads on them. */
@@ -4614,6 +4620,7 @@ summary::-webkit-details-marker {
   :root {
     --color-hairline: rgba(32, 30, 29, 0.3);
     --color-card-edge: rgba(32, 30, 29, 0.32);
+    --color-ink-edge: rgba(242, 242, 242, 0.34);
     --color-edge: rgba(32, 30, 29, 0.5);
     --color-stone-200: rgba(32, 30, 29, 0.3);
     --color-stone-300: rgba(32, 30, 29, 0.45);
@@ -4627,6 +4634,7 @@ summary::-webkit-details-marker {
   :root[data-theme="dark"] {
     --color-hairline: rgba(242, 242, 242, 0.3);
     --color-card-edge: rgba(242, 242, 242, 0.34);
+    --color-ink-edge: rgba(32, 30, 29, 0.32);
     --color-edge: rgba(242, 242, 242, 0.5);
     --color-stone-200: rgba(242, 242, 242, 0.3);
     --color-stone-300: rgba(242, 242, 242, 0.45);
@@ -6929,9 +6937,11 @@ html[data-test-tile] .test-tile-slot {
  * One line and one Undo, floating 10px over the tab bar's capsule, in
  * the app's column (components/ui/Toast.tsx). Ink where the page is
  * ground: the one surface that is neither the page nor a card, so it
- * reads as passing through. Level 3, like everything that floats. It
- * rises on the snappy spring and leaves in a fade; reduced motion fades
- * both ways. The key hint shows only where there is a keyboard to hold.
+ * reads as passing through. Level 3, like everything that floats, with
+ * a card's hairline in the other theme's strength (`ink-edge`, #499), so
+ * its rim holds where what is behind it is as dark as it is. It rises
+ * on the snappy spring and leaves in a fade; reduced motion fades both
+ * ways. The key hint shows only where there is a keyboard to hold.
  * ============================================================================ */
 .toast-dock {
   position: fixed;
@@ -6956,7 +6966,7 @@ html[data-test-tile] .test-tile-slot {
   padding: 6px 6px 6px 18px;
   background: var(--color-ink);
   color: var(--color-ground);
-  box-shadow: var(--shadow-3);
+  box-shadow: inset 0 0 0 1px var(--color-ink-edge), var(--shadow-3);
   font-family: var(--font-display);
   pointer-events: auto;
   animation: toast-in var(--spring-snappy-duration) var(--spring-snappy) backwards;

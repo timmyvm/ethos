@@ -3,7 +3,6 @@ import {
   CueRunner,
   LIMIT,
   SETTLE_S,
-  armSound,
   playBlips,
   playSound,
   resetSoundForTests,
@@ -11,6 +10,7 @@ import {
   unlockSound,
 } from "./sound";
 import { RECIPES, VOICES, type Cue } from "./sound-recipes";
+import { claimXpTicks } from "./use-sound-cues";
 
 /**
  * The kit's contract (#505): one context, made only in a tap; one switch
@@ -232,35 +232,6 @@ describe("playing a sound", () => {
   });
 });
 
-describe("armSound: the first tap anywhere", () => {
-  function fakeDoc() {
-    const listeners = new Map<string, () => void>();
-    return {
-      listeners,
-      addEventListener: (e: string, fn: () => void) => void listeners.set(e, fn),
-      removeEventListener: (e: string) => void listeners.delete(e),
-    };
-  }
-
-  it("makes the context on the first tap, then stops listening", () => {
-    const doc = fakeDoc();
-    armSound(doc as unknown as Document);
-    expect(FakeContext.made).toBe(0);
-    doc.listeners.get("touchend")!();
-    expect(FakeContext.made).toBe(1);
-    expect(doc.listeners.size).toBe(0);
-  });
-
-  it("makes nothing while Sound is off, and keeps listening for when it is turned on", () => {
-    soundOff();
-    const doc = fakeDoc();
-    armSound(doc as unknown as Document);
-    doc.listeners.get("click")!();
-    expect(FakeContext.made).toBe(0);
-    expect(doc.listeners.size).toBeGreaterThan(0);
-  });
-});
-
 describe("CueRunner: a moment's sounds on its clock", () => {
   function clock() {
     let now = 0;
@@ -290,7 +261,7 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("plays each cue at its time", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q) => played.push(q.sound), c);
+    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
     r.run([cue("star-1", 660), cue("star-2", 780)]);
     c.advance(700);
     expect(played).toEqual(["star-1"]);
@@ -301,7 +272,7 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("never plays a slot twice, and a moment read later takes the slot it waited in", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q) => played.push(q.sound), c);
+    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
     r.run([cue("star-1", 100), cue("best", 1000, "top")]);
     c.advance(200);
     /* The level-up is read after the stored row lands: it replaces the best. */
@@ -313,7 +284,7 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("plays a cue that arrives after its time at once", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q) => played.push(q.sound), c);
+    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
     r.run([cue("star-1", 100)]);
     c.advance(2000);
     r.run([cue("star-1", 100), cue("lesson", 1000, "top")]);
@@ -324,12 +295,24 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("drops whatever has not played when the screen goes", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q) => played.push(q.sound), c);
+    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
     r.run([cue("star-1", 100), cue("payout", 1000)]);
     c.advance(150);
     r.cancel();
     c.advance(2000);
     expect(played).toEqual(["star-1"]);
     expect(c.pending()).toBe(0);
+  });
+});
+
+describe("XP today's ticks on You", () => {
+  it("are owed once per rise this phone has heard, and only when a sound could play", () => {
+    expect(claimXpTicks(30, "2026-11-18")).toBe(false); // no tap yet: still owed
+    unlockSound();
+    expect(claimXpTicks(30, "2026-11-18")).toBe(true);
+    expect(claimXpTicks(30, "2026-11-18")).toBe(false);
+    expect(claimXpTicks(40, "2026-11-18")).toBe(true);
+    soundOff();
+    expect(claimXpTicks(50, "2026-11-18")).toBe(false);
   });
 });

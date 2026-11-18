@@ -76,6 +76,8 @@ import { prefersReducedMotion } from "@/lib/prefs";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { asTitle } from "@/lib/title";
+import { dayKey } from "@/lib/streak-moment";
+import { claimXpTicks, tickClimb } from "@/lib/use-sound-cues";
 
 // Free tier gets today's swap, not the archive, when the paywall is on.
 const FREE_LEXICON = 3;
@@ -127,6 +129,12 @@ const DOOR_CLASS =
  * shop, freeze rules live at the moment a freeze is earned or spent
  * (COPY-RULES.md, DECISIONS #150).
  */
+/* XP today ticks as it counts up, when it rose since this phone last
+   heard it (#505): XP earned is a win, opening You is not. */
+function xpClimb(from: number, to: number, durationMs: number): (() => void) | void {
+  return claimXpTicks(to, dayKey(new Date())) ? tickClimb(from, to, durationMs) : undefined;
+}
+
 export default function YouPage() {
   /**
    * `null` until the fetch lands, NOT `[]`. Starting empty meant this
@@ -676,7 +684,7 @@ export default function YouPage() {
             mark={<StatIcon kind="best" lit={bestFlame(streak.longest) === "lit"} size={22} />}
             flame={bestFlame(streak.longest)}
           />
-          <Stat label="XP today" value={xpFailed ? null : xp?.today} mark={<StatIcon kind="xp" size={22} />} />
+          <Stat label="XP today" value={xpFailed ? null : xp?.today} mark={<StatIcon kind="xp" size={22} />} onClimb={xpClimb} />
         </div>
       </section>
       {nameFailed && (
@@ -1244,12 +1252,15 @@ function Stat({
   mark,
   flame,
   said,
+  onClimb,
 }: {
   label: string;
   value: number | null | undefined;
   mark: React.ReactNode;
   flame?: Flame;
   said?: string;
+  /** XP today's ticks as it counts up (#505). */
+  onClimb?: (from: number, to: number, durationMs: number) => (() => void) | void;
 }) {
   const tone = flame === undefined ? "xp-ink" : flame === "lit" ? "streak-lit" : "text-stone-400";
   return (
@@ -1261,7 +1272,7 @@ function Stat({
           <span aria-hidden data-flame={flame} className={`flex shrink-0 ${tone}`}>
             {mark}
           </span>
-          <span>{value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} />}</span>
+          <span>{value === null ? "–" : <CountUp value={value} durationMs={DURATION.max} onClimb={onClimb} />}</span>
         </div>
       )}
       {/* One line in every column at every width (D10, D36). Sentence

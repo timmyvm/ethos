@@ -13,10 +13,11 @@
  *  - only with Sound on (Settings, Accessibility, Sound: `prefs.sound`,
  *    on by default). Reduced motion does not silence it; the switch does.
  *  - only after a tap: a phone plays nothing from an audio context no
- *    gesture started. The context is made inside the first tap on any
- *    screen that imports the kit (`armSound`), or inside a tap that asks
- *    for it (`unlockSound`: Record, the Settings switch). A sound asked
- *    for before then is dropped, never queued for a later tap.
+ *    gesture started. The context is made inside a tap that asks for it
+ *    (`unlockSound`: Record, Hostile's record, the Settings switch, and
+ *    at merge every tap of the introduction), and kept for the visit. A
+ *    sound asked for before then is dropped, never queued for a later
+ *    tap: XP on a You opened cold counts up quiet.
  *  - never past an iPhone's ring/silent switch. A sound asks for the
  *    "ambient" audio session (lib/audio-session.ts, iOS 16.4 on) when the
  *    session is the browser's own choice, which mixes with whatever else
@@ -99,28 +100,6 @@ export function unlockSound(): AudioContext | null {
   return c;
 }
 
-let armed = false;
-const TAP_EVENTS = ["touchend", "pointerup", "click", "keydown"] as const;
-
-/**
- * Make the context in the first tap anywhere on the page, once, so a
- * sound earned later (the streak's moment, XP on You) can play without
- * its own screen having been tapped. Nothing is made while Sound is off:
- * the switch turning on makes it (app/settings/accessibility).
- */
-export function armSound(doc: Document | undefined = typeof document === "undefined" ? undefined : document): void {
-  if (armed || !doc) return;
-  armed = true;
-  const onTap = () => {
-    if (!readPrefs().sound) return;
-    const c = unlockSound();
-    if (!c || c.state === "running") {
-      for (const e of TAP_EVENTS) doc.removeEventListener(e, onTap, true);
-    }
-  };
-  for (const e of TAP_EVENTS) doc.addEventListener(e, onTap, { capture: true, passive: true });
-}
-
 /** Whether a sound may play now: Sound on (unless forced), and a running context. */
 function live(force: boolean): AudioContext | null {
   const c = soundContext();
@@ -133,6 +112,11 @@ function live(force: boolean): AudioContext | null {
   }
   if (!force && !readPrefs().sound) return null;
   return c;
+}
+
+/** Whether a sound would play now (Sound on, a tap made the context, the phone has not paused it). */
+export function canSound(): boolean {
+  return live(false) !== null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -464,8 +448,4 @@ export class CueRunner {
 /** Tests only. */
 export function resetSoundForTests(): void {
   ctx = null;
-  armed = false;
 }
-
-/* Any screen that can sound makes the context in its first tap. */
-armSound();

@@ -48,6 +48,17 @@ describe("Demos talking (#501)", () => {
     expect(landedAt(p, 120)).toBe(7);
   });
 
+  it("lands a line that follows the keys whole, at once and silent (#501 review)", () => {
+    /* The name's reply changes with every key typed: re-said per key, it
+       flickered and blipped under each letter. */
+    const p = planTalk(["Good to meet you, Bartholomew."], { lead: 200, instant: true });
+    expect(p.at).toEqual([0, 0, 0, 0, 0]);
+    expect(p.blips).toEqual([]);
+    expect(landedAt(p, 0)).toBe(5);
+    /* Instant wins over reduced motion's one blip: a typed line makes none. */
+    expect(planTalk(["Good to meet you, Sam."], { reduced: true, instant: true }).blips).toEqual([]);
+  });
+
   it("says nothing for nothing", () => {
     expect(planTalk(["", "  "]).at).toEqual([]);
     expect(planTalk([]).blips).toEqual([]);

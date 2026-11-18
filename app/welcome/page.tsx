@@ -461,6 +461,10 @@ function Walk() {
         announce={
           step.id === "name" ? (heardName ? NAME_REPLY(heardName) : "") : undefined
         }
+        /* #501 review: while the name is being typed his reply follows
+           each key whole and silent; it is said, with its pop and blips,
+           only where the name was already settled (coming back to it). */
+        replyLive={step.id === "name" && answers.name !== heardName}
         /* D19: his coin scales with the room, 96 to 140 (135 at
            390x844), where it was a fixed 84. */
         shelfFollows={step.id === "name"}

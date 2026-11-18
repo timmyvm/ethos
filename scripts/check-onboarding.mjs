@@ -222,6 +222,27 @@ ok("and a swipe past an unanswered question rubber-bands", (await heading()) ===
 const fieldBox = await page.getByLabel("Your name").boundingBox();
 await swipe(-220, { y: fieldBox.y + fieldBox.height / 2 });
 ok("a drag that starts in the name field is the field's", (await heading()) === "What do I call you?");
+{
+  /* #501 review: typed, his reply follows every key whole and silent.
+     Re-said per key, it blanked to its first words and blipped under
+     each letter. */
+  await page.getByLabel("Your name").click();
+  await sleep(200);
+  const before = await osc();
+  const whole = [];
+  for (const ch of "Tim") {
+    await page.keyboard.type(ch);
+    await sleep(90);
+    whole.push(
+      await page.evaluate(() => {
+        const w = [...document.querySelectorAll("main [data-speech] .talk-word")];
+        return w.length > 0 && w.every((x) => x.hasAttribute("data-on"));
+      })
+    );
+  }
+  const typed = (await osc()) - before;
+  ok("typing the name, his reply is whole at every key, with no blip per key", whole.every(Boolean) && typed === 0, `${whole.join(",")} / ${typed} blips`);
+}
 await page.getByLabel("Your name").fill("Tim");
 await page.getByLabel("Your name").blur();
 await sleep(350);

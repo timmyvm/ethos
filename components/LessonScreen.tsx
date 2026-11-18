@@ -335,6 +335,7 @@ export function LessonScreen({
   trait,
   replies,
   announce,
+  replyLive = false,
   backLabel = "Back",
   ...body
 }: LessonBodyProps & {
@@ -351,6 +352,12 @@ export function LessonScreen({
    * screen reader hears it once the field is finished, not per keystroke.
    */
   announce?: string;
+  /**
+   * The reply follows a hand as it types (the name, #501 review): it is
+   * there whole with every key, with no pop, no blip and no bump, so
+   * typing never flickers his bubble or ticks under each letter.
+   */
+  replyLive?: boolean;
   /**
    * The trait this screen is about (practice-detail-6). Sets
    * `data-trait` on <main>, so everything on the screen can wear that
@@ -680,6 +687,7 @@ export function LessonScreen({
               reply={body.reply}
               replies={replies}
               announce={announce}
+              replyLive={replyLive}
               gesture={arrived.current.gesture}
             />
           ) : (
@@ -939,6 +947,7 @@ function DemosSpeech({
   reply,
   replies,
   announce,
+  replyLive = false,
   gesture = false,
 }: {
   mode: "above" | "beside";
@@ -949,6 +958,8 @@ function DemosSpeech({
   reply?: string;
   replies?: string[];
   announce?: string;
+  /** The reply follows the keys being typed: whole, silent, no bump. */
+  replyLive?: boolean;
   /** The page came in by a swipe or an arrow key: the words come with it. */
   gesture?: boolean;
 }) {
@@ -962,12 +973,12 @@ function DemosSpeech({
     if (lastReply.current === reply) return;
     lastReply.current = reply;
     const el = bubble.current;
-    if (!el || !reply || typeof el.animate !== "function" || motionReduced()) return;
+    if (!el || !reply || replyLive || typeof el.animate !== "function" || motionReduced()) return;
     el.animate([{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], {
       duration: 280,
       easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
     });
-  }, [reply]);
+  }, [reply, replyLive]);
   /* B12: every other reply this question can give, as ghosts in the same
      cell at no height, so the bubble rests at the widest from the first
      frame and only its height answers the line being said (the coin
@@ -1002,6 +1013,7 @@ function DemosSpeech({
           key={reply}
           lines={[reply]}
           lead={lead}
+          instant={replyLive}
           ariaHidden={live}
           classes={["text-balance"]}
           onTalking={setTalking}

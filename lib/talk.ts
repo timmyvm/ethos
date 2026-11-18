@@ -13,6 +13,11 @@
  * Under reduced motion every word is there at `lead`, whole, and the
  * sound follows the words: one blip for what lands at once.
  *
+ * `instant` is a line that follows a hand (the name's reply, which
+ * changes with every key typed): it is there from the first frame, whole
+ * and silent, because a line re-said per keystroke is a flicker and a
+ * blip per key, not Demos talking (#501 review).
+ *
  * Pure: the plan is worked out from the text alone, so a test can read
  * each word's millisecond.
  */
@@ -48,11 +53,12 @@ export function stepFor(words: number): number {
 
 export function planTalk(
   lines: readonly string[],
-  { lead = 0, reduced = false }: { lead?: number; reduced?: boolean } = {}
+  { lead = 0, reduced = false, instant = false }: { lead?: number; reduced?: boolean; instant?: boolean } = {}
 ): TalkPlan {
   const split = lines.map(wordsOf).filter((w) => w.length > 0);
   const total = split.reduce((n, w) => n + w.length, 0);
   if (total === 0) return { lines: split, at: [], blips: [], doneAt: lead };
+  if (instant) return { lines: split, at: new Array(total).fill(0), blips: [], doneAt: 0 };
   if (reduced) {
     return { lines: split, at: new Array(total).fill(lead), blips: [lead], doneAt: lead };
   }

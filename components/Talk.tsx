@@ -32,13 +32,16 @@ export function motionReduced(): boolean {
  * component that holds it a `key` per thing said, and a new thing said
  * starts from its first word.
  */
-export function useTalk(lines: readonly string[], lead: number, sound = true) {
+export function useTalk(lines: readonly string[], lead: number, sound = true, instant = false) {
   const key = lines.join("\n");
   const [reduced] = useState(motionReduced);
+  /* Read once, as the line mounts: a typed line that settles keeps what
+     it showed and never replays its words or their blips (#501 review). */
+  const [whole] = useState(instant);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the text is the key
-  const plan = useMemo(() => planTalk(lines, { lead, reduced }), [key, lead, reduced]);
+  const plan = useMemo(() => planTalk(lines, { lead, reduced, instant: whole }), [key, lead, reduced, whole]);
   const total = plan.at.length;
-  const [shown, setShown] = useState(0);
+  const [shown, setShown] = useState(() => (whole ? total : 0));
   const timers = useRef<number[]>([]);
 
   useEffect(() => {
@@ -108,6 +111,7 @@ export function TalkLines({
   classes,
   ariaHidden = false,
   sound = true,
+  instant = false,
   onTalking,
 }: {
   lines: readonly string[];
@@ -117,10 +121,12 @@ export function TalkLines({
   classes: readonly (string | undefined)[];
   ariaHidden?: boolean;
   sound?: boolean;
+  /** A line that follows a hand (the typed name's reply): whole, silent, still. */
+  instant?: boolean;
   /** He started or stopped talking: his art moves while he does. */
   onTalking?: (talking: boolean) => void;
 }) {
-  const { plan, shown, talking } = useTalk(lines, lead, sound);
+  const { plan, shown, talking } = useTalk(lines, lead, sound, instant);
   const said = useRef(onTalking);
   useEffect(() => {
     said.current = onTalking;

@@ -7,7 +7,7 @@ import { flushSync } from "react-dom";
 import { TapTick } from "@/components/ui/TapTick";
 import { DemosArt } from "@/components/DemosArt";
 import { IconGlobe } from "@/components/Icon";
-import { Paywall } from "@/components/Paywall";
+import { Paywall } from "@/components/LazyPaywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Reel, useReel } from "@/components/Reel";
 import { Disclosure } from "@/components/ui/Disclosure";

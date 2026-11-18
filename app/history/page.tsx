@@ -4,7 +4,8 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PremiumDoor } from "@/components/PremiumMark";
-import { Paywall, type PaywallAsk } from "@/components/Paywall";
+import { Paywall } from "@/components/LazyPaywall";
+import type { PaywallAsk } from "@/components/Paywall";
 import { SkeletonLogStage, SkeletonRegion } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import {

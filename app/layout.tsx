@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { OutboxRetry } from "@/components/OutboxRetry";
 import { TesterLayer } from "@/components/tester/TesterLayer";
 import { AccountGate } from "@/components/AccountGate";
-import { AuthNote } from "@/components/AuthNote";
+import { AuthNote } from "@/components/LazyAuthNote";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ThemeSync } from "@/components/Theme";
 // From a plain module, never a "use client" one: see lib/theme-boot.ts.

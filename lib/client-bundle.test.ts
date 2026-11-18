@@ -89,4 +89,39 @@ describe("the browser's bundle", () => {
   });
 });
 
+/** The client components the root layout draws on every page (its static imports that start "use client"). */
+function layoutParts(): string[] {
+  return staticImports(read("app/layout.tsx"))
+    .map((spec) => resolve("app/layout.tsx", spec))
+    .filter((f): f is string => f !== null && /^\s*["']use client["']/.test(read(f)));
+}
+
+describe("the code every page carries (fix 18)", () => {
+  const parts = layoutParts();
+  const shared = reach(parts);
+
+  it("is read from the layout (the command menu, the bar, the gate)", () => {
+    expect(parts).toContain("components/CommandMenu.tsx");
+    expect(parts).toContain("components/Nav.tsx");
+    expect(parts).toContain("components/LazyAuthNote.tsx");
+  });
+
+  it("holds neither the command menu's list nor the 365 topics under it", () => {
+    for (const f of ["lib/commands.ts", "content/lessons.ts", "lib/topics.ts", "lib/portfolio.ts"]) {
+      expect(shared.files.get(f), f).toBeUndefined();
+    }
+  });
+});
+
+describe("the paywall loads when it is asked for (fix 18)", () => {
+  const sheet = ["components/Paywall.tsx", "components/premium/Stair.tsx", "components/premium/PlanCard.tsx"];
+  for (const page of ["app/page.tsx", "app/history/page.tsx", "app/games/page.tsx", "app/rep/page.tsx", "app/rep/[id]/page.tsx", "app/boss/page.tsx"]) {
+    it(page, () => {
+      const r = reach([page]);
+      for (const f of sheet) expect(r.files.get(f), f).toBeUndefined();
+      expect(r.files.has("components/LazyPaywall.tsx")).toBe(true);
+    });
+  }
+});
+
 export { reach, entries, staticImports };

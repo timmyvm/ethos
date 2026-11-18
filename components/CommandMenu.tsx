@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { commandsAllowed, tabForKey } from "@/lib/commands";
+// The keys alone: the list and its topics load with the sheet (#508).
+import { commandsAllowed, tabForKey } from "@/lib/command-keys";
 import { isAppleKeyboard, isTyping, modOnly, shortcutLabel } from "@/lib/keys";
 import { underLayer } from "@/lib/overlay-layers";
 

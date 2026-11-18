@@ -12,7 +12,7 @@ import {
   IconUpload,
 } from "@/components/Icon";
 import { DemosArt } from "@/components/DemosArt";
-import { Paywall } from "@/components/Paywall";
+import { Paywall } from "@/components/LazyPaywall";
 import { PremiumMark } from "@/components/PremiumMark";
 import { StatIcon } from "@/components/StatIcon";
 import { Disclosure } from "@/components/ui/Disclosure";

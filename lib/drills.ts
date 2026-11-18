@@ -325,7 +325,10 @@ export const DRILLS: Drill[] = [
     title: "Finish every sentence",
     prompt: "What you'd change about your city. Every sentence you start, you finish.",
     tips: [
-      "Restart one sentence a minute and your Sentence restarts score drops by a third.",
+      /* A fact with the count as its subject (the review of #502): "Restart
+         one sentence a minute and ..." opened a tip with an order to do
+         the thing the practice is about not doing. */
+      "Restarting one sentence a minute costs a third of your Sentence restarts score.",
       "Sentence going wrong? Finish it anyway, then fix it in the next one.",
       "Start a little slower and you'll restart fewer sentences.",
     ],

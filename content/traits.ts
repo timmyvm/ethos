@@ -167,8 +167,11 @@ export const TRAITS: TraitDef[] = [
     unitOne: "sentence restart in 100 words",
     what: "Sentences you abandoned and began again a different way.",
     why: "A listener hears a sentence restart the way they hear an um, and it costs more.",
+    /* "A sentence restart is not an error to fix mid-flight" read, with
+       the new name in it, as "restarts are not errors" (the review of
+       #502): it names the moment instead, the wrong word. */
     distinction:
-      "A sentence restart is not an error to fix mid-flight. Finishing the weaker sentence beats abandoning it.",
+      "A wrong word is no reason to restart the sentence. Finishing the weaker sentence beats abandoning it.",
     howTo: [
       "Finish the sentence you started, even if a better one comes to mind.",
       "Said it wrong? Finish the sentence, then say the right version as a new one.",

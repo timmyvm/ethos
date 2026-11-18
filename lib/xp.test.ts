@@ -10,6 +10,7 @@ import {
   bestFlame,
   levelLine,
   reachLine,
+  reachLineFor,
   streakFlame,
   xpForTake,
   xpPaid,
@@ -67,8 +68,27 @@ describe("what reaches it", () => {
     expect(reachLine(1195, false)).toBe(`Speak 20+ words today for ${XP_PER_RECORDING} XP.`);
   });
 
-  it("names the next recording once today is spoken", () => {
+  it("names the next recording once a take has paid today", () => {
     expect(reachLine(1195, true)).toBe(`Speak 20+ words again for ${XP_PER_RECORDING} XP.`);
+  });
+
+  /*
+   * #510 review: You keyed "again" on whether today was spoken, and a day
+   * whose only take was too short to score is spoken and paid nothing:
+   * "Speak 20+ words again" told someone who said twelve words that they
+   * had said twenty. The line reads the XP read alone.
+   */
+  it("says today, not again, on a day spoken with no star", () => {
+    expect(reachLineFor({ total: 1195, today: 0 })).toBe(`Speak 20+ words today for ${XP_PER_RECORDING} XP.`);
+    expect(reachLineFor({ total: 1195, today: 10 })).toBe(`Speak 20+ words again for ${XP_PER_RECORDING} XP.`);
+    expect(reachLineFor({ total: 45, today: 0 })).toBe("Speak 20+ words today to reach level 2.");
+    expect(reachLineFor(null)).toBe(reachLine(0, false));
+  });
+
+  it("is drawn on You from the XP read, never from the streak", () => {
+    const you = readFileSync("app/you/page.tsx", "utf8");
+    expect(you).toMatch(/reachLineFor\(xp\)/);
+    expect(you).not.toMatch(/reachLine\([^)]*didToday/);
   });
 
   it("says when one recording closes the gap", () => {

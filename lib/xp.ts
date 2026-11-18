@@ -87,16 +87,23 @@ export function levelLine(total: number): string {
  * What reaches it, from what actually pays (Timothy: "Do this to reach
  * it"). Since #510 a take pays only when it earns a star, so the line
  * names star 1's own goal, in the words the glance draws under it ("20+
- * words"): "Speak 20+ words today for 10 XP." before today is spoken,
- * "again" after. When one recording closes the gap, it says so in the
- * level's own words.
+ * words"): "Speak 20+ words today for 10 XP." until a take has paid
+ * today, "again" after. Not whether today is spoken: a day of one take
+ * too short to score is spoken and paid nothing, and "again" would say
+ * it had (#510 review). When one recording closes the gap, it says so in
+ * the level's own words.
  */
-export function reachLine(total: number, spokeToday: boolean): string {
+export function reachLine(total: number, paidToday: boolean): string {
   const s = xpStanding(total);
   const pays = xpPaid(1);
-  const when = spokeToday ? "again" : "today";
+  const when = paidToday ? "again" : "today";
   if (s.toNext <= pays) return `Speak ${PAYING_WORDS} ${when} to reach level ${s.next}.`;
   return `Speak ${PAYING_WORDS} ${when} for ${pays} XP.`;
+}
+
+/** You's reach line, from the XP read alone: its total, and whether today paid any (`today`, xp_events). */
+export function reachLineFor(xp: { total: number; today: number } | null): string {
+  return reachLine(xp?.total ?? 0, (xp?.today ?? 0) > 0);
 }
 
 /** The bar's accessible name: both numbers the line and the bar show. */

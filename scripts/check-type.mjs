@@ -45,7 +45,7 @@ const ok = (name, pass, detail = "") => {
 };
 
 const SCREENS = [
-  "/", "/lessons", "/lessons/the-cold-open", "/games", "/history", "/rep/rep-22", "/you", "/settings", "/shop", "/words",
+  "/", "/lessons", "/lessons/the-cold-open", "/games", "/history", "/rep/rep-22", "/you", "/settings", "/shop", "/say", "/say/test",
   "/rep?lesson=h4", "/boss", "/hostile", "/upload", "/calibrate", "/practice/pause", "/terms", "/privacy", "/about",
   "/signin", "/signup", "/tester", "/games?paywall=1",
 ];

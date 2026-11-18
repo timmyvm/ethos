@@ -4073,6 +4073,50 @@ summary::-webkit-details-marker {
 .you-near {
   background: var(--color-sage-600);
 }
+
+/* ============================ say it better (#507) ============================
+ * Your own sentence with one phrase marked. The weak phrase you said
+ * wears Variety's wave (the transcript's own mark for a vague phrase,
+ * #453), so it reads as the same thing it was in the recording; the
+ * better phrase where it goes is a solid line in the tone; once you have
+ * said it, it is sage, earned, on a solid sage line. Three shapes and
+ * three colours, so no mark is told from another by colour alone (#448).
+ * A trait's tone is set by `data-trait="range"` on the screen.
+ * ============================================================================ */
+.say-weak,
+.say-answer,
+.say-said {
+  text-decoration-line: underline;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 0.22em;
+}
+.say-weak {
+  color: var(--tone-ink, var(--color-ink));
+  text-decoration-style: wavy;
+  text-decoration-color: var(--tone, var(--color-edge));
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+}
+.say-answer {
+  color: var(--color-ink);
+  text-decoration-color: var(--tone, var(--color-edge));
+  text-decoration-thickness: 3px;
+}
+.say-said {
+  color: var(--color-sage-700);
+  text-decoration-color: var(--color-sage-600);
+  text-decoration-thickness: 3px;
+}
+/* In a list, the weak phrase keeps its wave and the list's ink, so a
+   row that is not a tap never reads as a link. */
+.say-weak-quiet {
+  color: var(--color-ink);
+}
+/* The stage the test and the page stand on: Variety's ground. */
+.say-stage {
+  background: var(--tone-stage, var(--color-surface));
+}
+/* ========================== end of say it better ========================== */
 /* A trait's level (#482, components/ui/LevelMeter.tsx): "Level 6" and a
    short rounded bar beside it, how far into the level. Timothy's call
    ("a small bar in sage rounded small") takes this bar off the square

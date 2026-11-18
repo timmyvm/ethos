@@ -30,7 +30,7 @@ const ok = (name, pass, detail = "") => {
 const SCREENS = [
   ["Today", "/"], ["Lessons", "/lessons"], ["a lesson", "/lessons/the-cold-open"], ["Practice", "/games"],
   ["Log", "/history"], ["a recording", "/rep/rep-22"], ["You", "/you"], ["Settings", "/settings"],
-  ["Shop", "/shop"], ["Your words", "/words"], ["the recorder", "/rep?lesson=h4"], ["Boss", "/boss"],
+  ["Shop", "/shop"], ["Say it better", "/say"], ["the recorder", "/rep?lesson=h4"], ["Boss", "/boss"],
   ["Hostile", "/hostile"], ["Upload", "/upload"], ["Calibrate", "/calibrate"], ["a trait", "/practice/pause"],
   ["Sign in", "/signin"], ["About", "/about"],
 ];

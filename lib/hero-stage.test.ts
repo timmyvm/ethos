@@ -51,7 +51,8 @@ describe("every tab opens on the one stage", () => {
     expect(you).not.toMatch(/<HeroStage\b/);
     expect(you).not.toMatch(/<YouDemos\b/);
     expect(you.match(/data-look="you-card"/g)?.length).toBe(1);
-    expect(you).toMatch(/<section aria-label="Your profile" data-look="you-card" className="card mt-5 p-5">/);
+    // Under Say it better's card since #507, so its top is the list's 12, not the title's 20.
+    expect(you).toMatch(/<section aria-label="Your profile" data-look="you-card" className="card mt-3 p-5">/);
   });
 
   it("the stage is Practice's sky, at the sheet radius, the screen's one lift", () => {

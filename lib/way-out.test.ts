@@ -45,7 +45,7 @@ const TAPPABLE_BARE_SCREENS = [
  * round 2): one lesson, under Lessons. Its route is the tab's plus a
  * segment, so it is checked against DETAIL rather than BARE.
  */
-const TAPPABLE_DETAIL_SCREENS = ["app/lessons/[id]/page.tsx"];
+const TAPPABLE_DETAIL_SCREENS = ["app/lessons/[id]/page.tsx", "app/say/test/page.tsx"];
 
 /**
  * The route a page file serves: route groups (`(marketing)`) are not in

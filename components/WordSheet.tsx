@@ -196,7 +196,7 @@ function Body({
     if (was) {
       // Off the list, at once; back if the removal fails.
       setSaved(({ [key]: _gone, ...rest }) => rest);
-      setSaid(`${instead} removed from Your words`);
+      setSaid(`${instead} removed from Say it better`);
       noteRemoved(savedAs, instead);
       if (!was.id) return;
       try {
@@ -210,7 +210,7 @@ function Body({
     }
     setSaved((now) => ({ ...now, [key]: { id: null, busy: true } }));
     setDoor("saved");
-    setSaid(`${instead} saved to Your words`);
+    setSaid(`${instead} saved to Say it better`);
     try {
       const row = await saveWord({ word: savedAs, instead, sentence: unit.sentence, repId });
       noteSaved(row);
@@ -402,14 +402,14 @@ function Body({
               ) : !doorToWords ? (
                 /* The live walk: where the swap went, and no way off the debrief. */
                 <p className="mt-2 flex min-h-11 items-center text-link text-stone-500">
-                  {door === "saved" ? "Saved to Your words, on You." : ""}
+                  {door === "saved" ? "Saved to Say it better, on You." : ""}
                 </p>
               ) : (
                 <Link
-                  href={repId ? `/words?from=${encodeURIComponent(`/rep/${repId}`)}` : "/words"}
+                  href={repId ? `/say?from=${encodeURIComponent(`/rep/${repId}`)}` : "/say"}
                   className="press-row -mx-2 mt-2 flex min-h-11 items-center justify-between gap-3 rounded-control px-2 text-link text-ink"
                 >
-                  <span>{door === "saved" ? "Saved to Your words" : "Your words"}</span>
+                  <span>{door === "saved" ? "Saved to Say it better" : "Say it better"}</span>
                   <Disclosure />
                 </Link>
               )}

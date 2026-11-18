@@ -9,7 +9,7 @@
  *    to tab is a swap with no sideways push. Going deeper still pushes;
  *    the chevron's back slides in from the left; the browser's own back
  *    is not drawn a second time.
- *  - The bar says where you are: Your words and Upload light their tab,
+ *  - The bar says where you are: Say it better and Upload light their tab,
  *    a stored recording keeps the bar with Log lit, the recorder has
  *    none.
  *  - The header's words: no collision at 320, and a back that could only
@@ -171,7 +171,7 @@ const lit = (page) => page.evaluate(() => document.querySelector('nav a[aria-cur
 {
   const { context, page } = await open();
   savedWordsMode.rows = SAVED_ROWS.map((r) => ({ ...r }));
-  for (const [where, route, want] of [["Your words", "/words", "You"], ["Upload", "/upload", "Practice"], ["Settings", "/settings", "You"], ["a stored recording", "/rep/rep-22", "Log"]]) {
+  for (const [where, route, want] of [["Say it better", "/say", "You"], ["Upload", "/upload", "Practice"], ["Settings", "/settings", "You"], ["a stored recording", "/rep/rep-22", "Log"]]) {
     await page.goto(`${BASE}${route}`);
     await settle(page);
     ok(`${where} lights ${want}`, (await lit(page)) === want, String(await lit(page)));
@@ -244,7 +244,7 @@ const lit = (page) => page.evaluate(() => document.querySelector('nav a[aria-cur
   const { context, page } = await open();
   const cut = [];
   let seen = 0;
-  for (const where of ["/rep?lesson=h4", "/boss", "/hostile", "/upload", "/shop", "/words", "/settings", "/calibrate", "/rep/rep-22", "/lessons/h4", "/tester"]) {
+  for (const where of ["/rep?lesson=h4", "/boss", "/hostile", "/upload", "/shop", "/say", "/say/test", "/settings", "/calibrate", "/rep/rep-22", "/lessons/h4", "/tester"]) {
     await page.goto(`${BASE}${where}`);
     await settle(page);
     const words = await page.evaluate(() =>

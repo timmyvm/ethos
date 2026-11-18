@@ -88,6 +88,13 @@ export const LIMITS = {
    * call, where the free plan's room let all three finish.
    */
   hostilePremium: { hour: 16, day: 30 },
+  /**
+   * Say it better's test (/api/say, #507): one short line, said out loud
+   * and checked by Whisper. Three are due a day, each perhaps said twice
+   * or three times, so thirty an hour is far past a person and short of a
+   * script. Never stored, so a slot is never given back.
+   */
+  say: { hour: 30, day: 90 },
 } as const;
 
 /** The one subject every guest's paid call counts against (`guestall`). */

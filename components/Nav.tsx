@@ -126,9 +126,15 @@ const BARE = [
  * route plus a slash so the tab itself keeps it. One lesson (round 2,
  * B2's offer): it is a detail screen with its own Start at the foot,
  * and a tab row under that Start is five ways to not press it. Its way
- * back is the BackLink to Lessons (lib/way-out.test.ts).
+ * back is the BackLink to Lessons (lib/way-out.test.ts). Say it better's
+ * test is the same shape under /say (#507).
  */
-const DETAIL = ["/lessons"];
+const DETAIL = [
+  "/lessons",
+  /* Say it better's test (#507): a walk, one sentence and one Record, so
+     the bar leaves it as it leaves a lesson; /say itself keeps the bar. */
+  "/say",
+];
 
 export function Nav() {
   const path = usePathname();

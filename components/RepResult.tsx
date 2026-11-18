@@ -122,6 +122,13 @@ export interface GlanceView {
    * jump is the new scoring, traced to the Pause scores. Once per account.
    */
   rulesNote?: string | null;
+  /**
+   * Say it better's proof (#507): this take said a saved swap's better
+   * phrase. "the thing is → ✓ the point is ▶0:14" in sage, its chip
+   * playing that moment; `said` is null where the ceiling cut the struck
+   * phrase (lib/glance.ts fitGlanceProof).
+   */
+  proof?: { said: string | null; better: string; moment: GlanceMoment } | null;
 }
 
 /** The sheet's body (section "detail"): its sections in order, and those Results draws. */
@@ -171,6 +178,7 @@ export function RepResult({
   moment = false,
   rulesNote = null,
   sounds = null,
+  sayDoor = null,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -285,6 +293,11 @@ export function RepResult({
    * recording never sets this: a sound is for the moment it was earned.
    */
   sounds?: Omit<GlanceWin, "stars"> | null;
+  /**
+   * Under "Say this instead": the door to where the pair now is (#507,
+   * "Saved to Say it better"), when the recording was stored with it.
+   */
+  sayDoor?: ReactNode;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -520,6 +533,7 @@ export function RepResult({
                     </span>
                   </div>
                   {coach.supply.note && <p className="mt-1.5 text-caption text-stone-500">{coach.supply.note}</p>}
+                  {sayDoor}
                 </div>
               )}
             </section>
@@ -997,6 +1011,7 @@ export function RepResult({
               {coach.supply.note}
             </p>
           )}
+          {sayDoor}
         </section>
       )}
 
@@ -1388,6 +1403,38 @@ function Glance({
                 <Trend delta={view.earned.delta} />
               </span>
             ) : null}
+          </p>
+        )}
+        {/* Say it better's proof (#507): a saved swap said in this take,
+            found in Whisper's words. Earned, so sage; the struck phrase
+            first to go on a tight glance; its chip plays the moment. */}
+        {view.proof && ethosIndex !== null && (
+          <p
+            data-say-proof
+            className={`mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-body font-semibold text-sage-700 ${counting ? "" : "invisible"}`}
+          >
+            {view.proof.said && (
+              <>
+                <span className="font-normal text-stone-400 line-through">
+                  <span className="sr-only">Instead of </span>
+                  {view.proof.said}
+                </span>
+                <span aria-hidden className="text-stone-400">
+                  →
+                </span>
+              </>
+            )}
+            <span className="whitespace-nowrap">
+              <span aria-hidden>✓ </span>
+              <span className="sr-only">You said </span>
+              {view.proof.better}
+              {"\u00a0"}
+              {take?.playable ? (
+                <MomentChip moment={view.proof.moment} take={take} marker="say" />
+              ) : (
+                <span className="tabular-nums">{view.proof.moment.clock}</span>
+              )}
+            </span>
           </p>
         )}
         {/* The first take under #476 (#491): the jump is partly the

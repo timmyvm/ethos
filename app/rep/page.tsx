@@ -130,6 +130,8 @@ import { writeSpokeHint } from "@/lib/spoke-hint";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
 import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
+import { proofIn, proofWords, type Swap, type SwapStates } from "@/lib/say";
+import { fetchSwapsForProof, markHeard } from "@/lib/say-store";
 import {
   backLabel,
   defaultBack,
@@ -162,7 +164,8 @@ import {
   cueLead,
   earnedLine,
   fittedEarned,
-  fitGlance,
+  fitGlanceProof,
+  windowAt,
   askBudget,
   rulesBudget,
   starsBudget,
@@ -453,6 +456,23 @@ function RepScreen() {
    * up on it, and the results answer it and say the next one.
    */
   const carried = useCarriedCue();
+  /*
+   * Say it better (#507): the account's swaps and their test state, read
+   * once as the recorder opens, so the glance can say when this take used
+   * one ("the thing is → ✓ the point is ▶0:14"). A failed read is no proof
+   * line, never an error.
+   */
+  const [sayData, setSayData] = useState<{ swaps: Swap[]; states: SwapStates } | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetchSwapsForProof().then(
+      (d) => live && setSayData(d),
+      () => {}
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
   /* Skipped today on this phone: the tactic stands in its slot until tomorrow. */
   const [warmupGone, setWarmupGone] = useState(() => typeof window !== "undefined" && warmupSkipped(cueDay(new Date())));
   /* While Skip's two slots trade heights, both clip (globals.css `.cue-slot`). */
@@ -2050,6 +2070,7 @@ function RepScreen() {
           firstToday={firstScoredToday(baselineRef.current)}
           cueBefore={carried.state}
           onCue={carried.save}
+          say={sayData}
           startedAt={takeStartedAt.current}
           walkRows={walkRows}
           streakMoment={owedMoment}
@@ -2900,6 +2921,7 @@ function Results({
   firstToday,
   cueBefore,
   onCue,
+  say,
   startedAt,
   walkRows,
   streakMoment: owedStreak,
@@ -2940,6 +2962,8 @@ function Results({
   cueBefore: CueState | null | undefined;
   /** Keeps the cue carried out of it. */
   onCue: (next: CueState) => void;
+  /** Say it better's swaps and their state (#507), for the glance's proof line; null until read. */
+  say: { swaps: Swap[]; states: SwapStates } | null;
   /** When this take started (ms), for the hour the reminder ask offers. */
   startedAt: number;
   /** A game's rows before this round and with it; null until read, or when the read failed. */
@@ -3506,7 +3530,29 @@ function Results({
   /* The goal under each star (#504), counted, and riding on the ceiling. */
   const goals = starGoals(result.metrics.durationS);
   const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
-  const fit = fitGlance(
+  /*
+   * Say it better's proof line (#507): this take said a saved swap's
+   * better phrase, found in Whisper's text as the count reads it and in
+   * its timed words for the moment. Only a stored take with its number
+   * proves anything (the count reads stored recordings, and the line
+   * marks the swap heard). Worked out once, from the swaps as they were
+   * when the take began; said once a swap (markHeard). It rides on the
+   * same ceiling, its struck phrase the first thing to go
+   * (lib/glance.ts fitGlanceProof).
+   */
+  const proof = useMemo(
+    () =>
+      scorable && result.ethosIndex !== null && say
+        ? proofIn(say.swaps, say.states, {
+            id: result.repId,
+            transcript: result.transcript,
+            words: result.words,
+            startedAt: new Date(startedAt),
+          })
+        : null,
+    [scorable, result.ethosIndex, result.repId, result.transcript, say, result.words, startedAt]
+  );
+  const fit = fitGlanceProof(
     {
       fixed: [
         practised,
@@ -3545,8 +3591,17 @@ function Results({
         rulesNoteText
       ),
       goals
-    )
+    ),
+    proof ? { full: proofWords(proof, "full"), short: proofWords(proof, "short") } : null
   );
+  const proofShown = proof && fit.proof ? proof : null;
+  useEffect(() => {
+    if (!proofShown || !say) return;
+    const swap = say.swaps.find((s) => s.key === proofShown.key);
+    if (swap) void markHeard(say.states, swap).catch(() => {});
+    // Once per take: the proof is fixed when the take lands.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proofShown?.key]);
   const shown = fit.short && cueSaid ? cueSaid.lineShort : said;
   const glance: GlanceView = {
     parts: shown.parts,
@@ -3555,6 +3610,13 @@ function Results({
     earned: fittedEarned(earnedNow, fit.earned),
     held: cueSaid?.held ?? false,
     rulesNote: rulesNoteText,
+    proof: proofShown
+      ? {
+          said: fit.proof === "full" ? proofShown.said : null,
+          better: proofShown.better,
+          moment: windowAt(proofShown.at, 1, proofShown.end + 1.5, "%, play where you said it"),
+        }
+      : null,
   };
   const upgradeRead = () =>
     onUpgrade({
@@ -3948,6 +4010,22 @@ function Results({
             result={result}
             topic={config.topic}
             section="detail"
+            /* Where the pair now is (#507): through exit(), as the way on
+               is, so a streak's moment still owed plays first. Only a
+               stored take has its pair kept (lib/db.ts saveRep). */
+            sayDoor={
+              result.repId ? (
+                <button
+                  type="button"
+                  data-say-door
+                  onClick={() => exit("/say", { leaves: true })}
+                  className="press-row -mx-2 mt-2 flex min-h-11 w-[calc(100%+16px)] items-center justify-between gap-3 rounded-control px-2 text-link text-ink"
+                >
+                  <span>Saved to Say it better</span>
+                  <Disclosure />
+                </button>
+              ) : null
+            }
             sheet={{ sections, open: trait, slots: sheetSlots, trend: fillersTrend ? { fillers: fillersTrend } : null }}
             /* The length line under the dimensions' head reads its own
                game's clock (M5): Speed rush's cap, else the daily target. */

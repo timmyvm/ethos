@@ -29,8 +29,10 @@ export const TAB_HREFS = [
 export const TAB_CHILDREN: Readonly<Record<string, (typeof TAB_HREFS)[number]>> = {
   "/shop": "/you",
   "/settings": "/you",
-  /* #442: both drew the bar with nothing lit. Your words opens from
-     You's lexicon, Upload from Practice's tiles. */
+  /* #442: both drew the bar with nothing lit. Say it better opens from
+     You's first card (#507; /words redirects there), Upload from
+     Practice's tiles. */
+  "/say": "/you",
   "/words": "/you",
   "/upload": "/games",
 };

@@ -121,9 +121,9 @@ export default function About() {
             thing for tomorrow, tied to a number.
           </li>
           <li>
-            <span className="font-semibold text-ink">One upgrade.</span> A
-            better word from your own transcript, collected into your own
-            lexicon.
+            <span className="font-semibold text-ink">Say it better.</span> A
+            better way to say what you said, from your own transcript,
+            tested out loud until you say it on your own.
           </li>
         </ol>
       </section>

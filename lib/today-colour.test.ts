@@ -369,7 +369,7 @@ describe("a trait's tone is only ever one of its forms", () => {
     mark: "an 8px square or dot beside a trait's name, a 3px tick on a track, or the underline under a word the transcript counted",
     measure: "a ring's arc, a bar on sand, the live waveform's stroke, or the closing note's number (#423)",
     chip: "TraitChip",
-    ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card",
+    ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card, Say it better's stage (#507)",
     pop: "the introduction's pop tones, never a trait",
   } as const;
   type Form = keyof typeof FORMS;
@@ -409,6 +409,12 @@ describe("a trait's tone is only ever one of its forms", () => {
     '.closing-note[data-ink="trait"] .closing-note-value': "measure",
     // The warm-up's pause mark (#477): where the pause goes in the sentence, in Pausing's tone.
     ".pause-mark > i": "mark",
+    // Say it better (#507): the weak phrase you said under Variety's wave
+    // (the transcript's own mark for a vague phrase), the better one under
+    // a solid line where it goes, and the stage the page and the test stand on.
+    ".say-weak": "mark",
+    ".say-answer": "mark",
+    ".say-stage": "ground",
   };
   const FILES: Record<string, Form> = {
     "app/lessons/[id]/page.tsx": "ground",

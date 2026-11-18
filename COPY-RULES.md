@@ -131,7 +131,7 @@ can.
   before the count so it is never under an iPhone's nav. After the
   12th it reads "The test is over, and Timothy will message you about
   the chat." No money and no pay rule: the A$35 stays in Timothy's DM.
-  Settings' row reads "Day 2 of 14", then "Ended".
+  Settings' row reads "Day 2 of 14", then "On" once the test is over.
 - **The match check is two questions, one either side of the score.**
   Before the score shows, one tap: "How did that feel?" over "Before
   you see the score.", Rough, Okay, Strong, or Skip; tapping goes
@@ -151,9 +151,9 @@ can.
 - **A full test says so.** Past the tester limit a right code reads
   "Testing is full. Message Timothy."
 - **The doors are named for what they hold.** "Tester code" (the
-  top right of the introduction's first screen, caption size and
-  muted, and Settings), then "Testing Ethos, On" for a tester, and
-  "You're testing Ethos" once it is on.
+  top right of the room's door, caption size and muted, and
+  Settings), offered only until the test ends (#496), then "Testing
+  Ethos, On" for a tester, and "You're testing Ethos" once it is on.
 
 ## The test for every string
 

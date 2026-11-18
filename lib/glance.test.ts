@@ -558,11 +558,10 @@ describe("earnedLine", () => {
     expect(none).toBeLessThan(checked / 8);
   });
   it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
-    /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again are 20 words. */
-    const fixed = ["Today's practice", "665", "/1000", "Day 0. Everything after this has a number to beat.", "Every number", "Go again: The baseline"];
-    const f = fitGlance(
+    /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again were 20 words. */
+    const before = fitGlance(
       {
-        fixed,
+        fixed: ["Today's practice", "665", "/1000", "Day 0. Everything after this has a number to beat.", "Every number", "Go again: The baseline"],
         line: "“um” 2 times, first 0:02",
         cue: "Tomorrow: a pause instead.",
         lineShort: "“um” 2 times.",
@@ -572,7 +571,24 @@ describe("earnedLine", () => {
       GLANCE_WORDS_FIRST
     );
     // "Pace reached level 3" beside the whole line is 29 against 28: the fallback used to keep it anyway.
-    expect(f).toEqual({ cue: null, earned: "Pace: level 3", words: GLANCE_WORDS_FIRST, short: false });
+    expect(before).toEqual({ cue: null, earned: "Pace: level 3", words: GLANCE_WORDS_FIRST, short: false });
+    /* The same scene on the merged build (the 18 Nov merge's review): "Done
+       for today" and Retake (#493) and the goals (#504) are 28 words of
+       36, and the cue says its word. No cue form fits beside a level-up,
+       so the cue goes and the longest form that fits stays. */
+    const goals = ["20+ words", "Under 12 slips", "Under 4 slips"];
+    const f = fitGlance(
+      {
+        fixed: ["Today's practice", "665", "/1000", "Day 0. Everything after this has a number to beat.", "Every number", "Done for today", "Retake", ...goals],
+        line: "“um” 2 times, first 0:02",
+        cue: "Tomorrow: pause where “um” was.",
+        lineShort: "“um” 2 times.",
+        cueShort: "Pause where “um” was.",
+        earned: earnedLine({ bests: [], levelUp, trait: "fillers" }),
+      },
+      starsBudget(GLANCE_WORDS_FIRST, goals)
+    );
+    expect(f).toEqual({ cue: null, earned: "Pace: level 3", words: starsBudget(GLANCE_WORDS_FIRST, goals), short: false });
     // Over random fixed lengths: whenever any form fits once the cue has gone, the glance is within its budget.
     for (let extra = 0; extra < 12; extra++) {
       const words = Array.from({ length: extra }, (_, i) => `w${i}`);

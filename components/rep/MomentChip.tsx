@@ -16,8 +16,9 @@ export interface ChipMoment {
  * One moment: plays its stretch of the take, or stops it while it plays.
  * Hear it back's chip grammar: surface, edge and ink, the glyph in the
  * warm mark's terracotta like the filler chips' and the play key's beside it.
- * The Pause row's moments (#424) and the glance's one moment (#427) are
- * this chip; `marker` names which, for the cameras.
+ * The Pause row's moments (#424), the glance's one moment (#427) and
+ * Say it better's proof (#507) are this chip; `marker` names which, for
+ * the cameras.
  */
 export function MomentChip({
   moment,
@@ -26,7 +27,7 @@ export function MomentChip({
 }: {
   moment: ChipMoment;
   take: TakeAudio;
-  marker?: "pause" | "glance";
+  marker?: "pause" | "glance" | "say";
 }) {
   const playing =
     take.span !== null && take.span.from === moment.from && take.span.until === moment.until;
@@ -35,6 +36,7 @@ export function MomentChip({
       type="button"
       data-pause-moment={marker === "pause" ? "" : undefined}
       data-glance-chip={marker === "glance" ? "" : undefined}
+      data-say-chip={marker === "say" ? "" : undefined}
       aria-label={moment.label}
       aria-pressed={playing}
       onClick={() => (playing ? take.pause() : take.play(moment.from, moment.until))}

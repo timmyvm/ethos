@@ -361,6 +361,17 @@ export default function RepDetail({
         onPlay={(t) => take.play(t)}
         /* The Pause row's moments play from the stored audio (#424). */
         take={take}
+        /* Where its pair now is (#507), with this recording as the way back. */
+        sayDoor={
+          <Link
+            href={`/say?from=${encodeURIComponent(`/rep/${rep.id}`)}`}
+            data-say-door
+            className="press-row -mx-2 mt-2 flex min-h-11 items-center justify-between gap-3 rounded-control px-2 text-link text-ink"
+          >
+            <span>Saved to Say it better</span>
+            <Disclosure />
+          </Link>
+        }
       />
 
       {/*

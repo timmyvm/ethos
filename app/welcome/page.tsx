@@ -62,7 +62,7 @@ import {
   type QuestionId,
 } from "@/lib/onboarding";
 import { setAudioSession } from "@/lib/audio-session";
-import { playPick, unlockIntroSound } from "@/lib/intro-sound";
+import { closeIntroSound, playPick, unlockIntroSound } from "@/lib/intro-sound";
 import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
 import { Room } from "@/components/room/Room";
 import { buildPortfolio } from "@/lib/portfolio";
@@ -397,7 +397,15 @@ function Walk() {
     if (!ready || onRoom) return;
     setAudioSession("ambient");
   }, [ready, onRoom]);
-  useEffect(() => () => void setAudioSession("auto"), []);
+  useEffect(
+    () => () => {
+      setAudioSession("auto");
+      /* And its one context closes (#501 review): nothing after the
+         walk plays through it, and an open one keeps the audio awake. */
+      closeIntroSound();
+    },
+    []
+  );
 
   if (!ready) return <main className="px-5 pt-7" />;
 

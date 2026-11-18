@@ -32,8 +32,9 @@
  *    them off its turns (components/room/Room.tsx).
  *
  * One context for the whole walk: the room borrows it for its pops and
- * its mic's level (`createPopper(introContext())`) and leaves it open, so
- * the name question after the room can talk without another tap.
+ * its mic's level (`createPopper(unlockIntroSound())`) and leaves it
+ * open, so the name question after the room can talk without another
+ * tap. Leaving /welcome closes it (`closeIntroSound`).
  */
 
 import { readPrefs } from "./prefs";
@@ -94,12 +95,28 @@ export function introContext(): AudioContext | null {
   return ctx && ctx.state !== "closed" ? ctx : null;
 }
 
+/** One silent sample: what an older iPhone needs, inside a gesture, before a context may sound. */
+function prime(c: AudioContext): void {
+  try {
+    const b = c.createBuffer(1, 1, c.sampleRate);
+    const s = c.createBufferSource();
+    s.buffer = b;
+    s.connect(c.destination);
+    s.start(0);
+  } catch {}
+}
+
 /**
- * Inside a tap: make the context if there is none, wake it if the phone
- * paused it, and on first making it play one silent sample, which an
- * older iPhone needs before it lets a context sound later. Returns the
- * context, or null where there is no Web Audio (the walk plays on, mute).
- * Cheap to call on every tap: an awake context is left alone.
+ * Inside a tap: make the context if there is none, and while it is not
+ * running, play one silent sample and wake it. Returns the context, or
+ * null where there is no Web Audio (the walk plays on, mute). Cheap to
+ * call on every tap: an awake context is left alone.
+ *
+ * The sample and the wake ride on every tap until one takes (#501
+ * review), not only on the tap that made the context: the first event
+ * of a tap is its pointerdown, which WebKit does not count as the
+ * gesture, so on an iPhone the context is made there and only the same
+ * tap's touchend can let it sound.
  */
 export function unlockIntroSound(): AudioContext | null {
   if (!introContext()) {
@@ -109,19 +126,25 @@ export function unlockIntroSound(): AudioContext | null {
     } catch {
       ctx = null;
     }
-    if (ctx) {
-      try {
-        const b = ctx.createBuffer(1, 1, ctx.sampleRate);
-        const s = ctx.createBufferSource();
-        s.buffer = b;
-        s.connect(ctx.destination);
-        s.start(0);
-      } catch {}
-    }
   }
   const c = introContext();
-  if (c && c.state !== "running") void c.resume().catch(() => {});
+  if (c && c.state !== "running") {
+    prime(c);
+    void c.resume().catch(() => {});
+  }
   return c;
+}
+
+/**
+ * Leaving the walk (#501 review): its context goes with it, as the
+ * room's own did before the walk shared one, so nothing holds the
+ * phone's audio awake on every screen after the introduction. A later
+ * visit makes a new one on its first tap.
+ */
+export function closeIntroSound(): void {
+  const c = ctx;
+  ctx = null;
+  if (c && c.state !== "closed") void c.close().catch(() => {});
 }
 
 /** Whether a blip may sound now: Sound on, and a running context. */

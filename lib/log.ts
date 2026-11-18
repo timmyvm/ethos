@@ -230,7 +230,12 @@ export function recordingName(
   if (id?.startsWith("topic:") && topicById(id.slice("topic:".length))) return "Today's practice";
   const walk = traitWalk(id);
   if (walk) return TRAIT[walk].name;
-  return r.mode === "boss" ? "Boss" : "Recording";
+  /* The boss has one name everywhere (#494, and its review): a take
+     filed under its topic, or a boss take from before topics were
+     filed, is the Weekly boss, as Today's tile, Practice and the Log's
+     Games side call it. */
+  if (id?.startsWith("boss:") || r.mode === "boss") return "Weekly boss";
+  return "Recording";
 }
 
 /** The trait of a trait's walk (`practice:trait-pause`, lib/rep-config.ts), or null. */

@@ -223,7 +223,7 @@ export function backLabel(href: string): string {
   const path = href.split(/[?#]/)[0];
   if (path === "/") return "Today";
   if (path === "/games") return "Practice";
-  if (path === "/boss" || path.startsWith("/boss/")) return "Boss";
+  if (path === "/boss" || path.startsWith("/boss/")) return "Weekly boss";
   if (/^\/(lessons?|practice)\//.test(path)) return "Lesson";
   return "Back";
 }

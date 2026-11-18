@@ -39,7 +39,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
     the boss's lobby when its spent week's See your take did (`?from=boss`). */
 const BACK = { href: "/history", label: "Log" };
 const BACK_TODAY = { href: "/", label: "Today" };
-const BACK_BOSS = { href: "/boss", label: "Boss" };
+const BACK_BOSS = { href: "/boss", label: "Weekly boss" };
 /** The date line's height with no date to print, so the title holds
     one y from the skeleton to whichever state replaces it. */
 const HELD = "\u00a0";

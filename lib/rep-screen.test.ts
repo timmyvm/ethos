@@ -219,7 +219,8 @@ describe("the recording screen's back link", () => {
   });
 
   it("names every place it can go", () => {
-    expect(backLabel("/boss/crispr")).toBe("Boss");
+    expect(backLabel("/boss/crispr")).toBe("Weekly boss");
+    expect(backLabel("/boss?from=today")).toBe("Weekly boss");
     expect(backLabel("/lessons/h4?from=today")).toBe("Lesson");
     expect(backLabel("/practice/x")).toBe("Lesson");
     expect(backLabel("/games#qa")).toBe("Practice");

@@ -163,7 +163,9 @@ describe("skillRows", () => {
 describe("recordingName", () => {
   it("names the lesson, or the boss, never the id", () => {
     expect(recordingName({ lesson_id: "f1", mode: "daily" })).toBe("The baseline");
-    expect(recordingName({ lesson_id: null, mode: "boss" })).toBe("Boss");
+    // The boss's one name (#494 review), filed under its topic or not.
+    expect(recordingName({ lesson_id: null, mode: "boss" })).toBe("Weekly boss");
+    expect(recordingName({ lesson_id: "boss:great-vowel-shift", mode: "daily" })).toBe("Weekly boss");
     expect(recordingName({ lesson_id: "nope", mode: "daily" })).toBe("Recording");
   });
 });

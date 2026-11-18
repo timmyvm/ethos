@@ -6,18 +6,17 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AvatarCoin } from "@/components/home/AvatarCoin";
 import { HomeHero } from "@/components/home/HomeHero";
-import { ModeTiles } from "@/components/home/ModeTiles";
-import { TilesSkeleton, TodayTiles } from "@/components/home/HomeTiles";
-import { WeekSkeleton, WeekTiles } from "@/components/home/WeekTiles";
+import { ModeRows } from "@/components/home/ModeRows";
+import { TodayFoot, TodayFootSkeleton } from "@/components/home/TodayFoot";
 import { ModPicker } from "@/components/ModPicker";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Segmented } from "@/components/ui/Segmented";
 import { IconBack, IconFlask } from "@/components/Icon";
 import { Paywall } from "@/components/Paywall";
 import { PriceDropSheet } from "@/components/premium/Moments";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
+import { StatIcon } from "@/components/StatIcon";
 import { TopicRoulette } from "@/components/TopicRoulette";
 import { TestTile } from "@/components/tester/TestTile";
 import { TEST_COPY } from "@/content/tester";
@@ -67,10 +66,11 @@ import {
   greetingName,
   heroObject,
   lastSpokeOn,
+  lineFigure,
   practiceHref,
+  runFigure,
   todaysPractice,
   usedModsLately,
-  weekView,
 } from "@/lib/home";
 import { bossTile, hostileTile } from "@/lib/home-modes";
 import { readSpokeHint, writeSpokeHint } from "@/lib/spoke-hint";
@@ -100,12 +100,17 @@ const FALLBACK_TOPIC = topicById(FALLBACK_TOPIC_ID)!;
  *    with the glass object of the lesson that teaches its tactic
  *    breaking out of the corner, the topic huge, Start, spin and
  *    difficulty (DECISIONS #9's floor, #268's one selector);
- *  - under it, Hostile Q&A and this week's boss as two equal flat tiles
- *    (#478, "the bike in the room"): each one tap away, neither glowing;
- *  - a Today / This week switch over a bento: today's line (#281) and
- *    the clean run (#254, #267), then the five traits, the weakest wide,
- *    flat since #478; or the week: the Index, the days spoken, the
- *    recordings.
+ *  - under it, Hostile Q&A and the Cold Topic (#478, "the bike in the
+ *    room") as two rows on the ground, each led by its 3D mark and one
+ *    tap away (#500);
+ *  - at the foot, the two numbers only Today holds: today's line (#281)
+ *    and the longest stretch with no filler (#254, #267), as figures.
+ *
+ * Since #500 (Timothy, 18 Nov: "I don't fuck with all the cards on the
+ * homepage. I don't know what to do") the card is the one box on the
+ * screen. The Today / This week switch, the five trait tiles and the
+ * week's Index, days and recordings left; each lives on Lessons, You,
+ * the Log or a recording's own page (lib/home.ts, "The foot").
  *
  * Demos is not on the card: he stood on it every day, which is
  * furniture. He arrives for moments, and the month's price drop is one,
@@ -137,8 +142,6 @@ export default function Home() {
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
-  /** Today or This week, under the card. */
-  const [view, setView] = useState<"today" | "week">("today");
   /*
    * The device's clock for Hostile's claim of the day and the week's
    * boss (#478): read after mount, never in render, so the server's
@@ -438,8 +441,12 @@ export default function Home() {
    */
   const chosen = todaysPractice(history, new Date(), pool);
 
-  /* The same reading, the same trait, one line to clear (#281). */
+  /* The same reading, the same trait, one line to clear (#281), and the
+     newest scored take's longest stretch with no filler: the foot's two
+     figures (#500). */
   const challenge = buildChallenge(history);
+  const lineAtFoot = lineFigure(challenge);
+  const runAtFoot = runFigure(history);
 
   /*
    * Day one is its own card: no measurement to choose from, so no trait,
@@ -626,12 +633,12 @@ export default function Home() {
       )}
 
       {/* The other two things (#478, docs/plan-next.md section 10):
-          Hostile Q&A and this week's boss, side by side under the card,
-          each one tap away. Flat, so the card stays the one thing that
-          glows; they stand out by their place, their picture tone and one
-          line worth coming back for. The rows are every recording's date
-          and kind (the spine), unread until the history lands. */}
-      <ModeTiles
+          Hostile Q&A and the Cold Topic, two rows on the ground under the
+          card (#500), each led by its 3D mark and one tap away. No box, so
+          the card stays the one box and the one thing that glows. The
+          rows are every recording's date and kind (the spine), unread
+          until the history lands. */}
+      <ModeRows
         tiles={[
           hostileTile({ now: clock, premium, rows: reps === null ? null : spine }),
           bossTile({ now: clock, rows: reps === null ? null : spine }),
@@ -645,54 +652,38 @@ export default function Home() {
         <TestTile
           presence={test}
           recordings={failed ? "failed" : reps === null ? "loading" : { reps, spine }}
-          className="mt-3"
+          className="mt-6"
         />
       ) : (
         /* Its place, held from the server's paint on a tester's device
            until the tile takes it (lib/tester-boot.ts); nothing for
            anyone else. */
-        <div aria-hidden className="test-tile-slot home-tile mt-3" />
+        <div aria-hidden className="test-tile-slot home-tile mt-6" />
       )}
 
       {/* The freeze reconciliation is its own read, landing after the
-          history: a card the app produced, so it arrives from 6px below. */}
+          history, so it arrives from 6px below: a line on the ground with
+          the freeze's own mark, never a box (#500). */}
       {rescued > 0 && (
-        <div role="status" className="arrive card mt-5 border-sage-300 p-4 text-body">
-          <span className="font-semibold">
-            A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
-            missed.
-          </span>{" "}
-          <span className="text-stone-500">
-            The streak held. Only days you spoke count.
+        <p role="status" className="home-freeze arrive mt-6 text-body">
+          <StatIcon kind="freeze" size={24} className="home-freeze-mark" />
+          <span>
+            <span className="font-semibold">
+              A freeze covered {rescued === 1 ? "a day" : `${rescued} days`} you
+              missed.
+            </span>{" "}
+            <span className="text-stone-500">
+              The streak held. Only days you spoke count.
+            </span>
           </span>
-        </div>
+        </p>
       )}
 
-      {/* The switch (ToyCad's Start / My Recent), on the shared Segmented
-          and its keys. Gone on a failed read, where neither side has a
-          number to show. The space over it is `.home-seg-gap` (#495
-          and its review): at the section's 28 it stood half under the
-          floating tab bar on the first screen, its labels cut, so it
-          either clears the bar or starts at the bar's top, whatever the
-          phone's height. */}
-      {!failed && (
-        <div className="home-seg-gap">
-          <Segmented
-            label="Show"
-            size="lg"
-            className="home-seg"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: "today", label: "Today" },
-              { value: "week", label: "This week" },
-            ]}
-          />
-        </div>
-      )}
-
-      {/* Every tile holds its landed height while the read is in flight. */}
-      {loading && (view === "today" ? <TilesSkeleton /> : <WeekSkeleton />)}
+      {/* The foot (#500): the two numbers only Today holds, as figures.
+          Held at its landed height while the read is in flight; none on
+          day zero, where a first recording sets both; a failed read says
+          so in their place. */}
+      {loading && <TodayFootSkeleton />}
 
       {failed && (
         <ErrorState
@@ -702,12 +693,7 @@ export default function Home() {
         />
       )}
 
-      {reps !== null &&
-        (view === "today" ? (
-          <TodayTiles key="today" reps={history} challenge={challenge} focus={dayOne ? heroFamily : heroTrait} />
-        ) : (
-          <WeekTiles key="week" week={weekView(lifetime, new Date())} />
-        ))}
+      {reps !== null && !dayOne && <TodayFoot line={lineAtFoot} run={runAtFoot} />}
 
       {/*
        * The standing soft-wall surface (DECISIONS #137): the honest

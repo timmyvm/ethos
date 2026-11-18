@@ -5754,7 +5754,15 @@ summary::-webkit-details-marker {
   --art-foot: calc(var(--zone-t) + var(--art-s) * var(--art-h, 0.84));
   display: flex;
   flex-direction: column;
-  min-height: 376px;
+  /* 376 tall; on a short screen (320x568) only as tall as leaves Another
+     topic 8px over the tab bar (#500: it stood under the bar there, a
+     tap hidden behind the nav). The difference comes out of the air
+     between the lead and the topic, which is all `margin-top: auto`,
+     never out of the topic or Start. 160 is where the card starts. */
+  min-height: min(
+    376px,
+    calc(100svh - 160px - var(--nav-h) - max(14px, env(safe-area-inset-bottom)) - 8px)
+  );
   padding: 20px;
   border-radius: var(--radius-hero);
   color: #ffffff;
@@ -6187,258 +6195,147 @@ summary::-webkit-details-marker {
   color: var(--color-ground);
 }
 
-/* The space over the switch (#495 and its review). On the first screen
-   the switch either clears the floating tab bar or starts at its top,
-   never half under it with its labels cut. #495's fixed 60px did that at
-   390x844, 393x852 and 430x932 and moved the fault to 402x874 (iPhone 16
-   Pro, 17, 17 Pro), where the switch stood 20px out over the bar. So the
-   gap is read from the room left between the two tiles' foot and the
-   bar's top, `--seg-room`: the header, the card's 376 and the two tiles
-   stand 696px down on every open and spoken day from 360 to 440 wide
-   (check-today 5 measures it at six iPhones, so a change above the
-   switch has to change this number with it). The small viewport, so an
-   address bar that folds away mid-scroll never moves it.
-     room 12 to 64: the gap is the room, the switch's top on the bar's
-       top, wholly under it, and no band over 64;
-     room over 64: the switch clears the bar by 8 where it can (12 at
-       least, 28 the section's rhythm);
-     room under 12 (a short phone, the switch below the first screen):
-       the rhythm's 28.
-   Each branch is a line, and the two steps are ramps a hundredth of a
-   pixel wide, so it is one expression with no script and nothing moves
-   on load. */
-.home-seg-gap {
-  --seg-room: calc(100svh - max(14px, env(safe-area-inset-bottom)) - var(--nav-h) - 696px);
-  margin-top: max(
-    min(var(--seg-room), calc(64px - (var(--seg-room) - 64px) * 100)),
-    clamp(12px, calc(var(--seg-room) - 60px), 28px),
-    min(28px, calc(28px - (var(--seg-room) - 12px) * 100))
-  );
-}
-
-/* The switch: ToyCad's Start / My Recent capsule, on the shared
-   Segmented (its roving radio and keys). The thumb is the raised step,
-   not ink: an ink thumb outweighed Start in the squint. */
-.home-seg.segmented {
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--color-trough);
-}
-.home-seg .segmented-thumb {
-  top: 4px;
-  bottom: 4px;
-  left: 4px;
-  width: calc((100% - 8px) / var(--segments));
-  border-radius: 999px;
-  background: var(--color-raised);
-  /* A tight contact shadow and a half-pixel rim on the trough (D23). */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.14),
-    0 0 0 0.5px rgba(0, 0, 0, 0.08);
-}
-:root[data-theme="dark"] .home-seg .segmented-thumb {
-  background: #3d3d3d;
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
-    0 4px 12px -4px rgb(0 0 0 / 0.6);
-}
-.home-seg .segmented-option {
-  min-height: 44px;
-  font-size: 0.9375rem;
-}
-.home-seg .segmented-option[aria-checked="true"] {
-  color: var(--color-ink);
-}
-
-/* The bento. Every tile is the surface step at the tile radius, with no
-   shadow: name at the top left, its picture at the top right, its
-   number at the foot. */
-.home-tile {
-  position: relative;
+/*
+ * Under the card (#500). Timothy, 18 Nov: "I don't fuck with all the
+ * cards on the homepage... I don't know what to do", and of Hostile's
+ * and the boss's tiles, "it doesn't look that good... it's kind of
+ * shit". So the card is the one box on Today: the Today / This week
+ * switch, the five trait tiles and the two tinted tiles went, and what
+ * is under the card stands on the page's ground with no fill, edge or
+ * shadow (Imprint's Home: one card over open sections). The judges' pick
+ * of three designs, "one-card" (8, 8 and 8 against 6.5 and about 5.5),
+ * with their grafts.
+ *
+ * The games: two rows, each led by its mode's 3D mark (#503) standing on
+ * a soft pool of its own tone, then its name in that tone, what it is
+ * about now in ink, one line, and the Disclosure. 24px under the card,
+ * not the sections' 28: the card's own glow already holds that air, and
+ * the four pixels keep the boss's row clear of the tab bar at 390x844.
+ */
+.home-modes {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  isolation: isolate;
-  container-type: inline-size;
-  min-height: 172px;
-  padding: 16px;
-  border-radius: var(--radius-tile);
-  background: var(--color-surface);
+  gap: 12px;
+  margin-top: 24px;
 }
-:root[data-theme="dark"] .home-tile {
-  background: linear-gradient(180deg, #212121, var(--color-surface) 96px);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
-}
-/* Each trait tile is its name, its number and its unit in words under
-   it (#495), top-aligned so a pair's numbers stand on one line whatever
-   their units wrap to. The minimums are the tallest landed content at
-   the width, so the skeleton holds it and nothing moves: the wide
-   tile's unit takes two lines from 360 up, three under (Pausing's
-   "pauses between sentences a minute" in a 130px column at 320). */
-.home-tile[data-wide] {
-  min-height: 168px;
-}
-.home-tile[data-compact] {
-  min-height: 168px;
-}
-/* The no-filler run as one row (D23): its head and number at the left,
-   its one sentence at the right, on the number's foot. */
-.home-tile[data-row] {
-  min-height: 120px;
-}
-.home-row {
-  display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  column-gap: 16px;
-}
-/* The wide tile (D22, D23): the trait at the left 56%, today's line in
-   the right half, where its object used to stand. */
-.home-wide {
-  display: grid;
-  flex: 1 1 auto;
-  grid-template-columns: minmax(0, 56fr) minmax(0, 44fr);
-  column-gap: 16px;
-}
-.home-wide-line {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-/* The number 14px under its name, its unit 4px under it (#495). */
-.home-tile:is([data-wide], [data-four]) .home-num-line {
-  margin-top: 14px;
-}
-.home-unit-line {
-  display: block;
-  margin-top: 4px;
-}
-/* The wide tile's 56px number reaches 7px under its line box; its unit
-   steps down with it, so the two never touch (check-type). */
-.home-tile[data-wide] .home-unit-line {
-  margin-top: 8px;
-}
-/* Today's line: one sentence, at the tile's foot, its last line level
-   with the unit's under the number, as the left half stands its number
-   over its unit (R2F-07: the two halves read on one level). */
-.home-line-sentence {
-  margin-top: auto;
-  padding-top: 8px;
-}
-/* The run's sentence stands at the row's foot, on the number's line. */
-.home-run-line {
-  align-self: end;
-  margin: 0;
-}
-/* The run's wave, the one Earned draws for a take with few fillers: a
-   stretch with no filler is earned, so sage, never Fillers' own tone. */
-.home-run-glyph {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--color-sage-600);
-}
-:root[data-theme="dark"] .home-run-glyph {
-  color: var(--color-sage-700);
-}
-.home-run-glyph > svg {
-  stroke-width: 2.85;
-}
-/* The run's seconds on the number's baseline, tight to it: "46s", never
-   "46 s" (#495). */
-.home-suffix {
-  margin-left: 1px;
-  font-size: 0.5em;
-  font-weight: 800;
-  color: var(--color-stone-500);
-}
-/*
- * Flat since #478 (Timothy, 16 Nov: "the glow in today traits is bad so
- * lets remove that. fucks w visual hierarchy"; docs/plan-next.md
- * section 1, only the thing to do today glows). The tiles stood a glass
- * object in a light of their tone at the top right; now a trait's mark
- * is its flat glyph before its name, the app's own line set in the
- * trait's tone, drawn at the stem of the name beside it (#474: Outfit
- * 700 at 14px is a 2.14px stem, 2.86 on the 24 grid at 18px). The tone
- * clears 3:1 on the tile in both themes (lib/today-colour.test.ts).
- */
-.home-trait-glyph {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--tone);
-}
-.home-trait-glyph > svg {
-  stroke-width: 2.85;
-}
-/* With no object to stand, the four keep the room their words need:
-   the name, the number's line and a unit of two lines (#495). */
-.home-tile[data-four] {
-  min-height: 146px;
-}
-/* Under 360 a unit can take three lines (Pausing's in a 102px column). */
-@media (max-width: 359px) {
-  .home-tile[data-four] {
-    min-height: 165px;
-  }
-  .home-tile[data-wide] {
-    min-height: 186px;
-  }
-}
-
-/*
- * Today's other two things (#478, docs/plan-next.md section 10): Hostile
- * Q&A and this week's boss, two equal tiles side by side under the
- * card, each one tap away (`components/home/ModeTiles.tsx`). They do not
- * glow: they stand out by their place, straight under the card and
- * over the switch; by colour, the introduction's picture tones (#300)
- * as a pale ground and the glyph's ink, coral for the argument, sky for
- * the boss as Practice's stage wears it; and by one line that is a
- * reason to come back. The ground is the tone's wash taken most of the
- * way to the surface step, so it reads as a tint, never a coloured card
- * beside the one that is (the card's colour stays the card's,
- * scripts/check-colour.mjs).
- */
 .home-mode {
+  --mark: 72px;
   position: relative;
+  isolation: isolate;
   display: flex;
-  flex-direction: column;
-  min-height: 148px;
-  padding: 14px;
-  border-radius: var(--radius-tile);
-  background: color-mix(in srgb, var(--tone-wash) 60%, var(--color-surface));
+  align-items: center;
+  gap: 16px;
+  /* The words' three lines with the subject's two held: a row is this
+     tall whatever its claim or topic, landed or not (check-today 2b). */
+  min-height: 81px;
+  border-radius: 20px;
   color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
 }
-:root[data-theme="dark"] .home-mode {
-  background: color-mix(in srgb, var(--tone-wash) 45%, var(--color-surface));
+/* A press lights the row in its tone's wash, a little past its edges,
+   rather than scaling the page under the thumb. */
+.home-mode::before {
+  content: "";
+  position: absolute;
+  inset: -6px -10px;
+  z-index: -1;
+  border-radius: 20px;
+  background: var(--tone-wash);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
-.home-mode-glyph {
-  display: inline-flex;
+.home-mode:active::before {
+  opacity: 1;
+  transition-duration: 60ms;
+}
+.home-mode:focus-visible {
+  outline-offset: 6px;
+}
+/* The mark, centred in its slot by its visible box (the cut centres
+   each object on its square, scripts/cut-stat-icons.mjs), so the wide
+   bubble and the tall peak share one centre line and one left edge. */
+.home-mode-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--mark);
+  height: var(--mark);
   flex-shrink: 0;
+}
+.home-mode-art > .stat-icon {
+  position: relative;
+  width: var(--mark);
+  height: var(--mark);
+}
+/* Its pool: a soft ellipse of its own tone under its visible foot, so
+   it stands on the ground rather than being pasted on it. In dark the
+   tone itself is near the ground, so the pool is its pale ink, faint,
+   a light rather than a smudge. */
+.home-mode-art::before {
+  content: "";
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  top: calc(var(--foot) * var(--mark) - 6px);
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 85%, transparent), transparent);
+}
+:root[data-theme="dark"] .home-mode-art::before {
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone-ink) 26%, transparent), transparent);
+}
+/* Where each object's visible foot is in its square (measured off the
+   cut's alpha: the bubble ends at 87.5%, the peak at 95.3%). */
+.home-mode[data-mode="hostile"] {
+  --foot: 0.875;
+}
+.home-mode[data-mode="boss"] {
+  --foot: 0.953;
+}
+.home-mode-words {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+}
+/* The name in its picture tone, the one colour in the words. */
+.home-mode-name {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 700;
   color: var(--tone-ink);
 }
-.home-mode-glyph > svg {
-  stroke-width: 2.85;
-}
-/* What it is about now: the claim of the day, the week's topic, at the
-   body size in the heavy face, four lines at most (the longest claim
-   takes four at 320). It holds the lines the longest one takes at the
-   width, three, four under 360 (#478 review): the server's paint has no
-   clock, so the subject lands after it, and a tile that grew then moved
-   the switch and every tile under it down 12px at 320. */
+/* What it is about now: the claim of the day, the week's topic, at 17
+   in the heavy face, balanced over two lines at most ("Social media
+   does / more good than harm", never "than harm" alone). It holds both
+   lines while the clock is unread and centres a one-line topic in them,
+   so the name and the line never move when it lands. */
 .home-mode-subject {
+  display: flex;
+  align-items: center;
+  min-height: calc(2 * 1.3125rem);
+  font-size: 1.0625rem;
+  line-height: 1.3125rem;
+  font-weight: 700;
+  letter-spacing: -0.012em;
+}
+.home-mode-subject > span {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  line-height: 1.25;
-  text-wrap: pretty;
-  min-height: calc(3 * 1.25em);
-}
-@media (max-width: 359px) {
-  .home-mode-subject {
-    min-height: calc(4 * 1.25em);
-  }
+  -webkit-line-clamp: 2;
+  text-wrap: balance;
 }
 .home-mode-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.125rem;
+  margin-top: 3px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--color-stone-500);
 }
 /* The week's boss taken: earned, so sage, as Practice's stage says it. */
@@ -6448,35 +6345,169 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-mode-line[data-done] {
   color: var(--color-sage-800);
 }
+/* Hostile's rounds left as pips: lit in the tone's ink, spent as its
+   ring, so lit and spent differ in fill, not in colour alone. */
+.home-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.home-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--tone-ink) 55%, transparent);
+}
+.home-pip[data-on] {
+  background: var(--tone-ink);
+  box-shadow: none;
+}
+/* Under 360 the mark steps down to 56 and the subject to 16, so the
+   longest claim still holds two lines in a 194px column. */
+@media (max-width: 359px) {
+  .home-mode {
+    --mark: 56px;
+    gap: 12px;
+    min-height: 79px;
+  }
+  .home-mode-subject {
+    min-height: calc(2 * 1.25rem);
+    font-size: 1rem;
+    line-height: 1.25rem;
+  }
+}
+
 /*
- * A number and its unit on one line (`NumLine`). The line is set at the
- * tile's number size, so its baseline is that size's wherever the
- * number fits to; the number takes the largest size up to it that
- * leaves its unit room in the column:
- *   min(the tile's size, (the room - the unit - 4px) / the number's ems)
- * with the number's and the unit's em widths from lib/home.ts (`numEm`,
- * `UNIT_EM`). So "9.8 /100 words" holds one line in a half tile at 320
- * (102px) and a unit never wraps under its number.
- *   half tile   36, 30 under a 120px column; the unit 11 in both
- *               (#450: it was 10 under 120px; the number, whose size is
- *               computed from the unit's, gives up the pixel instead)
- *   wide tile   56; its room is the left 56%, beside the object
+ * The foot (#500): today's line and the longest stretch with no filler,
+ * the two numbers no other screen holds, as two figures on the ground:
+ * the number at the numbers' 24/800 with what it counts on its
+ * baseline, and under it one plain line with its mark. Side by side,
+ * stacked under 360.
+ *
+ * Where it starts. On the first screen it either stands wholly clear of
+ * the floating tab bar, 24 under the games, or starts at the screen's
+ * foot, so nothing of it shows through the glass at rest (the tour's
+ * Today/This week switch stood half under the bar, its labels cut).
+ * `--rows-end` is where the games' rows end on every open and spoken
+ * day from 360 to 440 wide: the header's 160, the card's 376, 24 and
+ * two rows of 81 with 12 between (check-today 5 measures it, so a change
+ * above the foot changes this number with it). The small viewport, so
+ * an address bar folding away never moves it.
+ *   room for the foot and its 24: the 24 (430x932, 440x956);
+ *   less: the screen's foot (390x844, 393x852, 402x874), reached by a
+ *     scroll; on a short phone the games are past the fold already and
+ *     the 24 is the larger.
+ * One expression, the step a thousandth of a pixel wide: no script, and
+ * nothing moves on load.
+ */
+.home-foot {
+  --rows-end: 734px;
+  --foot-h: 68px;
+  --foot-gap: 24px;
+  --foot-room: calc(100svh - max(14px, env(safe-area-inset-bottom)) - var(--nav-h) - var(--rows-end));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  min-height: var(--foot-h);
+  margin-top: min(
+    max(var(--foot-gap), calc(100svh - var(--rows-end))),
+    calc(var(--foot-gap) + max(0px, (var(--foot-h) + var(--foot-gap) - var(--foot-room)) * 1000))
+  );
+}
+@media (max-width: 359px) {
+  .home-foot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.home-fig {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.home-fig-num {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+  min-height: 1.75rem;
+  line-height: 1.75rem;
+}
+.home-fig-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.012em;
+  font-variant-numeric: tabular-nums;
+}
+.home-fig-rate {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 700;
+  color: var(--color-stone-500);
+}
+/* Seconds sit tight on the number: "46s", never "46 s" (#495). */
+.home-fig-rate[data-tight] {
+  margin-left: -3px;
+}
+.home-fig-label {
+  display: block;
+  min-height: calc(2 * 1.125rem);
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  text-wrap: pretty;
+  color: var(--color-stone-600);
+}
+/* The mark before the words, on their first line: the flag of a line
+   still to clear in stone, the check of a cleared one and the wave of
+   a stretch with no filler in sage, because both are earned. Drawn at
+   the words' stem (#474: Outfit 600 at 13px, 1.71px, so 3.15 on the 24
+   grid at 13 and 2.93 at 14). */
+.home-fig-mark {
+  display: inline-flex;
+  margin-right: 5px;
+  vertical-align: -2px;
+  color: var(--color-stone-500);
+}
+.home-fig-mark[data-mark="check"],
+.home-fig-mark[data-mark="wave"] {
+  color: var(--color-sage-600);
+}
+:root[data-theme="dark"] .home-fig-mark[data-mark="check"],
+:root[data-theme="dark"] .home-fig-mark[data-mark="wave"] {
+  color: var(--color-sage-700);
+}
+.home-fig-mark > svg {
+  stroke-width: 3.15;
+}
+.home-fig-mark[data-mark="wave"] > svg {
+  stroke-width: 2.93;
+}
+
+/* The freeze's note (#500): a line on the ground with the freeze's own
+   mark, where it was a sage-edged card. */
+.home-freeze {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.home-freeze-mark {
+  flex-shrink: 0;
+}
+
+/*
+ * The tester's tile (components/tester/TestTile.tsx) keeps the bento's
+ * number line and day slots, the last of the bento's parts. Since #500
+ * it stands on the ground as the games do, with no box: the card is
+ * Today's one.
  */
 .home-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
   --num-max: 2.25rem;
   --num-room: 100cqw;
   --unit-size: 0.6875rem;
-}
-.home-tile[data-wide] {
-  --num-max: 3.5rem;
-  /* The left column: 56% of what is left beside the 16px gap. */
-  --num-room: calc((100cqw - 16px) * 0.56);
-  --unit-size: 0.78125rem;
-}
-@container (max-width: 120px) {
-  .home-num-line {
-    --num-max: 1.875rem;
-  }
 }
 .home-num-line {
   display: block;
@@ -6493,9 +6524,6 @@ summary::-webkit-details-marker {
   );
   font-weight: 800;
 }
-.home-tile[data-wide] .home-num {
-  letter-spacing: -0.025em;
-}
 /* The unit on the number's baseline, 4px off it, never wrapping. */
 .home-unit {
   margin-left: 4px;
@@ -6506,60 +6534,7 @@ summary::-webkit-details-marker {
   letter-spacing: 0;
   color: var(--color-stone-500);
 }
-/* The check on a closed line: earned, so sage. The flag on an open one:
-   the line still to clear, in ink on the surface's sand. Both stand
-   beside "Today's line" in its 22px head. */
-.home-check,
-.home-flag {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  border-radius: 999px;
-}
-.home-check {
-  /* Sage-600, the earned fills' step (D03): white holds 4.6:1 on it. */
-  background: var(--color-sage-600);
-  color: #ffffff;
-}
-:root[data-theme="dark"] .home-check {
-  color: var(--color-sage-ink);
-}
-.home-flag {
-  background: var(--color-sand);
-  color: var(--color-ink);
-}
-/* #474: both marks are drawn at the stem of the words beside them,
-   "Today's line" (Outfit 600 at 13px, a 1.71px stem; the set's 2.75 drew
-   them at 1.38 and 1.49). The weight is on the 24 grid, so it is the
-   stem times 24 over the mark's size. */
-.home-flag > svg {
-  stroke-width: 3.4;
-}
-.home-check > svg {
-  stroke-width: 3.15;
-}
-/* This week's two half tiles, row for row alike: the head, the number,
-   a 38px chart, a caption, so each row shares a line across the pair. */
-.home-week-head {
-  min-height: 18px;
-}
-.home-week-num {
-  margin-top: 10px;
-}
-.home-week-chart {
-  height: 38px;
-  margin-top: 12px;
-}
-.home-week-caption {
-  min-height: 18px;
-  margin-top: 8px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-/* A day in the week: a sage bar for a day spoken. */
+/* A day in the test's road: a sage slot for a day spoken. */
 .home-day {
   height: 24px;
   border-radius: 6px;
@@ -6567,22 +6542,6 @@ summary::-webkit-details-marker {
 }
 .home-day[data-on] {
   background: var(--color-sage-600);
-}
-/* The Index's history as a hill along the tile's foot, the tile's full
-   width, in a band of its own under the caption: the real caption ("+10
-   this week, +51 since day one") runs past the workbench's right 62%. */
-.home-tile[data-hill] {
-  padding-bottom: 76px;
-}
-.home-hill {
-  position: absolute;
-  z-index: -1;
-  inset: auto 0 0 0;
-  /* An absolute svg keeps its 300px default without a width. */
-  width: 100%;
-  height: 68px;
-  color: var(--color-sage-600);
-  pointer-events: none;
 }
 /* ========================== end of the home (#393) ========================== */
 
@@ -6695,10 +6654,11 @@ summary::-webkit-details-marker {
   color: var(--pop-mint-ink);
 }
 /* The test tile (components/tester/TestTile.tsx): one height in every
-   state, skeleton included: 16 + head 22 + 12 + count 36 + 12 + road 24
-   + 6 + ends 12 + 8 + ask 44 + 16. */
+   state, skeleton included: head 22 + 12 + count 36 + 12 + road 24 + 6
+   + ends 12 + 8 + ask 44. On the ground since #500, with no box, so it
+   lost its 16s of padding. */
 .home-tile[data-test] {
-  min-height: 208px;
+  min-height: 176px;
 }
 /* The fourteen days as a road: This week's day slots, one gap at every width. */
 .test-road {
@@ -6779,7 +6739,7 @@ summary::-webkit-details-marker {
 }
 html[data-test-tile] .test-tile-slot {
   display: block;
-  min-height: 208px;
+  min-height: 176px;
 }
 /* The Log's question, opened from Today's Answer, comes to the screen's
    foot with its answers clear of the edge and the home indicator. */
@@ -7274,7 +7234,6 @@ html[data-test-tile] .test-tile-slot {
   .practice-stage,
   .family-fill,
   .home-hero,
-  .home-tile,
   .home-mode,
   .command-row,
   .command-esc,
@@ -7297,15 +7256,12 @@ html[data-test-tile] .test-tile-slot {
   }
   .family-fill::before,
   .home-hero::before,
+  .home-mode::before,
   .test-day-fill,
   .test-day[data-today]::after,
   .tap-tick {
     corner-shape: inherit;
   }
-  /* Today's Today / This week switch is a pill, thumb and all, though it
-     is a segmented control. */
-  .home-seg,
-  .home-seg .segmented-thumb,
   .rounded-tap,
   .rounded-full,
   .rounded-none {

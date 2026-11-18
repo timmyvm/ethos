@@ -163,6 +163,7 @@ import {
   fitGlance,
   askBudget,
   rulesBudget,
+  starsBudget,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
@@ -176,6 +177,7 @@ import {
   roundGlance,
   sheetSections,
 } from "@/lib/glance";
+import { starGoals } from "@/lib/metrics";
 import { fillerTrend } from "@/lib/dimension-rows";
 import { carryCue, cueDay, cueGlance, warmsUp, type CueState } from "@/lib/carried-cue";
 import { skipWarmup, useCarriedCue, warmupSkipped } from "@/lib/cue-store";
@@ -3481,8 +3483,10 @@ function Results({
               : "",
         ]
       : !scorable
-        ? ["1 star for showing up", "Not scored."]
+        ? ["Not scored."]
         : [String(result.metrics.fillerCount), "fillers", cappedLine ?? ""];
+  /* The goal under each star (#504), counted, and riding on the ceiling. */
+  const goals = starGoals(result.metrics.durationS);
   const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
   const fit = fitGlance(
     {
@@ -3497,6 +3501,7 @@ function Results({
         testerWords,
         reminder.words,
         rulesNoteText ?? "",
+        ...goals,
       ],
       line: said.sentence,
       /* The reminder ask takes the cue's slot (#430). */
@@ -3507,18 +3512,21 @@ function Results({
       lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
       cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
     },
-    rulesBudget(
-      askBudget(
-        testerWords
-          ? GLANCE_WORDS_TESTER
-          : lessonLine
-            ? GLANCE_WORDS_LESSON_DONE
-            : delta === null && baseline
-              ? GLANCE_WORDS_FIRST
-              : GLANCE_WORDS,
-        reminder.words
+    starsBudget(
+      rulesBudget(
+        askBudget(
+          testerWords
+            ? GLANCE_WORDS_TESTER
+            : lessonLine
+              ? GLANCE_WORDS_LESSON_DONE
+              : delta === null && baseline
+                ? GLANCE_WORDS_FIRST
+                : GLANCE_WORDS,
+          reminder.words
+        ),
+        rulesNoteText
       ),
-      rulesNoteText
+      goals
     )
   );
   const shown = fit.short && cueSaid ? cueSaid.lineShort : said;

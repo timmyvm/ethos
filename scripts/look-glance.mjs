@@ -53,6 +53,15 @@ const SIZES = (process.env.LOOK_SIZES ?? "390x844-light,390x844-dark,375x667-lig
   return { w, h, theme, name: s };
 });
 const BLUR = Number(process.env.LOOK_BLUR ?? 0);
+/** The words of the goals under the stars (#504), as the camera counts words. */
+const STAR_GOAL_WORDS = () => {
+  const g = document.querySelector("main [data-star-goals]");
+  if (!g) return 0;
+  let t = "";
+  const w = document.createTreeWalker(g, NodeFilter.SHOW_TEXT);
+  while (w.nextNode()) if (!w.currentNode.parentElement?.closest(".sr-only")) t += ` ${w.currentNode.nodeValue}`;
+  return t.split(/\s+/).filter((x) => /[A-Za-z0-9]/.test(x)).length;
+};
 const STRIP = process.env.LOOK_STRIP === "1";
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -97,7 +106,7 @@ const bodies = {
       ...A.metrics,
       durationS: 9, wordCount: 12, wpm: 80, fillerCount: 1, fillersPerMin: 6.7,
       fillers: [A.metrics.fillers[0]], fillerCounts: { um: 1 }, topFiller: "um",
-      repairCount: 0, repairsPerMin: 0, pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 1,
+      repairCount: 0, repairsPerMin: 0, pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 0,
       substance: { wordCount: 12, distinctRatio: 0.92, repeatShare: 0 },
     },
     coach: null, ethosIndex: null, scorable: false, pauseHeadline: null,
@@ -369,6 +378,10 @@ for (const size of SIZES) {
         return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
       });
       ceiling += Math.min(16, noteWords);
+      /* The stars' goals ride on it too, up to 8 (#504, GLANCE_WORDS_STARS). */
+      const goalWords = await page.evaluate(STAR_GOAL_WORDS);
+      ceiling += Math.min(8, goalWords);
+      if (TAG !== "before" && goalWords === 0) fail(`${at} ${name}: no goal under the stars (#504)`);
       if (VARIANT === "rules" && TAG !== "before" && noteWords === 0) fail(`${at} ${name}: no note under the delta on the first take under #476`);
       const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
@@ -625,7 +638,8 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
     const askWords = askText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
     console.log(`daily ${size.name} reminder-ask: ${asked ? `"${askText}", ${m.words} words on the glance` : "not shown"}`);
     if (!asked) fail("the reminder ask did not show on the day's first scored take");
-    if (m.words > 25 + Math.min(16, askWords)) fail(`the glance with the ask says ${m.words} words`);
+    const goalWords = await page.evaluate(STAR_GOAL_WORDS);
+    if (m.words > 25 + Math.min(16, askWords) + Math.min(8, goalWords)) fail(`the glance with the ask says ${m.words} words`);
     if (m.scrollH > m.innerH + 1) fail("the glance with the ask scrolls");
     if (m.taps !== 1) fail(`the glance with the ask has ${m.taps} filled taps`);
     console.log(`daily ${size.name} reminder-ask: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);

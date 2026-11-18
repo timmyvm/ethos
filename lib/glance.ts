@@ -65,6 +65,20 @@ export function rulesBudget(budget: number, note: string | null): number {
   return budget + Math.min(GLANCE_WORDS_RULES, note ? countWords(note) : 0);
 }
 
+/**
+ * The stars' goals (#504, components/StarGoals.tsx): one to three words
+ * under each star ("20+ words", "Under 12 slips", "Under 4 slips"). They
+ * are the stars' own labels, read with the stars in one look the way a
+ * game's are, so they ride on every ceiling, up to this many, and
+ * nothing Demos says gives way to them.
+ */
+export const GLANCE_WORDS_STARS = 8;
+
+/** The ceiling with the stars' goals on it. */
+export function starsBudget(budget: number, goals: readonly string[]): number {
+  return budget + Math.min(GLANCE_WORDS_STARS, countWords(goals.join(" ")));
+}
+
 /** A filler's moment plays from a second before it to 1.5s after. */
 export const FILLER_LEAD_S = 1;
 export const FILLER_TAIL_S = 1.5;

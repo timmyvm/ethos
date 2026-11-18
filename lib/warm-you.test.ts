@@ -59,14 +59,26 @@ describe("Today warms You's reads", () => {
     calls.guest = true;
   });
 
-  it("asks for the XP, the lexicon, Say it better and the guest flag into what the visit holds", async () => {
+  it("asks for the XP, Say it better and the guest flag into what the visit holds", async () => {
     warmYou();
     await flush();
     await flush();
     expect(held("xp")).toEqual({ total: 10, week: 5, today: 0 });
-    expect(held("lexicon:100")).toEqual([]);
     expect(held("say")).toEqual({ items: [], takes: new Map() });
     expect(held(GUEST_KEY)).toBe(true);
+  });
+
+  it("never asks for the lexicon on its own: no screen draws it since #507, and Say it better reads its pairs itself", async () => {
+    /* The review of the final pass (18 Nov): #508 warmed You's lexicon
+       section, #507 took the section away, and the merge kept the read,
+       so every Today asked for 100 lexicon rows no screen would draw,
+       beside Say it better's own read of the same table. */
+    warmYou();
+    await flush();
+    await flush();
+    expect(calls.lexicon).toBe(0);
+    expect(held("lexicon:100")).toBeUndefined();
+    expect(src("lib/warm-you.ts")).not.toMatch(/fetchLexicon|heldLexicon/);
   });
 
   it("asks again only for what is not held", async () => {
@@ -76,12 +88,12 @@ describe("Today warms You's reads", () => {
     warmYou();
     await flush();
     await flush();
-    expect([calls.xp, calls.lexicon, calls.say, calls.session]).toEqual([1, 1, 1, 1]);
-    forgetRecordings(); // a recording landed: XP, the lexicon and Say it better's count are read again
+    expect([calls.xp, calls.say, calls.session]).toEqual([1, 1, 1]);
+    forgetRecordings(); // a recording landed: XP and Say it better's count are read again
     warmYou();
     await flush();
     await flush();
-    expect([calls.xp, calls.lexicon, calls.say]).toEqual([2, 2, 2]);
+    expect([calls.xp, calls.say]).toEqual([2, 2]);
   });
 
   it("holds no guest flag for a phone with no session", async () => {

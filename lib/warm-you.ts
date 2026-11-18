@@ -19,14 +19,18 @@
  * at idle, so none of it joins Today's own first load; You itself still
  * reads it on mount, so a direct open, or You opened before Today drew,
  * never waits for this.
+ *
+ * The lexicon is no longer one of them: #507 took You's lexicon section
+ * away, and Say it better reads the coach's pairs itself (lib/say-store.ts
+ * readPairs), so a read of it here was 100 rows no screen drew (the
+ * review of the final pass, 18 Nov).
  */
 import { localSessionState } from "./auth";
-import { fetchLexicon, fetchXp, heldLexicon, heldXp } from "./client-data";
+import { fetchXp, heldXp } from "./client-data";
 import { GUEST_KEY, held, heldMark, hold } from "./held";
 
 export function warmYou(): void {
   if (heldXp() === null) void fetchXp().catch(() => {});
-  if (heldLexicon() === null) void fetchLexicon().catch(() => {});
   void import("./say-store")
     .then((say) => (say.heldSay() === null ? say.fetchSay() : undefined))
     .catch(() => {});

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { TRAIT, TRAITS as TAUGHT } from "@/content/traits";
 import { LESSONS } from "@/content/lessons";
 import { PATH } from "@/content/path";
-import { DimensionList } from "@/components/DimensionList";
+import { DimensionList, restartWords } from "@/components/DimensionList";
 import type { Challenge } from "./challenge";
 import { COMMANDS, findCommands } from "./commands";
 import type { CoachOutput } from "./coach";
@@ -253,6 +253,9 @@ describe("one name, one number (the review of #502)", () => {
       expect(text).not.toMatch(/3 sentence restarts/);
     }
     expect(rows(take(0), 2)).toContain("“I guess”, no sentence restarts.)");
+    /* No line ends on a bare count: the number keeps its word. */
+    expect(restartWords(3)).toBe("3\u00a0sentence restarts");
+    expect(restartWords(1)).toBe("1\u00a0sentence restart");
     expect(rows(take(0), 2)).toContain("No sentence restarts in 65 seconds.");
   });
 
@@ -279,5 +282,24 @@ describe("one name, one number (the review of #502)", () => {
     for (const tip of everyTip()) expect(tip, tip).not.toMatch(/^Restart\b/);
     expect(TRAIT.repairs.distinction).not.toMatch(/restarts? is not/i);
     expect(TRAIT.repairs.distinction).toMatch(/restart the sentence/);
+  });
+});
+
+describe("the row's name wraps, never cuts (the review of #502)", () => {
+  /* At 320, "Sentence restarts" beside "Work on this" was cut to
+     "Sentence…" (docs/look/restarts/review/). The name wraps instead. */
+  it("draws every row's name without a truncate", () => {
+    const html = renderToStaticMarkup(
+      createElement(DimensionList, {
+        tier1: { pause: 72, fillers: 40, repairs: 33, pace: 93, range: 66 },
+        anchors: { hedgeCount: 2, restartCount: 2 },
+        metrics: { ...computeMetrics([], 62), repairCount: 2, substance: SAID_WELL } as RepMetrics,
+        coach: COACH,
+      })
+    );
+    const names = [...html.matchAll(/<span data-row-name="true" class="([^"]*)">([^<]*)<\/span>/g)];
+    expect(names.map((m) => m[2])).toContain("Sentence restarts");
+    expect(names.length).toBe(9);
+    for (const [, cls] of names) expect(cls).not.toMatch(/\btruncate\b|\bline-clamp/);
   });
 });

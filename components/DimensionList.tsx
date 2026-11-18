@@ -275,12 +275,17 @@ function tail(s: string | null): string {
 export function hedgeWords(n: number): string {
   const like = "like “maybe” or “I guess”";
   if (!(n > 0)) return `no phrases ${like}`;
-  return `${n} ${n === 1 ? "phrase" : "phrases"} ${like}`;
+  return `${n}\u00a0${n === 1 ? "phrase" : "phrases"} ${like}`;
 }
 
-/** "no sentence restarts", "1 sentence restart", "3 sentence restarts": hedgeWords' grammar beside it. */
+/**
+ * "no sentence restarts", "1 sentence restart", "3 sentence restarts":
+ * hedgeWords' grammar beside it. Both join the number to its word with
+ * a no-break space, as the Log's rule does: at 320 the line broke after
+ * "(2" and after "1" (the review of #502).
+ */
 export function restartWords(n: number): string {
-  return n > 0 ? plural(n, "sentence restart") : "no sentence restarts";
+  return n > 0 ? plural(n, "sentence restart").replace(" ", "\u00a0") : "no sentence restarts";
 }
 
 /** The band's word, in the colour it means: sage where earned, ink where it asks for work. */
@@ -332,9 +337,18 @@ function RowDetails({
               measured ones (`.trait-dot`, the square the Log, You and
               Lessons draw; #493: it was a 3x14 tick of its own), blank
               on the four, so the nine names share one left edge. */}
+          {/* The name wraps rather than cuts (the review of #502): at 320
+              "Sentence restarts" beside "Work on this" read "Sentence…",
+              and "Filler control" lost its last word the same way. The
+              swatch keeps the first line's middle, so a one-line row is
+              drawn as it was. */}
           <span className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span aria-hidden className={`size-2 shrink-0 self-center ${trait ? "trait-dot" : ""}`} />
-            <span className="font-display min-w-0 truncate text-row font-bold">{row.name}</span>
+            <span className="text-row flex h-[calc(var(--text-row--line-height)*1em)] shrink-0 items-center self-start">
+              <span aria-hidden className={`size-2 shrink-0 ${trait ? "trait-dot" : ""}`} />
+            </span>
+            <span data-row-name className="font-display min-w-0 text-row font-bold text-balance">
+              {row.name}
+            </span>
           </span>
           {scored && (
             <span data-band-word className={`shrink-0 text-caption font-semibold ${BAND_TEXT[row.band]}`}>

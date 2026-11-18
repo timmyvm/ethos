@@ -20,7 +20,7 @@ import {
   fetchProfile,
   fetchRep,
   repAudioUrl,
-  type RepRow,
+  type StoredRep,
 } from "@/lib/client-data";
 import { parsePracticeId } from "@/lib/lesson-progress";
 import { readable, readFailure } from "@/lib/load";
@@ -49,7 +49,7 @@ const HELD = "\u00a0";
 
 /** What the read settles to: the row (or null for none) and its audio. */
 interface Stored {
-  rep: RepRow | null;
+  rep: StoredRep | null;
   audio: string | null;
 }
 
@@ -314,7 +314,9 @@ export default function RepDetail({
               {modById(m)?.name ?? m}
             </span>
           ))}
-          {mods.length > 0 && (
+          {/* What the difficulty multiplied, on a take that paid: a take
+              with no star pays no XP at any multiplier (#510). */}
+          {mods.length > 0 && rep.stars > 0 && (
             <span className="ml-0.5 text-caption font-semibold text-stone-500">
               ×{rep.xp_multiplier} XP
             </span>

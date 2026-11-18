@@ -18,23 +18,34 @@ import type { DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
 import { xpToday } from "./xp";
+import { SUBSTANCE_SELECT, missingSubstanceColumn, withTranscripts, type SubstanceColumns } from "./rep-substance";
 
-export interface RepRow {
+/**
+ * A recording as the lists read it (`fetchReps`: Today, You, the Log,
+ * Practice, the recorder's history): the columns some screen draws from
+ * a list, and 0037's three that say what its words came to (#511). The
+ * coach's text, the audio's path, the fact-check and the camera's numbers
+ * are read with one recording (`fetchRep`, `StoredRep`), never with 90.
+ * `tsc` holds it: a list reader that reaches for a column the list does
+ * not read does not compile.
+ */
+export interface RepRow extends SubstanceColumns {
   id: string;
   lesson_id: string | null;
   created_at: string;
   duration_s: number;
-  transcript: string;
+  /**
+   * Only on a row that does not carry 0037's columns yet (before the
+   * migration, or a row an older server stored after it): its substance
+   * is read from this, as it always was (lib/rep-substance.ts).
+   */
+  transcript?: string;
   wpm: number;
   filler_count: number;
   fillers: { word: string; t: number }[];
   pauses: Pause[];
   stars: number;
-  focus: string | null;
-  strength: string | null;
-  supply: { original: string; upgrade: string; note: string } | null;
   ethos_index: number | null;
-  audio_path: string | null;
   dimensions: {
     tier1: Tier1Scores;
     anchors: Tier2Anchors;
@@ -45,6 +56,22 @@ export interface RepRow {
   } | null;
   mode: "daily" | "boss";
   mods: string[];
+  /** The outbox key it was uploaded under (0016); a tester's answer about it is filed by this (0020). */
+  client_id?: string | null;
+  /**
+   * A game round, measured on the server (lib/round.ts, migration 0026);
+   * null on everything that is not a game, and on games recorded before.
+   */
+  round?: GameRound | null;
+}
+
+/** One recording whole: its page (`fetchRep`) and the export (`fetchAllReps`). */
+export interface StoredRep extends RepRow {
+  transcript: string;
+  focus: string | null;
+  strength: string | null;
+  supply: { original: string; upgrade: string; note: string } | null;
+  audio_path: string | null;
   xp_multiplier: number;
   boss_topic_id: string | null;
   accuracy: AccuracyResult | null;
@@ -53,8 +80,6 @@ export interface RepRow {
   delivery_metrics: Record<string, number> | null;
   presence_score: number | null;
   delivery_moments: DeliveryMoment[] | null;
-  /** The outbox key it was uploaded under (0016); a tester's answer about it is filed by this (0020). */
-  client_id?: string | null;
   /**
    * Whisper's words with their times, read out of the stored raw reply
    * (`whisper_raw->words`) by `fetchRep` only (#411): the stored page's
@@ -62,15 +87,20 @@ export interface RepRow {
    * reads it.
    */
   words?: { word: string; start: number; end: number }[] | null;
-  /**
-   * A game round, measured on the server (lib/round.ts, migration 0026);
-   * null on everything that is not a game, and on games recorded before.
-   */
-  round?: GameRound | null;
 }
 
+/** Every column of a recording: its page and the export, and the lists before 0037. */
 const REP_COLUMNS =
   "id, lesson_id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, stars, focus, strength, supply, ethos_index, dimensions, audio_path, mode, mods, xp_multiplier, boss_topic_id, accuracy, capture_mode, delivery_metrics, presence_score, delivery_moments, client_id, round";
+
+/**
+ * The lists' columns (#511, the speed audit's fix 10): what `RepRow`
+ * holds, with 0037's three in the transcript's place. The coach's text
+ * (focus, strength, supply), the audio's path, the fact-check, the
+ * camera's numbers, the multiplier and the boss's topic id are drawn by
+ * no list, so the newest 90 no longer carry them.
+ */
+export const LIST_COLUMNS = `id, lesson_id, created_at, duration_s, wpm, filler_count, fillers, pauses, stars, ethos_index, dimensions, mode, mods, client_id, round, ${SUBSTANCE_SELECT}`;
 
 /**
  * The columns again without `round`, for a database that has not had
@@ -87,6 +117,51 @@ function missingRoundColumn(error: { code?: string; message?: string } | null): 
     (error.code === "42703" || error.code === "PGRST204" || /column/i.test(error.message ?? "")) &&
     /\bround\b/.test(error.message ?? "")
   );
+}
+
+/**
+ * This page load has heard the database answer 42703 for a 0037 column:
+ * every later list read asks the select from before it straight away, so
+ * the refused read is paid once a load, not once a read. A reload asks
+ * again, so the migration is picked up the next time the app opens.
+ */
+let before0037 = false;
+
+/**
+ * A list's select, as far as this database has come: 0037's (`LIST_COLUMNS`)
+ * when it has the columns, the select from before it (`REP_COLUMNS`, the
+ * transcript and all) when it answers 42703 for one of them, each without
+ * `round` before 0026. Tried in that order, each step once.
+ */
+async function readListed<T>(
+  read: (columns: string) => PromiseLike<{ data: T | null; error: { code?: string; message?: string } | null }>
+): Promise<{ data: T | null; error: { code?: string; message?: string } | null }> {
+  let substanceCols = !before0037;
+  let round = true;
+  for (;;) {
+    const base = substanceCols ? LIST_COLUMNS : REP_COLUMNS;
+    const columns = round ? base : base.replace(/, round\b/, "");
+    const answer = await read(columns);
+    if (substanceCols && missingSubstanceColumn(answer.error)) {
+      substanceCols = false;
+      before0037 = true;
+      continue;
+    }
+    if (round && missingRoundColumn(answer.error)) {
+      round = false;
+      continue;
+    }
+    return answer;
+  }
+}
+
+/** The transcripts of a few recordings, for the rows 0037 has not filled (lib/rep-substance.ts). */
+async function readTranscripts(ids: string[]): Promise<{ id: string; transcript: string | null }[]> {
+  const db = supabaseBrowser();
+  if (!db) return [];
+  const { data, error } = await db.from("reps").select("id, transcript").in("id", ids);
+  if (error) throw error;
+  return (data as { id: string; transcript: string | null }[] | null) ?? [];
 }
 
 export function fetchReps(limit = 90): Promise<RepRow[]> {
@@ -108,15 +183,17 @@ async function readReps(limit = 90): Promise<RepRow[]> {
       .select(columns)
       .order("created_at", { ascending: false })
       .limit(limit);
-  let { data, error } = await read(REP_COLUMNS);
-  if (missingRoundColumn(error)) ({ data, error } = await read(REP_COLUMNS_BEFORE_0026));
+  const { data, error } = await readListed(read);
   // An answered error (500, an expired JWT's 401) used to come back as
   // [], and every screen drew its zero state over a read that never
   // happened. "Nothing yet" and "didn't load" are different screens
   // (DECISIONS #147); only a throw reaches the error card.
   if (error) throw error;
+  /* A row 0037 has not filled reads its transcript, and only it (#511):
+     no read at all once the table is filled. */
+  const rows = await withTranscripts((data as unknown as RepRow[] | null) ?? [], readTranscripts);
   // Handed back oldest first, the order every caller reads the log in.
-  return hold(repsKey(limit), [...((data as unknown as RepRow[] | null) ?? [])].reverse(), mark);
+  return hold(repsKey(limit), [...rows].reverse(), mark);
 }
 
 /*
@@ -346,12 +423,12 @@ async function readRepSpine(): Promise<RepSpine[]> {
 }
 
 /** Every recording, whole, for the export: nothing capped, nothing guessed. */
-export async function fetchAllReps(): Promise<RepRow[]> {
+export async function fetchAllReps(): Promise<StoredRep[]> {
   try {
-    return await readAll<RepRow>("reps", REP_COLUMNS);
+    return await readAll<StoredRep>("reps", REP_COLUMNS);
   } catch (e) {
     if (!missingRoundColumn(e as { code?: string; message?: string })) throw e;
-    return readAll<RepRow>("reps", REP_COLUMNS_BEFORE_0026);
+    return readAll<StoredRep>("reps", REP_COLUMNS_BEFORE_0026);
   }
 }
 
@@ -360,7 +437,7 @@ export function fetchAllLexicon(): Promise<LexiconRow[]> {
   return readAll<LexiconRow>("lexicon", "id, original, upgrade, created_at");
 }
 
-export async function fetchRep(id: string): Promise<RepRow | null> {
+export async function fetchRep(id: string): Promise<StoredRep | null> {
   const db = supabaseBrowser();
   if (!db) return null;
   const read = (columns: string) =>
@@ -372,7 +449,7 @@ export async function fetchRep(id: string): Promise<RepRow | null> {
   let { data, error } = await read(REP_COLUMNS);
   if (missingRoundColumn(error)) ({ data, error } = await read(REP_COLUMNS_BEFORE_0026));
   if (error) throw error;
-  return (data as unknown as RepRow | null) ?? null;
+  return (data as unknown as StoredRep | null) ?? null;
 }
 
 export interface LexiconRow {

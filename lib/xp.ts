@@ -4,26 +4,46 @@
  * it read this one, so a line on You can never promise a figure the
  * server does not pay.
  *
- * What pays: every recording an account stores, Today's practice and a
- * lesson's alike, pays `XP_PER_RECORDING` times its multiplier: 1 for a
- * plain take, more with difficulty turned up (lib/stress-mods.ts), on a
- * game's level (lib/games.ts) or the boss (lib/boss.ts), capped at
- * MAX_XP_MULTIPLIER. A take sent with no session is stored nowhere and
- * pays nothing (app/api/analyze).
+ * What pays: every recording an account stores that earns a star,
+ * Today's practice and a lesson's alike, pays `XP_PER_RECORDING` times
+ * its multiplier: 1 for a plain take, more with difficulty turned up
+ * (lib/stress-mods.ts), on a game's level (lib/games.ts) or the boss
+ * (lib/boss.ts), capped at MAX_XP_MULTIPLIER. A take that earns no star
+ * (#504: under 20 words, or one phrase on repeat) pays nothing (#510,
+ * Timothy 18 Nov, on "a recording with no stars still earns 10 XP":
+ * "drop it"), on every path that stores one: the daily, a lesson, the
+ * boss, a game round, Hostile, an upload (`xpForTake`). A take sent with
+ * no session is stored nowhere and pays nothing (app/api/analyze).
  *
  * Pure: no React, no network. The level curve is lib/level.ts.
  */
 
 import { levelFromXp } from "./level";
+import { MIN_WORDS_TO_SCORE } from "./metrics";
 
 /** XP a plain recording pays, before any multiplier (DECISIONS #16). */
 export const XP_PER_RECORDING = 10;
 
-/** What a take with this multiplier pays: never under 1, as the server rounds it. */
+/** What a take with this multiplier pays when it pays: never under 1, as the server rounds it. */
 export function xpPaid(multiplier = 1): number {
   const m = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
   return Math.max(1, Math.round(XP_PER_RECORDING * m));
 }
+
+/**
+ * What one stored take pays (#510): nothing for a take that earned no
+ * star, else `xpPaid` of its multiplier. The save (lib/db.ts `saveRep`)
+ * pays through it and the server's answer carries what it paid, so the
+ * round card's "+20 XP" and You's XP today are the same number. Stars
+ * are the measured ones (lib/metrics.ts `starsFor`), never the stored
+ * column, which says 1 for a 0 until migration 0035 is applied.
+ */
+export function xpForTake(stars: number, multiplier = 1): number {
+  return Number.isFinite(stars) && stars >= 1 ? xpPaid(multiplier) : 0;
+}
+
+/** Star 1's goal, as the glance draws it under the star (lib/metrics.ts `starGoals`). */
+const PAYING_WORDS = `${MIN_WORDS_TO_SCORE}+ words`;
 
 export interface XpStanding {
   level: number;
@@ -65,16 +85,25 @@ export function levelLine(total: number): string {
 
 /**
  * What reaches it, from what actually pays (Timothy: "Do this to reach
- * it"). Before today is spoken it is today's practice and what it pays;
- * after, the next recording. When one recording closes the gap, it says
- * so in the level's own words.
+ * it"). Since #510 a take pays only when it earns a star, so the line
+ * names star 1's own goal, in the words the glance draws under it ("20+
+ * words"): "Speak 20+ words today for 10 XP." until a take has paid
+ * today, "again" after. Not whether today is spoken: a day of one take
+ * too short to score is spoken and paid nothing, and "again" would say
+ * it had (#510 review). When one recording closes the gap, it says so in
+ * the level's own words.
  */
-export function reachLine(total: number, spokeToday: boolean): string {
+export function reachLine(total: number, paidToday: boolean): string {
   const s = xpStanding(total);
   const pays = xpPaid(1);
-  const what = spokeToday ? "One more recording" : "Today's practice";
-  if (s.toNext <= pays) return `${what} gets you to level ${s.next}.`;
-  return `${what} pays ${pays} XP.`;
+  const when = paidToday ? "again" : "today";
+  if (s.toNext <= pays) return `Speak ${PAYING_WORDS} ${when} to reach level ${s.next}.`;
+  return `Speak ${PAYING_WORDS} ${when} for ${pays} XP.`;
+}
+
+/** You's reach line, from the XP read alone: its total, and whether today paid any (`today`, xp_events). */
+export function reachLineFor(xp: { total: number; today: number } | null): string {
+  return reachLine(xp?.total ?? 0, (xp?.today ?? 0) > 0);
 }
 
 /** The bar's accessible name: both numbers the line and the bar show. */

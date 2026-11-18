@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SHAPED_TAKE, whisperTake } from "./__fixtures__/whisper-take";
-import type { RepRow } from "./client-data";
+import type { StoredRep as RepRow } from "./client-data";
 import { ethosIndex, pauseScore, type Tier1Scores } from "./index-score";
 import { bestRecording, ethosLine } from "./log";
 import { computeMetrics, type Word } from "./metrics";

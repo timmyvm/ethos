@@ -54,7 +54,8 @@ export function RoundCard({
 }: {
   round: GameRound;
   reveal: RoundReveal;
-  xp: { amount: string; note: string | null };
+  /** What the round paid (lib/round-copy.ts `xpLine`); null when it paid nothing (#510). */
+  xp: { amount: string; note: string | null } | null;
   /** Whisper's words, for where the strip draws speech. */
   words?: Word[] | null;
   /** The take's judged pauses, the strip's fallback when there are no words. */
@@ -141,12 +142,12 @@ export function RoundCard({
      the line under it. Two rows that size themselves, so a long note
      never squeezes the number off its line; with no multiplier the line
      takes the full width. "cut-in" never breaks at its hyphen. */
-  const xpAmount = (
+  const xpAmount = xp ? (
     <p className={`shrink-0 text-right font-display text-row font-bold text-sage-700 ${fade} ${late}`}>
       {xp.amount}
     </p>
-  );
-  const xpNote = xp.note ? (
+  ) : null;
+  const xpNote = xp?.note ? (
     <p className={`max-w-[170px] shrink-0 text-right text-caption text-balance text-stone-500 ${fade} ${late}`}>
       {xp.note.replace(/-/g, "\u2011")}
     </p>
@@ -203,10 +204,12 @@ export function RoundCard({
               {note}
             </div>
             {line && <div className="mt-1">{line}</div>}
-            <p className={`mt-1.5 text-caption ${fade} ${late}`}>
-              <span className="font-display text-row font-bold text-sage-700">{xp.amount}</span>
-              {xp.note && <span className="ml-2 text-stone-500">{xp.note}</span>}
-            </p>
+            {xp && (
+              <p className={`mt-1.5 text-caption ${fade} ${late}`}>
+                <span className="font-display text-row font-bold text-sage-700">{xp.amount}</span>
+                {xp.note && <span className="ml-2 text-stone-500">{xp.note}</span>}
+              </p>
+            )}
           </div>
         </div>
       ) : (

@@ -125,6 +125,13 @@ export interface AnalyzeResponse {
   mode: "daily" | "boss";
   mods: string[];
   xpMultiplier: number;
+  /**
+   * The account XP this take paid (#510, lib/xp.ts `xpForTake`): 0 for a
+   * take that earned no star, and for one stored nowhere (no session, a
+   * failed save). The round card says this number, never one of its own.
+   * Optional because a reply kept on the phone from before has none.
+   */
+  xp?: number;
   captureMode: CaptureMode;
   /** Null for Voice reps, and for a Voice + Video rep with no body in it. */
   delivery: DeliveryMetrics | null;
@@ -676,7 +683,8 @@ async function handleTake(
      multiplier waits for the words: only a scored take pays the boss's. */
   let mods = bossTopic ? [] : extras;
   let multiplier = xpMultiplier(mods);
-  // A boss take too short to score pays what an unscored take pays anywhere.
+  // A boss take too short to score is filed at ×1, and pays nothing, as
+  // no take with no star does anywhere (#510, lib/xp.ts `xpForTake`).
   if (bossTopic) multiplier = bossXpMultiplier(scorable);
 
   /*
@@ -791,6 +799,8 @@ async function handleTake(
   const [previousIndex, prevPresence] = await previous$;
 
   let repId: string | null = null;
+  /* What the save paid (#510): nothing until a row is stored. */
+  let xpPaidNow = 0;
   /*
    * A take sent with no session has no owner. No screen could show it
    * again, no account removal could reach it, and the phone already
@@ -839,6 +849,7 @@ async function handleTake(
       return NextResponse.json({ repId: saved.id, duplicate: true });
     }
     repId = saved?.id ?? null;
+    xpPaidNow = repId ? (saved?.xp ?? 0) : 0;
     spend.keep = repId !== null;
   } catch {
     repId = null;
@@ -862,6 +873,7 @@ async function handleTake(
     mode,
     mods: modIds(mods),
     xpMultiplier: multiplier,
+    xp: xpPaidNow,
     captureMode,
     delivery,
     deliveryMoments,

@@ -12,6 +12,7 @@
  *   near     Timothy's account on 16 Nov: Level 1, 40 XP, 10 to level 2
  *   high     a long road: Level 20
  *   spoken   today spoken (its XP paid today): the lit flame
+ *   nostar   today spoken with no star, so no XP today: "today", not "again"
  *   photo    a profile photo on the card, then its sheet
  *   none     no name and no photo: the silhouette and "Add your name"
  *   premium  an invite code's Premium (LOOK_PLAN code), its line and its sheet
@@ -146,6 +147,14 @@ for (const size of SIZES) {
     xp.rows = [...XP_ROWS, { amount: 10, created_at: F.TODAY_REP.created_at }];
     await open();
     await shoot("spoken");
+  }
+
+  if (want("nostar")) {
+    reset();
+    // Today spoken and no XP paid today, as a take with no star leaves it (#510 review): the flame lit.
+    F.testerMode.today = true;
+    await open();
+    await shoot("nostar");
   }
 
   if (want("photo")) {

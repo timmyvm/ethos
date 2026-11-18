@@ -37,7 +37,7 @@ describe("the one card", () => {
       "Level{\" \"}",
       "xp-fill",
       "levelLine(",
-      "reachLine(",
+      "reachLineFor(",
       'label="Streak"',
       'label="Best streak"',
       'label="XP today"',
@@ -51,12 +51,16 @@ describe("the one card", () => {
     expect(you).not.toMatch(/aria-label="Your numbers" className="card/);
   });
 
-  it("holds the reach line until the recordings say whether today is spoken", () => {
-    // Before they are read the streak is the empty one (today not spoken),
-    // so the line would say "Today's practice" and then "One more recording".
+  it("draws the reach line from the XP read alone, once it has landed", () => {
+    // #510 review: "today" or "again" rests on whether a take paid XP today,
+    // which the XP read knows; the streak says a day of one take with no
+    // star is spoken, and "again" would say it paid. Drawn only in the
+    // branch after the XP read lands (not pending, not failed), so it never
+    // says one and then the other.
     expect(you).toMatch(
-      /\{loading \? \(\s*<Line [^>]*\/>\s*\) : \(\s*<p data-look="reach-line"[^>]*>\s*\{reachLine\(xp\?\.total \?\? 0, streak\.didToday\)\}/
+      /\) : xpFailed \? \([\s\S]*?\) : \(\s*<>\s*<p data-look="level-line"[^>]*>\s*\{levelLine\(xp\?\.total \?\? 0\)\}\s*<\/p>\s*(?:\{\}\s*)?<p data-look="reach-line"[^>]*>\s*\{reachLineFor\(xp\)\}\s*<\/p>/
     );
+    expect(you).not.toMatch(/reachLine\w*\([^)]*didToday/);
   });
 
   it("marks each number: the flames by today, XP with its own glyph", () => {

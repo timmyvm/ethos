@@ -9,6 +9,7 @@ type Read = {
   select: string;
   like: [string, string] | null;
   eq: [string, unknown] | null;
+  in?: [string, unknown[]];
   limit: number | null;
 };
 let reads: Read[] = [];
@@ -27,6 +28,7 @@ function query() {
     let out = [...rows];
     if (r.like) out = out.filter((x) => String(x[r.like![0]] ?? "").startsWith(r.like![1].replace(/%$/, "")));
     if (r.eq) out = out.filter((x) => x[r.eq![0]] === r.eq![1]);
+    if (r.in) out = out.filter((x) => r.in![1].includes(x[r.in![0]]));
     out.sort((a, b) => (a.created_at! < b.created_at! ? 1 : -1));
     if (r.limit) out = out.slice(0, r.limit);
     // Only the columns asked for, as PostgREST answers.
@@ -39,6 +41,7 @@ function query() {
     like: (col: string, pattern: string) => ((r.like = [col, pattern]), q),
     order: () => q,
     eq: (col: string, v: unknown) => ((r.eq = [col, v]), q),
+    in: (col: string, v: unknown[]) => ((r.in = [col, v]), q),
     limit: (n: number) => ((r.limit = n), q),
     maybeSingle: () => answer().then((a) => ({ ...a, data: Array.isArray(a.data) ? (a.data[0] ?? null) : a.data })),
     then: (ok: (v: unknown) => unknown, bad?: (e: unknown) => unknown) => answer().then(ok, bad),
@@ -101,8 +104,8 @@ describe("fetchGameRounds", () => {
 describe("the recording reads before migration 0026", () => {
   it("name the round when the table has it", async () => {
     await fetchReps(10);
-    expect(reads).toHaveLength(1);
-    expect(reads[0].select).toMatch(/, round$/);
+    // The list first (lib/reps-list-read.test.ts follows 0037's side of it).
+    expect(reads[0].select).toMatch(/\bround\b/);
   });
 
   it("read everything else when it does not, rather than failing whole", async () => {

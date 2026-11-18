@@ -25,11 +25,12 @@ export const BOSS_RESEARCH_SECONDS = 90;
 export const BOSS_DONE_LINE = "Done this week";
 
 /**
- * What a boss take pays on the boss's own account (the games plan, item
- * 16). A take the engine scored pays the boss's ×1.5. A take too short
- * to score pays what an unscored take pays anywhere else, ×1, because
- * the boss runs no mods: four empty boss takes of 0 to 6 seconds each
- * paid 15 XP on 2 Nov.
+ * The multiplier a boss take is filed at (the games plan, item 16). A
+ * take the engine scored pays the boss's ×1.5. A take too short to score
+ * is filed at ×1, as an unscored take is anywhere else, because the boss
+ * runs no mods (four empty boss takes of 0 to 6 seconds each paid 15 XP
+ * on 2 Nov), and since #510 it pays nothing at all: a take with no star
+ * pays no XP on any path (lib/xp.ts `xpForTake`).
  */
 export function bossXpMultiplier(scorable: boolean): number {
   return scorable ? BOSS_XP_BASE : 1;

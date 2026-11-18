@@ -31,7 +31,7 @@
  */
 
 import { INDEX_WEIGHTS, type Tier1Scores } from "./index-score";
-import { isScorable, substance } from "./metrics";
+import { rowScorable, type SubstanceRow } from "./rep-substance";
 
 export type TraitKey = keyof typeof INDEX_WEIGHTS;
 
@@ -75,8 +75,7 @@ export function standing(xp: number): { level: number; into: number; cost: numbe
 }
 
 /** The slice of a rep the derivation reads: RepRow satisfies it. */
-export interface TraitRep {
-  transcript: string;
+export interface TraitRep extends SubstanceRow {
   dimensions: {
     tier1: Tier1Scores;
     tier2: Partial<Record<TraitKey, { score: number }>> | null;
@@ -97,13 +96,14 @@ function repScores(rep: TraitRep): Partial<Record<TraitKey, number>> {
  * The trait XP one stored recording pays: each trait it read, its score
  * rounded and held to 0 to 100. Nothing at all for a take with no stored
  * dimensions or not enough to score: the engine's own substance gate,
- * re-run on the stored transcript ("I don't know" eight times has a
+ * as the row stores it (`reps.scorable`, #511) or re-run on the stored
+ * transcript of a row without it ("I don't know" eight times has a
  * clean pace, and must pay nothing). A trait the take did not read (no
  * judge ran, an old rep with no sentence restarts score) is absent, not 0.
  */
 export function repTraitXp(rep: TraitRep): Partial<Record<TraitKey, number>> {
   if (!rep.dimensions) return {};
-  if (!isScorable(substance(rep.transcript))) return {};
+  if (!rowScorable(rep)) return {};
   const scores = repScores(rep);
   const out: Partial<Record<TraitKey, number>> = {};
   for (const t of TRAITS) {

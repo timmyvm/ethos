@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { isScorable, substance } from "./metrics";
+import { rowScorable, rowSubstance } from "./rep-substance";
 
 const DIR = path.resolve(__dirname, "../supabase/migrations");
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -693,4 +695,189 @@ describe("0036 say better", () => {
     expect(sql).toMatch(/s\.user_id = new\.user_id and s\.swap = new\.swap\s+\) then\s+return new;/);
     expect(sql).toMatch(/revoke execute on function public\.say_better_cap\(\) from public, anon, authenticated/);
   });
+});
+
+/**
+ * 0037 (#511, the speed audit's fix 10): what each recording's words came
+ * to, on the row. The file's fill must reproduce lib/metrics.ts
+ * `substance` exactly, so it is run here on a real Postgres against the
+ * real function over generated transcripts: the edges (too short, exactly
+ * 20 words, repetitive, exactly at the 0.3 line and just under it, empty,
+ * missing) and a few hundred random ones built from the characters that
+ * could part the two (capitals, digits, apostrophes straight and curly,
+ * hyphens, accents, the Kelvin sign, I with a dot above, emoji, CJK).
+ */
+describe("0037 reps scorable and words", () => {
+  const raw = readFileSync(path.join(DIR, "0037_reps_scorable_words.sql"), "utf8");
+  const sql = code("0037_reps_scorable_words.sql");
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+  /* The reps table as production has it, as far as 0037 reads or could
+     move it: its owner, its text, row level security and the one policy
+     (0001), the grants 0029 leaves (select only, for the browser). */
+  const STUBS = `
+    create role anon nologin;
+    create role authenticated nologin;
+    create schema auth;
+    create function auth.uid() returns uuid language sql stable as $$
+      select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    grant usage on schema public to anon, authenticated;
+    grant usage on schema auth to anon, authenticated;
+    create table public.reps (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid,
+      transcript text,
+      created_at timestamptz not null default now()
+    );
+    alter table public.reps enable row level security;
+    create policy "own reps" on public.reps for select using (auth.uid() = user_id);
+    revoke all on table public.reps from public, anon, authenticated;
+    grant select on table public.reps to authenticated, anon;
+  `;
+  type Row = { id: string; transcript: string | null; scorable: boolean | null; word_count: number | null; distinct_words: number | null };
+
+  /** What the readers computed from the transcript until now: the expectation. */
+  const expected = (t: string | null) => {
+    const s = substance(t ?? "");
+    return { scorable: isScorable(s), word_count: s.wordCount, distinct_words: s.distinctWords ?? -1, ratio: s.distinctRatio };
+  };
+
+  /* Seeded, so a failure names the same text every run. */
+  const rng = (seed: number) => () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
+
+  const words = (n: number, distinct: number, sep = " ") =>
+    Array.from({ length: n }, (_, i) => `w${String.fromCharCode(97 + (i % distinct) % 26)}${Math.floor((i % distinct) / 26)}`).join(sep);
+
+  const EDGES: (string | null)[] = [
+    null,
+    "",
+    "   \n\t ",
+    "...!?",
+    words(19, 19),
+    words(20, 20),
+    words(21, 21),
+    // "I don't know" on repeat: zero fillers, a clean pace, no answer.
+    Array.from({ length: 10 }, () => "I don't know.").join(" "),
+    // 0.3 exactly, and the rounding either side of it.
+    words(20, 6),
+    words(20, 5),
+    words(1000, 300),
+    words(1000, 299),
+    words(2000, 599), // 0.2995: Math.round(299.5) is 300, so scorable
+    words(2000, 598), // 0.299
+    words(2000, 600),
+    "HELLO Hello hello hELLo, said the CAPITALS twenty times over and over and over and over and over and over and again",
+    "Don't you think rock'n'roll is 'quoted' and it's the 2nd time I've said 3,000 things at 4:30 pm",
+    "Don’t split the curly one, it’s a different mark from the straight one, and Whisper uses both sometimes in text",
+    "Café naïve résumé façade jalapeño Übermensch straße İstanbul İZMİR \u212Aelvin \u212A-pop \u212A dalam ДОМ Ωmega emoji 😀👍 日本語 tab\there",
+    "well-known state-of-the-art self_aware snake_case e-mail co-op twenty-one forty-two x+y=z 100% #1 @you",
+    "İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ İ",
+    "\u212A \u212Aelvin k K \u212A0 \u212A's ".repeat(5),
+    // Kelvin sign and I with a dot above are the two letters JavaScript lowercases into a word.
+    "\u0130stanbul \u0130I i\u0307 ".repeat(8),
+  ];
+  const ALPHABET = [
+    ..."abcdefghijklmnopqrstuvwxyz",
+    ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    ..."0123456789",
+    "'", "’", "-", "_", ",", ".", "?", "!", "é", "ß", "\u0130", "\u212A", "Ω", "😀", "日", "\n", "\t",
+  ];
+  const fuzz = (() => {
+    const r = rng(511);
+    const out: string[] = [];
+    for (let i = 0; i < 300; i++) {
+      // A small vocabulary repeated, so the ratio lands near 0.3 and the count near 20.
+      const vocab = Array.from({ length: 1 + Math.floor(r() * 12) }, () =>
+        Array.from({ length: 1 + Math.floor(r() * 6) }, () => ALPHABET[Math.floor(r() * ALPHABET.length)]).join("")
+      );
+      const n = Math.floor(r() * 60);
+      out.push(Array.from({ length: n }, () => vocab[Math.floor(r() * vocab.length)]).join(r() < 0.8 ? " " : ""));
+    }
+    return out;
+  })();
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+  });
+
+  it("adds three nullable columns, only if missing, and moves no policy, grant or owner", () => {
+    expect(sql).toMatch(/alter table public\.reps add column if not exists scorable boolean;/);
+    expect(sql).toMatch(/alter table public\.reps add column if not exists word_count integer;/);
+    expect(sql).toMatch(/alter table public\.reps add column if not exists distinct_words integer;/);
+    expect(sql).not.toMatch(/\bnot null\b/i);
+    expect(sql).not.toMatch(/\b(policy|grant|revoke|owner|security)\b/i);
+    // The fill writes only where a column is empty.
+    expect(sql).toMatch(/where r\.scorable is null\s+or r\.word_count is null\s+or r\.distinct_words is null/);
+  });
+
+  it("fills every row as `substance` reads its transcript, exactly, applied twice", async () => {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const db = new PGlite();
+    await db.exec(STUBS);
+    const texts = [...EDGES, ...fuzz];
+    for (const t of texts) await db.query("insert into public.reps (user_id, transcript) values ($1, $2)", [A, t]);
+    await db.exec(raw);
+    const first = (await db.query<Row>("select id, transcript, scorable, word_count, distinct_words from public.reps")).rows;
+    await db.exec(raw); // idempotent
+    const second = (await db.query<Row>("select id, transcript, scorable, word_count, distinct_words from public.reps")).rows;
+    expect(second).toEqual(first);
+    expect(first).toHaveLength(texts.length);
+
+    let scorable = 0;
+    for (const row of first) {
+      const want = expected(row.transcript);
+      expect({ t: row.transcript, scorable: row.scorable, words: row.word_count, distinct: row.distinct_words }).toEqual({
+        t: row.transcript,
+        scorable: want.scorable,
+        words: want.word_count,
+        distinct: want.distinct_words,
+      });
+      // And a reader given the columns reads the same ratio, to the last digit.
+      expect(rowSubstance(row)).toEqual({ wordCount: want.word_count, distinctRatio: want.ratio });
+      expect(rowScorable(row)).toBe(want.scorable);
+      if (row.scorable) scorable++;
+    }
+    // The edges land on both sides of the line, and so does the fuzz.
+    expect(scorable).toBeGreaterThan(10);
+    expect(first.length - scorable).toBeGreaterThan(10);
+    const at = (t: string) => first.find((r) => r.transcript === t)!;
+    expect(at(words(20, 20)).scorable).toBe(true);
+    expect(at(words(19, 19)).scorable).toBe(false);
+    expect(at(words(20, 6)).scorable).toBe(true);
+    expect(at(words(20, 5)).scorable).toBe(false);
+    expect(at(words(2000, 599)).scorable).toBe(true);
+    expect(at(words(2000, 598)).scorable).toBe(false);
+    const empty = first.find((r) => r.transcript === null)!;
+    expect([empty.scorable, empty.word_count, empty.distinct_words]).toEqual([false, 0, 0]);
+    await db.close();
+  }, 120_000);
+
+  it("never touches a row the server already wrote, and leaves row level security as it was", async () => {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const db = new PGlite();
+    await db.exec(STUBS);
+    const rls = async () => ({
+      policies: (await db.query("select policyname, cmd, qual, with_check, roles from pg_policies where tablename = 'reps' order by 1")).rows,
+      on: (await db.query("select relrowsecurity, relforcerowsecurity from pg_class where oid = 'public.reps'::regclass")).rows,
+      grants: (await db.query("select grantee, privilege_type from information_schema.role_table_grants where table_name = 'reps' and grantee in ('anon', 'authenticated') order by 1, 2")).rows,
+    });
+    const before = await rls();
+    await db.exec(raw);
+    // A row stored by the server after 0037: its own verdict stays, whatever its text says.
+    await db.query(
+      "insert into public.reps (user_id, transcript, scorable, word_count, distinct_words) values ($1, 'hi', true, 140, 90), ($2, $3, null, null, null)",
+      [A, B, words(30, 30)]
+    );
+    await db.exec(raw);
+    const rows = (await db.query<Row>("select id, transcript, scorable, word_count, distinct_words from public.reps order by transcript")).rows;
+    expect(rows.find((r) => r.transcript === "hi")).toMatchObject({ scorable: true, word_count: 140, distinct_words: 90 });
+    expect(rows.find((r) => r.transcript !== "hi")).toMatchObject({ scorable: true, word_count: 30, distinct_words: 30 });
+    expect(await rls()).toEqual(before);
+    // The browser still reads its own rows only, the new columns with them, and writes none.
+    await db.exec(`select set_config('request.jwt.claim.sub', '${A}', false); set role authenticated;`);
+    expect((await db.query("select scorable, word_count from public.reps")).rows).toEqual([{ scorable: true, word_count: 140 }]);
+    await expect(db.query("update public.reps set scorable = false")).rejects.toThrow(/permission denied/);
+    await db.exec("reset role;");
+    await db.close();
+  }, 60_000);
 });

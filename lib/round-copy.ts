@@ -26,7 +26,7 @@ import {
   type StoppedBy,
 } from "./round";
 import { asTitle } from "./title";
-import { XP_PER_RECORDING } from "./xp";
+import { XP_PER_RECORDING, xpForTake } from "./xp";
 
 // --- numbers as the screen writes them ---------------------------------
 
@@ -346,16 +346,25 @@ function times(m: number): string {
 /**
  * The XP line that closes the round card: what was paid ("+20 XP") and
  * what multiplied it ("×2 for the cut-in"), from the stored multiplier
- * and mods. No note at ×1.
+ * and mods. No note at ×1. What was paid is the server's own figure
+ * (`paid`, the answer's `xp`), else what the take's stars pay (lib/xp.ts
+ * `xpForTake`) for a reply kept from before #510. A round that earned no
+ * star paid nothing, and the card says no XP at all: null (#510).
  */
 export function xpLine(p: {
   gameId: GameRound["game"];
   xpMultiplier: number;
   mods: readonly string[];
   level: LevelN;
-}): { amount: string; note: string | null } {
+  /** The take's measured stars. */
+  stars: number;
+  /** What the server says it paid (`AnalyzeResponse.xp`), when it says. */
+  paid?: number;
+}): { amount: string; note: string | null } | null {
   const mult = Number.isFinite(p.xpMultiplier) && p.xpMultiplier > 0 ? p.xpMultiplier : 1;
-  const amount = `+${Math.max(1, Math.round(XP_PER_RECORDING * mult))} XP`;
+  const paid = typeof p.paid === "number" && Number.isFinite(p.paid) ? p.paid : xpForTake(p.stars, mult);
+  if (!(paid > 0)) return null;
+  const amount = `+${Math.round(paid)} XP`;
   if (Math.abs(mult - 1) < 0.005) return { amount, note: null };
   const why: string[] = [];
   for (const id of p.mods) {

@@ -21,7 +21,8 @@
 
 import { NORMS, type NormQuality } from "@/content/norms";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
-import { FILLED_PAUSES, isScorable, per100, substance, type RepMetrics } from "./metrics";
+import { FILLED_PAUSES, per100, type RepMetrics } from "./metrics";
+import { rowScorable, rowSubstance, type SubstanceRow } from "./rep-substance";
 import { REPAIR_ZERO_AT } from "./index-score";
 import { fraction, percentile, valueFor } from "./percentile";
 
@@ -309,22 +310,25 @@ export function nextLine(r: TraitReading): string | null {
 
 /**
  * Whether a stored recording measured anything: the engine's own
- * substance gate (`isScorable`), re-run on the transcript, as
- * `lib/traits.ts` already does before a take may level a trait. A take
- * under twenty words read "Not enough to score" on its results, and a
- * one-word 8s take still came back as Pace 7 wpm, Fillers 0 and a clean
- * run: every surface that reads a trait, a record or a badge off a row
- * skips the rows this refuses. Not `ethos_index`: a meter-capped take is
- * scorable and carries none.
+ * substance gate (`isScorable`), as `lib/traits.ts` already asks before
+ * a take may level a trait. A take under twenty words read "Not enough
+ * to score" on its results, and a one-word 8s take still came back as
+ * Pace 7 wpm, Fillers 0 and a clean run: every surface that reads a
+ * trait, a record or a badge off a row skips the rows this refuses. Not
+ * `ethos_index`: a meter-capped take is scorable and carries none.
+ *
+ * Since #511 the row says so itself (`reps.scorable`, migration 0037);
+ * a row without it is re-read from its transcript, as before
+ * (lib/rep-substance.ts `rowScorable`).
  *
  * Remembered per row, because the challenge asks it of every row once a
  * day for a month of days.
  */
 const measuredRows = new WeakMap<object, boolean>();
-export function measured(row: { transcript: string | null }): boolean {
+export function measured(row: SubstanceRow): boolean {
   const known = measuredRows.get(row);
   if (known !== undefined) return known;
-  const ok = isScorable(substance(row.transcript ?? ""));
+  const ok = rowScorable(row);
   measuredRows.set(row, ok);
   return ok;
 }
@@ -349,9 +353,8 @@ export function measured(row: { transcript: string | null }): boolean {
  * The right fix is a column, and that is worth doing before this ships
  * to anyone: every other trait here is the number itself.
  */
-export function readTraitsFromRow(row: {
+export function readTraitsFromRow(row: SubstanceRow & {
   duration_s: number;
-  transcript: string;
   wpm: number;
   filler_count: number;
   /* Every hit carries the word it matched, so the filled pauses can be
@@ -365,7 +368,9 @@ export function readTraitsFromRow(row: {
     typeof repairsScore === "number"
       ? REPAIR_ZERO_AT * (1 - repairsScore / 100)
       : 0;
-  const sub = substance(row.transcript);
+  /* The word count and Variety's ratio, from 0037's columns, or from the
+     transcript on a row without them (#511): the same numbers either way. */
+  const sub = rowSubstance(row);
   const filled = (row.fillers ?? []).filter((f) => FILLED_PAUSES.has(f.word));
   const m = {
     durationS: row.duration_s,

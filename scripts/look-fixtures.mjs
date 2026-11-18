@@ -464,6 +464,36 @@ export const extraReps = [];
 export const repsMode = { rows: null };
 
 /*
+ * Migration 0037 (#511): every reps row answers with `scorable`,
+ * `word_count` and `distinct_words`, worked out from its own transcript
+ * the way the migration fills them (lib/metrics.ts `substance`, mirrored
+ * here so a row a camera builds from another never carries its parent's
+ * counts). LOOK_BEFORE_0037=1, or schema0037.applied set false, answers
+ * as production does before the migration: a select naming one of the
+ * three is refused with 42703, and no row carries them.
+ */
+export const schema0037 = { applied: process.env.LOOK_BEFORE_0037 !== "1" };
+const SUBSTANCE_COLS = ["scorable", "word_count", "distinct_words"];
+function substanceOf(text) {
+  const tokens = (String(text ?? "").toLowerCase().match(/[a-z0-9']+/g) ?? []).filter(Boolean);
+  const n = tokens.length;
+  const d = new Set(tokens).size;
+  const ratio = n > 0 ? Math.round((d / n) * 1000) / 1000 : 0;
+  return { scorable: n >= 20 && ratio >= 0.3, word_count: n, distinct_words: d };
+}
+function withSubstance(row) {
+  if (!row || typeof row !== "object" || !("transcript" in row)) return row;
+  if (SUBSTANCE_COLS.every((c) => typeof row[c] === "boolean" || typeof row[c] === "number")) return row;
+  return { ...row, ...substanceOf(row.transcript) };
+}
+function withoutSubstance(row) {
+  if (!row || typeof row !== "object") return row;
+  const out = { ...row };
+  for (const c of SUBSTANCE_COLS) delete out[c];
+  return out;
+}
+
+/*
  * #498: fourteen recordings (about production's p90 account) that put
  * You's trait levels in every state a level can be in under trait XP
  * (repsMode.rows = LEVEL_MIX). Every take is scorable and pays each trait
@@ -719,6 +749,10 @@ async function supabase(route) {
   const table = url.pathname.replace("/rest/v1/", "").split("/")[0];
   if (req.method() !== "GET") return route.fulfill(json([]));
   if (table === "reps" && testerMode.repsFail) return route.fulfill(json({ code: "XX000", message: "look: history refused" }, 500));
+  if (table === "reps" && !schema0037.applied) {
+    const named = (url.searchParams.get("select") ?? "").split(",").map((c) => c.trim()).find((c) => SUBSTANCE_COLS.includes(c));
+    if (named) return route.fulfill(json({ code: "42703", message: `column reps.${named} does not exist` }, 400));
+  }
   let rows = table === "reps" && repsMode.rows ? repsMode.rows : TABLES[table] ?? [];
   if (sayMode.on && table === "lexicon") rows = sayMode.empty ? [] : SAY_LEXICON;
   if (sayMode.on && table === "reps" && !FRESH && !sayMode.empty) rows = [...rows, ...SAY_REPS];
@@ -741,6 +775,7 @@ async function supabase(route) {
   }
   const limit = Number(url.searchParams.get("limit"));
   if (limit > 0) rows = rows.slice(0, limit);
+  if (table === "reps") rows = rows.map(schema0037.applied ? withSubstance : withoutSubstance);
   const id = url.searchParams.get("id");
   /* PostgREST's in.(…) on ids (Say it better reads a few recordings' timed words). */
   if (id && id.startsWith("in.(")) {

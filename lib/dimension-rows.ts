@@ -21,6 +21,7 @@
  * drawn by components/DimensionList.tsx and You's trait rows.
  */
 
+import type { SubstanceRow } from "./rep-substance";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { dimensionPoints, INDEX_WEIGHTS, type Tier1Scores } from "./index-score";
 import { measured } from "./trait-readings";
@@ -241,11 +242,10 @@ export function plural(n: number, one: string, many = `${one}s`): string {
 }
 
 /** The slice of a stored recording the trend reads; RepRow satisfies it. */
-export interface RateTake {
+export interface RateTake extends SubstanceRow {
   created_at: string;
   filler_count: number;
   duration_s: number;
-  transcript: string | null;
 }
 
 const WEEK_MS = 7 * 86_400_000;

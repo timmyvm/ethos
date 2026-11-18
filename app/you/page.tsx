@@ -55,7 +55,7 @@ import { GUEST_KEY, held, heldMark, hold } from "@/lib/held";
 import { localSessionState } from "@/lib/auth";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
-import { barLabel, bestFlame, levelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
+import { barLabel, bestFlame, levelLine, reachLineFor, streakFlame, xpStanding, type Flame } from "@/lib/xp";
 import { readable, readFailure, withTimeout } from "@/lib/load";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
 import { ROAD_INVITE, ROAD_INVITE_STEP } from "@/lib/onboarding";
@@ -625,17 +625,13 @@ export default function YouPage() {
               <p data-look="level-line" className="font-display mt-2 text-row font-bold tabular-nums">
                 {levelLine(xp?.total ?? 0)}
               </p>
-              {/* Which line it is ("Today's practice" or "One more
-                  recording") rests on whether today is spoken, which only
-                  the recordings know: until they are read the line holds
-                  its place, so it never says one and then the other. */}
-              {loading ? (
-                <Line className="mt-0.5 text-caption" bar="w-44" align="left" />
-              ) : (
-                <p data-look="reach-line" className="mt-0.5 text-caption text-stone-500">
-                  {reachLine(xp?.total ?? 0, streak.didToday)}
-                </p>
-              )}
+              {/* Which line it is ("today" or "again") rests on whether a
+                  take paid XP today, which the XP read itself knows: a
+                  day of one take too short to score is spoken and paid
+                  nothing (#510 review). */}
+              <p data-look="reach-line" className="mt-0.5 text-caption text-stone-500">
+                {reachLineFor(xp)}
+              </p>
             </>
           )}
         </div>

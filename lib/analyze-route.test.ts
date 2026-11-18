@@ -91,6 +91,7 @@ import { transcribe } from "@/lib/transcribe";
 import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope";
 import { ethosIndex, pauseScore, type Tier1Scores } from "@/lib/index-score";
 import { computeMetrics } from "@/lib/metrics";
+import { substanceColumns } from "@/lib/rep-substance";
 import { reportJudged, type JudgedPause } from "@/lib/pause-quality";
 import { PAUSE_RULES, rulesNote } from "@/lib/pause-rules";
 import { SHAPED_TAKE, whisperTake } from "@/lib/__fixtures__/whisper-take";
@@ -370,9 +371,10 @@ describe("POST /api/analyze", () => {
     expect(body.xpMultiplier).toBe(1.5);
   });
 
-  /* Map 4: four empty boss takes each paid 15 XP. An unscored boss pays
-     what an unscored daily take pays, ×1, stored and answered alike. */
-  it("pays an unscored boss take ×1, as an unscored take anywhere", async () => {
+  /* Map 4: four empty boss takes each paid 15 XP. An unscored boss is
+     filed at ×1, as an unscored daily take is, stored and answered alike,
+     and since #510 pays nothing at all (below). */
+  it("files an unscored boss take at ×1, as an unscored take anywhere", async () => {
     vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-boss", anonymous: false });
     vi.mocked(saveRep).mockResolvedValue({ id: "rep-boss", audioPath: null });
@@ -514,6 +516,95 @@ describe("POST /api/analyze", () => {
  * are the two guardrails: the cap must never break a streak, and it must
  * never quietly bill someone for an analysis they didn't receive.
  */
+/*
+ * #510, Timothy 18 Nov, on "a recording with no stars still earns 10 XP":
+ * "drop it". Every way a recording reaches the server is this route, and
+ * each, with no star, hands the save its measured 0 and answers xp 0.
+ * The save stand-in pays by the real rule (lib/xp.ts `xpForTake`).
+ */
+describe("the XP a take pays (#510)", () => {
+  const paths: [string, (f: FormData) => void][] = [
+    ["Today's practice", (f) => f.append("lessonId", "topic:t12:pause")],
+    ["a lesson", (f) => f.append("lessonId", "lesson:the-landing:1")],
+    ["the weekly boss", (f) => f.append("bossTopicId", "crispr")],
+    [
+      "a game round",
+      (f) => {
+        f.append("lessonId", "game:qa:qa3");
+        f.append("round", JSON.stringify({ game: "qa", level: 1, cutIns: [{ at: 20, line: "Says who?" }], stoppedBy: "you" }));
+      },
+    ],
+    ["Hostile Q&A", (f) => f.append("lessonId", "hostile-take")],
+    ["an upload", () => {}],
+  ];
+
+  beforeEach(async () => {
+    const { xpForTake } = await import("@/lib/xp");
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-xp", anonymous: false });
+    vi.mocked(coachRep).mockResolvedValue(null);
+    vi.mocked(saveRep).mockImplementation(async (p) => ({
+      id: "rep-xp",
+      audioPath: null,
+      xp: p.userId ? xpForTake(p.metrics.stars, p.xpMultiplier ?? 1) : 0,
+    }));
+  });
+
+  for (const [name, fill] of paths) {
+    it(`pays nothing for ${name} with no star, and still stores it`, async () => {
+      vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
+      const form = audioForm();
+      fill(form);
+      const body = await (await post(form)).json();
+      expect(body.metrics.stars).toBe(0);
+      expect(body.repId).toBe("rep-xp");
+      expect(body.xp).toBe(0);
+      expect(vi.mocked(saveRep).mock.calls[0][0].metrics.stars).toBe(0);
+    });
+
+    it(`pays ${name} as before when it earns a star`, async () => {
+      vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+      const form = audioForm();
+      fill(form);
+      const body = await (await post(form)).json();
+      expect(body.metrics.stars).toBeGreaterThan(0);
+      expect(body.xp).toBe(Math.round(10 * body.xpMultiplier));
+      expect(body.xp).toBeGreaterThan(0);
+    });
+  }
+
+  /* #511: every path stores through saveRep, with the transcript 0037's
+     columns are counted from (lib/db.test.ts holds the row). */
+  it("hands the save the substance its stars and Index were given on, on every path", async () => {
+    for (const [name, fill] of paths) {
+      for (const fixture of [FIXTURE, EMPTY_FIXTURE]) {
+        vi.mocked(saveRep).mockClear();
+        vi.mocked(transcribe).mockResolvedValue(fixture);
+        const form = audioForm();
+        fill(form);
+        const body = await (await post(form)).json();
+        const sent = vi.mocked(saveRep).mock.calls[0]?.[0];
+        expect(sent, name).toBeTruthy();
+        expect(sent!.metrics.substance).toEqual(body.metrics.substance);
+        expect(substanceColumns(sent!.metrics.substance)).toMatchObject({ scorable: body.scorable, word_count: body.metrics.substance.wordCount });
+        expect(sent!.metrics.substance.distinctWords).toBeGreaterThan(0);
+        // The text the columns are counted from is the one stored and answered.
+        expect(sent!.transcript).toBe(body.transcript);
+      }
+    }
+  });
+
+  it("answers xp 0 when nothing was stored: no session, or a failed save", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(saveRep).mockResolvedValue(null);
+    expect((await (await post(audioForm())).json()).xp).toBe(0);
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue(null);
+    vi.mocked(saveRep).mockClear();
+    const visitor = await (await post(audioForm())).json();
+    expect(visitor.xp).toBe(0);
+    expect(saveRep).not.toHaveBeenCalled();
+  });
+});
+
 describe("judged-analysis metering", () => {
   it("returns the measured tier and no coach once the cap is hit", async () => {
     coachedFixture();

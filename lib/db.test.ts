@@ -160,7 +160,60 @@ describe("saveRep", () => {
   });
 
   it("pays no XP to a take with no account", async () => {
-    await saveRep(params({ userId: undefined }));
+    const saved = await saveRep(params({ userId: undefined }));
+    expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
+    expect(saved?.xp).toBe(0);
+  });
+
+  it("says what it paid, so the server's answer can say it too", async () => {
+    expect((await saveRep(params()))?.xp).toBe(10);
+    expect((await saveRep(params({ mods: ["tight"], xpMultiplier: 1.5 })))?.xp).toBe(15);
+  });
+});
+
+/*
+ * #510, Timothy 18 Nov, on "a recording with no stars still earns 10 XP":
+ * "drop it". Every way a recording is stored goes through saveRep, so
+ * this is every path: the daily, a lesson, the boss, a game round,
+ * Hostile Q&A, an upload. Each, with no star, writes no XP row.
+ */
+describe("saveRep, the XP of a take of no stars (#510)", () => {
+  const zero = { ...(metrics as object), stars: 0 } as unknown as Parameters<typeof saveRep>[0]["metrics"];
+  const paths: [string, Partial<Parameters<typeof saveRep>[0]>][] = [
+    ["Today's practice", { mode: "daily", lessonId: "topic:t12:pause" }],
+    ["a lesson", { mode: "daily", lessonId: "lesson:the-landing:1" }],
+    ["the weekly boss", { mode: "boss", lessonId: "boss:crispr", xpMultiplier: 1, bossTopicId: "crispr" }],
+    ["a game round", { mode: "daily", lessonId: "game:qa:qa3", mods: ["interrupt"], xpMultiplier: 2 }],
+    ["Hostile Q&A", { mode: "daily", lessonId: "hostile-take" }],
+    ["an upload", { mode: "daily" }],
+  ];
+
+  for (const [name, extra] of paths) {
+    it(`pays nothing on ${name}, and stores the recording as before`, async () => {
+      const saved = await saveRep(params({ ...extra, metrics: zero, ethosIndex: null }));
+      expect(saved?.id).toBe("rep-1");
+      expect(saved?.xp).toBe(0);
+      expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
+      expect(inserts.filter((i) => i.table === "reps")).toHaveLength(1);
+    });
+
+    it(`pays ${name} as before once it earns a star`, async () => {
+      const one = { ...(metrics as object), stars: 1 } as unknown as Parameters<typeof saveRep>[0]["metrics"];
+      const saved = await saveRep(params({ ...extra, metrics: one }));
+      const row = inserts.find((i) => i.table === "xp_events")!.row;
+      expect(row.amount).toBe(Math.round(10 * (extra.xpMultiplier ?? 1)));
+      expect(saved?.xp).toBe(row.amount);
+    });
+  }
+
+  it("reads the measured stars, not the 1 a table before 0035 stores for a 0", async () => {
+    repAnswer = (row) =>
+      row.stars === 0
+        ? { data: null, error: { code: "23514", message: 'new row for relation "reps" violates check constraint "reps_stars_check"' } }
+        : { data: { id: "rep-0" }, error: null };
+    const saved = await saveRep(params({ metrics: zero, ethosIndex: null }));
+    expect(inserts.filter((i) => i.table === "reps").map((i) => i.row.stars)).toEqual([0, 1]);
+    expect(saved?.xp).toBe(0);
     expect(inserts.some((i) => i.table === "xp_events")).toBe(false);
   });
 
@@ -250,7 +303,7 @@ describe("saveRep and the coach's upgrade", () => {
 
   it("stores a coached take with no upgrade, pays its XP and writes no lexicon row", async () => {
     const saved = await saveRep(params({ coach: coach(null) }));
-    expect(saved).toEqual({ id: "rep-1", audioPath: expect.any(String) });
+    expect(saved).toEqual({ id: "rep-1", audioPath: expect.any(String), xp: 10 });
     const rep = inserts.find((i) => i.table === "reps")!.row;
     expect(rep.supply).toBeNull();
     expect(rep.focus).toBe("Hold a pause.");
@@ -381,6 +434,68 @@ describe("saveRep and a game round (0026)", () => {
     expect(reps).toHaveLength(3);
     expect(Object.keys(reps[2].row)).not.toContain("round");
     expect(Object.keys(reps[2].row)).not.toContain("client_id");
+  });
+
+  /*
+   * 0037 (#511): what the stored transcript's words came to, so the lists
+   * read three numbers in its place and answer what they answered from it.
+   */
+  it("stores what its transcript's words came to: its verdict, its words, its different words", async () => {
+    const said = Array.from({ length: 30 }, (_, i) => `w${i % 12}`).join(" ");
+    await saveRep(params({ transcript: said }));
+    const row = inserts.find((i) => i.table === "reps")!.row;
+    expect([row.scorable, row.word_count, row.distinct_words]).toEqual([true, 30, 12]);
+    inserts = [];
+    await saveRep(params({ transcript: "too short" }));
+    const thin = inserts.find((i) => i.table === "reps")!.row;
+    expect([thin.scorable, thin.word_count, thin.distinct_words]).toEqual([false, 2, 2]);
+  });
+
+  /*
+   * The #511 review: whisper-1's text and its word list are two answers
+   * (lib/__fixtures__/whisper-take.ts: "Twenty" in one is "20" in the
+   * other, and a word can be in the text and not the list). The engine
+   * scores the list; every reader judged a stored row by its transcript
+   * until now, and the stored page, 0037's fill and the per-row fallback
+   * still do. A row the server writes from the list read differently
+   * through the columns than through its own transcript: here a take of
+   * twenty different words whose list dropped one was stored "not
+   * scorable, 19 words", where every reader before #511 said scored.
+   */
+  it("reads the same through its columns as through its transcript when Whisper's two answers differ", async () => {
+    const { computeMetrics, substance, isScorable } = await import("./metrics");
+    const { whisperTake } = await import("./__fixtures__/whisper-take");
+    const { rowScorable, rowSubstance } = await import("./rep-substance");
+    const take = whisperTake([
+      { text: "So the thing I keep {really|} noticing is how every small habit we choose quietly compounds into who we become." },
+    ]);
+    const m = computeMetrics(take.words, take.durationS, take.segments);
+    // The two answers part on exactly the line that decides "scored".
+    expect(m.substance.wordCount).toBe(19);
+    expect(substance(take.text).wordCount).toBe(20);
+    expect(isScorable(substance(take.text))).toBe(true);
+
+    await saveRep(params({ transcript: take.text, metrics: m }));
+    const row = inserts.find((i) => i.table === "reps")!.row as Record<string, number | boolean | null>;
+    const columns = { scorable: row.scorable as boolean, word_count: row.word_count as number, distinct_words: row.distinct_words as number };
+    expect(rowScorable(columns)).toBe(rowScorable({ transcript: take.text }));
+    expect(rowSubstance(columns)).toEqual(rowSubstance({ transcript: take.text }));
+    // What it pays still follows the stars the engine gave it (#510).
+    expect(row.stars).toBe(m.stars);
+  });
+
+  it("stores the recording without the three in one more insert on a table before 0037", async () => {
+    const { substance } = await import("./metrics");
+    tableWithout(["word_count", "scorable", "distinct_words"]);
+    const saved = await saveRep(
+      params({ clientId: "k1", round, metrics: { ...(metrics as object), substance: substance("a b c") } as unknown as Parameters<typeof saveRep>[0]["metrics"] })
+    );
+    expect(saved?.id).toBe("rep-1");
+    const reps = inserts.filter((i) => i.table === "reps");
+    expect(reps).toHaveLength(2);
+    for (const c of ["scorable", "word_count", "distinct_words"]) expect(c in reps[1].row).toBe(false);
+    expect(reps[1].row.client_id).toBe("k1");
+    expect(reps[1].row.round).toEqual(round);
   });
 
   it("never retries a taken key as a missing column", async () => {

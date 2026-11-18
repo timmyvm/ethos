@@ -580,6 +580,64 @@ await expectOk("a table made later gives the browser nothing", async () => {
     q(`insert into public.say_better (user_id, swap, due) values ('${A}', 'c:' || repeat('a', 2000000), current_date)`)));
 }
 
+// 0037: what each recording's words came to (#511). Three nullable
+// columns on reps, filled from each row's transcript where empty: the
+// file runs twice, a row the server already wrote keeps its own verdict,
+// and row level security on reps is what it was before the file (the
+// policy, the switch, the browser's grants). lib/migrations.test.ts
+// proves the fill equals lib/metrics.ts substance over generated text.
+{
+  const before = await migrated(36, { quiet: true });
+  const rls = async (pg) => JSON.stringify({
+    policies: (await pg.query("select policyname, cmd, qual, with_check, roles from pg_policies where tablename = 'reps' order by 1")).rows,
+    on: (await pg.query("select relrowsecurity, relforcerowsecurity from pg_class where oid = 'public.reps'::regclass")).rows,
+    grants: (await pg.query("select grantee, privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name = 'reps' and grantee in ('anon', 'authenticated', 'public') order by 1, 2")).rows,
+  });
+  const was = await rls(before);
+  await before.exec(readFileSync(`${DIR}/0037_reps_scorable_words.sql`, "utf8"));
+  await before.exec(readFileSync(`${DIR}/0037_reps_scorable_words.sql`, "utf8"));
+  await expectOk("0037 runs twice and leaves row level security on reps as it was", async () => {
+    const now = await rls(before);
+    if (now !== was) throw new Error(`${was}\n!=\n${now}`);
+    return "policies, switch and grants unchanged";
+  });
+  await before.close();
+  console.log("applied 0037 again");
+
+  await expectOk("0037's columns: scorable boolean, word_count and distinct_words integer, all nullable", async () => {
+    const r = await q(`select column_name, data_type, is_nullable from information_schema.columns
+      where table_schema = 'public' and table_name = 'reps' and column_name in ('scorable', 'word_count', 'distinct_words') order by 1`);
+    const got = r.rows.map((c) => `${c.column_name}:${c.data_type}:${c.is_nullable}`).join(",");
+    if (got !== "distinct_words:integer:YES,scorable:boolean:YES,word_count:integer:YES") throw new Error(got);
+    return got;
+  });
+  // A's and B's rows went in after 0037 ran, as an older server's would; one
+  // more takes the server's own verdict; then the file runs again.
+  const said = Array.from({ length: 24 }, (_, i) => `word${i}`).join(" ");
+  await ex(`insert into public.reps (user_id, duration_s, transcript, wpm, filler_count, stars, client_id, scorable, word_count, distinct_words)
+    values ('${A}', 60, 'I don''t know. I don''t know. I don''t know. I don''t know. I don''t know. I don''t know. I don''t know.', 140, 0, 0, 'k-a2', null, null, null),
+           ('${A}', 60, '${said}', 140, 0, 2, 'k-a3', null, null, null),
+           ('${B}', 60, 'hello', 150, 0, 2, 'k-b2', true, 150, 90);`);
+  await ex(readFileSync(`${DIR}/0037_reps_scorable_words.sql`, "utf8"));
+  await expectOk("0037 fills the rows it finds empty, by substance, and none it does not", async () => {
+    const r = await q(`select client_id, scorable, word_count, distinct_words from public.reps where client_id in ('k-a1', 'k-a2', 'k-a3', 'k-b2') order by client_id`);
+    const got = r.rows.map((x) => `${x.client_id}:${x.scorable}:${x.word_count}:${x.distinct_words}`).join(",");
+    // "hello": 1 word; "I don't know" seven times: 21 words, 3 different (0.143);
+    // 24 different words: a real answer; k-b2 keeps what the server wrote.
+    if (got !== "k-a1:false:1:1,k-a2:false:21:3,k-a3:true:24:24,k-b2:true:150:90") throw new Error(got);
+    return got;
+  });
+  await expectOk("A reads 0037's columns on its own rows only", () => as("authenticated", A, async () => {
+    const r = await q("select user_id, scorable, word_count from public.reps order by client_id");
+    if (r.rows.some((x) => x.user_id !== A) || r.rows.length !== 3) throw new Error(JSON.stringify(r.rows));
+    return `${r.rows.length} rows`;
+  }));
+  await expectRefused("the browser writes 0037's columns", () => as("authenticated", A, () =>
+    q(`update public.reps set scorable = true, word_count = 999 where user_id = '${A}' returning id`)));
+  await expectRefused("anon writes 0037's columns", () => as("anon", null, () =>
+    q("update public.reps set scorable = true returning id")));
+}
+
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);
 await expectOk("A's account removal takes its tester rows", async () => {

@@ -15,6 +15,7 @@ import { cleanName } from "./answers";
 import { practiceRow, type Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
 import type { RepRow } from "./client-data";
+import type { SubstanceRow } from "./rep-substance";
 import { ART_BOUNDS } from "./lesson-art-bounds";
 import { choosePractice, type Chosen } from "./next-practice";
 import { repHref } from "./rep-config";
@@ -247,7 +248,7 @@ export const RUN_NAME = "Longest with no filler";
  * too short to score is not a clean run: one word in 8s read "8s, of
  * 8s". None until a recording scores.
  */
-export function runFigure(reps: Pick<RepRow, "fillers" | "duration_s" | "transcript">[]): FootFigure {
+export function runFigure(reps: (Pick<RepRow, "fillers" | "duration_s"> & SubstanceRow)[]): FootFigure {
   const kept = reps.filter(measured);
   if (kept.length === 0) {
     const label = `${RUN_NAME}: your first recording sets it`;
@@ -305,11 +306,16 @@ export function dayTurned(loadedAt: Date | null, now: Date): boolean {
  */
 export const FALLBACK_TOPIC_ID = "t2";
 
-/** The columns a practice is chosen from: what `readTraitsFromRow` and `measured` read. */
+/**
+ * The columns a practice is chosen from: what `readTraitsFromRow` and
+ * `measured` read. Its substance is 0037's three columns, or the
+ * transcript on a row without them (#511, lib/rep-substance.ts).
+ */
 export type PracticeRow = Pick<
   RepRow,
-  "created_at" | "duration_s" | "transcript" | "wpm" | "filler_count" | "fillers" | "pauses" | "dimensions"
->;
+  "created_at" | "duration_s" | "wpm" | "filler_count" | "fillers" | "pauses" | "dimensions"
+> &
+  SubstanceRow;
 
 /**
  * Today's practice: the one selector (#268) on the newest measured
@@ -472,7 +478,7 @@ export function usedModsLately(reps: Pick<RepRow, "created_at" | "mods">[], now:
  * nearest ten seconds, 30 to 90 (the daily cap). Under three, 60: the
  * daily take's middle. A number from their own recordings, not a promise.
  */
-export function aboutSeconds(reps: Pick<RepRow, "duration_s" | "transcript" | "lesson_id" | "mode">[]): number {
+export function aboutSeconds(reps: (Pick<RepRow, "duration_s" | "lesson_id" | "mode"> & SubstanceRow)[]): number {
   const takes = reps
     .filter((r) => r.mode === "daily" && !(r.lesson_id ?? "").startsWith("game:") && measured(r))
     .slice(-7)

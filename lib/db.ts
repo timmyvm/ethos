@@ -14,11 +14,12 @@ import type { CoachOutput } from "./coach";
 import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { MeterState } from "./metering";
-import type { RepMetrics } from "./metrics";
+import { substance, type RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
-import { xpPaid } from "./xp";
+import { xpForTake } from "./xp";
+import { SUBSTANCE_COLUMNS, substanceColumns } from "./rep-substance";
 
 export function supabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -246,10 +247,13 @@ async function storedPremium(userId: string | null): Promise<boolean> {
 
 /**
  * Columns a recording is stored without when the table lacks them yet,
- * because their migrations are applied by hand: the outbox key (0016) and
- * a game's round (0026). Losing either is better than losing the take.
+ * because their migrations are applied by hand: the outbox key (0016), a
+ * game's round (0026), and what its words came to (0037, #511: the three
+ * go together, so a table before 0037 costs one more insert, not three).
+ * Losing any is better than losing the take; the readers re-read a row
+ * without 0037's columns from its transcript (lib/rep-substance.ts).
  */
-const OPTIONAL_COLUMNS = ["client_id", "round"] as const;
+const OPTIONAL_COLUMNS: readonly (readonly string[])[] = [["client_id"], ["round"], SUBSTANCE_COLUMNS];
 
 /**
  * The reps table's check refused a take of 0 stars (#504): Postgres's
@@ -266,6 +270,12 @@ export interface SavedRep {
   /** The recording was already stored under its key (a resend): this is
    *  that row, and nothing was written twice. */
   duplicate?: boolean;
+  /**
+   * The account XP this save paid (#510, lib/xp.ts `xpForTake`): 0 for a
+   * take that earned no star, for a take with no account and for a
+   * resend. The server's answer says it, so no screen says another.
+   */
+  xp?: number;
 }
 
 /**
@@ -409,16 +419,22 @@ export async function saveRep(params: {
     ...row,
     ...(params.clientId ? { client_id: params.clientId } : {}),
     ...(params.round ? { round: params.round } : {}),
+    /* What its transcript's words came to (0037, #511), by the rule every
+       reader ran on the stored transcript until now, so the columns read
+       the same as the text they stand in for. Not `metrics.substance`:
+       the engine counts Whisper's word list, which can part from its
+       text ("Twenty" and "20", a word in one and not the other). */
+    ...(substanceColumns(substance(transcript)) ?? {}),
   };
   let { data, error } = await insert(attempt);
-  // Once per optional column at most; a taken key (23505) is not a missing column.
+  // Once per optional group at most; a taken key (23505) is not a missing column.
   for (let tries = 0; tries < OPTIONAL_COLUMNS.length && error && error.code !== "23505"; tries++) {
     const message = error.message;
-    const missing = OPTIONAL_COLUMNS.find(
-      (k) => k in attempt && new RegExp(`\\b${k}\\b`).test(message)
+    const missing = OPTIONAL_COLUMNS.find((group) =>
+      group.some((k) => k in attempt && new RegExp(`\\b${k}\\b`).test(message))
     );
     if (!missing) break;
-    attempt = Object.fromEntries(Object.entries(attempt).filter(([k]) => k !== missing));
+    attempt = Object.fromEntries(Object.entries(attempt).filter(([k]) => !missing.includes(k)));
     ({ data, error } = await insert(attempt));
   }
   // A take that earned no star (#504) on a table whose check still says
@@ -455,15 +471,21 @@ export async function saveRep(params: {
     );
   }
 
-  if (params.userId) {
-    // Difficulty multiplies EFFORT credit only. Stars and the Index are
-    // untouched by mods (DECISIONS #10, #16). XP is the effort currency
-    // (DECISIONS #16), and every stored take pays it, Today's practice
-    // and a lesson's alike: lib/xp.ts holds the one figure (#485).
+  /*
+   * Difficulty multiplies EFFORT credit only. Stars and the Index are
+   * untouched by mods (DECISIONS #10, #16). XP is the effort currency
+   * (DECISIONS #16), and every stored take that earns a star pays it,
+   * Today's practice and a lesson's alike: lib/xp.ts holds the one figure
+   * (#485). A take that earns none, too short or too thin to score
+   * (#504), pays nothing and writes no XP row (#510). The measured stars,
+   * never `attempt.stars`, which a table before 0035 holds at 1.
+   */
+  const xp = params.userId ? xpForTake(metrics.stars, params.xpMultiplier ?? 1) : 0;
+  if (params.userId && xp > 0) {
     writes.push(
       db.from("xp_events").insert({
         user_id: params.userId,
-        amount: xpPaid(params.xpMultiplier ?? 1),
+        amount: xp,
         source:
           params.mode === "boss"
             ? "boss"
@@ -478,5 +500,5 @@ export async function saveRep(params: {
   }
   await Promise.all(writes);
 
-  return { id: data.id, audioPath };
+  return { id: data.id, audioPath, xp };
 }

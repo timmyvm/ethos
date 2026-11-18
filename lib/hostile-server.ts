@@ -9,14 +9,44 @@ import Anthropic from "@anthropic-ai/sdk";
 import { MAX_COACH_SENTENCES, splitSentences } from "./coach";
 import {
   FALLBACK_QUESTIONS as FALLBACKS,
-  HostileVerdictSchema,
-  QuestionSchema,
+  VERDICT_BOUNDS,
   quoteAppears,
   validateHostileVerdict,
   type HostileContext,
   type HostileQuestion,
   type HostileVerdict,
 } from "./hostile";
+import { z } from "./zod";
+
+/*
+ * The model's answers are checked here, on the server, at the trust
+ * boundary (#508 moved them out of lib/hostile.ts, which the browser
+ * loads, so zod never reaches the phone).
+ */
+export const QuestionSchema = z.object({
+  quoted: z.string().min(4).max(160),
+  question: z.string().min(8).max(200),
+});
+
+const VerdictDimensionSchema = z.object({
+  score: z.number().int().min(0).max(100),
+  citedMoment: z.string().min(VERDICT_BOUNDS.citedMoment[0]).max(VERDICT_BOUNDS.citedMoment[1]),
+  improve: z.string().min(VERDICT_BOUNDS.improve[0]).max(VERDICT_BOUNDS.improve[1]),
+});
+
+export const HostileVerdictSchema = z.object({
+  held: VerdictDimensionSchema,
+  answered: VerdictDimensionSchema,
+  composed: VerdictDimensionSchema,
+  coachLine: z.string().min(VERDICT_BOUNDS.coachLine[0]).max(VERDICT_BOUNDS.coachLine[1]),
+});
+
+/* The schemas and the shared interfaces must describe one shape. */
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+const _question: Same<z.infer<typeof QuestionSchema>, HostileQuestion> = true;
+const _verdict: Same<z.infer<typeof HostileVerdictSchema>, HostileVerdict> = true;
+void _question;
+void _verdict;
 
 const QUESTION_JSON = {
   type: "object" as const,

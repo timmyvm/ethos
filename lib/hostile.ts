@@ -7,15 +7,17 @@
  * This module is imported by the CLIENT page as well as the server, so
  * it holds only prompts, shapes and pure validation. The Claude calls
  * live in lib/hostile-server.ts — importing the SDK from here would
- * bundle node built-ins into the browser build.
+ * bundle node built-ins into the browser build. So do the zod schemas
+ * that check the model's answers (#508): zod is 90 KB on the wire and
+ * Today, the Log, the recorder and the introduction all reach this file
+ * for its constants. The browser reads a stored verdict with the
+ * hand-written guard below, which keeps the schema's bounds.
  *
  * Adversarial is not abusive (mechanics.md): Demos challenges the
  * argument, never the person, and every question must quote the speaker
  * verbatim — the same no-horoscope contract the coach call runs under
  * (DECISIONS #19).
  */
-
-import { z } from "./zod";
 
 export interface HostilePrompt {
   id: string;
@@ -154,27 +156,35 @@ export interface HostileRound {
   midSentencePauses: number;
 }
 
-export const QuestionSchema = z.object({
-  quoted: z.string().min(4).max(160),
-  question: z.string().min(8).max(200),
-});
+/**
+ * The model's question, as lib/hostile-server.ts `QuestionSchema` checks
+ * it: `quoted` 4 to 160 characters, `question` 8 to 200.
+ */
+export interface HostileQuestion {
+  quoted: string;
+  question: string;
+}
 
-export type HostileQuestion = z.infer<typeof QuestionSchema>;
+/** The bounds the verdict is held to, here and in `HostileVerdictSchema` (lib/hostile-server.ts). */
+export const VERDICT_BOUNDS = {
+  citedMoment: [4, 240],
+  improve: [4, 200],
+  coachLine: [4, 240],
+} as const;
 
-const VerdictDimensionSchema = z.object({
-  score: z.number().int().min(0).max(100),
-  citedMoment: z.string().min(4).max(240),
-  improve: z.string().min(4).max(200),
-});
+/** One judged dimension: a score out of 100, the quote it cites, one way up. */
+export interface HostileVerdictDimension {
+  score: number;
+  citedMoment: string;
+  improve: string;
+}
 
-export const HostileVerdictSchema = z.object({
-  held: VerdictDimensionSchema,
-  answered: VerdictDimensionSchema,
-  composed: VerdictDimensionSchema,
-  coachLine: z.string().min(4).max(240),
-});
-
-export type HostileVerdict = z.infer<typeof HostileVerdictSchema>;
+export interface HostileVerdict {
+  held: HostileVerdictDimension;
+  answered: HostileVerdictDimension;
+  composed: HostileVerdictDimension;
+  coachLine: string;
+}
 
 /** Where the interrogation stands, for prompt building. */
 export interface HostileContext {
@@ -266,18 +276,48 @@ export function hostileRecord(
   };
 }
 
-const HostileRecordSchema = z.object({
-  v: z.literal(1),
-  game: z.literal("hostile"),
-  claimId: z.string(),
-  verdict: HostileVerdictSchema,
-  questions: z.array(z.object({ question: z.string(), quoted: z.string() })),
-});
+const isObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** A stored `reps.round` read back as Hostile's verdict, or null when it is anything else. */
+const sized = (v: unknown, [min, max]: readonly [number, number]): v is string =>
+  typeof v === "string" && v.length >= min && v.length <= max;
+
+/** A judged dimension within the schema's bounds, copied field by field (nothing else rides along). */
+function dimensionOf(v: unknown): HostileVerdictDimension | null {
+  if (!isObject(v)) return null;
+  const { score, citedMoment, improve } = v;
+  if (typeof score !== "number" || !Number.isInteger(score) || score < 0 || score > 100) return null;
+  if (!sized(citedMoment, VERDICT_BOUNDS.citedMoment) || !sized(improve, VERDICT_BOUNDS.improve)) return null;
+  return { score, citedMoment, improve };
+}
+
+/** A verdict within the schema's bounds, or null. */
+export function hostileVerdictOf(v: unknown): HostileVerdict | null {
+  if (!isObject(v)) return null;
+  const held = dimensionOf(v.held);
+  const answered = dimensionOf(v.answered);
+  const composed = dimensionOf(v.composed);
+  if (!held || !answered || !composed || !sized(v.coachLine, VERDICT_BOUNDS.coachLine)) return null;
+  return { held, answered, composed, coachLine: v.coachLine };
+}
+
+/**
+ * A stored `reps.round` read back as Hostile's verdict, or null when it
+ * is anything else. A plain guard, not zod (#508): it answers what the
+ * schema it replaced answered (lib/hostile-record.test.ts holds the two
+ * side by side), and returns only the record's own fields.
+ */
 export function hostileRecordOf(round: unknown): HostileRecord | null {
-  const parsed = HostileRecordSchema.safeParse(round);
-  return parsed.success ? parsed.data : null;
+  if (!isObject(round) || round.v !== 1 || round.game !== "hostile") return null;
+  if (typeof round.claimId !== "string" || !Array.isArray(round.questions)) return null;
+  const verdict = hostileVerdictOf(round.verdict);
+  if (!verdict) return null;
+  const questions: HostileRecord["questions"] = [];
+  for (const q of round.questions) {
+    if (!isObject(q) || typeof q.question !== "string" || typeof q.quoted !== "string") return null;
+    questions.push({ question: q.question, quoted: q.quoted });
+  }
+  return { v: 1, game: "hostile", claimId: round.claimId, verdict, questions };
 }
 
 /** A recording's id as the client sends it back: a uuid, or anything short and plain. */

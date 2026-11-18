@@ -6,7 +6,7 @@ import { FooterShelf } from "@/components/ui/FooterShelf";
 import { TapTick } from "@/components/ui/TapTick";
 import { DURATION, EASE_OUT } from "@/lib/motion";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
-import { playCelebration } from "@/lib/sfx";
+import { playSound } from "@/lib/sound";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
 import {
   freezeLine,
@@ -34,24 +34,22 @@ const WEEKDAY = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturd
  * largest number step, this week's row from Today's Days spoken tile,
  * one line, and the page's one tap. On its clock (lib/streak-moment.ts
  * `momentTimeline`): the screen arrives with the flame unlit and the
- * count at yesterday's number; the flame lights as the chime starts; on
- * the chime's landing note the count rolls to today's like an odometer
+ * count at yesterday's number; the flame lights as its sound starts
+ * (#505: the flame catching, the chime climbing, the odometer's clicks);
+ * on the chime's landing note the count rolls to today's like an odometer
  * (only the places that change turn, #226) and today's day fills; then
  * the line. Every movement is a Web Animation started on the first
  * frame, so a camera can pause and seek it. Reduced motion draws the
- * end: the flame lit, today's count, the day filled, no roll; the chime
- * still sounds (it has its own switch).
+ * end: the flame lit, today's count, the day filled, no roll; the sound
+ * still plays (it has its own switch).
  *
  * Nothing waits on it: Continue is live from the first frame.
  */
 export function StreakMoment({
   moment,
-  quiet = false,
   onContinue,
 }: {
   moment: StreakMomentView;
-  /** The take's round already chimed (lib/rep-screen.ts `streakChimes`): one sound a take. */
-  quiet?: boolean;
   onContinue: () => void;
 }) {
   // Read once: the moment must not change course midway.
@@ -75,10 +73,10 @@ export function StreakMoment({
   }, []);
 
   /* The sound starts as the flame lights; the haptic lands with the roll.
-     Mount only: a re-render never rings it again. */
+     Its own sound whatever else the take played (#505: each moment has
+     one). Mount only: a re-render never rings it again. */
   useEffect(() => {
-    if (quiet) return;
-    const ring = setTimeout(() => playCelebration(moment.milestone), calm ? 0 : time.lightAt);
+    const ring = setTimeout(() => playSound(moment.milestone ? "streak-milestone" : "streak"), calm ? 0 : time.lightAt);
     const land = calm ? null : setTimeout(() => buzz(30), time.rollAt);
     return () => {
       clearTimeout(ring);

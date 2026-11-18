@@ -8,6 +8,8 @@ import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
 import { DURATION } from "@/lib/motion";
+import { glanceCues, type GlanceWin } from "@/lib/sound-recipes";
+import { useSoundCues } from "@/lib/use-sound-cues";
 import { MomentChip } from "@/components/rep/MomentChip";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
@@ -156,6 +158,7 @@ export function RepResult({
   sheet = null,
   moment = false,
   rulesNote = null,
+  sounds = null,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -263,6 +266,13 @@ export function RepResult({
    * recording never sets this.
    */
   rulesNote?: string | null;
+  /**
+   * On the live glance: what the take won beyond its stars, for its
+   * sounds (#505, lib/sound-recipes.ts `glanceCues`). A ding as each star
+   * lands, the payout on three, then the take's biggest moment. A stored
+   * recording never sets this: a sound is for the moment it was earned.
+   */
+  sounds?: Omit<GlanceWin, "stars"> | null;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -333,6 +343,12 @@ export function RepResult({
     const t = setTimeout(() => setCounting(true), lead);
     return () => clearTimeout(t);
   }, [waiting, counting, lead]);
+  /* The glance's sounds (#505), on the stars' own clock, once they go. */
+  useSoundCues(
+    glancing && timed && !waiting && sounds
+      ? glanceCues({ ...sounds, stars: m.stars }, { landAfter, starStep: STAR_STEP_MS, starMs: STAR_MS, reduced })
+      : null
+  );
   const bubbleAt = timed && !reduced ? starsDone + (celebrate ? 240 : 0) : 0;
   const [celebrating, setCelebrating] = useState(false);
   useEffect(() => {

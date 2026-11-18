@@ -1,7 +1,7 @@
 /**
  * The pop under each chunk of a streamed line (#475, Timothy: "every
  * stream is like pop, like that stream text sound"). Synthesised, as
- * the celebration chime is (lib/sfx.ts): no audio file, nothing fetched.
+ * the app's sound kit is (lib/sound.ts): no audio file, nothing fetched.
  *
  * A pop is a sine a few milliseconds up and about forty down, its pitch
  * falling a little as it goes, which is what makes it round rather than

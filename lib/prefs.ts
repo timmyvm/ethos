@@ -49,7 +49,7 @@ export interface Prefs {
    * takes a reload.
    */
   followTextSize: boolean;
-  /** Synthesized celebration sound (lib/sfx.ts). Never fires mid-rep. */
+  /** The sound kit (lib/sound.ts, #505): stars, wins, the streak. Never while a mic is open. */
   sound: boolean;
   verbatim: boolean;
   /** Optional 30s think-time before the rep (DECISIONS #35). */

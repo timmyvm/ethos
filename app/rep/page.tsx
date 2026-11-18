@@ -133,11 +133,10 @@ import {
   exitBeat,
   recordCue,
   roundChimes,
-  streakChimes,
   takeRewards,
   thinksFirst,
 } from "@/lib/rep-screen";
-import { playCelebration, unlockSfx } from "@/lib/sfx";
+import { unlockSound } from "@/lib/sound";
 import { holdAwake } from "@/lib/wake-lock";
 import { computeStreak } from "@/lib/streak";
 import { nextDrill } from "@/lib/drills";
@@ -658,9 +657,6 @@ function RepScreen() {
   const [owedMoment, setOwedMoment] = useState<StreakMomentView | null>(null);
   /** Where the idle screen's back was going when it stopped for an owed moment. */
   const [idleExit, setIdleExit] = useState<string | null>(null);
-  /* This take's reveal played the round's one sound (F5): the streak's
-     moment on the way out shows quiet (games review, finding 6). */
-  const [roundChimed, setRoundChimed] = useState(false);
   /** Demos's line while he cuts in (F1); null while he listens. */
   const [cutIn, setCutIn] = useState<string | null>(null);
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
@@ -1376,11 +1372,10 @@ function RepScreen() {
     setError(null);
     setMicBlock(null);
     setSeconds(0);
-    setRoundChimed(false);
     // The Rec tap is the gesture that licenses audio for the whole
-    // session — the celebration chime minutes from now rides on it.
-    // The chime itself never plays while the mic is hot (lib/sfx.ts).
-    unlockSfx();
+    // session: the stars' sounds minutes from now ride on it (#505).
+    // No sound ever plays while the mic is hot (lib/sound.ts).
+    unlockSound();
     const cfg = configRef.current;
     let wantsVideo = captureModeRef.current === "voice_video";
     /* What this start has opened so far (#412): a throw after the device
@@ -2023,9 +2018,7 @@ function RepScreen() {
           startedAt={takeStartedAt.current}
           walkRows={walkRows}
           streakMoment={owedMoment}
-          streakQuiet={!streakChimes({ roundChimed })}
           onStreakShown={() => setOwedMoment(null)}
-          onChime={() => setRoundChimed(true)}
           onUpgrade={setPaywall}
           onRetake={retake}
         />
@@ -2143,7 +2136,6 @@ function RepScreen() {
     return (
       <StreakMoment
         moment={owedMoment}
-        quiet={!streakChimes({ roundChimed })}
         /* It stays drawn until the page it hands on to arrives (shown is
            already marked), so the recorder never flashes back between. */
         onContinue={() => router.push(idleExit)}
@@ -2875,9 +2867,7 @@ function Results({
   startedAt,
   walkRows,
   streakMoment: owedStreak,
-  streakQuiet,
   onStreakShown,
-  onChime,
   onUpgrade,
   onRetake,
 }: {
@@ -2918,12 +2908,8 @@ function Results({
   walkRows: { before: GameRoundRow[]; now: GameRoundRow[] } | null;
   /** The streak's moment the screen owes (#480): played on the first exit that leaves. */
   streakMoment: StreakMomentView | null;
-  /** The take's round already chimed, so the moment shows quiet (one sound a take). */
-  streakQuiet: boolean;
   /** The moment has played: the screen owes it no longer. */
   onStreakShown: () => void;
-  /** The round's reveal played the round's one sound. */
-  onChime: () => void;
   onUpgrade: (ask: PaywallAsk) => void;
   onRetake: () => void;
 }) {
@@ -3239,10 +3225,11 @@ function Results({
   };
 
   /*
-   * The round's own reveal (F3) and its one sound (F5). Nothing rises
-   * over the glance since #480 (the streak's moment comes on the way
-   * out), so the reveal no longer waits for a celebration; the moment
-   * shows quiet when this reveal chimed, so the take has one sound.
+   * The round's own reveal (F3) and its buzz (F5). Nothing rises over
+   * the glance since #480 (the streak's moment comes on the way out), so
+   * the reveal no longer waits for a celebration. The round won has its
+   * own sound since #505, on the glance's clock after its stars
+   * (`glanceCues`), and the streak's moment keeps its own.
    */
   const chimed = useRef(false);
   const [revealed, setRevealed] = useState(false);
@@ -3257,8 +3244,6 @@ function Results({
       roundChimes({ win: reveal.win, played: chimed.current })
     ) {
       chimed.current = true;
-      onChime();
-      playCelebration(false);
       buzz([12, 40, 18]);
     }
   };
@@ -3289,7 +3274,7 @@ function Results({
         played
       />
     ) : null;
-  /* The round's one sound (F5) rides the glance's count now the card is
+  /* The round's buzz (F5) rides the glance's count now the card is
      behind the door: once the Index has counted, never twice. */
   const landedRef = useRef(landed);
   landedRef.current = landed;
@@ -3471,6 +3456,16 @@ function Results({
   const baseline = repCountBefore === 0;
   /* A moment: Demos takes his share of the glance's height first. */
   const bigMoment = earned || baseline || !!lessonLine || !!ladder?.moment;
+  /* What the take won beyond its stars, for its sounds (#505): a lesson
+     done, a level (a game's rung here; a trait's, #498, joins it), a
+     best, a round won, the week's boss. The stars are the take's own. */
+  const sounds = {
+    lessonDone: !!lessonLine,
+    level: !!ladder?.moment,
+    best: scorable && bests.length > 0,
+    roundWon: !!reveal?.win,
+    boss: config.kind === "boss" && scorable,
+  };
   const scoreWords =
     result.ethosIndex !== null
       ? [
@@ -3748,7 +3743,6 @@ function Results({
       <>
         <StreakMoment
           moment={streakTo.moment}
-          quiet={streakQuiet}
           onContinue={() => {
             onStreakShown();
             exit(streakTo.href, { leaves: true }, true);
@@ -3851,6 +3845,7 @@ function Results({
                 celebrate={earned || !!lessonLine}
                 moment={bigMoment}
                 take={take}
+                sounds={sounds}
               />
             </div>
           )}

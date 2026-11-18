@@ -123,29 +123,21 @@ export function takeRewards(p: {
 }
 
 /**
- * The round's one sound (F5, #34, #140): the daily chime and the landing
- * buzz when the reveal lands the game's one thing (Q&A held, Speed rush
- * or Interview landed). Never on a miss and never twice in a round. The
- * streak's moment comes after the results since #480, on the way out, so
- * the reveal no longer waits for it or gives way to it. The mic is torn
- * down by the results, so it can never reach a recording.
+ * The round's landing (F5, #140): the buzz when the reveal lands the
+ * game's one thing (Q&A held, Speed rush or Interview landed). Never on
+ * a miss and never twice in a round. Its sound is the glance's since
+ * #505 (`glanceCues`' "round", after the stars), and the streak's moment
+ * on the way out keeps its own: one take no longer has one sound, each
+ * moment has its own. The mic is torn down by the results, so neither
+ * can reach a recording.
  */
 export function roundChimes(p: {
   /** The reveal landed a win (`roundWon`). */
   win: boolean;
-  /** This round's reveal already chimed (a step back to the score). */
+  /** This round's reveal already landed (a step back to the score). */
   played: boolean;
 }): boolean {
   return p.win && !p.played;
-}
-
-/**
- * The other side of the take's one sound: the streak's moment on the way
- * out (#480) chimes unless the round on screen already did, so one take
- * never has two.
- */
-export function streakChimes(p: { roundChimed: boolean }): boolean {
-  return !p.roundChimed;
 }
 
 /**

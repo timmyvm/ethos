@@ -9,7 +9,6 @@ import {
   exitBeat,
   recordCue,
   roundChimes,
-  streakChimes,
   takeRewards,
   thinksFirst,
 } from "./rep-screen";
@@ -181,14 +180,6 @@ describe("roundChimes (F5)", () => {
     expect(roundChimes({ win: false, played: false })).toBe(false);
   });
 
-  it("keeps one sound a take: the streak's moment on the way out is quiet after the reveal chimed (#480)", () => {
-    // The reveal lands on the glance; the moment comes later, on the exit.
-    const round = roundChimes({ win: true, played: false });
-    expect(round).toBe(true);
-    expect(streakChimes({ roundChimed: round })).toBe(false);
-    // A take with no round (the daily practice, a lesson) keeps its chime for the moment.
-    expect(streakChimes({ roundChimed: false })).toBe(true);
-  });
 });
 
 describe("thinksFirst", () => {

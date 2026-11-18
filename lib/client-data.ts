@@ -120,6 +120,14 @@ function missingRoundColumn(error: { code?: string; message?: string } | null): 
 }
 
 /**
+ * This page load has heard the database answer 42703 for a 0037 column:
+ * every later list read asks the select from before it straight away, so
+ * the refused read is paid once a load, not once a read. A reload asks
+ * again, so the migration is picked up the next time the app opens.
+ */
+let before0037 = false;
+
+/**
  * A list's select, as far as this database has come: 0037's (`LIST_COLUMNS`)
  * when it has the columns, the select from before it (`REP_COLUMNS`, the
  * transcript and all) when it answers 42703 for one of them, each without
@@ -128,7 +136,7 @@ function missingRoundColumn(error: { code?: string; message?: string } | null): 
 async function readListed<T>(
   read: (columns: string) => PromiseLike<{ data: T | null; error: { code?: string; message?: string } | null }>
 ): Promise<{ data: T | null; error: { code?: string; message?: string } | null }> {
-  let substanceCols = true;
+  let substanceCols = !before0037;
   let round = true;
   for (;;) {
     const base = substanceCols ? LIST_COLUMNS : REP_COLUMNS;
@@ -136,6 +144,7 @@ async function readListed<T>(
     const answer = await read(columns);
     if (substanceCols && missingSubstanceColumn(answer.error)) {
       substanceCols = false;
+      before0037 = true;
       continue;
     }
     if (round && missingRoundColumn(answer.error)) {

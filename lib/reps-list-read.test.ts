@@ -155,14 +155,25 @@ describe("the lists' read before 0037", () => {
     expect(got.every((r) => typeof r.transcript === "string" && r.scorable === undefined)).toBe(true);
   });
 
+  it("pays the refused read once a page load: the next list read asks the old select straight away", async () => {
+    has0037 = false;
+    await read();
+    reads = [];
+    const got = await read();
+    expect(reads).toHaveLength(1);
+    expect(reads[0].select).toMatch(/\btranscript\b/);
+    expect(got.map((r) => measured(r))).toEqual([true, false, true]);
+  });
+
   it("goes back past 0026 too: no 0037 columns and no round", async () => {
     has0037 = false;
     hasRound = false;
     const got = await read();
-    // Whichever column Postgres names first, each step is taken once, and the
-    // read lands on the select from before 0026: the transcript, no round.
-    expect(reads).toHaveLength(3);
-    const last = reads[2].select;
+    // Whichever column Postgres names first, each step is taken once (the
+    // load already knows 0037 is missing), and the read lands on the select
+    // from before 0026: the transcript, no round.
+    expect(reads.length).toBeLessThanOrEqual(3);
+    const last = reads[reads.length - 1].select;
     expect(last).toMatch(/\btranscript\b/);
     expect(last).not.toMatch(/\b(round|scorable|word_count|distinct_words)\b/);
     expect(got).toHaveLength(3);

@@ -274,7 +274,9 @@ function mockSupabase(req, url, body) {
       fulfill: async (r) => {
         const h = Object.fromEntries(Object.entries(r.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
         if (r.contentType) h["content-type"] = r.contentType;
-        resolve({ status: r.status ?? 200, headers: h, body: Buffer.from(selected(url, r.body ?? "")) });
+        // PostgREST cuts a row to its columns; an error (a 42703) it sends as it is.
+        const status = r.status ?? 200;
+        resolve({ status, headers: h, body: Buffer.from(status < 300 ? selected(url, r.body ?? "") : r.body ?? "") });
       },
       continue: async () => resolve({ status: 204, headers: {}, body: Buffer.alloc(0) }),
       abort: async () => resolve({ status: 599, headers: {}, body: Buffer.alloc(0) }),

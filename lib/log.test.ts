@@ -123,6 +123,13 @@ describe("movedRows", () => {
     expect(pauses).toMatchObject({ label: "Pauses between sentences", unit: "in a recording", then: "2", now: "2", change: null, direction: "flat" });
   });
 
+  /* The review of #495: a take that only stopped mid-sentence has no
+     pause between sentences, so it reads 0, and down from one that had. */
+  it("reads 0 for a take whose every pause is mid-sentence", () => {
+    const [, , , pauses] = movedRows([rep({ pauses: held(1) }), rep({ pauses: held(5, "mid") })]);
+    expect(pauses).toMatchObject({ then: "1", now: "0", direction: "down" });
+  });
+
   /* A one-word 8s take printed pace 128 to 7 and fillers 9.3 to 0.0. */
   it("leaves a take too short to score out of the measurements", () => {
     const short = rep({ transcript: "Hello.", ethos_index: null, duration_s: 8.3, wpm: 7, filler_count: 0 });

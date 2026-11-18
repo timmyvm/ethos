@@ -39,6 +39,15 @@ describe("Today's object", () => {
     expect(readFileSync(path.join(root, "components/home/HomeHero.tsx"), "utf8")).toMatch(/srcSet=\{objectSrcSet\(id\)\}/);
   });
 
+  it("is the same file on the recorder's card, so Start's move never waits on a fetch", () => {
+    // The move into the recording waits for the topic card's object to
+    // load (components/rep/TopicCard.tsx topicCardArrival); a different
+    // cut there meant a fetch inside the tap (297 ms to 515 ms, #508).
+    const card = readFileSync(path.join(root, "components/rep/TopicCard.tsx"), "utf8");
+    expect(card).toMatch(/src=\{objectSrc\(art, true\)\}/);
+    expect(card).toMatch(/srcSet=\{objectSrcSet\(art\)\}/);
+  });
+
   it("changes no file the worker pre-caches (no CACHE to move)", () => {
     const sw = readFileSync(path.join(root, "public/sw.js"), "utf8");
     expect(sw).not.toMatch(/demos-768|lessons\/hero/);

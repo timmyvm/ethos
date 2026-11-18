@@ -535,3 +535,45 @@ describe("0034 carried cue", () => {
     expect(new TextEncoder().encode(JSON.stringify(longest)).length).toBeLessThan(2000 * 0.75);
   });
 });
+
+/**
+ * A take can earn no star (0035, DECISIONS #504). The column's check
+ * widens from 1 to 3 to 0 to 3, run on Postgres (PGlite) against the
+ * column exactly as 0001 made it, twice, and nothing stored moves.
+ */
+describe("0035 star zero", () => {
+  const sql = readFileSync(path.join(DIR, "0035_star_zero.sql"), "utf8");
+
+  it("rescores nothing: no update and no insert into reps", () => {
+    expect(code("0035_star_zero.sql")).not.toMatch(/\bupdate\b/i);
+    expect(code("0035_star_zero.sql")).not.toMatch(/\binsert\b/i);
+  });
+
+  it("widens the check to 0 to 3 and keeps every stored row as it was", async () => {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const db = new PGlite();
+    await db.exec(`
+      create table public.reps (
+        id serial primary key,
+        stars smallint not null check (stars between 1 and 3),
+        filler_count integer not null default 0 check (filler_count >= 0)
+      );
+      insert into public.reps (stars) values (1), (2), (3);
+    `);
+    await expect(db.query("insert into public.reps (stars) values (0)")).rejects.toThrow(/check/);
+    await db.exec(sql);
+    await db.exec(sql); // idempotent
+    await db.query("insert into public.reps (stars) values (0)");
+    await expect(db.query("insert into public.reps (stars) values (4)")).rejects.toThrow(/check/);
+    await expect(db.query("insert into public.reps (stars) values (-1)")).rejects.toThrow(/check/);
+    // Another check on the table, which names no stars, stays.
+    await expect(db.query("insert into public.reps (stars, filler_count) values (2, -1)")).rejects.toThrow(/check/);
+    const rows = await db.query<{ stars: number }>("select stars from public.reps order by id");
+    expect(rows.rows.map((r) => r.stars)).toEqual([1, 2, 3, 0]);
+    const checks = await db.query<{ conname: string }>(
+      "select conname from pg_constraint where conrelid = 'public.reps'::regclass and contype = 'c' order by conname"
+    );
+    expect(checks.rows.map((r) => r.conname)).toEqual(["reps_filler_count_check", "reps_stars_range"]);
+    await db.close();
+  }, 60_000);
+});

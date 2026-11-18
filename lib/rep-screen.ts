@@ -61,7 +61,7 @@ export function recordCue(p: {
 
 /**
  * The records and the closing line on the results walk. A take too short
- * to score measured nothing (NotScored: "1 star, nothing measured"), so
+ * to score measured nothing (and earns no star since #504), so
  * it breaks no record and its closing line reads no number off it: a
  * one-word take used to end on "Zero fillers, 5 seconds, clean." It ends
  * on the streak, or on the count.

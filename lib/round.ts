@@ -143,7 +143,7 @@ export const RUSH_MARGIN_S = 0.5;
 export const RUSH_OVERRUN_S = 1;
 /** Interview: the window your last word lands in. */
 export const INTERVIEW_WINDOW: [number, number] = [60, 89.5];
-/** Two stars or more (under 6 disfluencies a minute) for any round to count. */
+/** Two stars or more (the second goal: fewer slips than 11 a minute, #504) for any round to count. */
 export const MIN_STARS_TO_COUNT = 2;
 
 /** Is `at` a cut-in this take could have heard and answered? */

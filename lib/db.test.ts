@@ -12,6 +12,8 @@ let repInsert: { data: { id: string } | null; error: { code: string; message: st
   data: { id: "rep-1" },
   error: null,
 };
+/** A reps insert answered by its row (the check on stars, #504); null: `repInsert`. */
+let repAnswer: ((row: Record<string, unknown>) => typeof repInsert) | null = null;
 /** What a lookup by (user, client_id) finds. */
 let existing: { id: string } | null = null;
 /** What GoTrue answers for a token. */
@@ -41,7 +43,8 @@ function fakeClient() {
           inserts.push({ table, row });
           return {
             select: () => ({
-              single: async () => (table === "reps" ? repInsert : { data: { id: "x" }, error: null }),
+              single: async () =>
+                table === "reps" ? (repAnswer ? repAnswer(row) : repInsert) : { data: { id: "x" }, error: null },
             }),
             then: (ok: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(ok),
           };
@@ -87,7 +90,41 @@ beforeEach(() => {
   inserts = [];
   removed = [];
   repInsert = { data: { id: "rep-1" }, error: null };
+  repAnswer = null;
   existing = null;
+});
+
+/*
+ * #504: a take can earn no star. Until migration 0035 widens the column's
+ * check to 0 to 3, the table refuses a 0, and the take is stored at 1, as
+ * every take too thin to score was before, rather than lost.
+ */
+describe("saveRep, a take of no stars", () => {
+  const zero = { ...(metrics as object), stars: 0 } as unknown as Parameters<typeof saveRep>[0]["metrics"];
+  const checkSays = (row: Record<string, unknown>) =>
+    row.stars === 0
+      ? { data: null, error: { code: "23514", message: 'new row for relation "reps" violates check constraint "reps_stars_check"' } }
+      : { data: { id: "rep-0" }, error: null };
+
+  it("stores 0 where the check allows it", async () => {
+    const saved = await saveRep(params({ metrics: zero, ethosIndex: null }));
+    expect(saved?.id).toBe("rep-1");
+    expect(inserts.filter((i) => i.table === "reps").map((i) => i.row.stars)).toEqual([0]);
+  });
+
+  it("stores it at 1 on a table whose check still says 1 to 3", async () => {
+    repAnswer = checkSays;
+    const saved = await saveRep(params({ metrics: zero, ethosIndex: null }));
+    expect(saved?.id).toBe("rep-0");
+    expect(inserts.filter((i) => i.table === "reps").map((i) => i.row.stars)).toEqual([0, 1]);
+  });
+
+  it("never rewrites a take that earned stars, whatever the table says", async () => {
+    repAnswer = () => ({ data: null, error: { code: "23514", message: "violates check constraint \"reps_stars_check\"" } });
+    const saved = await saveRep(params());
+    expect(saved).toBeNull();
+    expect(inserts.filter((i) => i.table === "reps").map((i) => i.row.stars)).toEqual([2]);
+  });
 });
 
 describe("saveRep", () => {

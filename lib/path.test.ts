@@ -87,6 +87,28 @@ describe("nextLesson", () => {
     expect(nextLesson({ ...once, f1: 3 })?.lesson.id).toBe("f2");
   });
 
+  /* #504: the second star is the easy one, so the path asks for it on
+     every open lesson before it asks for any third. */
+  it("comes back for a second star before any third", () => {
+    const all: Record<string, number> = {};
+    for (const id of [
+      "f1", "f2", "f3", "f4",
+      "p1", "p2", "p3", "p4",
+      "h1", "h2", "h3", "h4",
+      "s1", "s2", "s3", "s4", "s5",
+      "c1", "c2", "c3", "c4", "c5",
+      "t1", "t2", "t3", "t4", "t5",
+    ])
+      all[id] = 2;
+    expect(nextLesson({ ...all, p3: 1 })?.lesson.id).toBe("p3");
+    expect(nextLesson(all)?.lesson.id).toBe("f1");
+  });
+
+  /* #504: a take too thin to score earns no star, and moves nothing on. */
+  it("stays on a lesson whose only take earned no star", () => {
+    expect(nextLesson({ f1: 0 })?.lesson.id).toBe("f1");
+  });
+
   it("never routes the daily loop into a boss unit", () => {
     const perfect: Record<string, number> = {};
     for (const id of [

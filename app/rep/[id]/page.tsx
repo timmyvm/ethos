@@ -24,7 +24,7 @@ import {
 import { parsePracticeId } from "@/lib/lesson-progress";
 import { readable, readFailure } from "@/lib/load";
 import { recordingName, recordingTrait } from "@/lib/log";
-import { computeMetrics, substance } from "@/lib/metrics";
+import { computeMetrics, substance, type StarCount } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { plainRead, tracedStrength } from "@/lib/plain-read";
 import { topicFromLessonId } from "@/lib/rep-config";
@@ -212,7 +212,7 @@ export default function RepDetail({
     composedPauses: (rep.pauses ?? []).filter((p) => p.kind === "pre").length,
     midSentencePauses: (rep.pauses ?? []).filter((p) => p.kind === "mid")
       .length,
-    stars: rep.stars as 1 | 2 | 3,
+    stars: rep.stars as StarCount,
     // Length and variety, from the stored words: the row has no word
     // count column and the screen printed "0 words" over the transcript.
     substance: substance(rep.transcript),

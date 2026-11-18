@@ -83,7 +83,7 @@ export interface RepMetrics {
   heldPauses: number;
   composedPauses: number; // kind === "pre"
   midSentencePauses: number; // kind === "mid"
-  stars: 1 | 2 | 3;
+  stars: StarCount;
   /** Was there a rep here at all — length and variety, not opinion. */
   substance: Substance;
 }
@@ -379,18 +379,71 @@ export function countUnvoicedHesitations(pauses: Pause[]): number {
 }
 
 /**
- * Star thresholds — DECISIONS.md #10: objective metrics only.
+ * Stars (DECISIONS #504). Timothy, 18 Nov: "1 stars and 1 stars, these
+ * people gonna be discouraged ... 2 star should be easy ... in every
+ * game, the stars are always measured." Three goals, each one a person
+ * sees under its star on the results, each measured (#10), each harder
+ * than the one before it:
  *
- * Reads the DISFLUENCY rate, not the filler rate: an "um" and a
- * restarted sentence are the same event to whoever is listening, and
- * counting only one of them was how a rep with audible self-corrections
- * came back three stars. Cut points are unchanged and now measure more,
- * so they are due a recalibration on real recordings.
+ *   1. A real answer: 20 words or more, not one phrase on repeat
+ *      (`isScorable`). Nearly every take that is spoken properly.
+ *   2. Fewer slips than 11 a minute: about 70% of scored takes.
+ *   3. Fewer slips than 3 a minute: about 20%.
+ *
+ * A slip is a filler or a restart (`fillerCount + repairCount`): to a
+ * listener they are the same stumble. The rate is held as a count for
+ * the take's own length (`slipLimit`), so the goal under a star is a
+ * number the take can be counted against ("Under 12 slips" on a 62s
+ * take), and the goal and the star can never disagree. Each star needs
+ * the one before it. A take with no real answer earns none: it was
+ * handed one "for showing up" until #504, which is participation (#10).
+ *
+ * The cut points are fitted to production's last 30 days (213 takes:
+ * the old rule's 16% at three stars and 39% at two or more, beside the
+ * filler rate's and the length's percentiles); DECISIONS #504 has the
+ * table. Substance no longer caps a star it did not name: a scored take
+ * is one goal met, and a take too thin to score meets none.
  */
-export function starsForDisfluencyRate(perMin: number): 1 | 2 | 3 {
-  if (perMin < 3) return 3;
-  if (perMin < 6) return 2;
-  return 1;
+export const STAR_TWO_SLIPS_PER_MIN = 11;
+export const STAR_THREE_SLIPS_PER_MIN = 3;
+
+/** 0 to 3: a take with no real answer earns none. */
+export type StarCount = 0 | 1 | 2 | 3;
+
+/**
+ * The slip count a take of `durationS` must stay under to hold a rate
+ * below `perMin`: for a whole number of slips, "fewer than 11 a minute"
+ * over 62 seconds is "fewer than 12". Never under 1, so the goal always
+ * reads as a number a take can meet ("No slips").
+ */
+export function slipLimit(perMin: number, durationS: number): number {
+  const allowed = (perMin * Math.max(0, durationS)) / 60;
+  return Math.max(1, Math.ceil(allowed - 1e-9));
+}
+
+export function starsFor(p: {
+  /** Fillers plus restarts. */
+  slips: number;
+  durationS: number;
+  substance: Substance;
+}): StarCount {
+  if (!isScorable(p.substance)) return 0;
+  if (p.slips >= slipLimit(STAR_TWO_SLIPS_PER_MIN, p.durationS)) return 1;
+  if (p.slips >= slipLimit(STAR_THREE_SLIPS_PER_MIN, p.durationS)) return 2;
+  return 3;
+}
+
+/**
+ * The three goals in words, one under each star, for a take this long:
+ * "20+ words", "Under 12 slips", "Under 4 slips" at 62 seconds.
+ */
+export function starGoals(durationS: number): [string, string, string] {
+  const under = (n: number) => (n <= 1 ? "No slips" : `Under ${n} slips`);
+  return [
+    `${MIN_WORDS_TO_SCORE}+ words`,
+    under(slipLimit(STAR_TWO_SLIPS_PER_MIN, durationS)),
+    under(slipLimit(STAR_THREE_SLIPS_PER_MIN, durationS)),
+  ];
 }
 
 /**
@@ -441,28 +494,9 @@ export function substance(text: string): Substance {
 /** Below this there is no rep to score, only noise. */
 export const MIN_WORDS_TO_SCORE = 20;
 
-/**
- * The ceiling substance puts on stars. It can only ever LOWER the star
- * count — a varied vocabulary never buys a star that the filler rate
- * didn't earn.
- */
-export function substanceStarCap(s: Substance): 1 | 2 | 3 {
-  if (s.wordCount < MIN_WORDS_TO_SCORE) return 1;
-  if (s.distinctRatio < 0.3 || s.repeatShare > 0.4) return 1;
-  if (s.distinctRatio < 0.45 || s.repeatShare > 0.2) return 2;
-  return 3;
-}
-
 /** True when there is enough real speech for the Index to mean anything. */
 export function isScorable(s: Substance): boolean {
   return s.wordCount >= MIN_WORDS_TO_SCORE && s.distinctRatio >= 0.3;
-}
-
-export function starsFor(disfluenciesPerMin: number, s: Substance): 1 | 2 | 3 {
-  return Math.min(
-    starsForDisfluencyRate(disfluenciesPerMin),
-    substanceStarCap(s)
-  ) as 1 | 2 | 3;
 }
 
 export function computeMetrics(
@@ -493,9 +527,9 @@ export function computeMetrics(
   const composedPauses = pauses.filter((p) => p.kind === "pre").length;
   const midSentencePauses = pauses.filter((p) => p.kind === "mid").length;
 
-  // Stars are capped by whether anything was actually said. Reading the
-  // words back off the token stream keeps this in step with the
-  // transcript even when no separate text is handed in.
+  // Star 1 is whether anything was actually said. Reading the words
+  // back off the token stream keeps this in step with the transcript
+  // even when no separate text is handed in.
   const sub = substance(words.map((w) => w.word).join(" "));
 
   return {
@@ -517,7 +551,9 @@ export function computeMetrics(
     heldPauses: composedPauses + midSentencePauses,
     composedPauses,
     midSentencePauses,
-    stars: starsFor(disfluenciesPerMin, sub),
+    // The length the take is stored and shown with, so the goals the
+    // results draw from `durationS` are the ones the stars were held to.
+    stars: starsFor({ slips: fillerCount + repairCount, durationS: round2(dur), substance: sub }),
     substance: sub,
   };
 }

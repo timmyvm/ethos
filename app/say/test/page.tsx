@@ -242,10 +242,11 @@ export default function SayTest() {
         <div className="pt-[env(safe-area-inset-top)]">
           <BackLink href="/say" label="Say it better" />
         </div>
-        {/* Demos takes what height is left, down to a small 88 on the
+        {/* Demos takes what height is left (centred with his bubble, the
+            slack around the pair on a tall phone), down to a small 88 on the
             shortest phone (the house .demos-fit floor of 150 would push
             the pairs under the shelf at 568). */}
-        <div className="flex flex-1 flex-col items-center justify-end">
+        <div className="flex flex-1 flex-col items-center justify-center">
           <SpeechBubble tail="down" className="text-center">
             {endLine(said, queue.length)}
           </SpeechBubble>
@@ -430,7 +431,10 @@ export default function SayTest() {
             Back tomorrow
           </p>
         ) : phase === "blocked" ? (
-          <PermissionHelp video={false} missing={missing} onRecheck={() => void start()} />
+          /* The house help card sets its own alignment, not this block's centre. */
+          <div className="text-left">
+            <PermissionHelp video={false} missing={missing} onRecheck={() => void start()} />
+          </div>
         ) : (
           <>
             <h1 className="font-display text-title">Say it again, better</h1>

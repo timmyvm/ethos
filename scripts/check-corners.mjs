@@ -141,11 +141,14 @@ for (const theme of ["light", "dark"]) {
   const door = await page.evaluate(audit);
   ok("the room's door: no round corner meets a continuous one", door.clashes.length === 0, door.clashes.slice(0, 3).join(" | "));
   ok("the room's door: its hold is still round", door.pills.length === 0, door.pills.slice(0, 4).join(" | "));
-  /* The beat (step 7: the room, six questions, then the beat) stands
-     Demos on the walk's stage. `walk: 2` is today's walk (lib/answers.ts):
-     a step with no mark is read as the old walk's, two screens later. */
+  /* The account ask (step 7 of today's walk: the room, five questions,
+     the plan, then the ask, #501) stands Demos on the walk's sky stage,
+     the one `.intro-stage` the walk still draws since the beat went.
+     `walk: 3` is today's layout (lib/answers.ts `WALK_LAYOUT`): a step
+     marked 2 is read in the old layout, so 7 there was the beat and now
+     lands on the hour question, which has no stage. */
   await page.evaluate(() =>
-    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false, walk: 2 }))
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false, walk: 3 }))
   );
   await page.reload();
   await page.waitForSelector("main .intro-stage", { timeout: 20000 }).catch(() => {});
@@ -153,7 +156,11 @@ for (const theme of ["light", "dark"]) {
   const res = await page.evaluate(audit);
   ok("the introduction: no round corner meets a continuous one", res.clashes.length === 0, res.clashes.slice(0, 3).join(" | "));
   ok("the introduction: every pill and circle is still round", res.pills.length === 0, res.pills.slice(0, 4).join(" | "));
-  ok("the introduction's stage is drawn continuous", await page.evaluate(() => getComputedStyle(document.querySelector(".intro-stage")).cornerTopLeftShape !== "superellipse(1)"));
+  const stage = await page.evaluate(() => {
+    const el = document.querySelector("main .intro-stage");
+    return el ? getComputedStyle(el).cornerTopLeftShape : null;
+  });
+  ok("the introduction's stage is drawn continuous", stage !== null && stage !== "superellipse(1)", stage ?? "no .intro-stage on the account ask");
   await context.close();
 }
 

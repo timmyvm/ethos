@@ -456,14 +456,13 @@ for (const theme of ["light", "dark"]) {
 
 /** The introduction, from an empty browser, as scripts/look-welcome.mjs walks it. */
 async function walk(theme) {
+  /* Five questions since #501: the goal, the place and the beat went
+     (scripts/look-welcome.mjs walks the same five). */
   const ANSWERS = [
     { id: "name", type: "text", value: "Tim" },
     { id: "ageBand", labels: ["18 to 24"] },
-    { id: "goal", labels: ["Think on my feet when asked"] },
     { id: "pains", labels: ["I rush", "I ramble"] },
     { id: "level", labels: ["A bit, a class or a few talks"] },
-    { id: "context", labels: ["Work"] },
-    { id: "beat", type: "beat" },
     { id: "time", labels: [/^Evening/] },
   ];
   const { context, page } = await open(theme, { fresh: true });
@@ -480,11 +479,6 @@ async function walk(theme) {
     await sleep(500);
     let k = 0;
     for (const q of ANSWERS) {
-      if (q.type === "beat") {
-        await check(page, "welcome-beat", theme);
-        await next();
-        continue;
-      }
       k += 1;
       await check(page, `welcome-q${k}`, theme, { exemptFoot: true });
       if (q.type === "text") {

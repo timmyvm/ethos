@@ -1,6 +1,6 @@
 /**
- * Today as one card (#500): the practice card, Hostile Q&A and the Cold
- * Topic as two rows on the ground, and the two numbers only Today holds
+ * Today as one card (#500): the practice card, Hostile Q&A and the Weekly
+ * boss as two rows on the ground, and the two numbers only Today holds
  * at the foot. Timothy, 18 Nov: "I don't fuck with all the cards on the
  * homepage."
  *
@@ -16,7 +16,7 @@
  *   scrolled  390x844 light and dark scrolled to the page's end: the foot.
  *   full      the whole page at 390, light and dark.
  *   states    390x844 light, scrolled to the foot: Hostile at its cap and
- *             with one round left, the Cold Topic done this week, a day
+ *             with one round left, the Weekly boss done this week, a day
  *             already spoken, Premium, a first-day account and a tester;
  *             Hostile at its cap in dark too. (A guest's session now
  *             lands on sign-up, #497, so its "lives only in this
@@ -139,7 +139,7 @@ const hostileTake = (h) => ({
   lesson_id: "hostile-take",
   created_at: new Date(Date.now() - h * 3_600_000).toISOString(),
 });
-/** This week's Cold Topic, taken an hour ago. */
+/** The Weekly boss, taken this week an hour ago. */
 const bossTake = () => ({
   ...reps[reps.length - 1],
   id: "boss-this-week",

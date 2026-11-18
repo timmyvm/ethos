@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { HOSTILE_TAKE_LESSON } from "./client-data";
 import { bossWeekRows, gamesLog, roundLine, roundRows, type GamesLogRow } from "./games-log";
 import { COLD_TOPICS, weeklyTopic } from "./cold-topics";
+import { gameById, type Game } from "./games";
 import { HOSTILE_TAKE_ID, hostileRecord } from "./hostile";
+import { roundReveal } from "./round-copy";
 import type { InterviewRound, QaRound, RushRound } from "./round";
 
 /** #486: the Log's Games side, the weekly boss and every round. */
@@ -191,6 +193,26 @@ describe("every round", () => {
     expect(roundLine({ ...qa, cutIns: [cut, { ...cut, at: 30, gap: 0.9 }] })).toBe("Paused 0.9s, just right");
     // No line is the old pair, which named a measure and no outcome.
     expect(lines.join(" ")).not.toMatch(/at the cut-in|^Held /);
+  });
+
+  /* #494 review: a round whose pauses all held but that ended on the
+     speaker (stopped inside 5s of the last cut-in, or before Demos could
+     cut in again) does not count, and its card says "You stopped". The
+     Log's line said "just right" for it. */
+  it("says a held pause that ended the round was followed by a stop, as its card does", () => {
+    const cut = qa.cutIns[0];
+    const missed = { ...cut, at: null, line: null, gap: null, gapFrom: null, gapTo: null, verdict: "missed" as const, cleanAfter: null, spokeAfter: null };
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 2 }] })).toBe("Paused 1.2s, then stopped");
+    expect(roundLine({ ...qa, cutIns: [cut, missed] })).toBe("Paused 1.2s, then stopped");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 0 }] })).toBe("Paused 1.2s, then stopped");
+    // Kept talking 5s or more after every cut-in: the round went well.
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 5 }] })).toBe("Paused 1.2s, just right");
+    // The two held, the second answered: just right, the shorter one's number.
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 40 }, { ...cut, at: 30, gap: 0.9, spokeAfter: 18 }] })).toBe("Paused 0.9s, just right");
+    // Held then stopped, at the longest number, still one line at 320.
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, gap: 3.49, spokeAfter: 1 }] }).length).toBeLessThanOrEqual(27);
+    // The card agrees: no win, and it says the stop.
+    expect(roundReveal(gameById("qa") as Game, { ...qa, cutIns: [{ ...cut, spokeAfter: 2 }] }, 0).line).toMatch(/^You stopped/);
   });
 
   /* #494 review: to the tenth, a 0.77s pause read "Paused 0.8s, too

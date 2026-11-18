@@ -29,7 +29,7 @@ import { weekStart } from "./level";
 import { recordingName } from "./log";
 import { topicFromLessonId } from "./rep-config";
 import { BEAT_MIN_S } from "./metrics";
-import { INTERVIEW_WINDOW, type GameRound } from "./round";
+import { INTERVIEW_WINDOW, SPOKE_AFTER_MIN_S, type GameRound } from "./round";
 import { clock, clockTenth, decidingCutIn, gapSecs, secs } from "./round-copy";
 
 /** A stored take as the Games side reads it: a game round, a boss, a Hostile take. */
@@ -122,7 +122,9 @@ function heading(word: string): string {
  * 1.2s at the cut-in" never said which was the good one). Each traces
  * to the measured round (lib/round.ts) and to the number its card shows.
  *   Q&A        "Paused 1.2s, just right" (held: 0.8 to 3.5s, nothing on
- *              it), "Paused 0.5s, too short", "Paused 4.1s, too long",
+ *              it), "Paused 1.2s, then stopped" (held, and the round
+ *              ended on you, as its card says), "Paused 0.5s, too
+ *              short", "Paused 4.1s, too long",
  *              "“Um” broke the pause", "Talked over Demos" (no pause
  *              at all), "Ended before Demos cut in"
  *   Speed rush "Finished 2.4s early", "Clock ran out at 0:20"
@@ -137,7 +139,16 @@ export function roundLine(round: GameRound): string {
     const f = decidingCutIn(round);
     if (!f || f.verdict === "through" || f.gap === null || f.gap < BEAT_MIN_S) return "Talked over Demos";
     if (f.verdict === "filled") return f.fillerWord ? `${heading(f.fillerWord)} broke the pause` : "A sound broke the pause";
-    if (f.verdict === "held") return `Paused ${gapSecs(f)}, just right`;
+    if (f.verdict === "held") {
+      /* Every pause held, but the round ended on you, not on the
+         answer (#494 review): you stopped inside 5s of his last cut-in
+         or before he could cut in again, so the card says "You
+         stopped" and the round does not count. "Just right" there read
+         as a round that went well. */
+      const last = fired[fired.length - 1];
+      const stopped = round.cutIns.some((x) => x.at === null) || (last.spokeAfter ?? 0) < SPOKE_AFTER_MIN_S;
+      return `Paused ${gapSecs(f)}, ${stopped ? "then stopped" : "just right"}`;
+    }
     return `Paused ${gapSecs(f)}, ${f.verdict === "long" ? "too long" : "too short"}`;
   }
   if (round.game === "rush") {

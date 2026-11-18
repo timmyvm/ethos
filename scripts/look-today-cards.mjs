@@ -9,8 +9,9 @@
  * Scenes (a returning free account whose last take was yesterday, so the
  * card is the open day's, unless the scene says otherwise):
  *   phones    the first screen at 390x844 light and dark, 430x932,
- *             402x874, 375x667, 320x568 and 320x692 light, each with its
- *             home inset, and where the card, the rows, the foot and the
+ *             402x874, 375x667, 320x568, 320x692 and 375x812 light, each
+ *             with its home inset, and 430x932 under a 59px status bar
+ *             inset too, and where the card, the rows, the foot and the
  *             tab bar stand printed beside each.
  *   scrolled  390x844 light and dark scrolled to the page's end: the foot.
  *   full      the whole page at 390, light and dark.
@@ -65,6 +66,10 @@ const VIEWS = {
   "375x667-light": { w: 375, h: 667, theme: "light", inset: 0 },
   "320x568-light": { w: 320, h: 568, theme: "light", inset: 0 },
   "320x692-light": { w: 320, h: 692, theme: "light", inset: 34 },
+  /* #500 review: the minis, and a Pro Max under the 59px status bar
+     inset an installed iPhone gives the page. */
+  "375x812-light": { w: 375, h: 812, theme: "light", inset: 34 },
+  "430x932-inset59-light": { w: 430, h: 932, theme: "light", inset: 34, top: 59 },
 };
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
@@ -91,7 +96,7 @@ async function context(tag, { tester = false } = {}) {
   });
   const page = await ctx.newPage();
   const cdp = await ctx.newCDPSession(page);
-  await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 0, bottom: v.inset, left: 0, right: 0 } });
+  await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: v.top ?? 0, bottom: v.inset, left: 0, right: 0 } });
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 160)));
   return { ctx, page };
 }

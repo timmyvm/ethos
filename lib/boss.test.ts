@@ -259,3 +259,17 @@ describe("last week, on the server", () => {
     expect(ny.to.toISOString()).toBe("2026-10-26T05:00:00.000Z");
   });
 });
+
+/*
+ * #494 review: "Weekly boss" everywhere. A stored boss take was titled
+ * "Boss" under "Tuesday 3 November, boss", and the backs to /boss said
+ * "Boss".
+ */
+describe("a stored boss take says the boss's one name, once", () => {
+  it("is titled Weekly boss over its date alone, and its back says Weekly boss", () => {
+    const page = readFileSync("app/rep/[id]/page.tsx", "utf8");
+    expect(page).toContain("eyebrow={date}");
+    expect(page).not.toMatch(/, boss`/);
+    expect(page).toContain('const BACK_BOSS = { href: "/boss", label: "Weekly boss" };');
+  });
+});

@@ -269,10 +269,11 @@ export default function RepDetail({
     <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {/* log-3: the screen names the recording the Log row named, with
           the date over it, and its way back stays in the bar from the
-          transcript down. One idea per eyebrow: a boss says so after a
-          comma, never a middot. */}
+          transcript down. A boss's title is its one name, "Weekly boss"
+          (#494 review), so the date says only the date: ", boss" after
+          it said the boss twice. */}
       <ScreenHeader
-        eyebrow={rep.mode === "boss" ? `${date}, boss` : date}
+        eyebrow={date}
         title={recordingName(rep)}
         back={back}
       />

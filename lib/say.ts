@@ -480,8 +480,12 @@ export interface TakeText {
   created_at: string;
   transcript: string | null;
   /**
-   * Its Ethos number: null on a take with no star, which was not scored
-   * (#504, #510), and then it is no use; undefined when not read.
+   * Its Ethos number, and then it is no use when null (#507 review, as
+   * the glance's token, #509): a take with no star was not scored (#504,
+   * #510), and a scored take whose judged read did not run (a free
+   * account's read spent for the day, a coach that failed or ran out of
+   * time) has its stars and no number either (lib/index-score.ts
+   * `ethosIndex` with no tier 2). Undefined when not read.
    */
   ethos_index?: number | null;
   /** Whisper's timed words, when read; undefined when not read. */
@@ -502,10 +506,11 @@ export interface SwapUse {
  * The real recordings that used a swap's better phrase, newest first:
  * stored after the swap was saved, never a recording it came from (any
  * row merged into it included), and only one with an Ethos number (#507
- * review): a take with no star was not scored and won nothing (#510),
- * so it is no use, as it proves nothing on the glance (#509), and it
- * never marks the swap heard ahead of the scored take that earns the
- * token. Whisper's own text finds them, never inside a place the old
+ * review), exactly the takes whose glance can show the token (#509): a
+ * take with no star was not scored and won nothing (#510), and a scored
+ * take whose judged read did not run has no number to prove it beside,
+ * so neither is a use, and neither marks the swap heard ahead of the
+ * take that earns the token. Whisper's own text finds them, never inside a place the old
  * phrase was said again; where the timed words were read they must hold
  * it too, and give the moment. The test's one-line takes are never
  * stored, so they are never here.

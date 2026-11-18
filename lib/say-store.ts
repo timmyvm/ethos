@@ -256,7 +256,7 @@ async function readTakes(since: string): Promise<TakeText[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const me = await myId();
-  /* With its Ethos number: a take with none (no star) is no use (lib/say.ts usesOf). */
+  /* With its Ethos number: a take with none (no star, or no judged read) is no use (lib/say.ts usesOf). */
   const { data, error } = await own(db.from("reps").select("id, created_at, transcript, ethos_index"), me)
     .gte("created_at", since)
     .order("created_at", { ascending: false })

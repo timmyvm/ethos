@@ -16,7 +16,9 @@
  *     node scripts/sound-audition.mjs [outDir]
  *
  * Needs ffmpeg for the loudness and the MP3s. Exits non-zero when any
- * render's sample peak passes -1 dBFS, or its true peak passes -0.5.
+ * render's sample peak passes -1 dBFS, or its true peak passes -0.5, or
+ * every sound started at once, three times over, passes -0.3 (the
+ * ceiling, `CEILING` in lib/sound.ts).
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
@@ -185,9 +187,20 @@ for (const [id, label, win] of MOMENTS) {
       : await page.evaluate(([w, c]) => window.EthosSound.glanceCues(w, c), [win, CLOCK]);
   await take(id, label, cues);
 }
+/* The ceiling (#505 review): every sound at once, three times over, the
+   most any run of taps could pile up, must still not clip. Measured, not
+   written to a file. */
+const ALL = SOLO.map(([id]) => id).filter((id) => id !== "tick");
+const stack = await render([...ALL, ...ALL, ...ALL].map((sound, i) => ({ sound, atMs: 0, slot: `${sound}-${i}` })));
+const stackPeakDbfs = db(stack.peak);
+console.log(`${"stack".padEnd(18)} every sound three times at once  peak ${stackPeakDbfs} dBFS`);
+if (!(stackPeakDbfs <= -0.3)) failed = true;
 await browser.close();
 
-writeFileSync(join(out, "report.json"), JSON.stringify({ rate: RATE, rendered: "Chromium OfflineAudioContext, the kit's own master chain", sounds: report }, null, 2) + "\n");
+writeFileSync(
+  join(out, "report.json"),
+  JSON.stringify({ rate: RATE, rendered: "Chromium OfflineAudioContext, the kit's own master chain", stackPeakDbfs, sounds: report }, null, 2) + "\n"
+);
 
 /* The page: plain, light and dark, one Play per render, its numbers beside it. */
 const rows = (list) =>

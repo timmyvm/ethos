@@ -50,6 +50,12 @@ describe("Today's object", () => {
 
   it("changes no file the worker pre-caches (no CACHE to move)", () => {
     const sw = readFileSync(path.join(root, "public/sw.js"), "utf8");
-    expect(sw).not.toMatch(/demos-768|lessons\/hero/);
+    /* The shell's list, not the whole file: since the final pass of 18 Nov
+       the worker names the 720 cut in its offline stand-in for lesson art
+       (#448's tunnel promise), which pre-caches nothing. */
+    const at = sw.indexOf("const SHELL = [");
+    const shell = sw.slice(at, sw.indexOf("];", at));
+    expect(shell.length).toBeGreaterThan(100);
+    expect(shell).not.toMatch(/demos-768|lessons\/hero/);
   });
 });

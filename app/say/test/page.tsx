@@ -7,7 +7,6 @@ import { PermissionHelp } from "@/components/PermissionHelp";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { BackLink } from "@/components/ui/ScreenHeader";
-import { SegmentBar } from "@/components/ui/SegmentBar";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TapTick } from "@/components/ui/TapTick";
 import { MarkedSentence, SayArt, SwapPair } from "@/components/say/parts";
@@ -249,7 +248,7 @@ export default function SayTest() {
           </SpeechBubble>
           <div className="demos-fit relative mt-2 w-full flex-1">
             <div className="demos-fit-room">
-              <DemosArt pose={said > 0 ? "celebrate" : "speaking"} size={220} fit grounded />
+              <DemosArt pose={said > 0 ? "celebrate" : "speaking"} size={300} fit grounded />
             </div>
           </div>
         </div>
@@ -330,13 +329,26 @@ export default function SayTest() {
           {queue ? `${i + 1} of ${total}` : ""}
         </span>
       </div>
-      <SegmentBar total={total} done={i + (answered ? 1 : 0)} unknown={!queue} className="mt-1" />
+      {/* The walk's segments, each its own answer: sage where it was
+          said out loud (earned), stone where it comes back tomorrow,
+          the trough until it is answered. */}
+      <div aria-hidden className="mt-1 flex h-1 w-full gap-1">
+        {queue &&
+          Array.from({ length: total }, (_, k) => {
+            const r = queue[k] ? results[queue[k].swap.key] : undefined;
+            return <span key={k} className={`h-1 min-w-3 flex-1 ${r === "said" ? "bg-sage-600" : r ? "bg-stone-400" : "bg-sand"}`} />;
+          })}
+      </div>
 
       {/* The stage: the object in the free height, your own words at its foot. */}
       <section aria-label="What you said" className="say-stage relative mt-4 flex min-h-[208px] flex-1 flex-col rounded-sheet px-5 pb-5 pt-3">
-        <div aria-hidden className="relative min-h-[64px] flex-1 [container-type:size]">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <SayArt className="aspect-square h-[min(100cqh,152px)] w-auto" />
+        {/* A size container with a definite size (cq units read 0 in a
+            container whose height comes from flex-grow, as the lesson
+            page's art notes), so the object takes the free height: up to
+            280 on a tall phone, never a band of empty stage (#368). */}
+        <div aria-hidden className="relative min-h-[64px] flex-1">
+          <div className="absolute inset-0 flex items-center justify-center [container-type:size]">
+            <SayArt className="size-[min(100cqh,280px)]" />
           </div>
         </div>
         {item ? (

@@ -4107,6 +4107,11 @@ summary::-webkit-details-marker {
   text-decoration-color: var(--color-sage-600);
   text-decoration-thickness: 3px;
 }
+/* In a list, the weak phrase keeps its wave and the list's ink, so a
+   row that is not a tap never reads as a link. */
+.say-weak-quiet {
+  color: var(--color-ink);
+}
 /* The stage the test and the page stand on: Variety's ground. */
 .say-stage {
   background: var(--tone-stage, var(--color-surface));

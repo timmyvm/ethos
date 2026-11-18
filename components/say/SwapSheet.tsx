@@ -63,7 +63,7 @@ export function SwapSheet({
 
         <section className="mt-5">
           <h3 className="detail-head">You said</h3>
-          <p className="mt-1.5 text-read text-pretty text-stone-800">
+          <p className="mt-1.5 text-read leading-relaxed text-pretty text-stone-800">
             “{swap.sentence ? <MarkedSentence sentence={swap.sentence} said={swap.said} better={swap.better} mode="weak" /> : <span className="say-weak">{swap.said}</span>}”
           </p>
           <p className="mt-2 flex min-h-6 items-center gap-2 text-caption text-stone-500">
@@ -81,7 +81,7 @@ export function SwapSheet({
 
         <section className="mt-5">
           <h3 className="detail-head">Say it like this</h3>
-          <p className="mt-1.5 text-read text-pretty text-stone-800">
+          <p className="mt-1.5 text-read leading-relaxed text-pretty text-stone-800">
             “{swap.sentence ? <MarkedSentence sentence={swap.sentence} said={swap.said} better={swap.better} mode={says ? "said" : "answer"} /> : <span className={says ? "say-said" : "say-answer"}>{swap.better}</span>}”
           </p>
         </section>

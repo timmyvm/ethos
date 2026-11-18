@@ -14,6 +14,7 @@ import { todayHref } from "@/lib/home";
 import { readable } from "@/lib/load";
 import { poolHere } from "@/lib/pool";
 import {
+  addDays,
   backLine,
   dayOf,
   nextDue,
@@ -145,9 +146,11 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
         <BackLink href={back.href} label={back.label} className="relative z-[1] self-start" />
         <div className="relative min-h-0 flex-1">
           {empty ? (
-            <div className="demos-fit absolute inset-0 pb-5">
-              <div className="demos-fit-room">
-                <DemosArt pose="speaking" size={220} fit grounded />
+            <div className="absolute inset-0 flex items-end justify-center pb-6">
+              <div className="demos-fit w-full flex-1">
+                <div className="demos-fit-room">
+                  <DemosArt pose="speaking" size={300} fit grounded />
+                </div>
               </div>
             </div>
           ) : (
@@ -251,7 +254,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
               <ul className="mt-1">
                 {lists.due.map((v) => (
                   <li key={v.swap.key} className={ROW}>
-                    <span className="say-weak">{v.swap.said}</span>
+                    <span className="say-weak say-weak-quiet">{v.swap.said}</span>
                   </li>
                 ))}
               </ul>
@@ -295,7 +298,8 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
               </h2>
               <ul className="mt-1">
                 {lists.learning.map((v) => {
-                  const when = backLine(v.state.due, today);
+                  /* Due, but past today's three: it waits a day. */
+                  const when = backLine(v.state.due > today ? v.state.due : addDays(today, 1), today);
                   return (
                     <li key={v.swap.key}>
                       <button

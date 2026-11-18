@@ -194,8 +194,15 @@ export interface SwapView {
   uses: SwapUse[];
 }
 
-/** Said on your own in a later recording. */
-export const nowSays = (v: SwapView) => v.uses.length > 0;
+/**
+ * Said on your own in a later recording: one the page read, or one seen
+ * before and marked heard (the glance's proof, or an earlier read), which
+ * keeps it counted once that recording is past the newest the page reads.
+ */
+export const nowSays = (v: SwapView) => v.uses.length > 0 || !!v.state.heardAt;
+
+/** When it was last heard in a real recording. */
+const lastHeard = (v: SwapView) => v.uses[0]?.createdAt ?? v.state.heardAt ?? "";
 
 /**
  * Today's test: the swaps still being learned whose day has come, the
@@ -229,7 +236,9 @@ export function sayLists(views: readonly SwapView[], today: string): SayLists {
   const shown = views.filter((v) => !v.state.hidden);
   const due = dueToday(shown, today);
   const dueKeys = new Set(due.map((v) => v.swap.key));
-  const nowSay = shown.filter(nowSays).sort((a, b) => b.uses.length - a.uses.length || (a.uses[0].createdAt < b.uses[0].createdAt ? 1 : -1));
+  const nowSay = shown
+    .filter(nowSays)
+    .sort((a, b) => timesUsed(b.uses) - timesUsed(a.uses) || (lastHeard(a) < lastHeard(b) ? 1 : -1));
   const learning = shown
     .filter((v) => !nowSays(v) && !dueKeys.has(v.swap.key))
     .sort((a, b) => (a.state.due < b.state.due ? -1 : a.state.due > b.state.due ? 1 : a.swap.savedAt < b.swap.savedAt ? 1 : -1));
@@ -476,3 +485,45 @@ export function endLine(said: number, of: number): string {
   return `You said ${said} of ${of} out loud.`;
 }
 
+
+/* ---- the test's one line (/api/say) --------------------------------------- */
+
+/** The longest phrase the check takes: the coach's said side (lib/upgrade.ts UPGRADE_LIMITS). */
+export const SAY_PHRASE_CHARS = 60;
+/** A line said in under fifteen seconds is a few dozen kilobytes; a megabyte is generous. */
+export const SAY_AUDIO_BYTES = 1_000_000;
+
+/** What the check answers: whether the better phrase was heard, where, and what was heard. */
+export interface LineCheck {
+  heard: boolean;
+  /** Where the better phrase starts in the line; null when it was not heard or has no time. */
+  at: number | null;
+  /** Whether the old phrase was said instead. */
+  old: boolean;
+  /** What Whisper heard, cut to 200 characters; empty when it heard nothing. */
+  text: string;
+}
+
+/**
+ * Whether one spoken line says the better phrase: Whisper's timed words
+ * first, its text where the words came back empty. Pure, so the route's
+ * one decision is tested without a microphone.
+ */
+export function checkLine(
+  t: { text: string; words: readonly TimedWord[] },
+  better: string,
+  said: string | null
+): LineCheck {
+  const hit = phraseAt(t.words, better);
+  const heard = !!hit || timesIn(t.text, better) > 0;
+  const old = !!said && (!!phraseAt(t.words, said) || timesIn(t.text, said) > 0);
+  return { heard, at: hit?.start ?? null, old, text: t.text.trim().slice(0, 200) };
+}
+
+/** A phrase the check will look for: words, at most SAY_PHRASE_CHARS, or null. */
+export function cleanPhrase(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.replace(/\s+/g, " ").trim();
+  if (!s || s.length > SAY_PHRASE_CHARS || phraseWords(s).length === 0) return null;
+  return s;
+}

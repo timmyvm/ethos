@@ -165,6 +165,13 @@ describe("you now say: only a later real recording counts", () => {
     expect(usesOf(s, [take("r2", "2026-11-17", "So the point is we ship.", timed("so we ship"))])).toEqual([]);
   });
 
+  it("keeps counting a swap once heard, when that recording is past the newest the page reads", () => {
+    const heard: SwapView = { swap: swap({ key: "h" }), state: { ...freshState(swap()), heardAt: at("2026-10-01") }, uses: [] };
+    const fresh: SwapView = { swap: swap({ key: "f" }), state: freshState(swap()), uses: [] };
+    expect(sayLists([heard, fresh], "2026-11-18")).toMatchObject({ n: 1, m: 2 });
+    expect(dueToday([heard], "2026-11-18")).toEqual([]);
+  });
+
   it("lists the newest recording first", () => {
     const uses = usesOf(s, [take("old", "2026-11-17", "the point is"), take("new", "2026-11-18", "the point is")]);
     expect(uses.map((u) => u.repId)).toEqual(["new", "old"]);

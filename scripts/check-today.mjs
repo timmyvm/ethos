@@ -30,6 +30,13 @@
  *    goes to that topic's recording, once. From both doors: "Another
  *    topic" under Start on a day not yet spoken (#431), the shuffle
  *    glyph on "One more"; an open day's take opens ready to record.
+ * 5. The switch against the tab bar (#495 and its review). On the first
+ *    screen of six iPhones, each with its 34px home inset, on a day not
+ *    yet spoken and a day spoken, the Today / This week switch either
+ *    clears the floating bar or starts at or under its top and ends in
+ *    it, never half out with its labels cut; the ground over it is 64 or
+ *    less. 402x874 (iPhone 16 Pro, 17, 17 Pro) is the one #495's fixed
+ *    60px cut.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -38,7 +45,7 @@
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { readFileSync } from "node:fs";
-import { seed, session, supabaseRoute, testerMode } from "./look-fixtures.mjs";
+import { TODAY_REP, extraReps, seed, session, supabaseRoute, testerMode } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -386,6 +393,48 @@ for (const [theme, spoken] of [
   await context.close();
 }
 testerMode.today = false;
+
+// 5: the switch against the tab bar, on six iPhones' first screens.
+for (const spoke of [false, true]) {
+  extraReps.length = 0;
+  if (spoke) extraReps.push({ ...TODAY_REP });
+  const out = [];
+  for (const [width, height] of [[375, 812], [390, 844], [393, 852], [402, 874], [430, 932], [440, 956]]) {
+    const context = await browser.newContext({
+      viewport: { width, height },
+      deviceScaleFactor: 1,
+      isMobile: true,
+      hasTouch: true,
+      locale: "en-AU",
+      timezoneId: "Australia/Melbourne",
+      serviceWorkers: "block",
+    });
+    await context.route("http://supabase.local/**", supabaseRoute);
+    await context.addInitScript(seed, { theme: "light", session });
+    const page = await context.newPage();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 0, bottom: 34, left: 0, right: 0 } });
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector("main .home-tile[data-wide]", { timeout: 20000 });
+    await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 15000 }).catch(() => {});
+    await sleep(500);
+    const at = await page.evaluate(() => {
+      const seg = document.querySelector("main .home-seg").getBoundingClientRect();
+      const bar = document.querySelector("nav .nav-glass").getBoundingClientRect();
+      const tiles = [...document.querySelectorAll("main a.home-mode")].map((a) => a.getBoundingClientRect().bottom);
+      return { top: seg.top, bottom: seg.bottom, barTop: bar.top, barBottom: bar.bottom, ground: seg.top - Math.max(...tiles) };
+    });
+    const clear = at.bottom <= at.barTop;
+    const under = at.top >= at.barTop - 0.5 && at.bottom <= at.barBottom + 0.5;
+    out.push({ phone: `${width}x${height}`, clear, under, ground: Math.round(at.ground), at });
+  }
+  ok(
+    `${spoke ? "spoken" : "open"} day: on six iPhones the switch clears the tab bar or stands wholly in it, under 64 of ground`,
+    out.every((o) => (o.clear || o.under) && o.ground <= 64),
+    out.map((o) => `${o.phone} ${o.clear ? "clear" : o.under ? "under" : "CUT"} ${o.ground}`).join(", ")
+  );
+}
+extraReps.length = 0;
 
 await browser.close();
 const failed = findings.filter((f) => !f.pass).length;

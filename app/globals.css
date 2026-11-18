@@ -6187,6 +6187,35 @@ summary::-webkit-details-marker {
   color: var(--color-ground);
 }
 
+/* The space over the switch (#495 and its review). On the first screen
+   the switch either clears the floating tab bar or starts at its top,
+   never half under it with its labels cut. #495's fixed 60px did that at
+   390x844, 393x852 and 430x932 and moved the fault to 402x874 (iPhone 16
+   Pro, 17, 17 Pro), where the switch stood 20px out over the bar. So the
+   gap is read from the room left between the two tiles' foot and the
+   bar's top, `--seg-room`: the header, the card's 376 and the two tiles
+   stand 696px down on every open and spoken day from 360 to 440 wide
+   (check-today 5 measures it at six iPhones, so a change above the
+   switch has to change this number with it). The small viewport, so an
+   address bar that folds away mid-scroll never moves it.
+     room 12 to 64: the gap is the room, the switch's top on the bar's
+       top, wholly under it, and no band over 64;
+     room over 64: the switch clears the bar by 8 where it can (12 at
+       least, 28 the section's rhythm);
+     room under 12 (a short phone, the switch below the first screen):
+       the rhythm's 28.
+   Each branch is a line, and the two steps are ramps a hundredth of a
+   pixel wide, so it is one expression with no script and nothing moves
+   on load. */
+.home-seg-gap {
+  --seg-room: calc(100svh - max(14px, env(safe-area-inset-bottom)) - var(--nav-h) - 696px);
+  margin-top: max(
+    min(var(--seg-room), calc(64px - (var(--seg-room) - 64px) * 100)),
+    clamp(12px, calc(var(--seg-room) - 60px), 28px),
+    min(28px, calc(28px - (var(--seg-room) - 12px) * 100))
+  );
+}
+
 /* The switch: ToyCad's Start / My Recent capsule, on the shared
    Segmented (its roving radio and keys). The thumb is the raised step,
    not ink: an ink thumb outweighed Start in the squint. */

@@ -73,8 +73,14 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
   const [stuck, setStuck] = useState<{ item: SayItem; undo: boolean } | null>(null);
   const [said, setSaid] = useState("");
   const leaving = useRef(new Map<string, Promise<boolean>>());
-  /** Where the keyboard goes once a removed row's sheet has closed: the row after it, as #435's list did. */
-  const refocus = useRef<string | null>(null);
+  /**
+   * A removal asked for from a swap's sheet, made once the sheet has
+   * gone: the row leaves in view and the toast never sits under the
+   * scrim. (Changing the list under a sheet as it closed left the
+   * sheet's scrim on the page, its fiber gone and its node never taken
+   * off, so every tap after it hit nothing.)
+   */
+  const removeOnClose = useRef<SayItem | null>(null);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -94,12 +100,14 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
   const mark = (key: string, hidden: boolean) =>
     setRead((r) => (r ? { ...r, items: r.items.map((i) => (i.swap.key === key ? { ...i, state: { ...i.state, hidden } } : i)) } : r));
 
-  const remove = async (item: SayItem) => {
-    /* The opener the sheet would hand focus back to is the row going
-       off: the next row on screen takes it (the one before, at the end). */
+  /** The row after `item` on screen (the one before, at the end; "" for none): where the keyboard goes once it is off. */
+  const nextRow = (item: SayItem): string => {
     const rows = read ? (({ nowSay, learning }) => [...nowSay, ...learning].map((v) => v.swap.key))(sayLists(read.items, today)) : [];
     const at = rows.indexOf(item.swap.key);
-    refocus.current = at < 0 ? null : (rows[at + 1] ?? rows[at - 1] ?? "");
+    return at < 0 ? "" : (rows[at + 1] ?? rows[at - 1] ?? "");
+  };
+
+  const remove = async (item: SayItem) => {
     setStuck(null);
     mark(item.swap.key, true);
     setSaid("");
@@ -349,16 +357,22 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
           next={nextTestDay(open)}
           onClose={() => {
             setOpen(null);
-            const key = refocus.current;
-            refocus.current = null;
-            if (key === null) return;
-            /* After the sheet has unmounted and handed focus to its opener, which has gone. */
+            const item = removeOnClose.current;
+            removeOnClose.current = null;
+            if (!item) return;
+            const key = nextRow(item);
+            /* Once the sheet has unmounted (and handed focus back to its
+               opener, the row now going): the removal, and the keyboard
+               to the next row, as #435's list did. */
             setTimeout(() => {
+              void remove(item);
               const to = key ? document.querySelector<HTMLElement>(`[data-say-row="${CSS.escape(key)}"]`) : null;
               (to ?? document.querySelector<HTMLElement>("main h1"))?.focus({ preventScroll: true });
             }, 0);
           }}
-          onRemove={() => void remove(open)}
+          onRemove={() => {
+            removeOnClose.current = open;
+          }}
         />
       )}
       {undo && (

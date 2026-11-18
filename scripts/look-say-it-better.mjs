@@ -181,7 +181,7 @@ async function run(state, size, theme) {
       await page.waitForSelector("[role='status']:has-text('removed')", { timeout: 5000 }).catch(() => {});
       await shoot(page, state, "toast", size, theme, { settle: 800 });
       const before = await page.locator("[data-say-list='learning'] li").count();
-      await page.getByRole("button", { name: /^Undo/ }).click({ force: true });
+      await page.getByRole("button", { name: /^Undo/ }).click();
       await sleep(900);
       const after = await page.locator("[data-say-list='learning'] li").count();
       note(tag, { learningAfterRemove: before, learningAfterUndo: after, written: sayMode.written.length });

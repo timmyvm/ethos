@@ -73,10 +73,13 @@ async function open() {
   return { context, page };
 }
 
-/** The better phrases a list shows, top to bottom. */
+/** The better phrases a list shows, top to bottom (as seen: the pair's spoken "say" is for screen readers). */
 const list = (page, which) =>
-  page.evaluate((w) => [...document.querySelectorAll(`[data-say-list='${w}'] .you-word`)].map((el) => el.textContent.trim()), which);
-const row = (page, better) => page.locator("[data-say-row]").filter({ has: page.locator(".you-word", { hasText: new RegExp(`^${better}$`) }) });
+  page.evaluate(
+    (w) => [...document.querySelectorAll(`[data-say-list='${w}'] .you-word`)].map((el) => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim()),
+    which
+  );
+const row = (page, better) => page.locator("[data-say-row]").filter({ has: page.locator(".you-word", { hasText: new RegExp(`(^|\\s)${better}$`) }) });
 /** Open a swap's sheet from its row, and Remove from it. */
 async function removeFromSheet(page, better) {
   await row(page, better).click();
@@ -132,7 +135,9 @@ const toast = (page) =>
   await page.waitForSelector(".toast");
   await sleep(1500);
   await removeFromSheet(page, "landed");
-  await sleep(300);
+  /* The swap comes off as its sheet goes, and the toast with it. */
+  await page.waitForFunction(() => document.querySelector(".toast-text")?.textContent === "landed removed", null, { timeout: 3000 }).catch(() => {});
+  await sleep(100);
   const t = await toast(page);
   ok("a second removal replaces the offer: one toast, the newest", (await page.locator(".toast").count()) === 1 && t?.text === "landed removed", JSON.stringify(t));
   await sleep(4200);
@@ -158,7 +163,10 @@ const toast = (page) =>
   await page.keyboard.press("Enter");
   await page.waitForSelector(".toast");
   await sleep(700);
-  const focused = await page.evaluate(() => document.activeElement?.querySelector?.(".you-word")?.textContent?.trim() ?? document.activeElement?.tagName);
+  const focused = await page.evaluate(() => {
+    const w = document.activeElement?.querySelector?.(".you-word");
+    return w ? [...w.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim() : document.activeElement?.tagName;
+  });
   ok("the keyboard lands on the next row once the sheet has gone", focused === "heavy rain", String(focused));
   await page.keyboard.press("Control+z");
   await sleep(500);

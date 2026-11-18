@@ -15,7 +15,8 @@ const SHOWN_USES = 4;
  * One swap, opened from its row (#507; the in-the-loop design's sheet,
  * grafted): what you said in your own sentence with its moment, the
  * sentence said better, a dated chip for each later recording that used
- * it, and Remove. Remove acts at once and the page offers Undo (#435).
+ * it, and Remove. Remove closes the sheet and the swap comes off as it
+ * goes, with the page's Undo (#435).
  *
  * The moments need Whisper's timed words, which the page does not read
  * for every recording: they are read here, for this swap's recordings

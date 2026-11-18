@@ -33,12 +33,13 @@ import {
   type RepSpine,
 } from "@/lib/client-data";
 import { topicById, type Topic } from "@/lib/topics";
-import { sessionState } from "@/lib/auth";
+import { localSessionState } from "@/lib/auth";
 import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { restoreHeld } from "@/lib/held";
-import { expectDraw, markDrawn } from "@/lib/first-draw";
+import { expectDraw, markDrawn, whenIdle } from "@/lib/first-draw";
+import { warmYou } from "@/lib/warm-you";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
 import {
   introDue,
@@ -394,7 +395,8 @@ export default function Home() {
     markWelcomed();
     setClock(new Date());
 
-    sessionState()
+    // A line on screen, so the session this phone holds answers (#508).
+    localSessionState()
       .then((s) => setAnon(s.signedIn && s.anonymous))
       .catch(() => {});
 
@@ -459,7 +461,12 @@ export default function Home() {
   /* Today's numbers, or the failure that stands in for them, are on
      screen: the splash may lift onto them, and what waited may go (#508). */
   useEffect(() => {
-    if (reps !== null || failed) markDrawn();
+    if (reps === null && !failed) return;
+    markDrawn();
+    if (reps === null) return;
+    // You's own reads, once Today is drawn and the phone is idle, so its
+    // first open draws from them (lib/warm-you.ts).
+    return whenIdle(warmYou, 4000);
   }, [reps, failed]);
 
   const history = reps ?? [];

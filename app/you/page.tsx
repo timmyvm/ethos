@@ -55,7 +55,8 @@ import { DIMENSION_NAME } from "@/lib/dimension-rows";
 import { lessonProgress } from "@/lib/lesson-progress";
 import { TRAIT, type TraitId } from "@/content/traits";
 import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
-import { held, hold } from "@/lib/held";
+import { GUEST_KEY, held, heldMark, hold } from "@/lib/held";
+import { localSessionState } from "@/lib/auth";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { barLabel, bestFlame, levelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
@@ -70,7 +71,6 @@ import {
   type StreakState,
 } from "@/lib/streak";
 import { ACTION_CLASS, INPUT_CLASS } from "@/lib/ui";
-import { supabaseBrowser } from "@/lib/supabase-browser";
 import { CHECKOUT_COPY, CODE_EXPLORE, CODE_LINE, hasPlan } from "@/lib/plan-view";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { usePlan, usePriceDrop, useStripeReturn, useStripeReturns, type ProfileRead } from "@/lib/use-plan";
@@ -100,7 +100,6 @@ const TONED = new Set<string>(["pause", "fillers", "repairs", "pace", "range"]);
 const isToned = (key: string): key is TraitId => TONED.has(key);
 
 /** Whether this session is a guest's, as this visit last asked (lib/held.ts). */
-const GUEST_KEY = "guest";
 
 const EMPTY_STREAK: StreakState = {
   current: 0,
@@ -361,12 +360,13 @@ export default function YouPage() {
         setProfileRead((r) => (r === "loading" ? "failed" : r));
         syncOnboarding().then(setOnboarding).catch(() => {});
       });
-    const db = supabaseBrowser();
-    db?.auth
-      .getUser()
-      .then(({ data }) => {
-        const guest = data.user?.is_anonymous ?? null;
-        if (guest !== null) hold(GUEST_KEY, guest);
+    // The guest flag from the session this phone holds, not the auth
+    // server (#508): a line on screen, never a decision.
+    const mark = heldMark();
+    localSessionState()
+      .then((s) => {
+        const guest = s.signedIn ? s.anonymous : null;
+        if (guest !== null) hold(GUEST_KEY, guest, mark);
         setAnon(guest);
       })
       // A failed ask leaves what the visit already knew.

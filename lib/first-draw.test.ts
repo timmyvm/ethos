@@ -64,7 +64,7 @@ describe("the splash lands on a drawn Today", () => {
   it("Today says when it is drawn: when its read lands or fails, and when it hands a first run to the room", () => {
     const today = src("app/page.tsx");
     expect(today).toMatch(/useLayoutEffect\(\(\) => \{\s*\/\/[^\n]*\n\s*expectDraw\(\);/);
-    expect(today).toMatch(/if \(reps !== null \|\| failed\) markDrawn\(\);/);
+    expect(today).toMatch(/if \(reps === null && !failed\) return;\s*markDrawn\(\);/);
     expect(today).toMatch(/router\.replace\("\/welcome"\);[\s\S]{0,120}markDrawn\(\);/);
     const lift = src("components/SplashLift.tsx");
     expect(lift).toMatch(/drawExpected\(\)/);

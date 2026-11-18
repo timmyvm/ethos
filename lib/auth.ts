@@ -409,6 +409,28 @@ export async function sessionState(): Promise<SessionState> {
 }
 
 /**
+ * The same answer from the session this phone holds, with no call to the
+ * auth server (#508): what a screen needs to know whether to show a
+ * guest's line. `sessionState` asks the auth server, a round trip (two
+ * on mobile data, with its preflight) before You could draw; the guest
+ * flag is in the session's own user, kept fresh by the auth client on
+ * every sign-in, upgrade and refresh. Anything that decides more than a
+ * line on screen asks `sessionState`.
+ */
+export async function localSessionState(): Promise<SessionState> {
+  const db = supabaseBrowser();
+  if (!db) return { signedIn: false, anonymous: false, email: null };
+  const { data } = await db.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return { signedIn: false, anonymous: false, email: null };
+  return {
+    signedIn: true,
+    anonymous: user.is_anonymous ?? false,
+    email: user.email ?? null,
+  };
+}
+
+/**
  * Turn the current anonymous session into a real account, or create one
  * from scratch if there isn't a session to upgrade.
  *

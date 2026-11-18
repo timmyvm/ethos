@@ -163,6 +163,8 @@ export const BILLING_KEY = "billing";
 /** The coin sync's answer (lib/coin-sync.ts) and the freeze sync's (lib/freeze-sync.ts). */
 export const COINS_KEY = "coins";
 export const FREEZES_KEY = "freezes";
+/** Whether the session is a guest's (You's "keep them" line), from the session this phone holds. */
+export const GUEST_KEY = "guest";
 /** The poses the coin ledger proves (lib/picture-client.ts), which a picture is checked against (#488). */
 export const POSES_KEY = "poses";
 

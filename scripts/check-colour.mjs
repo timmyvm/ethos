@@ -44,6 +44,10 @@ const ok = (name, pass, detail = "") => {
  * 10% headroom. #431 held a day not yet spoken at 416px and re-pinned
  * this at 0.12 over a band 40px shorter; the #430 review put that card
  * back at 376, so the band is 174 deep again and the pin is 0.1 again.
+ * #500 put the games' 3D marks, their names in their tones and
+ * Hostile's pips in that band, on purpose: they are counted out (below),
+ * and with them out the band measures 0.00% in both themes, so the pin
+ * stays where it was and still catches any tinted ground or box.
  */
 const TODAY_COLOUR_PIN = { light: 0.1, dark: 0.1 };
 const HEADROOM = 1.1;
@@ -167,10 +171,21 @@ for (const theme of ["light", "dark"]) {
     const { w, h, d } = window.__px;
     const top = Math.ceil(card.bottom + 56);
     const bottom = Math.floor(Math.min(h, nav ? nav.top : h));
+    /* The games' colour is in their marks and their names (#500): the 3D
+       marks and the pools they stand on (#503), the names in their
+       picture tones and Hostile's pips. Out of the count, 4px round, so
+       the pin still holds the card's colour on the card and catches a
+       tinted ground or a coloured box anywhere under it, which is what
+       Timothy's "all the cards" were. */
+    const art = [...document.querySelectorAll("main .home-mode-art, main .home-mode-name, main .home-pips")].map((el) =>
+      el.getBoundingClientRect()
+    );
+    const inArt = (x, y) => art.some((r) => x >= r.left - 4 && x <= r.right + 4 && y >= r.top - 4 && y <= r.bottom + 4);
     let coloured = 0;
     let all = 0;
     for (let y = top; y < bottom; y++) {
       for (let x = 0; x < w; x++) {
+        if (inArt(x, y)) continue;
         const i = (y * w + x) * 4;
         const hi = Math.max(d[i], d[i + 1], d[i + 2]);
         const lo = Math.min(d[i], d[i + 1], d[i + 2]);

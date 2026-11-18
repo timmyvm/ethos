@@ -9,7 +9,6 @@ import { celebrates, personalBests } from "./rewards";
 import { skillStates } from "./schedule";
 import { readTraitsFromRow } from "./trait-readings";
 import { repTraitGain } from "./traits";
-import { weekView } from "./home";
 import { achievements } from "./achievements";
 
 /*
@@ -142,7 +141,6 @@ function readAll(rows: RepRow[]) {
     schedule: skillStates(rows, NOW),
     traits: rows.map((r) => readTraitsFromRow(r)),
     gains: rows.map((r) => repTraitGain(r)),
-    week: weekView(rows, NOW),
     achievements: achievements(rows),
     bests: personalBests(rows, take().metrics, 900),
     celebrates: [celebrates(rows, 2, 900), celebrates(rows, 2, 600)],

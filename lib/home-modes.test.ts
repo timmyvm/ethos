@@ -3,7 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { COLD_TOPICS, weeklyTopic } from "./cold-topics";
 import { HOSTILE_PROMPTS, HOSTILE_TAKE_ID, claimOfTheDay } from "./hostile";
-import { BOSS_ASK_LINE, bossTile, hostileTile } from "./home-modes";
+import { HOSTILE_FREE_ROUNDS } from "./hostile";
+import { BOSS_ASK_LINE, BOSS_NAME, bossTile, hostileTile } from "./home-modes";
 
 /*
  * Today's other two things (#478, docs/plan-next.md section 10): Hostile
@@ -19,7 +20,7 @@ const ago = (hours: number, lesson: string | null) => ({
   ethos_index: 640,
 });
 
-describe("Hostile Q&A's tile", () => {
+describe("Hostile Q&A's row", () => {
   it("is one tap to Hostile, and back comes to Today", () => {
     const t = hostileTile({ now: NOW, premium: false, rows: [] });
     expect(t.href).toBe("/hostile?from=today");
@@ -36,6 +37,7 @@ describe("Hostile Q&A's tile", () => {
 
   it("says the free plan's rounds left today, counting only Hostile's takes in the last 24 hours", () => {
     expect(hostileTile({ now: NOW, premium: false, rows: [] }).line).toBe("3 free today");
+    expect(hostileTile({ now: NOW, premium: false, rows: [] }).pips).toEqual({ left: 3, of: HOSTILE_FREE_ROUNDS });
     expect(
       hostileTile({
         now: NOW,
@@ -43,6 +45,19 @@ describe("Hostile Q&A's tile", () => {
         rows: [ago(1, HOSTILE_TAKE_ID), ago(2, "h4"), ago(30, HOSTILE_TAKE_ID)],
       }).line
     ).toBe("2 free today");
+  });
+
+  /* #500, from the games-forward design: the count as pips, one going out
+     for each round played, all out at the cap, none on Premium. */
+  it("draws the rounds as pips: one out for each round played, all out at the cap, none on Premium or unread", () => {
+    const one = hostileTile({ now: NOW, premium: false, rows: [ago(1, HOSTILE_TAKE_ID), ago(3, HOSTILE_TAKE_ID)] });
+    expect(one.pips).toEqual({ left: 1, of: 3 });
+    expect(one.line).toBe("1 free today");
+    const cap = hostileTile({ now: NOW, premium: false, rows: [ago(2, HOSTILE_TAKE_ID), ago(5, HOSTILE_TAKE_ID), ago(9, HOSTILE_TAKE_ID)] });
+    expect(cap.pips).toEqual({ left: 0, of: 3 });
+    expect(hostileTile({ now: NOW, premium: true, rows: [] }).pips).toBeNull();
+    expect(hostileTile({ now: NOW, premium: null, rows: [] }).pips).toBeNull();
+    expect(hostileTile({ now: NOW, premium: false, rows: null }).pips).toBeNull();
   });
 
   it("at the cap says when the next round opens, never zero", () => {
@@ -65,11 +80,18 @@ describe("Hostile Q&A's tile", () => {
   });
 });
 
-describe("the weekly boss's tile", () => {
-  it("is one tap to the boss, and back comes to Today", () => {
+describe("the weekly boss's row", () => {
+  /* #500 named the row "Cold Topic"; merged over #494 it takes the boss's
+     one name, "Weekly boss", as /boss's eyebrow, Practice's stage, the
+     Log and the tab title say it. */
+  it("is one tap to the boss, named as its own screen names it, and back comes to Today", () => {
     const t = bossTile({ now: NOW, rows: [] });
     expect(t.href).toBe("/boss?from=today");
     expect(t.name).toBe("Weekly boss");
+    expect(BOSS_NAME).toBe("Weekly boss");
+    const boss = readFileSync(path.resolve(__dirname, "../app/boss/page.tsx"), "utf8");
+    expect(boss).toContain(`eyebrow="${BOSS_NAME}"`);
+    expect(t.pips).toBeNull();
   });
 
   it("shows the week's topic, the one /boss opens on, and what it asks, with no countdown (#486)", () => {
@@ -103,16 +125,16 @@ describe("the weekly boss's tile", () => {
   });
 });
 
-describe("Today draws the two between the card and the trait tiles (#478)", () => {
+describe("Today draws the two straight under the card, over the foot (#478, #500)", () => {
   const page = readFileSync(path.resolve(__dirname, "../app/page.tsx"), "utf8");
-  it("under the practice card, before the test tile and the switch", () => {
+  it("under the practice card, before the test tile and the foot; no switch and no tiles", () => {
     const hero = page.indexOf("<HomeHero");
-    const modes = page.indexOf("<ModeTiles");
+    const modes = page.indexOf("<ModeRows");
     expect(hero).toBeGreaterThan(0);
     expect(modes).toBeGreaterThan(hero);
     expect(modes).toBeLessThan(page.indexOf("<TestTile"));
-    expect(modes).toBeLessThan(page.indexOf("<Segmented"));
-    expect(modes).toBeLessThan(page.indexOf("<TodayTiles"));
+    expect(modes).toBeLessThan(page.indexOf("<TodayFoot"));
+    expect(page).not.toMatch(/<Segmented|<TodayTiles|<WeekTiles|<ModeTiles|weekView/);
   });
 
   it("reads the clock after mount, never in render", () => {

@@ -34,7 +34,7 @@
  *
  * Every shot is `${scene}-${W}x${H}-${TAG}-${theme}.png`. Today scenes at
  * a short phone add `-tile`, scrolled to the test tile (or, before it
- * existed, to the Today / This week switch). With TAG other than
+ * existed, to the games' rows). With TAG other than
  * "before", the tile is measured (#402 §14): its ask row is above the
  * floating nav at 390x844 on the first screen, measured against the nav
  * as drawn with the home indicator's inset (a viewport with no inset
@@ -247,11 +247,11 @@ async function shootAll() {
           const { ctx, page } = await context(theme, size, ctxOpts);
           await page.goto(`${BASE}/`);
           await page.waitForSelector("main h1", { timeout: 30000 });
-          if (wait) await page.waitForSelector(".home-seg, [role=alert], main .error-state", { timeout: 20000 }).catch(() => {});
+          if (wait) await page.waitForSelector("main .home-foot, [role=alert], main .error-state", { timeout: 20000 }).catch(() => {});
           await shot(page, name, { settle });
           await measure(page, name, sz, { tile, eyebrow });
           if (H < 700) {
-            const target = page.locator(tile && TAG !== "before" ? "[data-test]" : ".home-seg").first();
+            const target = page.locator(tile && TAG !== "before" ? "[data-test]" : "main .home-modes").first();
             if (await target.count()) {
               await target.evaluate((el) => el.scrollIntoView({ block: "center" }));
               await shot(page, `${name}-tile`, { settle: 400 });
@@ -324,13 +324,16 @@ async function shootAll() {
           return route.continue();
         });
         await page.goto(`${BASE}/`, { waitUntil: "commit" });
-        await page.waitForSelector(".home-seg", { timeout: 30000 });
+        /* Since #500 nothing stands under the tile at the server's paint
+           (the foot waits for the history), so the slot's foot is held
+           against the tile's: the place reserved is the place taken. */
+        await page.waitForSelector(".test-tile-slot", { state: "attached", timeout: 30000 });
         await sleep(400);
-        const pre = await page.evaluate(() => Math.round(document.querySelector(".home-seg").getBoundingClientRect().top + scrollY));
+        const pre = await page.evaluate(() => Math.round(document.querySelector(".test-tile-slot").getBoundingClientRect().bottom + scrollY));
         hold = false;
         await page.waitForSelector("[data-test]", { timeout: 30000 });
         await sleep(800);
-        const post = await page.evaluate(() => Math.round(document.querySelector(".home-seg").getBoundingClientRect().top + scrollY));
+        const post = await page.evaluate(() => Math.round(document.querySelector("[data-test]").getBoundingClientRect().bottom + scrollY));
         expectIt(`today-tester-reload ${sz}: nothing moves when the tile mounts`, pre === post, `${pre} -> ${post}`);
         await ctx.close();
       });
@@ -340,7 +343,7 @@ async function shootAll() {
           state(tester);
           const { ctx, page } = await context(theme, size, { hint: true, blur: true });
           await page.goto(`${BASE}/`);
-          await page.waitForSelector(".home-seg", { timeout: 30000 });
+          await page.waitForSelector("main a.home-mode", { timeout: 30000 });
           await shot(page, "squint-today-tester-send", { settle: 1600 });
           await ctx.close();
         });

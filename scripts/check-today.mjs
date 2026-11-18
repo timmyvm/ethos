@@ -1,23 +1,25 @@
 /**
  * Today, checked in a real browser (S14: D14, D22, D24; #478).
  *
- * 1. Only the card glows (#478, docs/plan-next.md section 1). No tile
- *    under it stands an object or a light: no image, no drop shadow, no
- *    radial light, no box shadow on a tile, and nothing outside the card
- *    draws a drop shadow. Each of the five trait tiles carries one flat
- *    glyph before its name, in its own tone, every glyph its own
- *    drawing; at 320, 390 and 430, in both themes.
- * 2. The three things (#478, section 10). Hostile Q&A and this week's
- *    boss stand side by side straight under the card, equal in width
- *    and height, over the switch; each is one link (to /hostile and
- *    /boss, both `?from=today`), says what it is about now and one line
- *    (rounds left, or when the next opens; days left, or Done this
- *    week); at 390 and 430 both stand on the first screen, clear of the
- *    nav. The boss's back names Today and returns there. Nothing moves
+ * 1. One card (#500; Timothy, 18 Nov: "I don't fuck with all the cards
+ *    on the homepage"). Under the practice card nothing larger than a pip
+ *    has a fill, an edge or a cast shadow; there is no switch and no
+ *    trait tile; nothing outside the card draws a drop shadow; and the
+ *    only pictures are the two games' 3D marks, 72px (56 under 360); at
+ *    320, 390 and 430, in both themes.
+ * 2. The games (#478, #500). Hostile Q&A over the weekly boss, 24 under
+ *    the card, each one link (to /hostile and /boss, both `?from=today`)
+ *    ending in the house Disclosure, the marks on one left edge, the
+ *    names in their tones, what each is about now and one line (rounds
+ *    left with as many pips lit, or when the next opens; Read it, explain
+ *    it, or Done this week); at 390 and 430 both stand on the first
+ *    screen, clear of the nav. The weekly boss's back names Today and
+ *    returns there. Each row's name, subject and line hold together,
+ *    nearer each other than the row above (#500 review). Nothing moves
  *    when they land (#478 review): the server's paint, which has no
- *    clock, stands them at the height they land at, and every claim and
- *    every week's topic fits the lines they hold, unclipped, at 320, 349
- *    and 390.
+ *    clock, stands the rows, their names, marks and chevrons where they
+ *    land, its subject and line still blank, and every claim and every
+ *    week's topic fits the two lines held, unclipped, at 320, 349 and 390.
  * 3. The tactic in two lines. At 320 every tactic label the card can
  *    show (lib/tip-labels.ts) holds two lines in the card's words. The
  *    card shows the tactic once the day is spoken ("One more", #431),
@@ -30,13 +32,20 @@
  *    goes to that topic's recording, once. From both doors: "Another
  *    topic" under Start on a day not yet spoken (#431), the shuffle
  *    glyph on "One more"; an open day's take opens ready to record.
- * 5. The switch against the tab bar (#495 and its review). On the first
- *    screen of six iPhones, each with its 34px home inset, on a day not
- *    yet spoken and a day spoken, the Today / This week switch either
- *    clears the floating bar or starts at or under its top and ends in
- *    it, never half out with its labels cut; the ground over it is 64 or
- *    less. 402x874 (iPhone 16 Pro, 17, 17 Pro) is the one #495's fixed
- *    60px cut.
+ * 5. The foot against the tab bar (#500). On the first screen of six
+ *    iPhones, each with its 34px home inset, on a day not yet spoken and
+ *    a day spoken, the games end at 734 (the `--rows-end` the foot's CSS
+ *    reads), over the bar from 390 wide, and the foot either clears the
+ *    bar or starts under the screen's foot: never under the glass at rest.
+ *    Again with each phone's status bar inset (#500 review): the games
+ *    end that much lower and the foot still never stands under the glass.
+ * 6. The foot says what it is: two figures, today's line and the longest
+ *    stretch with no filler, each a number with what it counts and a
+ *    line in plain words; a first-day account has no foot and no zero.
+ * 7. Both of the card's taps, Start and Another topic, stand clear of
+ *    the tab bar at 320x568, 375x667 and 320x692 (#500: Another topic
+ *    stood under the bar at 320x568), and at 320x568 and 375x667 under
+ *    an installed SE's 20px status bar.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -45,7 +54,7 @@
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import { readFileSync } from "node:fs";
-import { TODAY_REP, extraReps, seed, session, supabaseRoute, testerMode } from "./look-fixtures.mjs";
+import { TODAY_REP, extraReps, repsMode, seed, session, supabaseRoute, testerMode } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -62,7 +71,7 @@ const labels = [
   ),
 ].map((m) => m[1] ?? m[2]);
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
-async function open(theme, width) {
+async function open(theme, width, landed = "main .home-foot") {
   const context = await browser.newContext({
     viewport: { width, height: 844 },
     deviceScaleFactor: 2,
@@ -75,22 +84,22 @@ async function open(theme, width) {
   await context.addInitScript(seed, { theme, session });
   const page = await context.newPage();
   await page.goto(`${BASE}/`);
-  await page.waitForSelector("main .home-tile[data-wide]", { timeout: 20000 });
+  await page.waitForSelector(landed, { timeout: 20000 });
   await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 15000 }).catch(() => {});
   await page.evaluate(() => Promise.all([...document.images].map((i) => i.decode().catch(() => {})))).catch(() => {});
   await sleep(700);
   return { context, page };
 }
 
-// 1 and 2: the tiles.
+// 1 and 2: one card, and the games as rows on the ground.
 for (const theme of ["light", "dark"]) {
   for (const width of [320, 390, 430]) {
     const { context, page } = await open(theme, width);
-    const flat = await page.evaluate(() => {
+    const under = await page.evaluate(() => {
       const main = document.querySelector("main");
-      const tiles = [...main.querySelectorAll(".home-tile, .home-mode")];
-      /* A light is a drop shadow, a radial glow, or an outer shadow with
-         a blur; the dark tile's inset 1px rim is its edge, not a light. */
+      const card = document.querySelector(".home-hero").getBoundingClientRect();
+      /* A box is a fill, an edge or a cast shadow on anything larger than
+         a pip under the card: the card is the one (#500). */
       const cast = (shadow) =>
         shadow !== "none" &&
         shadow.split(/,(?![^(]*\))/).some((s) => {
@@ -98,117 +107,142 @@ for (const theme of ["light", "dark"]) {
           const px = [...s.replace(/rgba?\([^)]*\)/g, "").matchAll(/(-?[\d.]+)px/g)].map((m) => Number(m[1]));
           return (px[2] ?? 0) > 0;
         });
-      const lit = (el) => {
-        const cs = getComputedStyle(el);
-        return /drop-shadow/.test(cs.filter) || /radial-gradient/.test(cs.backgroundImage) || cast(cs.boxShadow);
+      const filled = (cs) => {
+        const bg = cs.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0];
+        return (bg.length === 4 ? bg[3] > 0 : true) && cs.backgroundColor !== "transparent";
       };
+      const boxes = [...main.querySelectorAll("*")]
+        .filter((el) => !el.closest(".home-hero, .screen-bar, .large-title-row, .large-title-eyebrow, header"))
+        .filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.top >= card.bottom - 1 && r.width * r.height > 200;
+        })
+        .filter((el) => {
+          const cs = getComputedStyle(el);
+          return filled(cs) || cs.backgroundImage !== "none" || cast(cs.boxShadow) || parseFloat(cs.borderTopWidth) > 0;
+        })
+        .map((el) => el.className.toString().split(" ")[0] || el.tagName);
       const glowing = [...main.querySelectorAll("*")]
         .filter((el) => !el.closest(".home-hero") && /drop-shadow/.test(getComputedStyle(el).filter))
         .map((el) => el.className.toString().split(" ")[0] || el.tagName);
-      const traits = [...main.querySelectorAll(".home-tile[data-trait]")].map((tile) => {
-        const glyphs = tile.querySelectorAll(".home-trait-glyph > svg");
-        return {
-          trait: tile.dataset.trait,
-          glyphs: glyphs.length,
-          drawing: glyphs[0]?.innerHTML ?? "",
-        };
-      });
+      const images = [...main.querySelectorAll("img")]
+        .filter((img) => !img.closest(".home-hero, header, .screen-bar, .large-title-row") && img.getBoundingClientRect().top >= card.bottom - 1)
+        .map((img) => ({ src: img.getAttribute("src"), w: Math.round(img.getBoundingClientRect().width) }));
       return {
-        images: tiles.reduce((n, t) => n + t.querySelectorAll("img, picture, video").length, 0),
-        litTiles: tiles.filter((t) => lit(t) || [...t.querySelectorAll("*")].some(lit)).length,
+        boxes,
         glowing,
-        traits,
+        images,
+        switches: main.querySelectorAll('[role="radiogroup"], .segmented').length,
+        tiles: main.querySelectorAll(".home-tile[data-trait], [data-wide], [data-four]").length,
       };
     });
+    const mark = width < 360 ? 56 : 72;
     ok(
-      `${theme} ${width}: no tile under the card stands an object or a light, and nothing outside the card glows`,
-      flat.images === 0 && flat.litTiles === 0 && flat.glowing.length === 0,
-      JSON.stringify({ images: flat.images, litTiles: flat.litTiles, glowing: flat.glowing })
-    );
-    /* The tone as the tile resolves it, against the glyph's drawn colour. */
-    const toned = await page.evaluate(() =>
-      [...document.querySelectorAll("main .home-tile[data-trait] .home-trait-glyph")].map((g) => {
-        const probe = document.createElement("span");
-        probe.style.color = "var(--tone)";
-        g.parentElement.appendChild(probe);
-        const want = getComputedStyle(probe).color;
-        probe.remove();
-        return getComputedStyle(g).color === want;
-      })
+      `${theme} ${width}: the card is the one box: under it no fill, edge or shadow, no switch, no trait tiles, nothing glowing`,
+      under.boxes.length === 0 && under.glowing.length === 0 && under.switches === 0 && under.tiles === 0,
+      JSON.stringify({ boxes: under.boxes.slice(0, 6), glowing: under.glowing, switches: under.switches, tiles: under.tiles })
     );
     ok(
-      `${theme} ${width}: five trait tiles, each one flat glyph in its own tone, five different drawings`,
-      flat.traits.length === 5 &&
-        flat.traits.every((t) => t.glyphs === 1) &&
-        new Set(flat.traits.map((t) => t.drawing)).size === 5 &&
-        toned.length === 5 && toned.every(Boolean),
-      flat.traits.map((t) => `${t.trait}:${t.glyphs}`).join(", ") + ` toned ${JSON.stringify(toned)}`
+      `${theme} ${width}: the only pictures under the card are the two games' 3D marks, at ${mark}px`,
+      under.images.length === 2 &&
+        under.images[0].src === "/icons/3d/hostile.webp" &&
+        under.images[1].src === "/icons/3d/boss.webp" &&
+        under.images.every((i) => i.w === mark),
+      JSON.stringify(under.images)
     );
 
     const modes = await page.evaluate(() => {
       const card = document.querySelector(".home-hero").getBoundingClientRect();
-      const seg = document.querySelector(".home-seg")?.getBoundingClientRect();
       const nav = document.querySelector('nav[aria-label="Sections"] .nav-glass')?.getBoundingClientRect();
       return {
         card: { bottom: card.bottom },
-        seg: seg ? { top: seg.top } : null,
         nav: nav ? { top: nav.top } : null,
-        tiles: [...document.querySelectorAll("main a.home-mode")].map((a) => {
+        rows: [...document.querySelectorAll("main a.home-mode")].map((a) => {
           const r = a.getBoundingClientRect();
+          const art = a.querySelector(".home-mode-art").getBoundingClientRect();
+          const words = a.querySelector(".home-mode-words").getBoundingClientRect();
+          const name = a.querySelector(".home-mode-name");
+          const probe = document.createElement("span");
+          probe.style.color = "var(--tone-ink)";
+          a.appendChild(probe);
+          const tone = getComputedStyle(probe).color;
+          probe.remove();
           return {
             id: a.dataset.mode,
             href: a.getAttribute("href"),
             top: r.top,
             bottom: r.bottom,
-            left: r.left,
-            width: r.width,
             height: r.height,
+            artLeft: art.left,
+            wordsLeft: words.left,
+            name: name?.textContent.trim() ?? "",
+            toned: name ? getComputedStyle(name).color === tone : false,
             subject: a.querySelector(".home-mode-subject")?.textContent.trim() ?? "",
             line: a.querySelector(".home-mode-line")?.textContent.trim() ?? "",
+            /* The words' inner gaps: name to subject, subject to line. */
+            nameEnd: name?.getBoundingClientRect().bottom ?? 0,
+            subjectTop: a.querySelector(".home-mode-subject > span")?.getBoundingClientRect().top ?? 0,
+            subjectEnd: a.querySelector(".home-mode-subject > span")?.getBoundingClientRect().bottom ?? 0,
+            lineTop: a.querySelector(".home-mode-line")?.getBoundingClientRect().top ?? 0,
+            lineEnd: a.querySelector(".home-mode-line")?.getBoundingClientRect().bottom ?? 0,
+            nameTop: name?.getBoundingClientRect().top ?? 0,
+            pips: a.querySelectorAll(".home-pip").length,
+            lit: a.querySelectorAll(".home-pip[data-on]").length,
             label: a.getAttribute("aria-label") ?? "",
             links: a.querySelectorAll("a, button").length,
+            disclosure: !!a.querySelector(':scope > svg path[d="m1.5 1.5 5 5.5-5 5.5"]'),
           };
         }),
       };
     });
-    const [h, b] = modes.tiles;
+    const [h, b] = modes.rows;
     const pair =
-      modes.tiles.length === 2 &&
+      modes.rows.length === 2 &&
       h.id === "hostile" && h.href === "/hostile?from=today" &&
       b.id === "boss" && b.href === "/boss?from=today" &&
-      Math.abs(h.top - b.top) < 1 && Math.abs(h.width - b.width) < 1 && Math.abs(h.height - b.height) < 1 &&
-      b.left > h.left &&
-      h.top - modes.card.bottom >= 8 && h.top - modes.card.bottom <= 16 &&
-      modes.seg !== null && h.bottom < modes.seg.top &&
-      h.links === 0 && b.links === 0;
+      b.top > h.bottom && Math.abs(h.artLeft - b.artLeft) < 1 && Math.abs(h.wordsLeft - b.wordsLeft) < 1 &&
+      Math.abs(h.height - b.height) < 1 && h.height >= 44 &&
+      h.top - modes.card.bottom >= 20 && h.top - modes.card.bottom <= 28 &&
+      h.links === 0 && b.links === 0 && h.disclosure && b.disclosure;
     ok(
-      `${theme} ${width}: Hostile Q&A and the weekly boss, side by side and equal, straight under the card and over the switch, one link each`,
+      `${theme} ${width}: Hostile Q&A over the weekly boss, 24 under the card, one link each, one left edge, each ending in the Disclosure`,
       pair,
-      JSON.stringify(modes.tiles.map((t) => ({ id: t.id, href: t.href, top: Math.round(t.top), w: Math.round(t.width), h: Math.round(t.height) }))) +
+      JSON.stringify(modes.rows.map((t) => ({ id: t.id, top: Math.round(t.top), h: Math.round(t.height), art: Math.round(t.artLeft), d: t.disclosure }))) +
         ` card foot ${Math.round(modes.card.bottom)}`
     );
     ok(
-      `${theme} ${width}: each says what it is about now and one line worth coming back for`,
-      modes.tiles.length === 2 &&
+      `${theme} ${width}: each names itself in its tone, says what it is about now and one line; Hostile's rounds as pips`,
+      modes.rows.length === 2 &&
+        h.name === "Hostile Q&A" && b.name === "Weekly boss" && h.toned && b.toned &&
         h.subject.length > 4 && b.subject.length > 4 &&
-        /^(\d free today|Next in .+)$/.test(h.line) &&
-        /^(Read it, explain it|Done this week)$/.test(b.line) &&
+        /^(\d free today|Next in .+)$/.test(h.line) && h.pips === 3 && (h.lit === Number(h.line.match(/^(\d) free/)?.[1] ?? 0)) &&
+        /^(Read it, explain it|Done this week)$/.test(b.line) && b.pips === 0 &&
         h.label.startsWith("Hostile Q&A.") && h.label.includes(h.subject) &&
         b.label.startsWith("Weekly boss.") && b.label.includes(b.subject),
-      `"${h?.subject}" / "${h?.line}"; "${b?.subject}" / "${b?.line}"`
+      `"${h?.name}" "${h?.subject}" / "${h?.line}" ${h?.lit}/${h?.pips}; "${b?.name}" "${b?.subject}" / "${b?.line}"`
+    );
+    /* Proximity (#500 review): a row's name sits on its subject and its
+       line under it, nearer each other than the row above is, whatever
+       the subject's length. A one-line topic centred in two held lines
+       stood the name as far from its topic as from Hostile's line. */
+    const inner = (t) => Math.max(t.subjectTop - t.nameEnd, t.lineTop - t.subjectEnd);
+    ok(
+      `${theme} ${width}: each row's name, subject and line hold together, closer than the row above`,
+      modes.rows.length === 2 && inner(h) <= 4 && inner(b) <= 4 && b.nameTop - h.lineEnd >= inner(h) + 8,
+      `inner ${inner(h).toFixed(1)} / ${inner(b).toFixed(1)}, between rows ${(b.nameTop - h.lineEnd).toFixed(1)}`
     );
     if (width >= 390) {
       ok(
         `${theme} ${width}: both stand on the first screen, clear of the nav`,
         modes.nav !== null && h.bottom <= modes.nav.top && b.bottom <= modes.nav.top,
-        `tiles end ${Math.round(Math.max(h.bottom, b.bottom))}, nav at ${Math.round(modes.nav?.top ?? 0)}`
+        `rows end ${Math.round(Math.max(h.bottom, b.bottom))}, nav at ${Math.round(modes.nav?.top ?? 0)}`
       );
     }
     await context.close();
   }
 }
 
-// The boss's tile: one tap away, and its back names Today and returns there.
+// The weekly boss's row: one tap away, and its back names Today and returns there.
 {
   const { context, page } = await open("light", 390);
   await page.click("main a.home-mode[data-mode='boss']");
@@ -223,22 +257,33 @@ for (const theme of ["light", "dark"]) {
   await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 15000 }).catch(() => {});
   const home = new URL(page.url()).pathname;
   ok(
-    "390: the boss's tile opens /boss, whose back says Today and returns to Today",
+    "390: the weekly boss's row opens /boss, whose back says Today and returns to Today",
     back.text === "Today" && back.href === "/" && home === "/",
     JSON.stringify({ back, home })
   );
   await context.close();
 }
 
-// 2b: the pair holds its height before the clock is read (#478 review).
+// 2b: the rows hold their height before the clock is read (#478 review, #500).
 {
   const subjects = {
     hostile: [...readFileSync(new URL("../lib/hostile.ts", import.meta.url), "utf8").matchAll(/claim: "([^"]+)"/g)].map((m) => m[1]),
     boss: [...readFileSync(new URL("../lib/cold-topics.ts", import.meta.url), "utf8").matchAll(/title: "([^"]+)"/g)].map((m) => m[1]),
   };
+  /* What the server's paint shows: the row, its name, its mark and its
+     chevron, which must stand where they land. Its subject and line are
+     no-break spaces there (no clock), so they find their place unseen. */
   const measure = () => ({
-    tiles: [...document.querySelectorAll("main a.home-mode")].map((a) => Math.round(a.getBoundingClientRect().height)),
-    seg: Math.round(document.querySelector(".home-seg")?.getBoundingClientRect().top ?? -1),
+    rows: [...document.querySelectorAll("main a.home-mode")].map((a) => {
+      const r = a.getBoundingClientRect();
+      const name = a.querySelector(".home-mode-name").getBoundingClientRect();
+      const art = a.querySelector(".home-mode-art").getBoundingClientRect();
+      const chevron = a.querySelector(":scope > svg:last-child").getBoundingClientRect();
+      return [Math.round(r.top), Math.round(r.height), Math.round(name.top), Math.round(art.top), Math.round(chevron.top)];
+    }),
+    unseen: [...document.querySelectorAll("main a.home-mode")].every(
+      (a) => a.querySelector(".home-mode-subject").textContent.trim() === "" && a.querySelector(".home-mode-line").textContent.trim() === ""
+    ),
   });
   for (const width of [320, 349, 390]) {
     const paint = await browser.newContext({
@@ -259,7 +304,7 @@ for (const theme of ["light", "dark"]) {
     const fits = await page.evaluate((subjects) => {
       const out = [];
       for (const a of document.querySelectorAll("main a.home-mode")) {
-        const el = a.querySelector(".home-mode-subject");
+        const el = a.querySelector(".home-mode-subject > span");
         const held = Math.round(a.getBoundingClientRect().height);
         const was = el.textContent;
         for (const t of subjects[a.dataset.mode] ?? []) {
@@ -271,12 +316,11 @@ for (const theme of ["light", "dark"]) {
       }
       return out;
     }, subjects);
+    const same = (x, y) => x.length === y.length && x.every((r, i) => r.every((v, j) => Math.abs(v - y[i][j]) <= 1));
     ok(
-      `${width}: the pair stands at the server's paint as it lands, and every claim and topic fits its lines`,
-      before.tiles.length === 2 && after.tiles.length === 2 &&
-        before.tiles.every((h, i) => Math.abs(h - after.tiles[i]) <= 1) &&
-        before.seg > 0 && Math.abs(before.seg - after.seg) <= 1 && fits.length === 0,
-      `paint ${JSON.stringify(before)}, landed ${JSON.stringify(after)}${fits.length ? `, moved by ${fits.slice(0, 3).join("; ")}` : ""}`
+      `${width}: the rows, their names, marks and chevrons stand at the server's paint as they land, its subject and line unseen until then, and every claim and topic fits two lines`,
+      before.rows.length === 2 && before.unseen && same(before.rows, after.rows) && fits.length === 0,
+      `paint ${JSON.stringify(before.rows)}, landed ${JSON.stringify(after.rows)}${fits.length ? `, broke on ${fits.slice(0, 3).join("; ")}` : ""}`
     );
     await context.close();
   }
@@ -394,12 +438,17 @@ for (const [theme, spoken] of [
 }
 testerMode.today = false;
 
-// 5: the switch against the tab bar, on six iPhones' first screens.
-for (const spoke of [false, true]) {
+// 5: the foot against the tab bar, on six iPhones' first screens (#500).
+/* Each phone's status bar inset where the page is given one (#500
+   review): the header starts under it, so everything under it ends that
+   much lower, and the foot has to know. 0 is the camera's own view. */
+const NOTCH = { 375: 50, 390: 47, 393: 59, 402: 62, 430: 59, 440: 62 };
+for (const [spoke, notched] of [[false, false], [true, false], [false, true]]) {
   extraReps.length = 0;
   if (spoke) extraReps.push({ ...TODAY_REP });
   const out = [];
   for (const [width, height] of [[375, 812], [390, 844], [393, 852], [402, 874], [430, 932], [440, 956]]) {
+    const top = notched ? NOTCH[width] : 0;
     const context = await browser.newContext({
       viewport: { width, height },
       deviceScaleFactor: 1,
@@ -413,28 +462,115 @@ for (const spoke of [false, true]) {
     await context.addInitScript(seed, { theme: "light", session });
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
-    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 0, bottom: 34, left: 0, right: 0 } });
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top, bottom: 34, left: 0, right: 0 } });
     await page.goto(`${BASE}/`);
-    await page.waitForSelector("main .home-tile[data-wide]", { timeout: 20000 });
+    await page.waitForSelector("main .home-foot", { timeout: 20000 });
     await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 15000 }).catch(() => {});
     await sleep(500);
     const at = await page.evaluate(() => {
-      const seg = document.querySelector("main .home-seg").getBoundingClientRect();
+      const foot = document.querySelector("main .home-foot").getBoundingClientRect();
       const bar = document.querySelector("nav .nav-glass").getBoundingClientRect();
-      const tiles = [...document.querySelectorAll("main a.home-mode")].map((a) => a.getBoundingClientRect().bottom);
-      return { top: seg.top, bottom: seg.bottom, barTop: bar.top, barBottom: bar.bottom, ground: seg.top - Math.max(...tiles) };
+      const rows = [...document.querySelectorAll("main a.home-mode")].map((a) => a.getBoundingClientRect().bottom);
+      return { top: foot.top, bottom: foot.bottom, barTop: bar.top, rowsEnd: Math.max(...rows), screen: innerHeight };
     });
     const clear = at.bottom <= at.barTop;
-    const under = at.top >= at.barTop - 0.5 && at.bottom <= at.barBottom + 0.5;
-    out.push({ phone: `${width}x${height}`, clear, under, ground: Math.round(at.ground), at });
+    const below = at.top >= at.screen - 0.5;
+    out.push({ phone: `${width}x${height}`, top, clear, below, rowsEnd: Math.round(at.rowsEnd), rowsClear: at.rowsEnd <= at.barTop, at });
   }
+  const day = `${spoke ? "spoken" : "open"} day${notched ? ", status bar inset" : ""}`;
   ok(
-    `${spoke ? "spoken" : "open"} day: on six iPhones the switch clears the tab bar or stands wholly in it, under 64 of ground`,
-    out.every((o) => (o.clear || o.under) && o.ground <= 64),
-    out.map((o) => `${o.phone} ${o.clear ? "clear" : o.under ? "under" : "CUT"} ${o.ground}`).join(", ")
+    `${day}: on six iPhones the games end at 734 under the inset and the foot clears the tab bar or starts under the screen's foot, never under the glass`,
+    out.every((o) => (o.clear || o.below) && Math.abs(o.rowsEnd - 734 - o.top) <= 1),
+    out.map((o) => `${o.phone}+${o.top} ${o.clear ? "clear" : o.below ? "below" : "UNDER GLASS"} rows ${o.rowsEnd}`).join(", ")
+  );
+  /* With the status bar's inset the rows end 47 to 62 lower, and from
+     390 to 402 the weekly boss's row then stands under the bar at rest:
+     printed, and open in the #500 review. */
+  if (notched) {
+    console.log(`  (with the inset: ${out.map((o) => `${o.phone} rows ${o.rowsEnd} bar ${Math.round(o.at.barTop)}`).join(", ")})`);
+    continue;
+  }
+  /* From 390 wide the whole job is on the first screen, clear of the
+     bar. 375x812 (the minis) stands its bar at 714, so the weekly boss's
+     last line runs under it like any list: printed, and open in #500. */
+  ok(
+    `${day}: from 390 wide both games end over the tab bar`,
+    out.filter((o) => !o.phone.startsWith("375")).every((o) => o.rowsClear),
+    out.map((o) => `${o.phone} rows ${o.rowsEnd} bar ${Math.round(o.at.barTop)}`).join(", ")
   );
 }
 extraReps.length = 0;
+
+// 6: the foot's two figures say what they are, and a first-day account has none (#500).
+{
+  const { context, page } = await open("light", 390);
+  const figs = await page.evaluate(() =>
+    [...document.querySelectorAll("main .home-fig")].map((f) => ({
+      value: f.querySelector(".home-fig-value")?.textContent.trim() ?? "",
+      rate: f.querySelector(".home-fig-rate")?.textContent.trim() ?? "",
+      label: f.querySelector(".home-fig-label")?.textContent.trim() ?? "",
+      said: f.querySelector(".sr-only")?.textContent.trim() ?? "",
+    }))
+  );
+  const [line, run] = figs;
+  ok(
+    "390: the foot is two figures, today's line and the longest stretch with no filler, each a number and plain words",
+    figs.length === 2 &&
+      /^[\d.]+( to \d+)?$/.test(line.value) && line.rate.length > 0 && /^Today's line[:,] /.test(line.label) && line.said.endsWith(".") &&
+      /^\d+$/.test(run.value) && run.rate === "s" && /^Longest with no filler/.test(run.label) && /seconds\.$/.test(run.said),
+    JSON.stringify(figs)
+  );
+  await context.close();
+  repsMode.rows = [];
+  const fresh = await open("light", 390, "main a.home-mode");
+  const zero = await fresh.page.evaluate(() => ({
+    foot: document.querySelectorAll("main .home-foot").length,
+    zeros: [...document.querySelectorAll("main .home-fig-value")].filter((v) => /^0(\.0)?$/.test(v.textContent.trim())).length,
+  }));
+  ok("a first-day account has no foot and no zero standing for a number", zero.foot === 0 && zero.zeros === 0, JSON.stringify(zero));
+  await fresh.context.close();
+  repsMode.rows = null;
+}
+
+// 7: on a short screen both of the card's taps stand clear of the tab bar (#500).
+{
+  /* [width, height, bottom inset, top inset]: an SE installed gives the
+     page its 20px status bar (#500 review). */
+  for (const [width, height, inset, top] of [[320, 568, 0, 0], [375, 667, 0, 0], [320, 692, 34, 0], [320, 568, 0, 20], [375, 667, 0, 20]]) {
+    const context = await browser.newContext({
+      viewport: { width, height },
+      deviceScaleFactor: 1,
+      isMobile: true,
+      hasTouch: true,
+      locale: "en-AU",
+      timezoneId: "Australia/Melbourne",
+      serviceWorkers: "block",
+    });
+    await context.route("http://supabase.local/**", supabaseRoute);
+    await context.addInitScript(seed, { theme: "light", session });
+    const page = await context.newPage();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top, bottom: inset, left: 0, right: 0 } });
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector("main .home-another", { timeout: 20000 });
+    await sleep(600);
+    const at = await page.evaluate(() => ({
+      start: document.querySelector("main .home-start").getBoundingClientRect().bottom,
+      another: document.querySelector("main .home-another").getBoundingClientRect().bottom,
+      bar: document.querySelector("nav .nav-glass").getBoundingClientRect().top,
+    }));
+    ok(
+      `${width}x${height}${top ? ` under a ${top}px status bar` : ""}: Start and Another topic both stand clear of the tab bar`,
+      /* 4 clear at least: the card's sum aims at 8, and a tap flush on
+         the glass's edge reads as under it. Under an installed SE's
+         status bar the card is at its content's floor (321 at 320x568),
+         so there it only has to stand over the bar: open in #500's review. */
+      at.start <= at.bar - (top ? 0 : 4) && at.another <= at.bar - (top ? 0 : 4),
+      `Start ends ${Math.round(at.start)}, Another topic ${Math.round(at.another)}, bar ${Math.round(at.bar)}`
+    );
+    await context.close();
+  }
+}
 
 await browser.close();
 const failed = findings.filter((f) => !f.pass).length;

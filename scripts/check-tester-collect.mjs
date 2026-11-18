@@ -187,7 +187,7 @@ const sentCount = () => Math.max(testerMode.collected.length, wire.length, mirro
   await sleep(1500);
   check("a non-tester's open reads no testers row", reads.length === 0, `${reads.length} reads`);
   // During the test (#402): their Today is the one they always had.
-  await page.waitForSelector(".home-seg", { timeout: 20000 }).catch(() => {});
+  await page.waitForSelector("main a.home-mode", { timeout: 20000 }).catch(() => {});
   const eyebrow = (await page.locator(".large-title-eyebrow").first().textContent())?.trim() ?? "";
   check("a non-tester's Today has no test tile and no Tester mark", (await page.locator("[data-test], .tester-chip").count()) === 0);
   check("…and its eyebrow is the date", eyebrow.length > 0 && !/^Test day/.test(eyebrow), eyebrow);

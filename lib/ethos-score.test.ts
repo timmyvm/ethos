@@ -74,7 +74,7 @@ describe("a change, one way (#493)", () => {
  * number; Today's This week tile read "Ethos Index" over "662" and
  * "−28 this week, +51 since day one", a fifth spelling of a change.
  */
-describe("Presence and Today's This week tile, the same drawing (#493 review)", () => {
+describe("Presence, the same drawing (#493 review)", () => {
   it("Presence: its eyebrow over the score line, the change under it with no sign", async () => {
     const { PresenceScore } = await import("@/components/PresenceCard");
     const up = text(renderToStaticMarkup(createElement(PresenceScore, { score: 720, previous: 680, premium: true, onUpgrade: () => {} })));
@@ -84,24 +84,6 @@ describe("Presence and Today's This week tile, the same drawing (#493 review)", 
     for (const html of [door]) expect(html).not.toMatch(/your Presence/);
   });
 
-  it("This week: Your Ethos over the score line, each change its own triangle, a zero left out", async () => {
-    const { WeekTiles } = await import("@/components/home/WeekTiles");
-    const days = "MTWTFSS".split("").map((label, i) => ({ label, on: i < 3, today: i === 2 }));
-    const week = (w: number | null, since: number | null) => ({
-      days, spoken: 3, thisWeek: 3, total: 23, daysAll: 23, weeks: [3, 6, 5, 6, 3],
-      index: { now: 662, week: w, since, series: [611, 640, 662] },
-    });
-    const tile = (w: number | null, since: number | null) => {
-      const html = renderToStaticMarkup(createElement(WeekTiles, { week: week(w, since) }));
-      return text(html.slice(0, html.indexOf("Days spoken")));
-    };
-    expect(tile(-28, 51)).toBe("Your Ethos662/1000▼Down 28 this week, ▲Up 51 since day one");
-    expect(tile(0, 51)).toBe("Your Ethos662/1000▲Up 51 since day one");
-    expect(tile(null, null)).toBe("Your Ethos662/1000");
-    const fresh = renderToStaticMarkup(createElement(WeekTiles, { week: { ...week(null, null), index: null } }));
-    expect(text(fresh.slice(0, fresh.indexOf("Days spoken")))).toBe("Your Ethos—/1000Your first recording sets it.");
-    const src = readFileSync("components/home/WeekTiles.tsx", "utf8");
-    expect(src).toMatch(/<EthosScore/);
-    expect(src).not.toMatch(/signed\(|Ethos Index<|>\/1000</);
-  });
+  /* Today's This week tile left with #500 (Today is one card), and with
+     it the fifth place the number was drawn. */
 });

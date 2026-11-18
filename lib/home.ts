@@ -1,25 +1,24 @@
 /**
  * Today, "the object" (#393, direction B). The pure half of the home:
- * which glass object stands on the practice card, the tiles' units and
- * their order, what today's line and the clean run say in a
- * tile, the greeting's name, and the This week view. The screen
- * (app/page.tsx, components/home/) only draws what these return, so
- * every state is a number a test can hold.
+ * which glass object stands on the practice card, what today's line and
+ * the clean run say at the foot (#500), the greeting's name, and the
+ * card's face on a day spoken or not. The screen (app/page.tsx,
+ * components/home/) only draws what these return, so every state is a
+ * number a test can hold.
  */
 
 import { lessonById } from "@/content/lessons";
 import { NORMS } from "@/content/norms";
 import type { Pool } from "@/content/portfolio";
-import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
+import { TRAIT, type TraitId } from "@/content/traits";
 import { cleanName } from "./answers";
 import { practiceRow, type Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
-import type { RepRow, RepSpine } from "./client-data";
+import type { RepRow } from "./client-data";
 import { ART_BOUNDS } from "./lesson-art-bounds";
-import { weekStart } from "./level";
 import { choosePractice, type Chosen } from "./next-practice";
 import { repHref } from "./rep-config";
-import { measured, readTraitsFromRow, type TraitReading } from "./trait-readings";
+import { measured, readTraitsFromRow } from "./trait-readings";
 
 /* ------------------------------------------------------------------ */
 /* The objects. */
@@ -77,8 +76,8 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
 
 /*
  * The trait tiles stood each trait's emblem (`TRAIT_OBJECT`, D22) until
- * #478 took every glass object off them: only the card stands one now,
- * and a tile's mark is its flat glyph (components/TraitGlyph.tsx).
+ * #478 took every glass object off them, and #500 took the tiles off
+ * Today: only the card stands a lesson's object now.
  */
 
 /**
@@ -95,7 +94,7 @@ export function objectSrc(id: string, large = false): string {
  * Where the object is inside its square, for the CSS that places it:
  * its visible box's left and top and its width and height, as fractions
  * of the square (lib/lesson-art-bounds.ts, measured from the cut's
- * transparency). `.home-hero` and `.home-tile` size an object so that
+ * transparency). `.home-hero` sizes an object so that
  * box fills their object zone, and stand it by the box, so a wide low
  * object (the pause marks, the bowl, the boomerang) rises out of the
  * card's corner as far as the hourglass does and never reaches the
@@ -113,139 +112,144 @@ export function artBox(id: string): Record<"--art-l" | "--art-t" | "--art-w" | "
 }
 
 /* ------------------------------------------------------------------ */
-/* The tiles. */
+/* The foot: the two numbers only Today holds (#500). */
+
+/*
+ * Since #500 (Timothy, 18 Nov: "I don't fuck with all the cards on the
+ * homepage") Today stands one box, the practice card. The five trait
+ * tiles and the This week side left: each trait's latest reading is on
+ * Lessons (`TraitNumber` under each trait's head), on You's trait sheet
+ * (its reading and where it places you, in words) and in every
+ * recording's Every number; the Index and the week's recordings are the
+ * Log's. Two numbers have no other home, so they stay, as two figures
+ * on the page's ground under the games: today's line (#281) and the
+ * longest stretch with no filler (#254, #267). Each is one number and
+ * one line in plain words (#483's two seconds): what it counts beside
+ * it, what to do with it under it.
+ */
 
 /**
- * A trait's unit as a tile says it (#495): the trait's own words from
- * content/traits.ts, under the number, never a short form. "/min",
- * "/100 words" and "wpm" were three spellings beside "um or uh per
- * hundred words" on Lessons and "words a minute" in the results; one
- * measure has one unit, in words, wherever it is printed. Singular where
- * the printed number is one.
+ * What a line counts, split where the figure stands: the noun for the
+ * line under it, the rate beside the number. Joined, they are the
+ * trait's own unit (content/traits.ts, held by lib/home.test.ts), so the
+ * foot says what Lessons and the results say.
  */
-export function tileUnit(id: TraitId, shown: string): string {
-  return shown === "1" ? TRAIT[id].unitOne : TRAIT[id].unit;
-}
-
-/**
- * The five in the bento's order. The wide tile is the trait the card
- * works on (`focus`, the practice's own trait, so the card, today's line
- * and the wide tile name one trait, #268); the other four follow by
- * percentile, lowest first, so the weakest stands nearest the card (the
- * percentile itself left the tiles in #495; the trait page says it in
- * words). Without a focus (a failed choice) the
- * lowest percentile takes the wide tile. A trait with no reading sorts
- * last; with no reading at all the order is the lessons'.
- */
-export function traitOrder(
-  readings: TraitReading[],
-  focus: TraitId | null = null
-): { id: TraitId; reading: TraitReading | null }[] {
-  const byId = new Map(readings.map((r) => [r.id, r]));
-  const place = (id: TraitId) => TRAITS.findIndex((t) => t.id === id);
-  const pct = (id: TraitId) => byId.get(id)?.percentile ?? Infinity;
-  const ranked = TRAITS.map((t) => t.id).sort(
-    (a, b) => (readings.length === 0 ? 0 : pct(a) - pct(b)) || place(a) - place(b)
-  );
-  const lead = focus ?? ranked[0];
-  return [lead, ...ranked.filter((id) => id !== lead)].map((id) => ({
-    id,
-    reading: byId.get(id) ?? null,
-  }));
-}
-
-const VERB: Record<"lower" | "higher", string> = {
-  lower: "Under",
-  higher: "Over",
+export const LINE_WORDS: Record<TraitId, { noun: string; rate: string }> = {
+  pause: { noun: "pauses between sentences", rate: "a minute" },
+  fillers: { noun: "um or uh", rate: "in 100 words" },
+  repairs: { noun: "restarts", rate: "in 100 words" },
+  pace: { noun: "words", rate: "a minute" },
+  range: { noun: "different words", rate: "in every 100" },
 };
 
 /**
- * Today's line as the tile prints it (E24): the tile's own precision,
- * whole from 10 up and one decimal under it, keeping the decimal, so a
- * line of 1.0 a minute reads "1.0" and never "1", which next to "Today's
- * line" read as the line's number in a list. Never `fmtRaw`.
+ * Today's line as the foot prints it (E24): whole from 10 up and one
+ * decimal under it, keeping the decimal, so a line of 1.0 a minute reads
+ * "1.0" and never "1". Never `fmtRaw`.
  */
 export function fmtLine(n: number): string {
   if (!Number.isFinite(n)) return "0.0";
   return n >= 10 ? String(Math.round(n)) : n.toFixed(1);
 }
 
-/**
- * Today's line in the wide tile (#495): under its head, one sentence
- * that says what clears it, in the unit of the number beside it. It
- * carried a second number with its unit, a caption about the last six
- * recordings and a tick on the percentile bar, three numbers and a bare
- * ordinal in one tile (the morning tour). Open and short say the same
- * thing, since the way to clear it has not changed; the flag or the
- * check says which. A closed line says the number that cleared it.
- */
-export interface WideLine {
-  state: "open" | "closed" | "short";
-  sentence: string;
+/** One of the foot's two figures: a number, what it counts, and one plain line. */
+export interface FootFigure {
+  /** Open or short: the line still to clear (the flag). Closed: cleared today (the check). None: nothing to show yet (a dash). */
+  state: "open" | "closed" | "none";
+  /** The number at its precision, Pace's zone as "130 to 160", or null for a dash. */
+  figure: string | null;
+  /** Beside the number, on its baseline: "a minute", "s". */
+  rate: string;
+  /** Under it, what to do with it or what it is, in words. */
+  label: string;
+  /** The figure as one sentence, for a screen reader. */
+  said: string;
 }
 
-export function wideLine(c: Challenge): WideLine {
-  if (c.today !== null && c.closed) {
-    return { state: "closed", sentence: `Cleared with ${fmtLine(c.today)} today.` };
+/** The line's name, the head of its label. */
+export const LINE_NAME = "Today's line";
+
+/**
+ * Today's line (#281) as a figure (#500): the number to beat over what
+ * to do about it. "1.0 a minute" over "Today's line: more pauses
+ * between sentences". It was a sentence in the wide tile ("Over 1.0
+ * clears it.") beside the trait's own number, and a tile's worth of
+ * context is gone with the tile, so the label names the measure. A
+ * closed line shows the number that cleared it. Pace's line is a
+ * distance from its zone, so it prints the zone and names the line
+ * (never "Over 104", lib/challenge.ts). None under three readings.
+ */
+export function lineFigure(c: Challenge | null): FootFigure {
+  if (!c) {
+    const label = `${LINE_NAME}: three recordings set it`;
+    return { state: "none", figure: null, rate: "", label, said: `${label}.` };
   }
-  const state = c.today === null ? "open" : "short";
-  if (c.direction === "band") {
-    /* Pace's line is a distance from its zone, so it has no verb: never
-       "Over 104" (lib/challenge.ts). */
-    const band = NORMS[c.trait].band;
-    const zone = band ? `${band.lo} to ${band.hi}` : "the zone";
-    const inside = band ? c.line >= band.lo && c.line <= band.hi : false;
+  const w = LINE_WORDS[c.trait];
+  if (c.today !== null && c.closed) {
+    const figure = fmtLine(c.today);
     return {
-      state,
-      sentence: inside ? `Inside ${zone} clears it.` : `Nearer ${zone} than ${fmtLine(c.line)} clears it.`,
+      state: "closed",
+      figure,
+      rate: w.rate,
+      label: `${LINE_NAME}, cleared`,
+      said: `${LINE_NAME}, cleared with ${figure} ${w.noun} ${w.rate}.`,
     };
   }
-  return { state, sentence: `${VERB[c.direction]} ${fmtLine(c.line)} clears it.` };
-}
-
-/** The clean run's name on Today (#495): "Clean run" is also a badge on You that counts something else. */
-export const RUN_NAME = "No-filler run";
-/** The clean run before there is one. */
-export const RUN_FIRST = "Your first recording sets it.";
-
-export interface CleanRunTile {
-  /** The last recording's longest stretch with no filler, whole seconds. */
-  s: number;
-  /** That recording's length. */
-  of: number;
-  /** The best before it, or null on the first recording. */
-  best: number | null;
-  newBest: boolean;
-  caption: string;
+  if (c.direction === "band") {
+    const band = NORMS[c.trait].band;
+    const zone = band ? `${band.lo} to ${band.hi}` : fmtLine(c.line);
+    const inside = band ? c.line >= band.lo && c.line <= band.hi : false;
+    /* "nearer it than 104" read cold as a riddle (#500 review): the zone
+       stands over the words, so "closer" needs no "it". */
+    const label = inside ? `${LINE_NAME}: stay inside it` : `${LINE_NAME}: closer than ${fmtLine(c.line)}`;
+    return {
+      state: "open",
+      figure: zone,
+      rate: `${w.noun} ${w.rate}`,
+      label,
+      said: inside
+        ? `${LINE_NAME}: stay inside ${zone} ${w.noun} ${w.rate}.`
+        : `${LINE_NAME}: nearer ${zone} ${w.noun} ${w.rate} than ${fmtLine(c.line)}.`,
+    };
+  }
+  const more = c.direction === "higher";
+  const figure = fmtLine(c.line);
+  return {
+    state: "open",
+    figure,
+    rate: w.rate,
+    label: `${LINE_NAME}: ${more ? "more" : "fewer"} ${w.noun}`,
+    said: `${LINE_NAME}: ${more ? "over" : "under"} ${figure} ${w.noun} ${w.rate}.`,
+  };
 }
 
 /**
- * The clean run (#254, #267) as a tile: the newest recording's longest
- * stretch with no filler, and one sentence (#495: "Of 65s. Best 53s."
- * was two fragments, and what the number was showed only on day zero).
+ * The clean run's name on Today (#495, #500): what it is, in words.
+ * "Clean run" is also a badge on You that counts something else, and
+ * "No-filler run" still asked what a run was.
  */
-export function cleanRunTile(reps: RepRow[]): CleanRunTile | null {
-  /* A take too short to score is not a clean run: one word in 8s read
-     "8s, of 8s". Its runs are neither the tile nor the best before it. */
+export const RUN_NAME = "Longest with no filler";
+
+/**
+ * The clean run (#254, #267) as a figure: the newest scored recording's
+ * longest stretch with no filler, in whole seconds, over what it is. A
+ * new best says so; the best itself left with the tile (#500). A take
+ * too short to score is not a clean run: one word in 8s read "8s, of
+ * 8s". None until a recording scores.
+ */
+export function runFigure(reps: Pick<RepRow, "fillers" | "duration_s" | "transcript">[]): FootFigure {
   const kept = reps.filter(measured);
-  if (kept.length === 0) return null;
-  const runs = kept.map((r) => ({
-    s: longestCleanRun(r.fillers ?? [], r.duration_s).seconds,
-    of: r.duration_s,
-  }));
+  if (kept.length === 0) {
+    const label = `${RUN_NAME}: your first recording sets it`;
+    return { state: "none", figure: null, rate: "", label, said: `${label}.` };
+  }
+  const runs = kept.map((r) => longestCleanRun(r.fillers ?? [], r.duration_s).seconds);
   const now = runs[runs.length - 1];
   const earlier = runs.slice(0, -1);
-  const best = earlier.length > 0 ? Math.max(...earlier.map((r) => r.s)) : null;
-  const s = Math.round(now.s);
-  const of = Math.max(1, Math.round(now.of));
-  const newBest = best !== null && now.s >= best;
-  const caption =
-    best === null
-      ? "Longest in your last recording."
-      : newBest
-        ? "Longest in your last recording, a new best."
-        : `Longest in your last recording. Best ${Math.round(best)}s.`;
-  return { s, of, best: best === null ? null : Math.round(best), newBest, caption };
+  const newBest = earlier.length > 0 && now >= Math.max(...earlier);
+  const s = Math.round(now);
+  const label = newBest ? `${RUN_NAME}, a new best` : `${RUN_NAME}, in your last recording`;
+  return { state: "open", figure: String(s), rate: "s", label, said: `${label}: ${s} seconds.` };
 }
 
 /* ------------------------------------------------------------------ */
@@ -271,98 +275,6 @@ export function initialOf(name: string | null): string | null {
 const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-export interface WeekDay {
-  /** M, T, W, T, F, S, S. */
-  label: string;
-  /** A recording landed that local day. */
-  on: boolean;
-  today: boolean;
-}
-
-export interface WeekView {
-  /** Monday first. */
-  days: WeekDay[];
-  /** Days spoken this week. */
-  spoken: number;
-  /** Recordings this week, and since day one. */
-  thisWeek: number;
-  total: number;
-  /** Days spoken since day one: the counter that never resets. */
-  daysAll: number;
-  /**
-   * Recordings a week, oldest first, this week last: the weeks since the
-   * first recording's, six at most. A week before day one is not a zero.
-   */
-  weeks: number[];
-  /** The Ethos Index, as the Log reads it: the newest scored recording. */
-  index: {
-    now: number;
-    /** Against the last scored recording before this week; null without one, or with nothing scored this week. */
-    week: number | null;
-    /** Against the first scored recording; null until there are two. */
-    since: number | null;
-    /** The newest thirty, oldest first, for the hill. */
-    series: number[];
-  } | null;
-}
-
-const WEEK_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
-const MS_WEEK = 7 * 86400000;
-
-/** This week, from every recording's date and Index (the spine). */
-export function weekView(spine: Pick<RepSpine, "created_at" | "ethos_index">[], now: Date): WeekView {
-  const start = weekStart(now);
-  const rows = spine
-    .map((r) => ({ at: new Date(r.created_at), index: r.ethos_index }))
-    .filter((r) => r.at <= now)
-    .sort((a, b) => a.at.getTime() - b.at.getTime());
-
-  const spokenKeys = new Set(rows.filter((r) => r.at >= start).map((r) => dayKey(r.at)));
-  const todayKey = dayKey(now);
-  const days = WEEK_LABELS.map((label, i) => {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    const key = dayKey(d);
-    return { label, on: spokenKeys.has(key), today: key === todayKey };
-  });
-
-  const thisWeek = rows.filter((r) => r.at >= start).length;
-  const weeks: number[] = [];
-  if (rows.length > 0) {
-    const first = weekStart(rows[0].at);
-    const span = Math.round((start.getTime() - first.getTime()) / MS_WEEK) + 1;
-    const n = Math.min(6, Math.max(1, span));
-    for (let i = n - 1; i >= 0; i--) {
-      const from = new Date(start.getFullYear(), start.getMonth(), start.getDate() - 7 * i);
-      const to = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7);
-      weeks.push(rows.filter((r) => r.at >= from && r.at < to).length);
-    }
-  }
-
-  const scored = rows.filter((r): r is { at: Date; index: number } => r.index !== null);
-  let index: WeekView["index"] = null;
-  if (scored.length > 0) {
-    const last = scored[scored.length - 1].index;
-    const before = scored.filter((r) => r.at < start);
-    const inWeek = scored.length - before.length;
-    index = {
-      now: last,
-      week: before.length > 0 && inWeek > 0 ? last - before[before.length - 1].index : null,
-      since: scored.length > 1 ? last - scored[0].index : null,
-      series: scored.slice(-30).map((r) => r.index),
-    };
-  }
-
-  return {
-    days,
-    spoken: spokenKeys.size,
-    thisWeek,
-    total: rows.length,
-    daysAll: new Set(rows.map((r) => dayKey(r.at))).size,
-    weeks,
-    index,
-  };
-}
-
 /**
  * Whether Today's read was made on an earlier local day than `now`. A
  * phone locked on Today at 23:50 and woken at 08:00 resumes the page
@@ -371,13 +283,6 @@ export function weekView(spine: Pick<RepSpine, "created_at" | "ethos_index">[], 
  */
 export function dayTurned(loadedAt: Date | null, now: Date): boolean {
   return loadedAt !== null && dayKey(loadedAt) !== dayKey(now);
-}
-
-/** A movement, signed: "+10", "−4" (a minus, not a hyphen), "0". */
-export function signed(n: number): string {
-  if (n > 0) return `+${n}`;
-  if (n < 0) return `−${-n}`;
-  return "0";
 }
 
 /* ------------------------------------------------------------------ */

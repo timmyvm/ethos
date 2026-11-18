@@ -327,16 +327,18 @@ describe("where the line glyphs went", () => {
     }
   });
 
-  /* #503: Hostile Q&A and the weekly boss wear their 3D marks on Today's
-     two tiles, and Hostile's on Practice's tile, where the shield and the
-     stopwatch stood. The marks stay at a name's side, never a standing
-     object (#478: only the card stands one). */
-  it("Today's two tiles and Practice's Hostile tile wear the modes' 3D marks, at a name's size", () => {
-    const tiles = read("components/home/ModeTiles.tsx");
-    expect(tiles).not.toMatch(/\bIcon(Boss|Stopwatch)\b/);
-    expect(tiles).toMatch(/<StatIcon kind="hostile" size=\{MARK\} \/>/);
-    expect(tiles).toMatch(/<StatIcon kind="boss" size=\{MARK\} \/>/);
-    expect(Number(tiles.match(/const MARK = (\d+);/)![1])).toBeLessThanOrEqual(24);
+  /* #500: Hostile Q&A and the weekly boss lead their rows on Today with
+     their 3D marks (#503), 72px (56 under 360), where the shield and the
+     stopwatch stood on two tinted tiles. Never unlit: the done state is
+     the line's words. */
+  it("Today's two rows wear the modes' 3D marks, lit, at 72 and 56 under 360", () => {
+    const rows = read("components/home/ModeRows.tsx");
+    expect(rows).not.toMatch(/\bIcon(Boss|Stopwatch)\b/);
+    expect(rows).toContain("<StatIcon kind={t.id} size={72} />");
+    expect(rows).not.toMatch(/lit=\{/);
+    const css = read("app/globals.css");
+    expect(css).toMatch(/\.home-mode \{\n  --mark: 72px;/);
+    expect(css).toMatch(/@media \(max-width: 359px\) \{\n  \.home-mode \{\n    --mark: 56px;/);
     const practice = read("app/games/page.tsx");
     expect(practice).toMatch(/hostile: \(s\) => <StatIcon kind="hostile" size=\{s\} \/>/);
     expect(practice).not.toMatch(/\bIconBoss\b/);

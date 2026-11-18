@@ -659,6 +659,33 @@ describe("0036 say better", () => {
     await db.close();
   }, 60_000);
 
+  it("caps an account at 2,000 rows on a real database, for the browser's own role (the review)", async () => {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const db = new PGlite();
+    await db.exec(STUBS);
+    await db.exec(raw);
+    const key = (n: number) => `c:${String(n).padStart(8, "0")}-0000-4000-8000-000000000000`;
+    await db.exec(as(A));
+    await db.query(
+      `insert into public.say_better (user_id, swap, due) select '${A}', 'c:' || lpad(n::text, 8, '0') || '-0000-4000-8000-000000000000', '2026-11-21' from generate_series(1, 2000) n`
+    );
+    // The 2,001st is refused; the same key written again (the app's upsert) goes through.
+    await expect(db.query(`insert into public.say_better (user_id, swap, due) values ('${A}', '${key(2001)}', '2026-11-21')`)).rejects.toThrow(/2000 rows at most/);
+    await db.query(
+      `insert into public.say_better (user_id, swap, due, step) values ('${A}', '${key(7)}', '2026-11-28', 2) on conflict (user_id, swap) do update set step = excluded.step, due = excluded.due`
+    );
+    expect((await db.query<{ step: number }>(`select step from public.say_better where swap = '${key(7)}'`)).rows).toEqual([{ step: 2 }]);
+    // Another account's room is its own.
+    await db.exec(as(B));
+    await db.query(`insert into public.say_better (user_id, swap, due) values ('${B}', '${key(2001)}', '2026-11-21')`);
+    // Nor can a row be moved onto another account.
+    await db.exec(as(A));
+    await db.query(`update public.say_better set user_id = '${B}' where swap = '${key(1)}'`).catch(() => {});
+    await db.exec(as(B));
+    expect((await db.query("select swap from public.say_better")).rows).toHaveLength(1);
+    await db.close();
+  }, 60_000);
+
   it("caps an account at 2,000 rows and lets a row already there be written again", async () => {
     const sql = code("0036_say_better.sql");
     expect(sql).toMatch(/create or replace trigger say_better_cap\s+before insert on public\.say_better\s+for each row/);

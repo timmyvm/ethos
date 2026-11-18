@@ -10,9 +10,12 @@
  * offline, and those still hold the curated word map that answered
  * "things" in "switch things up" with "points, ideas, parts". v19
  * (#487): the stat icons are 3D files now, and a page cached before
- * them draws the line flame; the files themselves are shell below.
+ * them draws the line flame; the files themselves are shell below. v20
+ * (#503): the fifteen lesson files are re-cut at their old paths (bold
+ * 3D objects in the stat icons' family), and a .webp is served
+ * cache-first, so a phone holding v19 would keep the glass ones.
  */
-const CACHE = "ethos-v19";
+const CACHE = "ethos-v20";
 
 const SHELL = [
   "/",
@@ -78,12 +81,15 @@ const SHELL = [
   "/coin/coin-empty.svg",
   /* The stat icons (#487): Today's streak chip is on the first screen
      a returning phone opens, so the flame is shell, and its four
-     siblings with it (a few KB each). */
+     siblings with it (a few KB each). Hostile Q&A's and the weekly
+     boss's marks (#503) stand on Today's two tiles, so they are too. */
   "/icons/3d/streak.webp",
   "/icons/3d/best.webp",
   "/icons/3d/freeze.webp",
   "/icons/3d/xp.webp",
   "/icons/3d/trophy.webp",
+  "/icons/3d/hostile.webp",
+  "/icons/3d/boss.webp",
   /* Demos's busts (#488): a picture worn as a pose is in Today's corner,
      the first screen a returning phone opens. New paths, so no CACHE
      bump; a re-cut keeps its path and moves CACHE. */

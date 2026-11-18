@@ -32,10 +32,12 @@ import { ACTION_ARROW_CLASS } from "@/lib/ui";
  * violet, under heads in those tones, were the loudest page in the app.
  * The heads went to ink with the trait's 8px mark. The pictures first
  * went to a third of their colour, which read as old photos, so since
- * the fix round each render is keyed off its gradient
- * (scripts/key-lesson-art.py): the glass object alone, on one neutral
- * tile in every row, so the fifteen read as one set and the colour left
- * is the object's own pastel, not a square of tone.
+ * the fix round each render is keyed off its gradient: the object
+ * alone, on one neutral tile in every row, so the fifteen read as one
+ * set and the colour is the object's own, never a square of tone. Since
+ * #503 the objects are bold glossy 3D renders in the stat icons' family
+ * (scripts/cut-lesson-icons.mjs), each in its unit's colour made bold,
+ * still alone on that neutral tile.
  */
 
 /**
@@ -45,7 +47,7 @@ import { ACTION_ARROW_CLASS } from "@/lib/ui";
  * picks per device, which is never the URL in the shell, so the PWA
  * would hold fifteen files the page never requests and show fifteen
  * holes offline. The art is already cut to 360px square and a few KB by
- * scripts/cut-lesson-art.mjs, so there is nothing for the optimiser to
+ * scripts/cut-lesson-icons.mjs, so there is nothing for the optimiser to
  * do anyway.
  */
 export function LessonArt({
@@ -79,8 +81,8 @@ export function LessonArt({
       style={{ width: size, height: size }}
     >
       {stage && <span className="demos-halo" />}
-      {/* Glass renders since #322, keyed off their ground since the fix
-          round: a square cut at 360px with transparency. */}
+      {/* 3D renders in the stat icons' family since #503: a square cut
+          at 360px with transparency. */}
       <img
         src={lesson.art}
         alt=""

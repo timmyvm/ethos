@@ -157,9 +157,10 @@ describe("under the hero, colour is an accent", () => {
   });
 
   /*
-   * The fix round: the renders are keyed off their gradients
-   * (scripts/key-lesson-art.py), so a row shows the glass object on the
-   * one neutral tile every lesson shares and no square of tone; the
+   * The fix round: the renders stand on a transparent ground (keyed
+   * then, cut so since #503 by scripts/cut-lesson-icons.mjs), so a row
+   * shows the object on the one neutral tile every lesson shares and no
+   * square of tone; the
    * stage's picture is the object standing in the studio light; and
    * progress has one rule, sage on sand for what you earned.
    */

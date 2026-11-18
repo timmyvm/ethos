@@ -577,3 +577,93 @@ describe("0035 star zero", () => {
     await db.close();
   }, 60_000);
 });
+
+/**
+ * Say it better's test state (0036, DECISIONS #507): one row per account
+ * and swap, the browser's own through the anon key, so row level
+ * security is the whole of the isolation. Run on Postgres (PGlite) with
+ * Supabase's roles, auth.users and auth.uid() stubbed as
+ * scripts/check-testers-sql.mjs stubs them, applied twice.
+ */
+describe("0036 say better", () => {
+  const raw = readFileSync(path.join(DIR, "0036_say_better.sql"), "utf8");
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+  const SWAP = "c:33333333-3333-4333-8333-333333333333";
+  const STUBS = `
+    create role anon nologin;
+    create role authenticated nologin;
+    create schema auth;
+    create table auth.users (id uuid primary key);
+    create function auth.uid() returns uuid language sql stable as $$
+      select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    grant usage on schema public to anon, authenticated;
+    grant usage on schema auth to anon, authenticated;
+    alter default privileges in schema public grant all on tables to anon, authenticated;
+    insert into auth.users (id) values ('${A}'), ('${B}');
+  `;
+  const as = (who: string | null) =>
+    who
+      ? `reset role; select set_config('request.jwt.claim.sub', '${who}', false); set role authenticated;`
+      : `reset role; select set_config('request.jwt.claim.sub', '', false); set role anon;`;
+
+  it("holds neither of the connector's words, comments included", () => {
+    expect(raw).not.toMatch(/drop|delete/i);
+    expect(code("0036_say_better.sql")).toMatch(/'de' \|\| 'lete'/);
+  });
+
+  it("is applied twice, and each account reads and writes only its own rows", async () => {
+    const { PGlite } = await import("@electric-sql/pglite");
+    const db = new PGlite();
+    await db.exec(STUBS);
+    await db.exec(raw);
+    await db.exec(raw); // idempotent
+    const policies = await db.query<{ policyname: string }>("select policyname from pg_policies where tablename = 'say_better' order by 1");
+    expect(policies.rows.map((r) => r.policyname)).toEqual([
+      "say better: change your own",
+      "say better: own rows",
+      "say better: take off your own",
+      "say better: write your own",
+    ]);
+
+    // A writes, reads back and moves its own row.
+    await db.exec(as(A));
+    await db.query(`insert into public.say_better (user_id, swap, step, due, last) values ('${A}', '${SWAP}', 1, '2026-11-21', 'said')`);
+    await db.query(`update public.say_better set step = 2, due = '2026-11-28' where swap = '${SWAP}'`);
+    expect((await db.query<{ step: number }>("select step from public.say_better")).rows).toEqual([{ step: 2 }]);
+    // A cannot write a row as B.
+    await expect(db.query(`insert into public.say_better (user_id, swap, due) values ('${B}', '${SWAP}', '2026-11-21')`)).rejects.toThrow(/row-level security/);
+    // A name that is not a swap is refused.
+    await expect(db.query(`insert into public.say_better (user_id, swap, due) values ('${A}', 'x:nope', '2026-11-21')`)).rejects.toThrow(/check/);
+
+    // B sees nothing of A's, and changes nothing of A's.
+    await db.exec(as(B));
+    expect((await db.query("select * from public.say_better")).rows).toEqual([]);
+    await db.query(`update public.say_better set hidden = true where swap = '${SWAP}'`);
+    await db.query(`delete from public.say_better where swap = '${SWAP}'`);
+    await db.exec(as(A));
+    expect((await db.query<{ hidden: boolean }>("select hidden from public.say_better")).rows).toEqual([{ hidden: false }]);
+
+    // A caller with no session gets nothing at all.
+    await db.exec(as(null));
+    await expect(db.query("select * from public.say_better")).rejects.toThrow(/permission denied/);
+
+    // A takes its own row off; the account's removal takes the rest.
+    await db.exec(as(A));
+    await db.query(`delete from public.say_better where swap = '${SWAP}'`);
+    expect((await db.query("select * from public.say_better")).rows).toEqual([]);
+    await db.query(`insert into public.say_better (user_id, swap, due) values ('${A}', '${SWAP}', '2026-11-21')`);
+    await db.exec("reset role;");
+    await db.query(`delete from auth.users where id = '${A}'`);
+    expect((await db.query("select * from public.say_better")).rows).toEqual([]);
+    await db.close();
+  }, 60_000);
+
+  it("caps an account at 2,000 rows and lets a row already there be written again", async () => {
+    const sql = code("0036_say_better.sql");
+    expect(sql).toMatch(/create or replace trigger say_better_cap\s+before insert on public\.say_better\s+for each row/);
+    expect(sql).toMatch(/>= 2000 then/);
+    expect(sql).toMatch(/s\.user_id = new\.user_id and s\.swap = new\.swap\s+\) then\s+return new;/);
+    expect(sql).toMatch(/revoke execute on function public\.say_better_cap\(\) from public, anon, authenticated/);
+  });
+});

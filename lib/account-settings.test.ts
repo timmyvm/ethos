@@ -233,6 +233,42 @@ describe("signing out everywhere", () => {
     fake.signOutError = { message: "Internal Server Error", status: 500 };
     expect(await signOutEverywhere()).toEqual({ ok: false, error: "That didn't go through, so you're still signed in. Try again." });
   });
+
+  /* #508 review: a plain sign-out cleared these and this one did not, and
+     the page leaves for /signin, where nothing else would. */
+  describe("what this phone kept for the account", () => {
+    const disk = new Map<string, string>();
+    const kept = () => {
+      disk.clear();
+      disk.set("ethos.held", JSON.stringify({ v: 1, owner: "user-a", items: { profile: { display_name: "Tim" } } }));
+      disk.set("ethos.cue", JSON.stringify({ text: "a sentence of their own words" }));
+      disk.set("ethos.cue.skipped", "1");
+      disk.set("ethos.theme", "dark");
+      vi.stubGlobal("localStorage", {
+        getItem: (k: string) => disk.get(k) ?? null,
+        setItem: (k: string, v: string) => void disk.set(k, v),
+        removeItem: (k: string) => void disk.delete(k),
+      });
+    };
+
+    it("goes with it: the numbers kept between opens and the carried cue", async () => {
+      kept();
+      expect(await signOutEverywhere()).toEqual({ ok: true });
+      expect(disk.has("ethos.held")).toBe(false);
+      expect(disk.has("ethos.cue")).toBe(false);
+      expect(disk.has("ethos.cue.skipped")).toBe(false);
+      // The phone's own settings are not the account's.
+      expect(disk.get("ethos.theme")).toBe("dark");
+    });
+
+    it("stays when the sign-out failed, since this phone is still signed in", async () => {
+      kept();
+      fake.signOutError = { message: "Internal Server Error", status: 500 };
+      await signOutEverywhere();
+      expect(disk.has("ethos.held")).toBe(true);
+      expect(disk.has("ethos.cue")).toBe(true);
+    });
+  });
 });
 
 describe("where a Settings round trip lands", () => {

@@ -16,7 +16,8 @@ import {
   purchasedFreezes,
   spendFreezes,
 } from "./client-data";
-import { FREEZES_KEY, held, heldMark, hold, once } from "./held";
+import { FREEZES_KEY, SPINE_KEY, held, heldMark, hold, keepBetweenOpens, once } from "./held";
+import type { RepSpine } from "./client-data";
 import { outboxAll, ownedBy } from "./rep-outbox";
 import { currentSession } from "./supabase-browser";
 import {
@@ -61,6 +62,29 @@ export interface FreezeSync {
  */
 export const heldFreezes = (): FreezeSync | null => held<FreezeSync>(FREEZES_KEY) ?? null;
 
+/**
+ * The freezes are kept between opens (lib/held.ts, rule 4, #508): the
+ * days a freeze covered and how many are held, as numbers and dates. The
+ * streak itself is not kept, since it moves with the clock ("did today",
+ * "at risk"): it is counted again from the kept spine and these days at
+ * the moment they are read back. No spine, nothing read back.
+ */
+export function keptFreezes(raw: unknown, now: Date = new Date()): FreezeSync | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const { frozenDays, equipped } = raw as Record<string, unknown>;
+  if (!Array.isArray(frozenDays) || typeof equipped !== "number" || !Number.isFinite(equipped)) return null;
+  const days = frozenDays.map((d) => (typeof d === "string" ? new Date(d) : null));
+  if (days.some((d) => d === null || Number.isNaN(d.getTime()))) return null;
+  const spine = held<RepSpine[]>(SPINE_KEY);
+  if (!spine) return null;
+  const streak = computeStreak(spine.map((r) => new Date(r.created_at)), now, days as Date[]);
+  return { streak, frozenDays: days as Date[], equipped, rescued: [] };
+}
+keepBetweenOpens<FreezeSync>(FREEZES_KEY, {
+  save: (v) => ({ frozenDays: v.frozenDays.map((d) => d.toISOString()), equipped: v.equipped }),
+  load: (raw) => keptFreezes(raw),
+});
+
 export function syncFreezes(repDates: Date[], now = new Date()): Promise<FreezeSync> {
   return once(FREEZES_KEY, () => runFreezeSync(repDates, now));
 }
@@ -73,8 +97,17 @@ async function runFreezeSync(
   // A failed read rejects, before anything is written: missing rows must
   // not look like "nothing spent yet" (a rescue paid twice) or "none
   // bought" (a lower count), and the caller draws the failure (#147).
-  let frozenDays = await fetchFrozenDays();
-  const purchased = await purchasedFreezes();
+  // The reads have no order between them, so they go together (#508):
+  // three round trips one after another were the streak chip's wait.
+  // The mirror's row is read beside them, and again only if a rescue
+  // below writes it.
+  const [frozenRead, purchased, pending, rowBefore] = await Promise.all([
+    fetchFrozenDays(),
+    purchasedFreezes(),
+    pendingDates(now),
+    fetchStreakRow().catch(() => undefined),
+  ]);
+  let frozenDays = frozenRead;
 
   // What is held is derived, never read back from streaks.freezes_equipped:
   // production's check stores 0..2 (0001) while three can be held (#174),
@@ -83,7 +116,6 @@ async function runFreezeSync(
   // last covered one), so before and after agree.
   const before = computeStreak(repDates, now, frozenDays);
   const held = freezeBalance(before.longest, frozenDays.length, purchased);
-  const pending = await pendingDates(now);
   const candidates = rescuableDays(
     [...repDates, ...pending],
     frozenDays,
@@ -91,8 +123,9 @@ async function runFreezeSync(
     now
   );
   let rescued: Date[] = [];
+  let spent = 0;
   if (candidates.length > 0) {
-    const spent = await spendFreezes(candidates, held).catch(() => 0);
+    spent = await spendFreezes(candidates, held).catch(() => 0);
     if (spent > 0) {
       rescued = candidates.slice(0, spent);
       frozenDays = [...frozenDays, ...rescued];
@@ -106,7 +139,8 @@ async function runFreezeSync(
   // what its check accepts, and is never read back. An unread row skips
   // the write rather than guessing.
   const mirror = Math.min(STORED_FREEZE_CAP, equipped);
-  const row = await fetchStreakRow().catch(() => undefined);
+  // A rescue wrote the row (spendFreezes): read what it left.
+  const row = spent > 0 ? await fetchStreakRow().catch(() => undefined) : rowBefore;
   if (row !== undefined && row?.freezes_equipped !== mirror) {
     await grantFreezes(mirror).catch(() => 0);
   }

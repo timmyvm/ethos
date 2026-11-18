@@ -396,16 +396,21 @@ async function shootTheme(theme) {
   await step(async () => {
     if (!want("splash")) return;
     await page.goto(`${BASE}/?splash`, { waitUntil: "commit" });
-    await page.waitForSelector('html[data-splash="on"] .splash-mark img', { state: "visible", timeout: 15000 });
+    await page.waitForSelector('html[data-splash="on"] .splash-mark .splash-img', { state: "visible", timeout: 15000 });
+    // The face is the mark's background since #508: decoded when a copy of it is.
+    await page
+      .evaluate(async () => {
+        const url = getComputedStyle(document.querySelector(".splash-img")).backgroundImage.replace(/^url\("?|"?\)$/g, "");
+        const img = new Image();
+        img.src = url;
+        await img.decode().catch(() => {});
+      })
+      .catch(() => {});
     await page
       .waitForFunction(
         () => {
-          const img = document.querySelector(".splash-mark img");
           const words = [...document.querySelectorAll(".splash-word")];
-          return (
-            !!img && img.complete && img.naturalWidth > 0 && words.length > 0 &&
-            words.every((w) => w.getAnimations().every((a) => a.playState === "finished"))
-          );
+          return words.length > 0 && words.every((w) => w.getAnimations().every((a) => a.playState === "finished"));
         },
         null,
         { timeout: 10000, polling: 16 }

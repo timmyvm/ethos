@@ -21,21 +21,21 @@
  * runs, a CSS fallback fades it out on its own (globals.css, `.splash`).
  */
 
+/** Demos's face on the splash (cut by scripts/make-icons.py). */
+export const SPLASH_IMAGE = "/splash-demos.webp";
+
 export function Splash() {
   return (
     <div className="splash" aria-hidden="true">
       <div className="splash-mark">
-        {/* A plain <img>: the service worker pre-caches this exact path
-            (public/sw.js), and next/image would ask for a different one. */}
-        <img
-          src="/splash-demos.webp"
-          alt=""
-          width={128}
-          height={128}
-          fetchPriority="high"
-          decoding="sync"
-          className="block h-32 w-32"
-        />
+        {/* Demos's face is the mark's background, set only under
+            `data-splash` (globals.css, `.splash-img`), never an <img>:
+            React preloads every <img> in the server's markup, so the
+            38 KB face was fetched beside the CSS on every page, splash
+            or not (#508). The head script below preloads it, at high
+            priority, only on an open that shows the splash. The service
+            worker pre-caches this exact path (public/sw.js). */}
+        <span className="splash-img block h-32 w-32" />
       </div>
       <span className="splash-word font-display text-[22px] font-extrabold uppercase tracking-[0.02em]">
         ethos
@@ -61,5 +61,9 @@ export const splashBootScript = `
   }
   sessionStorage.setItem('ethos.splash', '1');
   document.documentElement.setAttribute('data-splash', 'on');
+  var l = document.createElement('link');
+  l.rel = 'preload'; l.as = 'image'; l.href = '${SPLASH_IMAGE}';
+  l.setAttribute('fetchpriority', 'high');
+  document.head.appendChild(l);
 }catch(e){}})();
 `;

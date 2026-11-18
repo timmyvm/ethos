@@ -32,6 +32,7 @@ import {
 import { fetchSay, fetchTakeWords, heldSay, saveSwapState, type SayItem } from "@/lib/say-store";
 import { sessionToken } from "@/lib/supabase-browser";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
+import { speechRecorder } from "@/lib/speech-recorder";
 import { holdAwake } from "@/lib/wake-lock";
 
 /** A line is a sentence: fifteen seconds is room for one said slowly. */
@@ -189,13 +190,8 @@ export default function SayTest() {
          the mic needs the session back (lib/audio-session.ts). */
       setAudioSession("auto");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      const mime =
-        typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : typeof MediaRecorder.isTypeSupported === "function" && MediaRecorder.isTypeSupported("audio/mp4")
-            ? "audio/mp4"
-            : undefined;
-      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      /* Speech at 32 kbps, as a take is (#508): the line goes up in a breath. */
+      const recorder = speechRecorder(stream);
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);

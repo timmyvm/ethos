@@ -2217,6 +2217,12 @@ summary::-webkit-details-marker {
 :root[data-splash] .splash-mark {
   transition: transform 360ms var(--ease-out);
 }
+/* Demos's face, fetched only on an open that shows the splash (#508):
+   a background under `data-splash`, never an <img> React would preload
+   on every page. The head script preloads the same path. */
+:root[data-splash] .splash-img {
+  background: url("/splash-demos.webp") center / 100% 100% no-repeat;
+}
 :root[data-splash="out"] .splash-mark {
   transform: scale(1.06);
 }
@@ -7659,6 +7665,16 @@ html[data-test-tile] .test-tile-slot {
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
+}
+/* The door is drawn by the server (#508). A walk the head script found
+   resuming elsewhere (lib/walk-boot.ts) never sees it, not for a frame
+   (#497): the ground stays plain until the walk draws its screen. And an
+   account's door never shows Sign in or Tester code, before React as after. */
+:root[data-walk="resume"] main.room {
+  visibility: hidden;
+}
+:root[data-room-account] .room-door-layer .room-top > .room-link {
+  display: none;
 }
 .room button {
   -webkit-tap-highlight-color: transparent;

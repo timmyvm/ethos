@@ -62,13 +62,13 @@ describe("the lesson icons (#503)", () => {
     }
   });
 
-  it("is precached, under a cache that moved with the re-cut", () => {
+  it("is precached (the thumbnails; the large cuts on first view, #508), under a cache that moved with the re-cut", () => {
     const sw = read("public/sw.js");
     for (const lesson of LESSONS) {
       expect(sw).toContain(`"/lessons/${lesson.id}.webp"`);
-      expect(sw).toContain(`"/lessons/large/${lesson.id}.webp"`);
+      expect(sw).not.toContain(`"/lessons/large/${lesson.id}.webp"`);
     }
     const v = Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1]);
-    expect(v).toBeGreaterThanOrEqual(20);
+    expect(v).toBeGreaterThanOrEqual(21);
   });
 });

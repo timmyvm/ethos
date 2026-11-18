@@ -150,41 +150,7 @@ export function groupCommands(found: readonly Command[]): { group: CommandGroup;
   return out;
 }
 
-/**
- * Screens that keep the keyboard for themselves: a recording, a walk,
- * the introduction, the camera, a form, and the pages that are not the
- * app (marketing, the workbench). The same screens the tab bar leaves
- * (components/Nav.tsx's BARE; a test holds the two together), except a
- * stored recording, which is a page to read.
- */
-const HELD_SCREENS = [
-  "/rep",
-  /* Say it better's test (#507): a line is being recorded. */
-  "/say/test",
-  "/lesson",
-  "/practice",
-  "/workbench",
-  "/hostile",
-  "/calibrate",
-  "/welcome",
-  "/tester",
-  "/active",
-  "/about",
-  "/privacy",
-  "/terms",
-  "/boss",
-  "/signup",
-  "/signin",
-  "/auth",
-] as const;
-
-/** Whether the menu and its shortcuts answer on this screen. */
-export function commandsAllowed(path: string): boolean {
-  if (/^\/rep\/[\w-]+$/.test(path)) return true;
-  return !HELD_SCREENS.some((s) => path === s || path.startsWith(`${s}/`));
-}
-
-/** The tab a bare digit opens: "1" to "5", in the bar's order. */
-export function tabForKey(key: string): string | null {
-  return COMMANDS.find((c) => c.key === key && c.href)?.href ?? null;
-}
+/* Whether a screen answers the menu, and which tab a digit opens, live
+   in lib/command-keys.ts, so the layout's key handler loads without this
+   list and the topics under it (#508). */
+export { commandsAllowed, HELD_SCREENS, tabForKey } from "./command-keys";

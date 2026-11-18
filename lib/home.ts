@@ -91,6 +91,16 @@ export function objectSrc(id: string, large = false): string {
 }
 
 /**
+ * Today's card, where the object stands up to 260pt (#508, the speed
+ * audit's fix 21): a 3x phone gets the 720 cut (`public/lessons/hero/`,
+ * 780 pixels wanted; the 560 was soft), a 2x phone the 560 it always had.
+ */
+export function objectSrcSet(id: string): string {
+  const large = objectSrc(id, true);
+  return `${large} 2x, ${large.replace("/lessons/large/", "/lessons/hero/")} 3x`;
+}
+
+/**
  * Where the object is inside its square, for the CSS that places it:
  * its visible box's left and top and its width and height, as fractions
  * of the square (lib/lesson-art-bounds.ts, measured from the cut's

@@ -485,6 +485,12 @@ if (want("returning")) {
   const { browser, page } = await open();
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("[data-room-hold]");
+  // The door is drawn by the server (#508); the tester's door joins it once React has the page.
+  await page.waitForFunction(() => {
+    const m = document.querySelector("main.room");
+    return !!m && Object.keys(m).some((k) => k.startsWith("__reactFiber"));
+  }, null, { timeout: 15_000 }).catch(() => {});
+  await sleep(300);
   const links = await page.locator("main.room .room-top a").allTextContents();
   const doors = TEST_OVER ? ["Sign in"] : ["Sign in", "Tester code"];
   ok(

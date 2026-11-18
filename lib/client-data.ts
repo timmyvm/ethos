@@ -5,7 +5,7 @@
  */
 
 import { sessionToken, supabaseBrowser } from "./supabase-browser";
-import { BILLING_KEY, PROFILE_KEY, forgetBalance, forgetProfile, held, heldMark, hold, once } from "./held";
+import { BILLING_KEY, PROFILE_KEY, SPINE_KEY, forgetBalance, forgetProfile, held, heldMark, hold, keepBetweenOpens, once } from "./held";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
 import type { CoinRow } from "./coins";
@@ -126,7 +126,6 @@ async function readReps(limit = 90): Promise<RepRow[]> {
  * the skeleton's cue, exactly as before.
  */
 const repsKey = (limit: number) => `reps:${limit}`;
-const SPINE_KEY = "spine";
 const ROUNDS_KEY = "rounds";
 const XP_KEY = "xp";
 const lexiconKey = (limit: number) => `lexicon:${limit}`;
@@ -320,6 +319,27 @@ export function fetchRepSpine(): Promise<RepSpine[]> {
   return once(SPINE_KEY, readRepSpine);
 }
 
+/**
+ * The spine is kept between opens (lib/held.ts, rule 4, #508): six short
+ * columns a recording, its date, lesson, stars and Index. Never a word of
+ * what was said. Read back only in exactly that shape.
+ */
+export function spineOf(raw: unknown): RepSpine[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: RepSpine[] = [];
+  for (const r of raw) {
+    if (typeof r !== "object" || r === null) return null;
+    const { id, created_at, lesson_id, stars, ethos_index, mode } = r as Record<string, unknown>;
+    if (typeof id !== "string" || typeof created_at !== "string" || Number.isNaN(Date.parse(created_at))) return null;
+    if (lesson_id !== null && typeof lesson_id !== "string") return null;
+    if (typeof stars !== "number" || (ethos_index !== null && typeof ethos_index !== "number")) return null;
+    if (mode !== "daily" && mode !== "boss") return null;
+    out.push({ id, created_at, lesson_id, stars, ethos_index, mode });
+  }
+  return out;
+}
+keepBetweenOpens<RepSpine[]>(SPINE_KEY, { save: (v) => spineOf(v), load: spineOf });
+
 async function readRepSpine(): Promise<RepSpine[]> {
   const mark = heldMark();
   return hold(SPINE_KEY, await readAll<RepSpine>("reps", SPINE_COLUMNS), mark);
@@ -439,6 +459,27 @@ export interface ProfileRow {
    *  since 27 Aug so a bought cosmetic follows the account across devices. */
   equipped_pose: string | null;
 }
+
+/**
+ * The profile row is kept between opens (lib/held.ts, rule 4, #508): the
+ * name, the plan and the picture, read back only in exactly that shape.
+ * A plan whose `premium_until` has passed since is read back as it would
+ * be read now.
+ */
+export function profileOf(raw: unknown, now: Date = new Date()): ProfileRow | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const { display_name, premium, premium_until, equipped_pose } = raw as Record<string, unknown>;
+  if (display_name !== null && typeof display_name !== "string") return null;
+  if (typeof premium !== "boolean") return null;
+  if (premium_until !== null && typeof premium_until !== "string") return null;
+  if (equipped_pose !== null && typeof equipped_pose !== "string") return null;
+  const lapsed = premium_until !== null && !(new Date(premium_until) > now);
+  return { display_name, premium: lapsed ? isUnlocked(false) : premium, premium_until, equipped_pose };
+}
+keepBetweenOpens<ProfileRow | null>(PROFILE_KEY, {
+  save: (v) => (v === null ? null : profileOf(v)),
+  load: (raw) => profileOf(raw),
+});
 
 /**
  * Every screen reads its entitlement from here, so `isUnlocked` is

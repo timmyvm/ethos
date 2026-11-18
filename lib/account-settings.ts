@@ -23,6 +23,8 @@ import {
   withNext,
   type AuthResult,
 } from "./auth";
+import { forgetCarriedCue } from "./cue-keys";
+import { forget as forgetHeld } from "./held";
 import { supabaseBrowser } from "./supabase-browser";
 
 /** The parts of an auth user this page reads (Supabase's `User`). */
@@ -201,6 +203,13 @@ export async function signOutEverywhere(): Promise<AuthResult> {
   try {
     const { error } = await db.auth.signOut({ scope: "global" });
     if (error) return { ok: false, error: "That didn't go through, so you're still signed in. Try again." };
+    /* What this phone kept for the account goes with it, as on a plain
+       sign-out (lib/auth.ts `signOut`): the carried cue holds a sentence
+       of the person's own words (#477), and the numbers kept between
+       opens are theirs (lib/held.ts rule 4, #508). The page then leaves
+       for /signin, where nothing would have cleared them. */
+    forgetCarriedCue();
+    forgetHeld();
     return { ok: true };
   } catch {
     return { ok: false, error: "That didn't go through, so you're still signed in. Try again." };

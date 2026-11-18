@@ -14,6 +14,7 @@ import { prefersReducedMotion } from "@/lib/prefs";
 import { SPRING, animateSpring, releaseVelocity, rubberband } from "@/lib/spring";
 import { tabPlace } from "@/lib/tab-places";
 import { keepPage, standInFor, wantFirstPaint } from "@/lib/tab-stand-in";
+import { afterFirstScreen } from "@/lib/first-draw";
 import {
   SWIPE_EDGE_PX,
   SWIPE_SLOP_PX,
@@ -345,8 +346,9 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
   }, [path, page]);
 
   /* The neighbours a swipe could reach from here, asked for their first
-     paint while the phone is idle, unless it is saving data. A tab
-     opened before needs none: it has its own picture. */
+     paint once this screen's own numbers are drawn and the phone is idle
+     (#508: they shared the link with Today's reads), unless it is saving
+     data. A tab opened before needs none: it has its own picture. */
   useEffect(() => {
     if (current < 0) return;
     const saving = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
@@ -356,12 +358,7 @@ export function useTabSwipe(path: string, page: RefObject<HTMLDivElement | null>
         if (i >= 0 && i < TAB_HREFS.length) wantFirstPaint(TAB_HREFS[i]);
       }
     };
-    if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(ask, { timeout: 2500 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = setTimeout(ask, 1200);
-    return () => clearTimeout(id);
+    return afterFirstScreen(ask, 2500);
   }, [current]);
 
   /* The route moved. If a swipe carried the app here, its picture is

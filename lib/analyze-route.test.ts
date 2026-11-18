@@ -1784,3 +1784,192 @@ describe("a take as Whisper returns it (#476)", () => {
     ).toBeNull();
   });
 });
+
+/*
+ * One line a take with each stage's time (#508): read in production
+ * before the speed audit's fixes 15, 16 and 20 are chosen between.
+ * Nothing personal: no transcript, no user id, no client id.
+ */
+describe("the stage log", () => {
+  function stageLines(spy: { mock: { calls: unknown[][] } }) {
+    return spy.mock.calls
+      .map((c) => String(c[0]))
+      .filter((l) => l.includes('"evt":"analyze.stages"'))
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
+  }
+
+  it("writes one line for a stored take, with Whisper's, the coach's and the save's times, and nothing personal", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-secret-7", anonymous: false });
+    vi.mocked(saveRep).mockResolvedValue({ id: "rep-9", audioPath: null, duplicate: false });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    onTestFinished(() => spy.mockRestore());
+    const form = audioForm();
+    form.append("clientId", "1792-f1-secretkey");
+    const res = await post(form);
+    expect(res.status).toBe(200);
+    const lines = stageLines(spy);
+    expect(lines).toHaveLength(1);
+    const [line] = lines;
+    expect(line).toMatchObject({ status: 200, duplicate: false, mode: "daily" });
+    for (const k of ["upload_ms", "gate_ms", "whisper_ms", "coach_ms", "save_ms", "total_ms"]) {
+      expect(typeof line[k], k).toBe("number");
+    }
+    expect(line.audio_kb).toBe(0);
+    expect(line.take_s).toBe(60);
+    const text = JSON.stringify(line);
+    expect(text).not.toMatch(/user-secret-7|secretkey|rep-9|Ethos which measures|Tim/);
+  });
+
+  it("counts the coach's attempts", async () => {
+    coachedFixture();
+    vi.mocked(coachRep).mockImplementation(async (...args: Parameters<typeof coachRep>) => {
+      args[5]?.(1);
+      args[5]?.(2);
+      return null;
+    });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    onTestFinished(() => spy.mockRestore());
+    await post(audioForm());
+    expect(stageLines(spy)[0].coach_attempts).toBe(2);
+  });
+
+  it("writes one line for a turned-away take too, with no Whisper time", async () => {
+    vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: false, window: "hour", retryAfterS: 60 });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    onTestFinished(() => {
+      spy.mockRestore();
+      vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: true, window: null, retryAfterS: 0 });
+    });
+    const res = await post(audioForm());
+    expect(res.status).toBe(429);
+    const lines = stageLines(spy);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ status: 429, whisper_ms: null, coach_ms: null });
+  });
+});
+
+/*
+ * Fewer round trips before Whisper (#508, the speed audit's fix 17): the
+ * resend lookup leaves beside the sign-in check, and the rate-limit slots
+ * are claimed together. What must still hold: every slot is claimed
+ * before Whisper, a resend never runs twice or spends a slot, and the
+ * lookup's answer is used only for the account the token proves.
+ */
+describe("the gate before Whisper", () => {
+  const A = "11111111-1111-4111-8111-111111111111";
+  const B = "22222222-2222-4222-8222-222222222222";
+  const jwt = (sub: string) =>
+    `Bearer x.${Buffer.from(JSON.stringify({ sub, role: "authenticated" })).toString("base64url")}.sig`;
+  function postAs(header: string | null, clientId: string | null = "1792-f1-abcd1234"): Promise<Response> {
+    const form = audioForm();
+    if (clientId) form.append("clientId", clientId);
+    const req = new Request("http://test.local/api/analyze", {
+      method: "POST",
+      body: form,
+      headers: header ? { authorization: header } : {},
+    });
+    return POST(req as unknown as NextRequest);
+  }
+  const later = <T,>(value: T, ms = 20) => new Promise<T>((r) => setTimeout(() => r(value), ms));
+
+  it("asks for a resend beside the sign-in check, and answers it with no slot and no Whisper", async () => {
+    const order: string[] = [];
+    vi.mocked(resolveAuthHeader).mockImplementationOnce(async () => {
+      order.push("auth:start");
+      const r = await later({ kind: "user" as const, user: { id: A, anonymous: false } });
+      order.push("auth:end");
+      return r;
+    });
+    vi.mocked(findRepByClientId).mockImplementation(async (id: string) => {
+      order.push(`lookup:${id === A ? "A" : id}`);
+      return "rep-a";
+    });
+    vi.mocked(consumeRateLimit).mockClear();
+    vi.mocked(transcribe).mockClear();
+    const res = await postAs(jwt(A));
+    expect(await res.json()).toEqual({ repId: "rep-a", duplicate: true });
+    expect(order.indexOf("lookup:A")).toBeLessThan(order.indexOf("auth:end"));
+    expect(findRepByClientId).toHaveBeenCalledTimes(1);
+    expect(consumeRateLimit).not.toHaveBeenCalled();
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("never answers with the recording of an account the token names but does not prove", async () => {
+    // A token naming A, signed by someone else: the check proves B.
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "user", user: { id: B, anonymous: false } });
+    vi.mocked(findRepByClientId).mockImplementation(async (id: string) => (id === A ? "a-recording" : null));
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockResolvedValue(null);
+    const res = await postAs(jwt(A));
+    const body = await res.json();
+    expect(JSON.stringify(body)).not.toContain("a-recording");
+    expect(findRepByClientId).toHaveBeenLastCalledWith(B, "1792-f1-abcd1234");
+    expect(transcribe).toHaveBeenCalled();
+  });
+
+  it("a token the check refuses gets nothing the lookup found", async () => {
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "rejected" });
+    vi.mocked(findRepByClientId).mockResolvedValue("a-recording");
+    const res = await postAs(jwt(A));
+    expect(res.status).toBe(401);
+    expect(JSON.stringify(await res.json())).not.toContain("a-recording");
+  });
+
+  it("asks nothing early for a token that names no user, or with no key", async () => {
+    vi.mocked(findRepByClientId).mockClear();
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "none" });
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    await postAs("Bearer not-a-jwt");
+    expect(findRepByClientId).not.toHaveBeenCalled();
+    vi.mocked(resolveAuthHeader).mockResolvedValueOnce({ kind: "user", user: { id: A, anonymous: false } });
+    await postAs(jwt(A), null);
+    expect(findRepByClientId).not.toHaveBeenCalled();
+  });
+
+  it("claims a guest's three slots together, before Whisper", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-9", anonymous: true });
+    const started: string[] = [];
+    let answered = 0;
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) => {
+      if (subject.startsWith("refund:")) return { allowed: true, window: null, retryAfterS: 0 };
+      started.push(`${subject.replace(/^guest:ip:.*$/, "guest:ip")}@${answered}`);
+      await later(null, 5);
+      answered += 1;
+      return { allowed: true, window: null, retryAfterS: 0 };
+    });
+    vi.mocked(transcribe).mockImplementation(async () => {
+      expect(answered).toBe(3);
+      return FIXTURE;
+    });
+    await post(audioForm());
+    expect(started.sort()).toEqual(["guest:all@0", "guest:ip@0", "u:anon-9@0"]);
+  });
+
+  it("gives back every slot it took when one is refused, and never the refused one", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-8", anonymous: true });
+    vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
+      subject === "u:anon-8"
+        ? { allowed: false, window: "hour", retryAfterS: 900 }
+        : { allowed: true, window: null, retryAfterS: 0 }
+    );
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockClear();
+    const res = await post(audioForm());
+    expect(res.status).toBe(429);
+    expect((await res.json()).retryAfterS).toBe(900);
+    const back = vi.mocked(refundRateLimit).mock.calls.map(([s]) => s.replace(/^guest:ip:.*$/, "guest:ip"));
+    expect(back.sort()).toEqual(["guest:all", "guest:ip"]);
+    expect(transcribe).not.toHaveBeenCalled();
+  });
+
+  it("an account claims one slot, as before", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-4", anonymous: false });
+    vi.mocked(consumeRateLimit).mockClear();
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    await post(audioForm());
+    // (The save in this test stores nothing, so the paid give-back's own count follows Whisper.)
+    const gate = vi.mocked(consumeRateLimit).mock.calls.map(([s]) => s).filter((s) => !s.startsWith("refund:"));
+    expect(gate).toEqual(["u:user-4"]);
+  });
+});

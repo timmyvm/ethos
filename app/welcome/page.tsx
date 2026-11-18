@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import { IntroDemos } from "@/components/IntroDemos";
 import { GOOGLE_BUTTON, GoogleMark } from "@/components/AuthForm";
@@ -246,18 +245,23 @@ function firstRep(skipIntros: boolean): string {
 }
 
 export default function Welcome() {
-  return (
-    <Suspense fallback={<main className="px-5 pt-7" />}>
-      <Walk />
-    </Suspense>
-  );
+  return <Walk />;
 }
 
+/** The door before the walk has decided: drawn by the server, and nothing to do yet (#508). */
+const notYet = () => {};
+
 function Walk() {
-  const params = useSearchParams();
-  // `?step=<question id | plan>` opens a screen directly: the plan row
-  // on /you comes here to change an answer, and leaves back to /you.
-  const asked = params.get("step");
+  /*
+   * `?step=<question id | plan>` opens a screen directly: the plan row
+   * on /you comes here to change an answer, and leaves back to /you.
+   * Read from the address as the walk decides (below), never through
+   * useSearchParams: that hook kept the whole page out of the server's
+   * HTML, which was an empty <main> until 415 KB of code had run (#508).
+   * Next sets the address before any layout effect runs (its history
+   * update is an insertion effect), so a tap from /you is read right.
+   */
+  const [asked, setAsked] = useState<string | null>(null);
   const editing = asked !== null;
   const [i, setI] = useState(0);
   /* Which way the last step went, so the next screen arrives from the
@@ -294,7 +298,15 @@ function Walk() {
    * device's answers and step, after paint: a refresh resumes, a
    * finished walk opens on its plan, a deep link opens where it asked.
    */
-  useEffect(() => {
+  /*
+   * Before the first paint after hydration (a layout effect): the server
+   * drew the room's door, and a walk the room is not for was kept from
+   * seeing it by the head script (lib/walk-boot.ts), so this decides
+   * before anything else is painted.
+   */
+  useLayoutEffect(() => {
+    const asked = new URLSearchParams(window.location.search).get("step");
+    setAsked(asked);
     markWelcomed();
     const saved = readOnboarding();
     setAnswers(saved.answers);
@@ -331,6 +343,9 @@ function Walk() {
     );
     setFloor(firstRep(readPrefs().skipIntros));
     setReady(true);
+    /* React has the screen now: the head script's marks step aside. */
+    document.documentElement.removeAttribute("data-walk");
+    document.documentElement.removeAttribute("data-room-account");
     sessionState()
       .then((sess) => {
         const needs = !(sess.signedIn && !sess.anonymous);
@@ -338,7 +353,7 @@ function Walk() {
         if (resumeAccount && !needs) setI(PLAN);
       })
       .catch(() => setNeedsAccount(true));
-  }, [asked]);
+  }, []);
 
   const step = STEPS[i];
 
@@ -408,7 +423,13 @@ function Walk() {
     []
   );
 
-  if (!ready) return <main className="px-5 pt-7" />;
+  /*
+   * The server's first frame, and hydration's: the room's door, as a
+   * first run sees it (#508). The walk decides above before the next
+   * paint; the same <Room> carries on for a first run, and anyone else
+   * never saw it (the head script hid it).
+   */
+  if (!ready) return <Room signedIn={false} onDone={notYet} onSkip={notYet} />;
 
   const go = (n: number) => {
     const next = Math.max(0, Math.min(n, LAST));

@@ -11,8 +11,7 @@ import { TodayFoot, TodayFootSkeleton } from "@/components/home/TodayFoot";
 import { ModPicker } from "@/components/ModPicker";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { IconBack, IconFlask } from "@/components/Icon";
-import { Paywall } from "@/components/Paywall";
-import { PriceDropSheet } from "@/components/premium/Moments";
+import { Paywall, PriceDropSheet } from "@/components/LazyPaywall";
 import { usePlan, usePriceDrop } from "@/lib/use-plan";
 import { readable, readFailure } from "@/lib/load";
 import { StreakBadge } from "@/components/StreakBadge";
@@ -33,10 +32,13 @@ import {
   type RepSpine,
 } from "@/lib/client-data";
 import { topicById, type Topic } from "@/lib/topics";
-import { sessionState } from "@/lib/auth";
+import { localSessionState } from "@/lib/auth";
 import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
+import { restoreHeld } from "@/lib/held";
+import { expectDraw, markDrawn, whenIdle } from "@/lib/first-draw";
+import { warmYou } from "@/lib/warm-you";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
 import {
   introDue,
@@ -139,6 +141,41 @@ export default function Home() {
   const [rescued, setRescued] = useState(0);
   /** The plan: null until the profile answers, and on a failed read. */
   const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
+  /*
+   * A fresh open (#508, lib/held.ts rule 4): the numbers this phone kept
+   * from the last open, for the account it is signed in to, are drawn
+   * before the first paint after hydration (the server's page has none of
+   * them, so never in the hydrating render itself): the streak, the name,
+   * the plan and the two rows under the card. The card and its foot read
+   * the newest 90 recordings, which are never kept, and land with the
+   * read as before.
+   */
+  const coldOpen = useRef(!warm);
+  const [spineKept, setSpineKept] = useState(false);
+  /** A reconciled streak is on screen: the read's bare count never stands in for it. */
+  const streakKept = useRef(false);
+  /** The freezes have answered (or failed): the streak on screen is the one that stays. */
+  const [streakSettled, setStreakSettled] = useState(false);
+  useLayoutEffect(() => {
+    // Today announces when its numbers are drawn (the splash lands on them, #508),
+    // and its leaving releases what waited, if it goes before they land.
+    const leave = expectDraw();
+    if (!coldOpen.current || !restoreHeld()) return leave;
+    const all = heldSpine();
+    if (all) {
+      setSpine(all);
+      setSpineKept(true);
+      const kept = heldFreezes();
+      setStreak(kept?.streak ?? computeStreak(all.map((r) => new Date(r.created_at))));
+      streakKept.current = kept !== null;
+      // A streak the freezes reconciled last open is the one that stays:
+      // the splash need not wait for them again (a day's turn can still move it).
+      if (kept !== null) setStreakSettled(true);
+    }
+    const plan = heldPremium();
+    if (plan !== null) setPremium(plan);
+    return leave;
+  }, []);
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -318,10 +355,14 @@ export default function Home() {
     // freezes (which may involve a write). A screen already showing a
     // reconciled streak keeps it until the next one lands, so the flame
     // never dips to the bare count and back.
-    if (!quiet) setStreak(computeStreak(dates));
+    if (!quiet && !streakKept.current) setStreak(computeStreak(dates));
     const sync = await readable(() => syncFreezes(dates));
-    if (!sync.ok) return;
+    if (!sync.ok) {
+      setStreakSettled(true);
+      return;
+    }
     setStreak(sync.data.streak);
+    setStreakSettled(true);
     // A rescue is said by the load that made it; a quiet read never unsays it.
     if (!again || sync.data.rescued.length > 0) setRescued(sync.data.rescued.length);
     // Armed once a visit, and at a day's turn, as before: a return to the
@@ -357,12 +398,15 @@ export default function Home() {
      */
     if (firstRun()) {
       router.replace("/welcome");
+      // The room is drawn by its server page (#508): nothing here to wait for.
+      markDrawn();
       return;
     }
     markWelcomed();
     setClock(new Date());
 
-    sessionState()
+    // A line on screen, so the session this phone holds answers (#508).
+    localSessionState()
       .then((s) => setAnon(s.signedIn && s.anonymous))
       .catch(() => {});
 
@@ -423,6 +467,20 @@ export default function Home() {
       window.clearInterval(minute);
     };
   }, [load]);
+
+  /* Today's numbers, or the failure that stands in for them, are on
+     screen: the splash may lift onto them, and what waited may go (#508).
+     The streak is one of them: the read's bare count stands until the
+     freezes answer, so the splash waits for the count that stays and
+     never lands on one that then ticks (its cap still bounds the wait). */
+  useEffect(() => {
+    if (!failed && (reps === null || !streakSettled)) return;
+    markDrawn();
+    if (reps === null) return;
+    // You's own reads, once Today is drawn and the phone is idle, so its
+    // first open draws from them (lib/warm-you.ts).
+    return whenIdle(warmYou, 4000);
+  }, [reps, failed, streakSettled]);
 
   const history = reps ?? [];
   /* Lifetime numbers count every recording, not the newest 90. */
@@ -540,7 +598,7 @@ export default function Home() {
         leading={<AvatarCoin name={name} known={nameKnown} />}
         barTrailing={
           <span className="mr-3 flex h-9 items-center gap-2">
-            {reps !== null && (
+            {(reps !== null || spineKept) && (
               /* The streak, the one standing score in the header (#176),
                  a sage chip with a gold mark, never a tap. It lands with
                  the read; at zero it reads as an unlit zero (D25) until
@@ -640,8 +698,8 @@ export default function Home() {
           until the history lands. */}
       <ModeRows
         tiles={[
-          hostileTile({ now: clock, premium, rows: reps === null ? null : spine }),
-          bossTile({ now: clock, rows: reps === null ? null : spine }),
+          hostileTile({ now: clock, premium, rows: reps === null && !spineKept ? null : spine }),
+          bossTile({ now: clock, rows: reps === null && !spineKept ? null : spine }),
         ]}
       />
 

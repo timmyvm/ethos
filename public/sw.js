@@ -13,9 +13,15 @@
  * them draws the line flame; the files themselves are shell below. v20
  * (#503): the fifteen lesson files are re-cut at their old paths (bold
  * 3D objects in the stat icons' family), and a .webp is served
- * cache-first, so a phone holding v19 would keep the glass ones.
+ * cache-first, so a phone holding v19 would keep the glass ones. v21
+ * (#508): the shell is lighter. The manifest's icons are fetched by the
+ * phone itself at install and never drawn by the app, and the lesson
+ * art's large cuts are cached the first time a screen draws one (the
+ * asset rule below), so neither is pre-cached; v21 empties v20 of them.
+ * The worker itself registers once the first screen is drawn
+ * (components/ServiceWorker.tsx), not beside it.
  */
-const CACHE = "ethos-v20";
+const CACHE = "ethos-v21";
 
 const SHELL = [
   "/",
@@ -43,25 +49,10 @@ const SHELL = [
   "/lessons/name-it-once.webp",
   "/lessons/short-and-concrete.webp",
   "/lessons/second-pass.webp",
-  /* And each lesson's own screen, where the object stands 176pt wide:
-     the 560 cut, since a 3x iPhone asks 528px of it and the 360 file
-     went soft (#448). Shell too, so a lesson opened in a tunnel still
-     has its picture. */
-  "/lessons/large/the-landing.webp",
-  "/lessons/large/inside-or-after.webp",
-  "/lessons/large/the-long-one.webp",
-  "/lessons/large/the-cold-open.webp",
-  "/lessons/large/closed-mouth.webp",
-  "/lessons/large/the-crutch.webp",
-  "/lessons/large/finish-it.webp",
-  "/lessons/large/know-the-landing.webp",
-  "/lessons/large/or-rather.webp",
-  "/lessons/large/room-to-land.webp",
-  "/lessons/large/one-gear-down.webp",
-  "/lessons/large/change-gear.webp",
-  "/lessons/large/name-it-once.webp",
-  "/lessons/large/short-and-concrete.webp",
-  "/lessons/large/second-pass.webp",
+  /* Each lesson's own screen, Today's card and the recorder draw the
+     560 cut (public/lessons/large/, #448), cached on first view rather
+     than here (#508): fifteen of them on the first open's link is
+     280 KB for the one or two a day draws. */
   "/boss",
   "/hostile",
   "/upload",
@@ -72,9 +63,7 @@ const SHELL = [
   "/demos-celebrate.webp",
   "/demos-practice.webp",
   "/demos-asleep.webp",
-  "/icon-192.png",
   "/splash-demos.webp",
-  "/icon-512.png",
   "/coin/coin.svg",
   "/coin/coin-stack.svg",
   "/coin/coin-burst.svg",

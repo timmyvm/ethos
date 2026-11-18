@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { artBox, objectSrc } from "@/lib/home";
+import { artBox, objectSrc, objectSrcSet } from "@/lib/home";
 import { ART_BOUNDS } from "@/lib/lesson-art-bounds";
 import { DURATION, EASE_OUT } from "@/lib/motion";
 import type { PracticeFamily } from "@/lib/practice-family";
@@ -371,6 +371,10 @@ export function TopicCard({
             <img
               ref={imgRef}
               src={objectSrc(art, true)}
+              /* The file Today's card drew at this density (#508): Start's
+                 move waits for this object to load, and the same file is
+                 already in memory. */
+              srcSet={objectSrcSet(art)}
               alt=""
               width={112}
               height={112}

@@ -32,6 +32,8 @@ import {
   type AnalyzeLine,
 } from "@/lib/analyze-stream";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
+import { StageClock, stageLine } from "@/lib/analyze-timing";
+import { tokenSubject } from "@/lib/token-subject";
 import { COLD_TOPICS } from "@/lib/cold-topics";
 import { bossXpMultiplier, lastBossWeek, parseBossWeek } from "@/lib/boss";
 import {
@@ -224,10 +226,13 @@ const field = (form: FormData, name: string): string | null => {
 
 export async function POST(req: NextRequest) {
   const spend: Spend = { subject: null, keep: false };
-  const startedAt = Date.now();
+  // Each stage's time, written as one line when the take is answered (#508).
+  const clock = new StageClock();
+  const startedAt = clock.startedAt;
   let form: FormData;
   try {
     form = await req.formData();
+    clock.mark("uploadEnd");
   } catch {
     return NextResponse.json(
       { error: "Expected multipart/form-data with an `audio` field." },
@@ -236,12 +241,12 @@ export async function POST(req: NextRequest) {
   }
   if (!wantsStream(req.headers.get("accept"))) {
     try {
-      return await handle(form, req, spend, startedAt, () => {});
+      return await handle(form, req, spend, startedAt, () => {}, clock);
     } finally {
       await settle(spend);
     }
   }
-  return new Response(answerInParts(form, req, spend, startedAt), {
+  return new Response(answerInParts(form, req, spend, startedAt, clock), {
     headers: {
       "Content-Type": `${STREAM_TYPE}; charset=utf-8`,
       // no-transform: nothing between here and the phone may hold the
@@ -265,7 +270,8 @@ function answerInParts(
   form: FormData,
   req: NextRequest,
   spend: Spend,
-  startedAt: number
+  startedAt: number,
+  clock: StageClock
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   let open = true;
@@ -284,7 +290,7 @@ function answerInParts(
         let status = 500;
         let body: unknown = { error: "The scoring server didn't answer." };
         try {
-          const res = await handle(form, req, spend, startedAt, write);
+          const res = await handle(form, req, spend, startedAt, write, clock);
           status = res.status;
           body = await res.json().catch(() => null);
         } catch (e) {
@@ -308,14 +314,38 @@ function answerInParts(
   });
 }
 
+/**
+ * The take, answered, and its stages' times written as one line
+ * (lib/analyze-timing.ts, #508): the status, the stage times, the region
+ * and the take's size and length, never a word of it or whose it was.
+ */
 async function handle(
   form: FormData,
   req: NextRequest,
   spend: Spend,
   startedAt: number,
+  emit: (event: AnalyzeEvent) => void,
+  clock: StageClock
+): Promise<NextResponse> {
+  let status = 500;
+  try {
+    const res = await handleTake(form, req, spend, startedAt, emit, clock);
+    status = res.status;
+    return res;
+  } finally {
+    console.info(stageLine(clock.report(status)));
+  }
+}
+
+async function handleTake(
+  form: FormData,
+  req: NextRequest,
+  spend: Spend,
+  startedAt: number,
   /** Each stage as it is reached (#472); a no-op for a caller that asked for one body. */
-  emit: (event: AnalyzeEvent) => void
-) {
+  emit: (event: AnalyzeEvent) => void,
+  clock: StageClock
+): Promise<NextResponse> {
   const audio = form.get("audio");
   if (!(audio instanceof Blob) || audio.size === 0) {
     return NextResponse.json(
@@ -332,13 +362,32 @@ async function handle(
 
   // "rep" and the extension, never an upload's own name (review P3).
   const filename = neutralAudioName(audio instanceof File ? audio.name : null);
+  clock.audioBytes = audio.size;
+
+  /*
+   * The key a resend carries (the outbox id, lib/rep-outbox.ts). Read
+   * first, so the lookup below can leave beside the sign-in check (#508).
+   */
+  const rawKey = form.get("clientId");
+  const clientId =
+    typeof rawKey === "string" && /^[\w-]{1,200}$/.test(rawKey) ? rawKey : null;
 
   // Anonymous-first: a valid token attributes the rep; absence never
   // blocks. A token that was SENT but does not resolve is different: the
   // recording has an owner we cannot name right now, so nothing is stored
   // (it would be stored with no owner, and the client would drop its only
   // copy). Checked before the limiter and Whisper, so it costs nothing.
-  const resolved = await resolveAuthHeader(req.headers.get("authorization")).catch(
+  const header = req.headers.get("authorization");
+  /*
+   * The resend lookup leaves beside the sign-in check, not after it
+   * (#508: one round trip, not two). It is asked for the account the
+   * token NAMES, which is not yet the account it proves, so its answer
+   * is used only once the check below has proved that same account;
+   * for any other answer it is thrown away and asked again.
+   */
+  const named = clientId ? tokenSubject(header) : null;
+  const early = named && clientId ? findRepByClientId(named, clientId).catch(() => null) : null;
+  const resolved = await resolveAuthHeader(header).catch(
     () => ({ kind: "unavailable" }) as const
   );
   if (resolved.kind === "rejected") {
@@ -362,12 +411,14 @@ async function handle(
    * recording back: no rate-limit slot, no Whisper, no judged read, no
    * second row. The key is the outbox id (lib/rep-outbox.ts).
    */
-  const rawKey = form.get("clientId");
-  const clientId =
-    typeof rawKey === "string" && /^[\w-]{1,200}$/.test(rawKey) ? rawKey : null;
   if (userId && clientId) {
-    const stored = await findRepByClientId(userId, clientId).catch(() => null);
-    if (stored) return NextResponse.json({ repId: stored, duplicate: true });
+    const stored = await (early && named === userId
+      ? early
+      : findRepByClientId(userId, clientId).catch(() => null));
+    if (stored) {
+      clock.duplicate = true;
+      return NextResponse.json({ repId: stored, duplicate: true });
+    }
   }
 
   /*
@@ -377,8 +428,34 @@ async function handle(
    * (lib/rate-limit.ts). Only a saved recording keeps its slot (#409).
    */
   const subject = auth ? `u:${auth.id}` : `ip:${clientIp(req.headers)}`;
-  // A session, guest or account, gets an account's room (#408, #409).
-  const verdict = await consumeRateLimit(subject, analyzeTier(auth));
+  /* A guest also counts against every guest on its address (#416), so
+     minting sessions buys no more scoring. Accounts never do. */
+  const guestIp = auth?.anonymous ? `guest:ip:${clientIp(req.headers)}` : null;
+  /* And every guest and visitor, wherever they come from, shares one
+     ceiling (11 Nov): an address is cheap to change, so the rooms above
+     put no end on what scripted guests could spend. Accounts never
+     count, and a full ceiling says how to go on. */
+  const ceiling = !auth || auth.anonymous ? GUEST_CEILING : null;
+  /*
+   * The slots are claimed together (#508: one round trip, not up to
+   * three), all of them before Whisper. When any is refused, the ones
+   * taken are given back before the answer goes, so a refused take
+   * costs nothing, as when they were claimed one after another.
+   */
+  const [verdict, shared, all] = await Promise.all([
+    // A session, guest or account, gets an account's room (#408, #409).
+    consumeRateLimit(subject, analyzeTier(auth)),
+    guestIp ? consumeRateLimit(guestIp, "guestip") : null,
+    ceiling ? consumeRateLimit(ceiling, "guestall") : null,
+  ]);
+  const refused = !verdict.allowed || shared?.allowed === false || all?.allowed === false;
+  if (refused) {
+    await Promise.all([
+      verdict.allowed ? refundRateLimit(subject) : null,
+      guestIp && shared?.allowed ? refundRateLimit(guestIp) : null,
+      ceiling && all?.allowed ? refundRateLimit(ceiling) : null,
+    ]);
+  }
   if (!verdict.allowed) {
     return NextResponse.json(
       {
@@ -392,41 +469,27 @@ async function handle(
       }
     );
   }
+  if (shared && !shared.allowed) {
+    return NextResponse.json(
+      { error: limitMessage(shared), rateLimited: true, retryAfterS: shared.retryAfterS },
+      { status: 429, headers: { "Retry-After": String(shared.retryAfterS) } }
+    );
+  }
+  if (all && !all.allowed) {
+    return NextResponse.json(
+      { error: GUEST_FULL_COPY, rateLimited: true, guestFull: true, retryAfterS: all.retryAfterS },
+      { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
+    );
+  }
   spend.subject = subject;
-
-  /* A guest also counts against every guest on its address (#416), so
-     minting sessions buys no more scoring. Accounts never do. */
-  if (auth?.anonymous) {
-    const guestIp = `guest:ip:${clientIp(req.headers)}`;
-    const shared = await consumeRateLimit(guestIp, "guestip");
-    if (!shared.allowed) {
-      return NextResponse.json(
-        { error: limitMessage(shared), rateLimited: true, retryAfterS: shared.retryAfterS },
-        { status: 429, headers: { "Retry-After": String(shared.retryAfterS) } }
-      );
-    }
-    spend.guestIp = guestIp;
-  }
-
-  /* And every guest and visitor, wherever they come from, shares one
-     ceiling (11 Nov): an address is cheap to change, so the rooms above
-     put no end on what scripted guests could spend. Accounts never
-     count, and a full ceiling says how to go on. */
-  if (!auth || auth.anonymous) {
-    const all = await consumeRateLimit(GUEST_CEILING, "guestall");
-    if (!all.allowed) {
-      return NextResponse.json(
-        { error: GUEST_FULL_COPY, rateLimited: true, guestFull: true, retryAfterS: all.retryAfterS },
-        { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
-      );
-    }
-    spend.ceiling = GUEST_CEILING;
-  }
+  if (guestIp) spend.guestIp = guestIp;
+  if (ceiling) spend.ceiling = ceiling;
 
   const bossTopic =
     COLD_TOPICS.find((t) => t.id === field(form, "bossTopicId")) ??
     null;
   const mode: "daily" | "boss" = bossTopic ? "boss" : "daily";
+  clock.mode = mode;
   // Stored as it arrives, so it is held to an id's shape: a control
   // character here made the save fail after Whisper had been paid for.
   const rawLesson = field(form, "lessonId");
@@ -516,10 +579,15 @@ async function handle(
   if (userId) spend.audio = uploadRepAudio(audio, filename).catch(() => null);
 
   emit({ stage: "transcribing" });
+  clock.mark("gateEnd");
+  clock.mark("whisperStart");
   let transcription;
   try {
     transcription = await transcribe(audio, filename);
+    clock.mark("whisperEnd");
+    clock.takeS = transcription.durationS;
   } catch (e) {
+    clock.mark("whisperEnd");
     const message = e instanceof Error ? e.message : "Transcription failed.";
     console.error("analyze transcription failed", message);
     const unconfigured = message.includes("OPENAI_API_KEY");
@@ -651,17 +719,22 @@ async function handle(
   let coach: CoachOutput | null = null;
   let accuracy: AccuracyResult | null = null;
   if (scorable && judgedAllowed) {
+    clock.mark("coachStart");
     const [coachResult, accuracyResult] = await Promise.allSettled([
-      coachRep(transcription.text, metrics, tier1, anchors, startedAt + COACH_BUDGET_MS),
+      coachRep(transcription.text, metrics, tier1, anchors, startedAt + COACH_BUDGET_MS, (n) => {
+        clock.coachAttempts = n;
+      }),
       bossTopic
         ? judgeAccuracy(transcription.text, bossTopic)
         : Promise.resolve(null),
     ]);
+    clock.mark("coachEnd");
     coach = coachResult.status === "fulfilled" ? coachResult.value : null;
     accuracy =
       accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }
   emit({ stage: "saving" });
+  clock.mark("saveStart");
 
   // Only commit the spend once the call has actually happened. An
   // analysis the user never received must not cost them one. Written
@@ -761,6 +834,8 @@ async function handle(
     if (!saved) spend.audioOwned = false;
     if (saved?.duplicate) {
       await meterWrite;
+      clock.mark("saveEnd");
+      clock.duplicate = true;
       return NextResponse.json({ repId: saved.id, duplicate: true });
     }
     repId = saved?.id ?? null;
@@ -769,6 +844,7 @@ async function handle(
     repId = null;
   }
   await meterWrite;
+  clock.mark("saveEnd");
 
   const body: AnalyzeResponse = {
     transcript: transcription.text,

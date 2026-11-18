@@ -27,7 +27,8 @@ import { useGlanceReminder } from "@/components/rep/ReminderAsk";
 import { firstScoredToday } from "@/lib/reminder-ask";
 import { SHEET_NAME, WholeRecording } from "@/components/rep/WholeRecording";
 import { ComparisonCard } from "@/components/ComparisonCard";
-import { Paywall, type PaywallAsk } from "@/components/Paywall";
+import { Paywall } from "@/components/LazyPaywall";
+import type { PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
 import { PoseSkeleton } from "@/components/PoseSkeleton";
 import { PresenceDetail, PresenceScore } from "@/components/PresenceCard";
@@ -143,6 +144,7 @@ import {
 } from "@/lib/rep-screen";
 import { unlockSound } from "@/lib/sound";
 import { holdAwake } from "@/lib/wake-lock";
+import { speechRecorder } from "@/lib/speech-recorder";
 import { computeStreak } from "@/lib/streak";
 import {
   askedIdsFrom,
@@ -1472,13 +1474,8 @@ function RepScreen() {
        * moment someone flipped the toggle.
        */
       const audioOnly = new MediaStream(stream.getAudioTracks());
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : undefined;
-      const recorder = new MediaRecorder(
-        audioOnly,
-        mime ? { mimeType: mime } : undefined
-      );
+      // Speech at 32 kbps (#508): a quarter of the default's bytes to upload.
+      const recorder = speechRecorder(audioOnly);
       opened.recorder = recorder;
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => {

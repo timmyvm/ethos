@@ -257,11 +257,16 @@ describe("CueRunner: a moment's sounds on its clock", () => {
     };
   }
   const cue = (sound: Cue["sound"], atMs: number, slot: string = sound): Cue => ({ sound, atMs, slot });
+  /* Each cue laid on the fake clock, as the kit lays it on the audio clock. */
+  const scheduleOn = (c: ReturnType<typeof clock>, played: string[]) => (q: Cue, delayMs: number) => {
+    const h = c.set(() => void played.push(q.sound), delayMs);
+    return () => c.clear(h);
+  };
 
   it("plays each cue at its time", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
+    const r = new CueRunner(scheduleOn(c, played), c.now);
     r.run([cue("star-1", 660), cue("star-2", 780)]);
     c.advance(700);
     expect(played).toEqual(["star-1"]);
@@ -272,7 +277,7 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("never plays a slot twice, and a moment read later takes the slot it waited in", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
+    const r = new CueRunner(scheduleOn(c, played), c.now);
     r.run([cue("star-1", 100), cue("best", 1000, "top")]);
     c.advance(200);
     /* The level-up is read after the stored row lands: it replaces the best. */
@@ -284,7 +289,7 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("plays a cue that arrives after its time at once", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
+    const r = new CueRunner(scheduleOn(c, played), c.now);
     r.run([cue("star-1", 100)]);
     c.advance(2000);
     r.run([cue("star-1", 100), cue("lesson", 1000, "top")]);
@@ -295,13 +300,44 @@ describe("CueRunner: a moment's sounds on its clock", () => {
   it("drops whatever has not played when the screen goes", () => {
     const c = clock();
     const played: string[] = [];
-    const r = new CueRunner((q: Cue) => void played.push(q.sound), c);
+    const r = new CueRunner(scheduleOn(c, played), c.now);
     r.run([cue("star-1", 100), cue("payout", 1000)]);
     c.advance(150);
     r.cancel();
     c.advance(2000);
     expect(played).toEqual(["star-1"]);
     expect(c.pending()).toBe(0);
+  });
+});
+
+describe("a moment's cues on the audio clock", () => {
+  it("lays every cue at once at its own time, so a busy page cannot make a ding late", () => {
+    const c = unlockSound() as unknown as FakeContext;
+    c.currentTime = 20;
+    const before = c.of("osc").length;
+    const r = new CueRunner(undefined, () => 0);
+    r.run([
+      { sound: "star-1", atMs: 660, slot: "star-1" },
+      { sound: "star-2", atMs: 780, slot: "star-2" },
+    ]);
+    const starts = (c.of("osc").slice(before) as Source[]).map((o) => o.started!);
+    const firstOf = (id: "star-1" | "star-2") => 20 + 0.01 + (id === "star-1" ? 0.66 : 0.78);
+    expect(Math.min(...starts)).toBeCloseTo(firstOf("star-1"), 6);
+    expect(starts.some((t) => Math.abs(t - firstOf("star-2")) < 1e-6)).toBe(true);
+  });
+
+  it("stops a cue that has not started when the screen goes", () => {
+    const c = unlockSound() as unknown as FakeContext;
+    c.currentTime = 30;
+    let now = 0;
+    const r = new CueRunner(undefined, () => now);
+    const before = c.of("osc").length;
+    r.run([{ sound: "payout", atMs: 1000, slot: "payout" }]);
+    now = 200;
+    r.cancel();
+    const oscs = c.of("osc").slice(before) as Source[];
+    /* Stopped before its start: it never sounds. */
+    for (const o of oscs) expect(o.stopped!).toBeLessThan(o.started!);
   });
 });
 

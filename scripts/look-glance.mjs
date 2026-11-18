@@ -66,6 +66,11 @@ const STAR_GOAL_WORDS = () => {
 };
 const STRIP = process.env.LOOK_STRIP === "1";
 const LAND = process.env.LOOK_LAND === "1";
+/* LOOK_SOUND=1 (#505): every oscillator the page starts is logged, and
+   after the glance the sounds it played are printed as clusters (when,
+   after the glance's first frame, and the notes' fundamentals), so the
+   stars' dings, the payout and the moment can be checked on the clock. */
+const SOUND = process.env.LOOK_SOUND === "1";
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const failures = [];
@@ -295,6 +300,29 @@ for (const size of SIZES) {
     css.textContent = "nextjs-portal{display:none!important}";
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
   });
+  if (SOUND) {
+    await context.addInitScript(() => {
+      const log = (window.__sounds = []);
+      const lands = (window.__lands = []);
+      /* The kit sets each pitch at its note's time, so the pitch is read from that call. */
+      const set = AudioParam.prototype.setValueAtTime;
+      AudioParam.prototype.setValueAtTime = function (v) {
+        if (this.__first === undefined) this.__first = v;
+        return set.apply(this, arguments);
+      };
+      const start = OscillatorNode.prototype.start;
+      OscillatorNode.prototype.start = function (when) {
+        const lead = Math.max(0, (when ?? 0) - this.context.currentTime);
+        const f = this.frequency.__first ?? this.frequency.value;
+        log.push({ t: performance.now() + lead * 1000, f: Math.round(f * 100) / 100 });
+        return start.apply(this, arguments);
+      };
+      /* When each star's landing starts, on the same clock. */
+      document.addEventListener("animationstart", (e) => {
+        if (e.animationName === "star-land") lands.push(Math.round(performance.now()));
+      });
+    });
+  }
   if (VARIANT === "video") {
     await context.addInitScript(() => {
       try {
@@ -437,6 +465,7 @@ for (const size of SIZES) {
   /* The landing: the results' first frame, then when the tap is live. */
   await page.waitForSelector("main .arrive-x", { timeout: 30000 });
   const t0 = Date.now();
+  const soundT0 = SOUND ? await page.evaluate(() => performance.now()) : 0;
   /* LOOK_LAND=1 (#504): the stars landing over their goals, the top of
      the glance at fixed times after its first frame, for a strip. */
   if (LAND) {
@@ -451,6 +480,26 @@ for (const size of SIZES) {
   const glance = await page.$("main [data-glance]");
   await sleep(glance ? 3200 : 3500);
   entry.tapLiveMs = tapLiveMs;
+  if (SOUND) {
+    await sleep(1500);
+    const notes = await page.evaluate((t0) => window.__sounds.filter((n) => n.t >= t0 - 50).map((n) => ({ ...n, t: Math.round(n.t - t0) })), soundT0);
+    /* A sound's notes start together or within a few ms; a cluster is a gap of 25ms or more. */
+    const clusters = [];
+    for (const n of notes.sort((a, b) => a.t - b.t)) {
+      const last = clusters.at(-1);
+      if (last && n.t - last.end < 25) {
+        last.end = n.t;
+        last.f.add(n.f);
+      } else clusters.push({ t: n.t, end: n.t, f: new Set([n.f]) });
+    }
+    const met = await page.locator('main [data-star-goal="met"]').count();
+    const lands = await page.evaluate((t0) => window.__lands.map((t) => t - Math.round(t0)), soundT0);
+    console.log(`${at} sound: the stars start to land at ${lands.join(", ")}ms`);
+    entry.sounds = clusters.map((c) => ({ atMs: c.t, hz: [...c.f].sort((a, b) => a - b) }));
+    entry.starsMet = met;
+    console.log(`${at} sound: ${met} star(s) met; ${clusters.length} note cluster(s) after the glance's first frame`);
+    for (const c of clusters.slice(0, 40)) console.log(`  ${String(c.t).padStart(5)}ms  ${[...c.f].sort((a, b) => a - b).slice(0, 6).join(" ")}${c.f.size > 6 ? " …" : ""}`);
+  }
 
   if (glance) {
     /* ---- the glance ----------------------------------------------------- */

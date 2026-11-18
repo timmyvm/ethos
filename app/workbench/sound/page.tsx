@@ -71,9 +71,10 @@ export default function SoundAudition() {
   const play = (key: string, cues: Cue[]) => {
     stop();
     unlockSound();
-    runner.current = new CueRunner((c) => {
-      const p = playSound(c.sound, { step: c.step, force: true });
+    runner.current = new CueRunner((c, delayMs) => {
+      const p = playSound(c.sound, { step: c.step, force: true, delayS: delayMs / 1000 });
       if (p) sounding.current.push(p);
+      return () => p?.stop();
     });
     runner.current.run(cues);
     setPlaying(key);

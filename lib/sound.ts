@@ -320,6 +320,8 @@ export type PlayOptions = {
   step?: number;
   /** The audition page: plays with Sound off (it is a button that says Play). Still needs the tap. */
   force?: boolean;
+  /** Seconds from now, on the audio clock: a moment's later cues land on time whatever the page is doing. */
+  delayS?: number;
 };
 
 /**
@@ -331,7 +333,7 @@ export function playSound(id: SoundId, opts: PlayOptions = {}): Playing | null {
   if (!c) return null;
   try {
     ambient();
-    const t0 = Math.max(c.currentTime + 0.01, master(c).born + SETTLE_S);
+    const t0 = Math.max(c.currentTime + 0.01, master(c).born + SETTLE_S) + Math.max(0, opts.delayS ?? 0);
     return renderRecipe(c, recipe(id, opts.step ?? 0), t0);
   } catch {
     return null;
@@ -385,16 +387,20 @@ export function playBlips(blips: readonly Blip[]): void {
 /* ------------------------------------------------------------------ */
 
 type CueLike = { sound: SoundId; atMs: number; slot: string; step?: number };
-type Clock = {
-  now: () => number;
-  set: (fn: () => void, ms: number) => unknown;
-  clear: (h: unknown) => void;
+/** Lays one cue on its clock, `delayMs` from now; returns its cancel. */
+export type Schedule = (c: CueLike, delayMs: number) => () => void;
+
+/*
+ * On the audio clock, all at once: a star's ding lands with its star
+ * even when the page is busy drawing the glance (a timer would wait for
+ * the main thread; the audio thread does not). A cancelled sound that has
+ * not started never does.
+ */
+const onAudioClock: Schedule = (c, delayMs) => {
+  const p = playSound(c.sound, { step: c.step, delayS: delayMs / 1000 });
+  return () => p?.stop();
 };
-const realClock: Clock = {
-  now: () => (typeof performance !== "undefined" ? performance.now() : Date.now()),
-  set: (fn, ms) => setTimeout(fn, ms),
-  clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
-};
+const realNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 
 /**
  * Plays a moment's cues on its clock, from when it starts. A later read
@@ -406,41 +412,51 @@ const realClock: Clock = {
  */
 export class CueRunner {
   private start: number | null = null;
-  private waiting = new Map<string, { key: string; handle: unknown }>();
+  private waiting = new Map<string, { key: string; atMs: number; cancel: () => void }>();
   private played = new Set<string>();
   constructor(
-    private play: (c: CueLike) => void = (c) => {
-      playSound(c.sound, { step: c.step });
-    },
-    private clock: Clock = realClock
+    private schedule: Schedule = onAudioClock,
+    private now: () => number = realNow
   ) {}
 
+  private elapsed(): number {
+    if (this.start === null) this.start = this.now();
+    return this.now() - this.start;
+  }
+
+  /** Slots whose time has come have played: they are no longer anyone's to replace. */
+  private settle(elapsed: number): void {
+    for (const [slot, w] of this.waiting) {
+      if (w.atMs <= elapsed) {
+        this.waiting.delete(slot);
+        this.played.add(slot);
+      }
+    }
+  }
+
   run(cues: readonly CueLike[]): void {
-    if (this.start === null) this.start = this.clock.now();
-    const elapsed = this.clock.now() - this.start;
+    const elapsed = this.elapsed();
+    this.settle(elapsed);
     const keyOf = (c: CueLike) => `${c.sound}@${c.atMs}`;
     const want = new Map(cues.map((c) => [c.slot, c] as const));
     for (const [slot, w] of this.waiting) {
       const next = want.get(slot);
       if (!next || keyOf(next) !== w.key) {
-        this.clock.clear(w.handle);
+        w.cancel();
         this.waiting.delete(slot);
       }
     }
     for (const c of cues) {
       if (this.played.has(c.slot) || this.waiting.has(c.slot)) continue;
-      const handle = this.clock.set(() => {
-        this.waiting.delete(c.slot);
-        this.played.add(c.slot);
-        this.play(c);
-      }, Math.max(0, c.atMs - elapsed));
-      this.waiting.set(c.slot, { key: keyOf(c), handle });
+      const delay = Math.max(0, c.atMs - elapsed);
+      this.waiting.set(c.slot, { key: keyOf(c), atMs: elapsed + delay, cancel: this.schedule(c, delay) });
     }
   }
 
-  /** Leaving the moment: whatever has not played never will. */
+  /** Leaving the moment: whatever has not started never will; what is sounding rings out. */
   cancel(): void {
-    for (const w of this.waiting.values()) this.clock.clear(w.handle);
+    this.settle(this.elapsed());
+    for (const w of this.waiting.values()) w.cancel();
     this.waiting.clear();
   }
 }

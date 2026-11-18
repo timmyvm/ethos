@@ -592,16 +592,16 @@ export function comeBackLine(streak: number): string | null {
 
 /**
  * Whether the take plays on when the door's sheet closes (the #427
- * review): only the glance's own moment, started on the glance, which
- * its chip can stop. Anything started in the sheet (Hear it back, a
- * word's "Said at", a Pause row's moment) stops with it, since nothing on
- * the glance could.
+ * review): only a moment of the glance's own, started on the glance,
+ * which its chip can stop: Demos's, or the proof token's (#509). Anything
+ * started in the sheet (Hear it back, a word's "Said at", a Pause row's
+ * moment) stops with it, since nothing on the glance could.
  */
 export function playsOnAfterSheet(
   span: { from: number; until: number } | null,
-  moment: Pick<GlanceMoment, "from" | "until"> | null
+  ...moments: (Pick<GlanceMoment, "from" | "until"> | null | undefined)[]
 ): boolean {
-  return !!span && !!moment && span.from === moment.from && span.until === moment.until;
+  return !!span && moments.some((m) => !!m && span.from === m.from && span.until === m.until);
 }
 
 /**
@@ -685,38 +685,97 @@ export function fitGlance(
   return { cue, earned, words: total(line, cue, earned), short };
 }
 
+/*
+ * Say it better's proof (#509, Timothy 18 Nov: "give it ur best shot"):
+ * when the take's Whisper words hold a saved swap's better phrase, a sage
+ * token stands under the score, "✓ the point is" over "the thing is"
+ * struck, with the moment's chip. It is an object, not a sentence, and it
+ * stands outside the word ceiling, so it never waits and nothing else on
+ * the glance gives way to it: the cue, the earned line, the level-up and
+ * the line keep exactly the forms they have without it. (#507's line rode
+ * on the ceiling and waited whenever it would cost any of them, so it
+ * showed mostly on the day's first take.)
+ */
+
 /**
- * The proof line (#507, grafted from the in-the-loop design): when the
- * take's Whisper words hold a saved swap's better phrase, the earned slot
- * also reads "the thing is → ✓ the point is ▶0:14", its chip playing that
- * moment. Its words ride on the same ceiling as everything else (#504's
- * goals, #498's level-up line, Demos's cue). The struck old phrase is the
- * first thing to go: the full line stands only where it costs nothing
- * else on the glance; otherwise the short one ("✓ the point is ▶0:14"),
- * on the same terms. Where even the short line would cost the cue, the
- * earned line or the line's long form, the proof waits (the swap's page
- * still counts the recording).
+ * The glance's one piece outside its ceiling: the proof token is drawn
+ * with this attribute, and scripts/look-glance.mjs leaves it out of the
+ * count by this name (it reads the name from here), as #427's named
+ * exceptions are held at their own ceilings.
+ */
+export const OUTSIDE_CEILING = "data-say-token";
+
+/*
+ * The token holds at most two lines on any phone: the better phrase over
+ * the struck one, or a long better phrase alone on two; under 600pt tall
+ * (320x568) one line, the better phrase alone (app/globals.css). Lengths
+ * in characters against the token's text column: 230pt at 390, 215 at
+ * 375 ("wide"), 160 at 320 and at 390 two text sizes up ("narrow", under
+ * 375). Measured in the build (#509): a better phrase at 17/700 runs 7.5
+ * to 8.2pt a character ("making the habit small" is 172), a struck one
+ * at 13/400 about 5.9 ("the thing is" is 65), so each limit keeps a
+ * margin for wide letters.
+ */
+/** The longest better phrase on one line from 375 up. */
+export const PROOF_LINE_WIDE = 24;
+/** The longest struck phrase on one line from 375 up. */
+export const PROOF_STRUCK_WIDE = 32;
+/** The longest better phrase on one line under 375. */
+export const PROOF_LINE_NARROW = 18;
+/** The longest struck phrase on one line under 375. */
+export const PROOF_STRUCK_NARROW = 23;
+
+/** A swap the take said (lib/say.ts `Proof`). */
+export interface ProofPair {
+  key: string;
+  said: string;
+  better: string;
+  /** Where the better phrase starts on the take's clock. */
+  at: number;
+  end: number;
+}
+
+/** The proof token as the glance draws it. */
+export interface ProofToken {
+  /** The swap's key: its sheet opens from the token. */
+  key: string;
+  better: string;
+  /** The phrase it replaced, as said. */
+  said: string;
+  /**
+   * Where the struck phrase is drawn under the better one: on every
+   * phone; only from 375 up, where a narrow phone would take a third
+   * line; or nowhere, where even 375 would (#429's longest pair, eight
+   * words said and six better). The swap's sheet always has it.
+   */
+  struck: "always" | "wide" | "never";
+  /** The chip: the better phrase, a second before it to a breath after. */
+  moment: GlanceMoment;
+}
+
+/** The token for a pair: which lines it keeps, and its moment. */
+export function proofToken(p: ProofPair): ProofToken {
+  const fits = (line: number, struck: number) => p.better.length <= line && p.said.length <= struck;
+  return {
+    key: p.key,
+    better: p.better,
+    said: p.said,
+    struck: fits(PROOF_LINE_NARROW, PROOF_STRUCK_NARROW) ? "always" : fits(PROOF_LINE_WIDE, PROOF_STRUCK_WIDE) ? "wide" : "never",
+    moment: windowAt(p.at, 1, p.end + 1.5, "%, play where you said it"),
+  };
+}
+
+/**
+ * The glance's fit with a proof on it: the fit without it, word for word,
+ * and the token beside it whenever the take proved a swap. The proof
+ * never waits, and costs the ceiling nothing.
  */
 export function fitGlanceProof(
   p: Parameters<typeof fitGlance>[0],
   budget: number,
-  proof: { full: string; short: string } | null
-): ReturnType<typeof fitGlance> & { proof: "full" | "short" | null } {
-  const base = fitGlance(p, budget);
-  if (!proof) return { ...base, proof: null };
-  /* Either form stands only where it costs nothing else: the same cue, the
-     same earned line, the same form of the line. The cue, the goals and
-     the level-up keep their places, and the proof waits (the review:
-     the short form used to push Demos's cue off to fit). */
-  const fits = (text: string) => {
-    const f = fitGlance({ ...p, fixed: [...p.fixed, text] }, budget);
-    return f.words <= budget && f.cue === base.cue && f.earned === base.earned && f.short === base.short ? f : null;
-  };
-  const full = fits(proof.full);
-  if (full) return { ...full, proof: "full" };
-  const short = fits(proof.short);
-  if (short) return { ...short, proof: "short" };
-  return { ...base, proof: null };
+  proof: ProofPair | null
+): ReturnType<typeof fitGlance> & { proof: ProofToken | null } {
+  return { ...fitGlance(p, budget), proof: proof ? proofToken(proof) : null };
 }
 
 /**

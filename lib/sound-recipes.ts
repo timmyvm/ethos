@@ -455,6 +455,12 @@ export type GlanceWin = {
   roundWon?: boolean;
   /** The week's boss, scored. */
   boss?: boolean;
+  /**
+   * Say it better's proof token is on the glance (#509): a saved swap's
+   * better phrase said in this take. It plays `round`, the kit's hand won
+   * ("ding, DING, five coins"), under every bigger moment.
+   */
+  proof?: boolean;
 };
 
 /** The glance's clock, from RepResult. */
@@ -476,8 +482,9 @@ export const PAYOUT_LEAD_MS = 700;
 
 /**
  * The one sound that answers what the take won beyond its stars, the
- * rarest first: the week's boss, a level, a lesson, a best, a round.
- * One, so two fanfares never talk over each other.
+ * rarest first: the week's boss, a level, a lesson, a best, then a swap
+ * proved (#509) or a round won, both the hand won. One, so two fanfares
+ * never talk over each other: a level-up outranks a proof.
  */
 export function topMoment(win: GlanceWin): SoundId | null {
   if (win.stars <= 0) return null;
@@ -485,8 +492,33 @@ export function topMoment(win: GlanceWin): SoundId | null {
   if (win.level) return "level";
   if (win.lessonDone) return "lesson";
   if (win.best) return "best";
-  if (win.roundWon) return "round";
+  if (win.proof || win.roundWon) return "round";
   return null;
+}
+
+/**
+ * The glance's win with its proof (the #509 review): a swap proved claims
+ * the take's top moment only once the take's other rewards are worked
+ * out. A level-up and a best are read after the stored row lands, often
+ * after the stars; a proof that took the top slot from the first frame
+ * played the hand won there, and the level-up that landed a beat later
+ * found its slot played (a slot never plays twice), so the bigger moment
+ * went silent and Demos cheered the smaller one. Until the rewards are
+ * in, the proof claims nothing; once they are, the slot goes to the
+ * biggest, at its time or at once if that has passed (`CueRunner`).
+ */
+export function withProof<W extends Omit<GlanceWin, "proof" | "stars">>(win: W, proved: boolean, rewardsIn: boolean): W & { proof: boolean } {
+  return { ...win, proof: proved && rewardsIn };
+}
+
+/**
+ * The proof is the take's own moment (#509): it is on the glance and no
+ * bigger one owns it (the boss, a level, a lesson, a best), so its sound
+ * plays and Demos cheers as the token lands. Where a bigger moment owns
+ * the glance the token still lands, quietly.
+ */
+export function proofLeads(win: GlanceWin): boolean {
+  return !!win.proof && win.stars > 0 && !win.boss && !win.level && !win.lessonDone && !win.best;
 }
 
 /**

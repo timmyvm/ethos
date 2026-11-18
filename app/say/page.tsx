@@ -14,12 +14,12 @@ import { todayHref } from "@/lib/home";
 import { readable } from "@/lib/load";
 import { poolHere } from "@/lib/pool";
 import {
-  addDays,
   backLine,
   dayOf,
   emptyLine,
   nextDue,
   nextTestLine,
+  nextTestOn,
   sayLists,
   testLabel,
   timesLine,
@@ -145,10 +145,8 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
   const items = read?.items ?? [];
   const lists = sayLists(items, today);
   const empty = read !== null && lists.m === 0;
-  /* The day a swap is next tested: today for one of today's three; one
-     due but past the three waits a day; else the day it comes back. */
-  const nextTestDay = (v: SayItem) =>
-    lists.due.some((d) => d.swap.key === v.swap.key) ? today : v.state.due > today ? v.state.due : addDays(today, 1);
+  /* The day a swap is next tested (lib/say.ts nextTestOn). */
+  const nextTestDay = (v: SayItem) => nextTestOn(items, v, today);
   const practice = () => todayHref(heldReps() ?? [], new Date(), poolHere());
 
   return (

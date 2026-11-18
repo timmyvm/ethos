@@ -4,6 +4,10 @@
  *
  * Walks a take to its results and shoots every beat after it, full page
  * and one phone screen at a time, printing the visible words on each.
+ * Say it better's proof token (#509) is the glance's one piece outside
+ * the count: the attribute it is drawn with is read from lib/glance.ts
+ * (OUTSIDE_CEILING), its words are left out of the ceiling and printed on
+ * their own, and only one such piece may stand.
  * It reads whichever results the server has: the old three-step walk
  * (The score, The numbers, Your words) or the glance and its door (The
  * whole recording). On the glance it also asserts the rules the glance is
@@ -37,16 +41,20 @@
  * count beside them. LOOK_STRIP=1 adds the sheet's rise as a strip (0,
  * 80, 160, 240, 400ms); LOOK_LAND=1 shoots the glance's top as the stars
  * land over their goals (#504); LOOK_BLUR=7 blurs the glance for the
- * squint test. Every lit goal must be one the served take meets and
+ * squint test. LOOK_PROOF=0 empties the coach's pairs, so no proof
+ * token stands (#509). Every lit goal must be one the served take meets and
  * every open one one it misses (#504 review). LOOK_SOUND=1 logs the
  * notes the glance starts (#505); LOOK_SOUND=off does it with Settings'
  * Sound off and fails on any note; both fail a note before the Record tap.
  */
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_CJS ?? "/opt/node-tools/node_modules/playwright");
 const F = await import("./look-fixtures.mjs");
+/* The glance's named piece outside its ceiling (#509), by the name lib/glance.ts gives it. */
+const OUTSIDE = /export const OUTSIDE_CEILING = "([a-z-]+)";/.exec(readFileSync(new URL("../lib/glance.ts", import.meta.url), "utf8"))?.[1];
+if (!OUTSIDE) throw new Error("lib/glance.ts names no OUTSIDE_CEILING");
 
 const TAG = process.argv[2] ?? "after";
 const VARIANT = process.argv[3] ?? "lesson";
@@ -166,7 +174,8 @@ const PRESENCE = {
 };
 
 /* ---- the measuring tape: walk.mjs's, so before and after count alike --- */
-const MEASURE = (scope) => {
+const MEASURE = (arg) => {
+  const { scope, outside } = typeof arg === "string" ? { scope: arg, outside: null } : arg;
   const hidden = (el) => {
     for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
       if (e.matches?.('nav[aria-label="Sections"], nextjs-portal, .sr-only, [hidden]')) return true;
@@ -191,7 +200,7 @@ const MEASURE = (scope) => {
       const r = range.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
       if (hidden(p)) continue;
-      chunks.push({ t, raw: n.nodeValue ?? "", left: r.left, right: r.right, top: Math.round(r.top + scrollY), transcript: !!p.closest(".transcript"), round: !!p.closest('section[aria-label="The round"]') });
+      chunks.push({ t, raw: n.nodeValue ?? "", left: r.left, right: r.right, top: Math.round(r.top + scrollY), transcript: !!p.closest(".transcript"), round: !!p.closest('section[aria-label="The round"]'), outside: !!(outside && p.closest(`[${outside}]`)) });
     }
   }
   const words = (s) => s.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
@@ -258,15 +267,21 @@ const MEASURE = (scope) => {
     band,
     doorClear: door && shelfBox ? door.bottom <= shelfBox.top + 1 : null,
     backDuringFelt: !!document.querySelector("main [data-results-back]"),
-    words: words(all),
-    wordsNoTranscript: words(join(chunks.filter((c) => !c.transcript))),
-    wordsNoRound: words(join(chunks.filter((c) => !c.round))),
+    words: words(join(chunks.filter((c) => !c.outside))),
+    /* The proof token's own words (#509), outside the ceiling. */
+    outsideWords: words(join(chunks.filter((c) => c.outside))),
+    outsidePieces: outside && within ? [...within.querySelectorAll(`[${outside}]`)].filter(vis).length : 0,
+    wordsNoTranscript: words(join(chunks.filter((c) => !c.transcript && !c.outside))),
+    wordsNoRound: words(join(chunks.filter((c) => !c.round && !c.outside))),
     numbers: nums(all),
     text: all,
     scrollH: document.scrollingElement.scrollHeight,
     innerH: innerHeight,
     taps: count(".tap, .tap-tonal"),
-    chips: count("[data-glance-chip], [data-pause-moment]"),
+    /* The chips that play (#427: at most one on a glance). The proof
+       token's is that one on its take, Demos's moment then standing as
+       its time (#509); a time drawn as text plays nothing. */
+    chips: count("button[data-glance-chip], button[data-say-chip], [data-pause-moment]"),
   };
 };
 
@@ -287,6 +302,15 @@ for (const size of SIZES) {
     colorScheme: size.theme, serviceWorkers: "block",
   });
   await context.route("http://supabase.local/**", F.supabaseRoute);
+  /* LOOK_PROOF=0 (#509): the coach's pairs empty, so no swap is proved
+     and the glance stands as it does without Say it better's token (the
+     fixture take says "making the habit small", a saved pair's better
+     phrase). */
+  if (process.env.LOOK_PROOF === "0") {
+    await context.route("http://supabase.local/rest/v1/lexicon**", (route) =>
+      route.request().method() === "GET" ? route.fulfill(F.json([])) : route.fallback()
+    );
+  }
   await context.route("**/api/analyze", async (route) => {
     await sleep(1500);
     await route.fulfill(F.json(bodies[VARIANT]()));
@@ -370,7 +394,7 @@ for (const size of SIZES) {
     let ceiling = base;
     if (!scroller) await page.evaluate(() => window.scrollTo(0, 0));
     await sleep(300);
-    const m = await page.evaluate(MEASURE, scope);
+    const m = await page.evaluate(MEASURE, { scope, outside: OUTSIDE });
     m.beat = name;
     m.files = [];
     if (BLUR && name === "glance") {
@@ -410,7 +434,7 @@ for (const size of SIZES) {
     m.screens = scroller ? i : +(m.scrollH / m.innerH).toFixed(2);
     entry.beats.push(m);
     const outside = VARIANT === "game" && m.wordsNoRound !== m.words ? `, ${m.wordsNoRound} outside the round card` : "";
-    console.log(`${at} ${name}: ${m.words} words (${m.wordsNoTranscript} outside the transcript${outside}), ${m.numbers} numbers, ${m.screens} screens, ${m.taps} filled tap(s), ${m.chips} chips`);
+    console.log(`${at} ${name}: ${m.words} words (${m.wordsNoTranscript} outside the transcript${outside}${m.outsidePieces ? `; the proof token's ${m.outsideWords} besides` : ""}), ${m.numbers} numbers, ${m.screens} screens, ${m.taps} filled tap(s), ${m.chips} chips`);
     if (ceiling !== null) {
       /* The reminder ask's own words ride on the ceiling, up to 16 (#430, GLANCE_WORDS_ASK). */
       const askWords = await page.evaluate(() => {
@@ -451,6 +475,7 @@ for (const size of SIZES) {
       if (m.scrollH > m.innerH + 1) fail(`${at} ${name}: scrolls (${m.scrollH} over ${m.innerH})`);
       if (m.taps !== 1) fail(`${at} ${name}: ${m.taps} filled taps`);
       if (m.chips > 1) fail(`${at} ${name}: ${m.chips} moment chips`);
+      if (m.outsidePieces > 1) fail(`${at} ${name}: ${m.outsidePieces} pieces outside the ceiling`);
       if (m.doorClear === false) fail(`${at} ${name}: the door is under the shelf`);
       console.log(`${at} ${name}: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);
       if (size.w === 390 && size.h === 844 && m.maxBand > 64) fail(`${at} ${name}: a ${m.maxBand}pt band (rule 7's 64)`);
@@ -547,7 +572,7 @@ for (const size of SIZES) {
     if (tapLiveMs > 400 && !LAND) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
 
     /* The chip plays, and keeps playing once the sheet is open. */
-    const chip = await page.$("main [data-glance-chip]");
+    const chip = (await page.$("main button[data-glance-chip], main button[data-say-chip]")) ?? (await page.$("main [data-glance-chip]"));
     if (chip && (await chip.evaluate((e) => e.tagName === "BUTTON"))) {
       await chip.click();
       await sleep(200);
@@ -729,7 +754,7 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
     await sleep(600);
     const f = `${OUT}${TAG}-daily-${size.name}-reminder-ask-s0.png`;
     await page.screenshot({ path: f });
-    const m = await page.evaluate(MEASURE, "page");
+    const m = await page.evaluate(MEASURE, { scope: "page", outside: OUTSIDE });
     const askText = asked
       ? await asked.evaluate((e) => {
           let t = "";

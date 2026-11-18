@@ -9,6 +9,12 @@ import {
   fittedEarned,
   fitGlance,
   fitGlanceProof,
+  OUTSIDE_CEILING,
+  PROOF_LINE_NARROW,
+  PROOF_LINE_WIDE,
+  PROOF_STRUCK_NARROW,
+  PROOF_STRUCK_WIDE,
+  proofToken,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
@@ -39,7 +45,6 @@ import { heldPauseMarks } from "./pause-mark";
 import { endNote, MOST_PAUSES, type RewardMoment } from "./rewards";
 import { levelUpLine } from "./traits";
 import { answerLine, cueEvidence, cueSentence, cueShortSentence, type CueKind } from "./carried-cue";
-import { proofWords } from "./say";
 import { DIMENSION_NAME } from "./dimension-rows";
 import { PAUSE_RULES, rulesNote } from "./pause-rules";
 import type { StreakState } from "./streak";
@@ -483,11 +488,11 @@ describe("earnedLine", () => {
        the ceiling, the glance takes one that does; where none can, it
        takes the fewest words. The goals, the note, the score and the taps
        never go, and the level-up always keeps a form.
-       And #507's proof line on top (the final pass of 18 Nov), at the
-       longest pair #429 lets through and at a common one: it stands only
-       where it costs nothing else (the same cue, the same form of the
-       level-up and of the line), inside the ceiling, and never where the
-       glance is already past it. */
+       And Say it better's proof on top (#509), at the longest pair #429
+       lets through and at a common one: a token outside the ceiling, so
+       it never waits and costs nothing, word for word (the same cue, the
+       same form of the level-up and of the line, the same count). #507's
+       line rode on the ceiling and waited in every one of these. */
     const name = (k: string) => DIMENSION_NAME[k as keyof typeof DIMENSION_NAME];
     const ups = [
       levelUpLine([{ key: "fillers", from: 2, to: 3, paid: 93 }], name)!,
@@ -519,14 +524,14 @@ describe("earnedLine", () => {
       const restarts = cueEvidence({ kind: "restarts", word: null }, { metrics: { ...computeMetrics([], 300), repairCount: 4 } as RepMetrics, tier1: {} });
       expect([restarts.line.sentence, restarts.short.sentence]).toEqual(EVIDENCE.restarts);
     }
-    /* The proof line's two pairs: the longest #429 lets through (eight
-       words said, six better) and a common one, each at a two-digit time. */
+    /* The proof's two pairs: the longest #429 lets through (eight words
+       said, six better) and a common one, each at a two-digit time. */
     const PROOFS = [
       null,
       { key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 },
       { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 },
     ];
-    const shown = { full: 0, short: 0 };
+    const shown = { always: 0, wide: 0, never: 0 };
     const lines = kinds.flatMap((kind) => {
       const cue = { kind, word: kind === "filler" || kind === "repeat" ? "basically" : null };
       const now = kind === "fast" ? 188 : kind === "slow" ? 98 : 3;
@@ -568,22 +573,17 @@ describe("earnedLine", () => {
               }
               expect(levelUp.forms.map((x) => x.text)).toContain(f.earned);
               for (const pair of PROOFS) {
-                const proof = pair ? { full: proofWords(pair, "full"), short: proofWords(pair, "short") } : null;
-                const g = fitGlanceProof({ fixed, ...said, earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) }, budget, proof);
+                const g = fitGlanceProof({ fixed, ...said, earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) }, budget, pair);
                 const how = `${what} + ${pair?.better ?? "no proof"}`;
-                // It costs nothing else: the cue, the level-up's form and the line's form are the glance's without it.
-                expect({ cue: g.cue, earned: g.earned, short: g.short }, how).toEqual({ cue: f.cue, earned: f.earned, short: f.short });
-                if (g.proof === null) expect(g.words, how).toBe(f.words);
-                else {
-                  // It stands only inside the ceiling, and its words are counted.
-                  expect(g.words, how).toBeLessThanOrEqual(budget);
-                  expect(g.words, how).toBe(f.words + countWords(g.proof === "full" ? proof!.full : proof!.short));
-                  shown[g.proof] += 1;
-                }
-                if (fewest <= budget) expect(g.words, how).toBeLessThanOrEqual(budget);
+                // It costs nothing: the cue, the level-up's form, the line's form and the count are the glance's without it.
+                expect({ cue: g.cue, earned: g.earned, short: g.short, words: g.words }, how).toEqual(f);
                 expect(levelUp.forms.map((x) => x.text)).toContain(g.earned);
-                // Where the glance has room for the short form under its ceiling, it stands.
-                if (proof && budget - f.words >= countWords(proof.short)) expect(g.proof, how).not.toBeNull();
+                // And it never waits: every proved swap is on the glance.
+                if (pair === null) expect(g.proof, how).toBeNull();
+                else {
+                  expect(g.proof, how).toEqual(proofToken(pair));
+                  shown[g.proof!.struck] += 1;
+                }
               }
               checked += 1;
             }
@@ -595,10 +595,10 @@ describe("earnedLine", () => {
     /* Only a long line beside a coin leaves no room for a level-up's shortest form. */
     expect(none).toBeLessThan(checked / 8);
     /* With everything on it the glance is fitted to its edge (two words
-       spare at most), so the proof waits in every one of these: the
-       page still counts the recording, and the swap stays unheard for
-       the next take to say (lib/say.test.ts has where it stands). */
-    expect(shown).toEqual({ full: 0, short: 0 });
+       spare at most), and #507's line waited in every one of these. The
+       token shows in all of them: the common pair whole, the longest
+       with its struck phrase left to the swap's sheet. */
+    expect(shown).toEqual({ always: checked, wide: 0, never: checked });
   });
   it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
     /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again were 20 words. */
@@ -861,5 +861,77 @@ describe("what plays on when the sheet closes (the #427 review)", () => {
     expect(playsOnAfterSheet(null, moment)).toBe(false);
     expect(playsOnAfterSheet({ from: 19, until: 21.9 }, moment)).toBe(false);
     expect(playsOnAfterSheet({ from: 1.68, until: 4.18 }, null)).toBe(false);
+  });
+});
+
+/* Say it better's proof token (#509): the take that said a saved swap's
+   better phrase shows it, under the score, outside the ceiling. */
+describe("the proof token (#509)", () => {
+  const goals = starGoals(62);
+  const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Done for today", "Retake", ...goals];
+  const budget = starsBudget(GLANCE_WORDS, goals);
+  const common = { key: "c:1", said: "the thing is", better: "the point is", at: 11.3, end: 12.4 };
+  const middling = { key: "c:7", said: "making the thing small", better: "making the habit small", at: 31, end: 32.5 };
+  /* #429's longest: eight words said, six better. */
+  const longest = { key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 };
+  /* An ordinary returning take: yesterday's cue answered, tomorrow's set. */
+  const carried = {
+    fixed,
+    line: "“um” 2, down from 5. 0:02",
+    lineShort: "“um” 2, down from 5.",
+    cue: "Tomorrow: pause where “like” was.",
+    cueShort: "Pause where “like” was.",
+    earned: null,
+  };
+  const levelUp = levelUpLine([{ key: "pace", from: 2, to: 3, paid: 93 }], () => "Pace")!;
+
+  it("never waits and costs the glance nothing: the returning glance #507's line waited on", () => {
+    for (const p of [carried, { ...carried, earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) }]) {
+      const base = fitGlance(p, budget);
+      for (const pair of [common, middling, longest]) {
+        const t = fitGlanceProof(p, budget, pair);
+        expect({ cue: t.cue, earned: t.earned, short: t.short, words: t.words }).toEqual(base);
+        expect(t.proof?.key).toBe(pair.key);
+      }
+    }
+    // The glance it lands on is already at its ceiling: no line could have ridden on it.
+    expect(fitGlance(carried, budget).words).toBe(budget);
+    expect(fitGlanceProof(carried, budget, null).proof).toBeNull();
+  });
+
+  it("keeps the struck phrase under the better one where both fit two lines, and leaves the longest pair's to the sheet", () => {
+    expect(proofToken(common)).toMatchObject({ better: "the point is", said: "the thing is", struck: "always" });
+    // Two lines from 375 up; at 320 the better phrase takes two, so the struck one is drawn only from 375.
+    expect(proofToken(middling).struck).toBe("wide");
+    // #429's longest would take a third line on any phone: the token holds the better phrase alone.
+    expect(proofToken(longest)).toMatchObject({ better: longest.better, said: longest.said, struck: "never" });
+    // The rule is the lengths, exactly at their edges.
+    const at = (better: number, said: number) => proofToken({ ...common, better: "b".repeat(better), said: "s".repeat(said) }).struck;
+    expect(at(PROOF_LINE_NARROW, PROOF_STRUCK_NARROW)).toBe("always");
+    expect(at(PROOF_LINE_NARROW + 1, PROOF_STRUCK_NARROW)).toBe("wide");
+    expect(at(PROOF_LINE_NARROW, PROOF_STRUCK_NARROW + 1)).toBe("wide");
+    expect(at(PROOF_LINE_WIDE, PROOF_STRUCK_WIDE)).toBe("wide");
+    expect(at(PROOF_LINE_WIDE + 1, 3)).toBe("never");
+    expect(at(3, PROOF_STRUCK_WIDE + 1)).toBe("never");
+  });
+
+  it("plays the better phrase, a second before it to a breath after, and names the moment by its time", () => {
+    expect(proofToken(common).moment).toMatchObject({ clock: "0:11", label: "0:11, play where you said it" });
+    expect(proofToken(common).moment.from).toBeCloseTo(10.3);
+    expect(proofToken(common).moment.until).toBeCloseTo(13.9);
+    expect(proofToken({ ...common, at: 0.4 }).moment.from).toBe(0);
+  });
+
+  it("is the glance's one named piece outside its ceiling", () => {
+    expect(OUTSIDE_CEILING).toBe("data-say-token");
+  });
+
+  it("keeps its own moment playing when the sheet closes, as Demos's does", () => {
+    const demos = { from: 1.68, until: 4.18 };
+    const proof = proofToken(common).moment;
+    expect(playsOnAfterSheet({ from: proof.from, until: proof.until }, demos, proof)).toBe(true);
+    expect(playsOnAfterSheet({ from: 1.68, until: 4.18 }, demos, proof)).toBe(true);
+    expect(playsOnAfterSheet({ from: 19, until: 21.9 }, demos, proof)).toBe(false);
+    expect(playsOnAfterSheet({ from: proof.from, until: proof.until }, demos, null)).toBe(false);
   });
 });

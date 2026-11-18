@@ -2,7 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { NO_INDEX_LINE, RepResult, type GlanceView, type ResultView } from "@/components/RepResult";
-import { countWords, fitGlance, glanceLine, GLANCE_WORDS, sheetSections, starsBudget } from "./glance";
+import { countWords, fitGlance, glanceLine, GLANCE_WORDS, OUTSIDE_CEILING, proofToken, sheetSections, starsBudget } from "./glance";
+import type { TakeAudio } from "@/components/TakeAudio";
 import { computeMetrics, starGoals, type RepMetrics } from "./metrics";
 
 /*
@@ -157,6 +158,56 @@ describe("the glance", () => {
     expect(out).not.toContain('data-star-goal="met"');
     expect(out).not.toContain("showing up");
     expect(out).not.toContain("nothing measured");
+  });
+});
+
+/* Say it better's proof token (#509): under the score, outside the
+   ceiling, two targets side by side, and the glance's one playing chip. */
+describe("the proof token", () => {
+  const take: TakeAudio = { element: null, ref: { current: null }, playable: true, span: null, play: () => {}, pause: () => {} };
+  const token = proofToken({ key: "c:1", said: "the thing is", better: "the point is", at: 11.3, end: 12.4 });
+  const withProof: GlanceView = { ...view, proof: { ...token, open: () => {} } };
+  const html = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: withProof, take }));
+  const piece = html.slice(html.indexOf(`<span ${OUTSIDE_CEILING}`), html.indexOf("data-rules-note") > 0 ? html.indexOf("data-rules-note") : undefined);
+
+  it("stands under the score as one named piece: the check, the better phrase over the struck one, the moment", () => {
+    expect(html.match(new RegExp(`${OUTSIDE_CEILING}=""`, "g"))).toHaveLength(1);
+    expect(visible(html)).toContain("665 /1000 ▲ 3 since last time the point is the thing is 0:11");
+    expect(html).toContain('data-proof-said="always"');
+    expect(html.indexOf(OUTSIDE_CEILING)).toBeGreaterThan(html.indexOf("since last time"));
+    expect(html.indexOf(OUTSIDE_CEILING)).toBeLessThan(html.indexOf("data-glance-line"));
+  });
+  it("is two targets side by side, never one inside the other: the door, then the chip", () => {
+    const door = /<button type="button" data-say-token-door="true" aria-haspopup="dialog" aria-label="the point is, instead of the thing is" class="proof-door">([\s\S]*?)<\/button>/.exec(html);
+    expect(door).not.toBeNull();
+    // Nothing inside the door is a control of its own.
+    expect(door![1]).not.toContain("<button");
+    expect(door![1]).not.toContain("data-say-chip");
+    // The chip is the door's sibling, in its own column, and plays the better phrase.
+    expect(html).toMatch(/<\/button><span class="proof-play"><button type="button" data-say-chip="" aria-label="0:11, play where you said it"/);
+  });
+  it("is the one chip that plays: Demos's moment stands as its time", () => {
+    expect(html.match(/<button[^>]*data-say-chip/g)).toHaveLength(1);
+    expect(html).not.toMatch(/<button[^>]*data-glance-chip/);
+    expect(html).toMatch(/<span data-glance-chip="true" class="font-semibold tabular-nums">0:02<\/span>/);
+    // Without a proof, Demos's chip plays as before.
+    const plain = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: view, take }));
+    expect(plain).toMatch(/<button[^>]*data-glance-chip/);
+    expect(plain).not.toContain(OUTSIDE_CEILING);
+  });
+  it("draws the struck phrase only from 375 up where a narrow phone would take a third line, and not at all for the longest pair", () => {
+    const wide = proofToken({ key: "c:7", said: "making the thing small", better: "making the habit small", at: 31, end: 32.5 });
+    const w = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: { ...view, proof: { ...wide, open: () => {} } }, take }));
+    expect(w).toMatch(/data-proof-said="wide" class="proof-said \[@media\(max-width:374px\)\]:hidden"/);
+    const longest = proofToken({ key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 });
+    const l = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: { ...view, proof: { ...longest, open: () => {} } }, take }));
+    expect(l).not.toContain("data-proof-said");
+    // A screen reader still hears the pair: the name keeps the struck phrase.
+    expect(l).toContain('aria-label="a week nobody could survive at all, instead of a week that no person could actually do"');
+  });
+  it("adds nothing to the glance's words but its own", () => {
+    expect(visible(html).replace("the point is the thing is 0:11 ", "")).toBe(visible(renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: view }))));
+    expect(piece.length).toBeGreaterThan(0);
   });
 });
 

@@ -287,6 +287,16 @@ export interface SayLists<V extends SwapView = SwapView> {
   m: number;
 }
 
+/**
+ * The day a swap is next tested: today for one of today's three; one due
+ * but past the three waits a day; else the day it comes back. Say it
+ * better's sheet says it under "In your recordings" until the swap is said.
+ */
+export function nextTestOn<V extends SwapView>(views: readonly V[], v: V, today: string): string {
+  const due = dueToday(views.filter((x) => !x.state.hidden), today);
+  return due.some((d) => d.swap.key === v.swap.key) ? today : v.state.due > today ? v.state.due : addDays(today, 1);
+}
+
 export function sayLists<V extends SwapView>(views: readonly V[], today: string): SayLists<V> {
   const shown = views.filter((v) => !v.state.hidden);
   const due = dueToday(shown, today);
@@ -513,7 +523,7 @@ export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
 /** Every time across the later recordings: "6 times". */
 export const timesUsed = (uses: readonly SwapUse[]) => uses.reduce((n, u) => n + u.times, 0);
 
-/* ---- the glance's proof line -------------------------------------------- */
+/* ---- the glance's proof token (#509) ------------------------------------- */
 
 /** A saved swap this take used: the moment the count moves. */
 export interface Proof {
@@ -562,14 +572,47 @@ export function proofIn(swaps: readonly Swap[], states: SwapStates, take: ProofT
   return best;
 }
 
+/** A swap the glance has shown as proof, heard: its place in the test kept, only when it was heard moves. */
+export function heardState(swap: Swap, states: SwapStates, at: Date = new Date()): SwapState {
+  const iso = at.toISOString();
+  return { ...stateOf(swap, states), heardAt: iso, at: iso };
+}
+
 /**
- * The proof line's words as the ceiling counts them: whole, "the thing is
- * → ✓ the point is 0:14", or short, the struck phrase dropped first
- * ("✓ the point is 0:14").
+ * The test's states with a swap heard under every key it stands for, as
+ * markHeard keeps it (the #509 review). The recorder's screen holds this
+ * for its next take: it read the swaps once, as it opened, so a Retake,
+ * Practice 2 of 3 or the next lesson that said the same phrase proved it
+ * again, token, sound and cheer, on every take.
  */
-export function proofWords(p: Proof, form: "full" | "short"): string {
-  const tail = `✓ ${p.better} ${clock(p.at)}`;
-  return form === "full" ? `${p.said} → ${tail}` : tail;
+export function heardIn(states: SwapStates, swap: Swap, at: Date = new Date()): SwapStates {
+  const next = heardState(swap, states, at);
+  const out: Record<string, SwapState> = { ...states };
+  for (const p of partsOf(swap)) out[p.key] = next;
+  return out;
+}
+
+/**
+ * The swap's sheet as the take that proved it can draw it (#509), before
+ * or without Say it better's own read: heard, this take its one use, its
+ * day the day it was saved. The token's door opens on it at once, and the
+ * page's read takes its place when it lands (the #509 review: the door
+ * waited on that whole read, and a tap on mobile data did nothing for as
+ * long as it took).
+ */
+export function provedView(
+  swap: Swap,
+  states: SwapStates,
+  take: { id: string; transcript: string | null | undefined },
+  at: Date = new Date()
+): SwapView & { saidOn: string } {
+  const iso = at.toISOString();
+  return {
+    swap,
+    state: { ...stateOf(swap, states), heardAt: iso },
+    uses: usesOf(swap, [{ id: take.id, created_at: iso, transcript: take.transcript ?? null }]),
+    saidOn: swap.savedAt,
+  };
 }
 
 /* ---- the words on the screens ------------------------------------------ */

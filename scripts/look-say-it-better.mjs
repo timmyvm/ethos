@@ -1,7 +1,7 @@
 /**
  * The look loop's camera for Say it better (DECISIONS #507): You's first
  * card, the page, a row's sheet and its Undo, the spoken test walked
- * through every state, the glance's proof line and the results sheet's
+ * through every state, the glance's proof token (#509) and the results sheet's
  * door. Fixture data is look-fixtures.mjs `sayMode` (a few swaps in each
  * state, three due, one used in a later recording, one the live take
  * says); the Whisper check (/api/say) is stubbed here.
@@ -324,7 +324,7 @@ async function run(state, size, theme) {
     await page.waitForSelector('[role="dialog"]', { state: "detached", timeout: 8000 }).catch(() => {});
     await shoot(page, state, "", size, theme, { settle: 3400 });
     note(tag, await page.evaluate(() => ({
-      proof: document.querySelector("[data-say-proof]")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      proof: document.querySelector("main [data-say-token]")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       earned: document.querySelector("[data-earned]")?.textContent?.trim() ?? null,
       cue: document.querySelector("[data-glance-cue]")?.textContent?.trim() ?? null,
       ask: document.querySelector("main [data-reminder-ask]")?.textContent?.replace(/\s+/g, " ").trim() ?? null,

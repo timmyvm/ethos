@@ -131,8 +131,10 @@ import { writeSpokeHint } from "@/lib/spoke-hint";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
 import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
-import { proofIn, proofWords, type Swap, type SwapStates } from "@/lib/say";
-import { fetchSwapsForProof, markHeard } from "@/lib/say-store";
+import { dayOf, heardIn, nextTestOn, proofIn, provedView, type Swap, type SwapStates } from "@/lib/say";
+import { fetchSay, fetchSwapsForProof, markHeard, type SayItem } from "@/lib/say-store";
+import { SwapSheet } from "@/components/say/SwapSheet";
+import { proofLeads, withProof } from "@/lib/sound-recipes";
 import {
   backLabel,
   defaultBack,
@@ -167,7 +169,6 @@ import {
   earnedLine,
   fittedEarned,
   fitGlanceProof,
-  windowAt,
   askBudget,
   rulesBudget,
   starsBudget,
@@ -460,21 +461,11 @@ function RepScreen() {
   const carried = useCarriedCue();
   /*
    * Say it better (#507): the account's swaps and their test state, read
-   * once as the recorder opens, so the glance can say when this take used
-   * one ("the thing is → ✓ the point is ▶0:14"). A failed read is no proof
-   * line, never an error.
+   * as the recorder opens for a take, so the glance can show when this
+   * take used one (the proof token, #509). A failed read is no proof,
+   * never an error. Read below, after the result's own state.
    */
   const [sayData, setSayData] = useState<{ swaps: Swap[]; states: SwapStates } | null>(null);
-  useEffect(() => {
-    let live = true;
-    fetchSwapsForProof().then(
-      (d) => live && setSayData(d),
-      () => {}
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
   /* Skipped today on this phone: the tactic stands in its slot until tomorrow. */
   const [warmupGone, setWarmupGone] = useState(() => typeof window !== "undefined" && warmupSkipped(cueDay(new Date())));
   /* While Skip's two slots trade heights, both clip (globals.css `.cue-slot`). */
@@ -654,6 +645,27 @@ function RepScreen() {
   /** The envelope of the recording being scored, drawn during the wait. */
   const [scoringWave, setScoringWave] = useState<number[]>([]);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  /*
+   * Say it better's read, again for every take the recorder opens to (the
+   * #509 review): every take stored with a coach's pair saves that pair
+   * (lib/db.ts saveRep), so a Retake, Practice 2 of 3 or the next lesson
+   * that says the pair it was just given must find it here. Read once, the
+   * screen never knew it, and Today's read then marked it heard: the
+   * moment the proof exists for, lost for good. A read that fails keeps
+   * the last one, with the swaps this screen has shown marked (onHeard).
+   */
+  const awaitingTake = result === null;
+  useEffect(() => {
+    if (!awaitingTake) return;
+    let live = true;
+    fetchSwapsForProof().then(
+      (d) => live && setSayData(d),
+      () => {}
+    );
+    return () => {
+      live = false;
+    };
+  }, [awaitingTake]);
   /**
    * The outbox key the result on screen travelled under (0016): what a
    * tester's match answer is filed by (migration 0020), since the stored
@@ -697,6 +709,13 @@ function RepScreen() {
    * history captured before the take and the stored row read after it.
    */
   const [levelUp, setLevelUp] = useState<LevelUpView | null>(null);
+  /**
+   * The take's rewards are worked out (the level-up, the bests), or their
+   * read failed: Say it better's proof claims the glance's top moment only
+   * then, so a level-up read after the stars still has its fanfare
+   * (lib/sound-recipes.ts withProof, the #509 review).
+   */
+  const [rewardsIn, setRewardsIn] = useState(false);
   /**
    * The first take under #476's pause rules, set beside one scored
    * before them (#491): one line under the delta saying the jump is
@@ -1183,6 +1202,7 @@ function RepScreen() {
                 : null
             );
           }
+          setRewardsIn(true);
           // The next take on this screen (Retake, Go again, Practice N
           // of 3, Next lesson, Another round all keep it mounted) is
           // measured against the history that now holds this one, not
@@ -1205,7 +1225,8 @@ function RepScreen() {
         })
         .catch(() => {
           // Unread, nothing is owed: a streak the screen could not read
-          // back is never celebrated.
+          // back is never celebrated. The proof's moment no longer waits.
+          if (live()) setRewardsIn(true);
         });
     } catch (e) {
       // Another recording is on screen now; the outbox copy (if held)
@@ -1784,6 +1805,7 @@ function RepScreen() {
     setResult(null);
     setBests([]);
     setLevelUp(null);
+    setRewardsIn(false);
     setRulesNoteNow(null);
     setClosing(null);
     // A streak's moment still owed stays owed (#480): the retake's exit plays it.
@@ -1859,6 +1881,7 @@ function RepScreen() {
     setPresence(null);
     setBests([]);
     setLevelUp(null);
+    setRewardsIn(false);
     setRulesNoteNow(null);
     setClosing(null);
     setEarnedNow(false);
@@ -2048,6 +2071,7 @@ function RepScreen() {
           config={config}
           bests={bests}
           levelUp={levelUp}
+          rewardsIn={rewardsIn}
           rulesNote={rulesNoteNow}
           closing={closing}
           earned={earnedNow}
@@ -2068,6 +2092,10 @@ function RepScreen() {
           cueBefore={carried.state}
           onCue={carried.save}
           say={sayData}
+          /* The swap the glance just proved is heard on this screen too:
+             its next take (Retake, Practice 2 of 3, the next lesson) proves
+             from this read, and never proves the same swap twice (#509 review). */
+          onHeard={(swap) => setSayData((d) => (d ? { ...d, states: heardIn(d.states, swap) } : d))}
           startedAt={takeStartedAt.current}
           walkRows={walkRows}
           streakMoment={owedMoment}
@@ -2899,6 +2927,7 @@ function Results({
   config,
   bests,
   levelUp,
+  rewardsIn,
   rulesNote: rulesNoteFor,
   closing,
   earned,
@@ -2919,6 +2948,7 @@ function Results({
   cueBefore,
   onCue,
   say,
+  onHeard,
   startedAt,
   walkRows,
   streakMoment: owedStreak,
@@ -2931,6 +2961,8 @@ function Results({
   bests: RewardMoment[];
   /** The levels this recording crossed (#498): the earned line under the ladder. */
   levelUp: LevelUpView | null;
+  /** The level-up and the bests are worked out, or their read failed (lib/sound-recipes.ts withProof). */
+  rewardsIn: boolean;
   /** The first take under #476 beside one scored before it (#491): its line under the delta. */
   rulesNote: RulesNote | null;
   closing: RewardMoment | null;
@@ -2959,8 +2991,10 @@ function Results({
   cueBefore: CueState | null | undefined;
   /** Keeps the cue carried out of it. */
   onCue: (next: CueState) => void;
-  /** Say it better's swaps and their state (#507), for the glance's proof line; null until read. */
+  /** Say it better's swaps and their state (#507), for the glance's proof token (#509); null until read. */
   say: { swaps: Swap[]; states: SwapStates } | null;
+  /** The swap the token has just shown, heard: the screen's read keeps it for its next take. */
+  onHeard?: (swap: Swap) => void;
   /** When this take started (ms), for the hour the reminder ask offers. */
   startedAt: number;
   /** A game's rows before this round and with it; null until read, or when the read failed. */
@@ -3528,26 +3562,29 @@ function Results({
   const goals = starGoals(result.metrics.durationS);
   const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
   /*
-   * Say it better's proof line (#507): this take said a saved swap's
-   * better phrase, found in Whisper's text as the count reads it and in
-   * its timed words for the moment. Only a stored take with its number
-   * proves anything (the count reads stored recordings, and the line
-   * marks the swap heard). Worked out once, from the swaps as they were
-   * when the take began; said once a swap (markHeard). It rides on the
-   * same ceiling, its struck phrase the first thing to go
-   * (lib/glance.ts fitGlanceProof).
+   * Say it better's proof (#509): this take said a saved swap's better
+   * phrase, found in Whisper's text as the count reads it and in its
+   * timed words for the moment. Only a stored take with its number proves
+   * anything (the count reads stored recordings, and the token marks the
+   * swap heard). Decided once, at the glance's first frame, from the
+   * swaps as they were read when the recorder opened: a read that lands
+   * after it shows nothing here (no token ever arrives under the reader,
+   * rule 8) and leaves the swap unheard for the next take to prove. Said
+   * once a swap (markHeard). It stands outside the ceiling, so it never
+   * waits (lib/glance.ts fitGlanceProof).
    */
+  const [sayAtLanding] = useState(say);
   const proof = useMemo(
     () =>
-      scorable && result.ethosIndex !== null && say
-        ? proofIn(say.swaps, say.states, {
+      scorable && result.ethosIndex !== null && sayAtLanding
+        ? proofIn(sayAtLanding.swaps, sayAtLanding.states, {
             id: result.repId,
             transcript: result.transcript,
             words: result.words,
             startedAt: new Date(startedAt),
           })
         : null,
-    [scorable, result.ethosIndex, result.repId, result.transcript, say, result.words, startedAt]
+    [scorable, result.ethosIndex, result.repId, result.transcript, sayAtLanding, result.words, startedAt]
   );
   const fit = fitGlanceProof(
     {
@@ -3589,16 +3626,59 @@ function Results({
       ),
       goals
     ),
-    proof ? { full: proofWords(proof, "full"), short: proofWords(proof, "short") } : null
+    proof
   );
-  const proofShown = proof && fit.proof ? proof : null;
+  const token = fit.proof;
   useEffect(() => {
-    if (!proofShown || !say) return;
-    const swap = say.swaps.find((s) => s.key === proofShown.key);
-    if (swap) void markHeard(say.states, swap).catch(() => {});
-    // Once per take: the proof is fixed when the take lands.
+    if (!token || !sayAtLanding) return;
+    const swap = sayAtLanding.swaps.find((s) => s.key === token.key);
+    if (swap) {
+      void markHeard(sayAtLanding.states, swap).catch(() => {});
+      onHeard?.(swap);
+    }
+    // Once per take: the proof is fixed at the glance's first frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proofShown?.key]);
+  }, [token?.key]);
+  /*
+   * The token's door (#509): the swap's own sheet from Say it better,
+   * over the results, never through exit(): it leaves nothing, so the
+   * streak's moment and Since day one stay on the ways that leave, and
+   * its Done comes back to the glance with focus on the token. The page's
+   * read is asked for as the token lands (the stored take is in it now),
+   * so the sheet's counts and sentence are the page's own once it lands;
+   * a tap before then opens the sheet at once on what this take proved,
+   * and a read that fails leaves it there.
+   */
+  const [swapItem, setSwapItem] = useState<SayItem | null>(null);
+  const [swapAsked, setSwapAsked] = useState(false);
+  /* What this take proved, held from the token's first frame: the sheet
+     opens on it at once, and on it for good when the read fails (lib/say.ts
+     provedView; the #509 review: a tap waited on the whole read). */
+  const proved = useMemo((): SayItem | null => {
+    if (!token || !sayAtLanding || !result.repId) return null;
+    const swap = sayAtLanding.swaps.find((s) => s.key === token.key);
+    return swap ? provedView(swap, sayAtLanding.states, { id: result.repId, transcript: result.transcript }) : null;
+    // Once per take: the token is fixed at the glance's first frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token?.key]);
+  useEffect(() => {
+    if (!token || !sayAtLanding) return;
+    let live = true;
+    fetchSay().then(
+      (read) => live && setSwapItem(read.items.find((i) => i.swap.key === token.key) ?? null),
+      () => {}
+    );
+    return () => {
+      live = false;
+    };
+    // Once per take: the token is fixed at the glance's first frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token?.key]);
+  const sheetItem = swapItem ?? proved;
+  const swapOpen = swapAsked && sheetItem !== null;
+  /* Its sound and Demos's cheer wait for the take's other rewards: a
+     level-up read after the stars keeps its fanfare (the #509 review). */
+  const win = withProof(sounds, !!token, rewardsIn);
   const shown = fit.short && cueSaid ? cueSaid.lineShort : said;
   const glance: GlanceView = {
     parts: shown.parts,
@@ -3607,13 +3687,7 @@ function Results({
     earned: fittedEarned(earnedNow, fit.earned),
     held: cueSaid?.held ?? false,
     rulesNote: rulesNoteText,
-    proof: proofShown
-      ? {
-          said: fit.proof === "full" ? proofShown.said : null,
-          better: proofShown.better,
-          moment: windowAt(proofShown.at, 1, proofShown.end + 1.5, "%, play where you said it"),
-        }
-      : null,
+    proof: token ? { ...token, open: () => setSwapAsked(true) } : null,
   };
   const upgradeRead = () =>
     onUpgrade({
@@ -3923,11 +3997,15 @@ function Results({
                 under={under}
                 baseline={baseline}
                 live
-                /* A lesson's ending is a moment too: he celebrates it. */
-                celebrate={earned || !!lessonLine}
-                moment={bigMoment}
+                /* A lesson's ending is a moment too: he celebrates it. So
+                   is a swap proved, when no bigger moment owns the glance
+                   (#509, proofLeads): the same rank its sound plays at. */
+                celebrate={earned || !!lessonLine || proofLeads({ ...win, stars: result.metrics.stars })}
+                /* The token's height comes from the bands, never from
+                   Demos (#509): he takes his share first beside it. */
+                moment={bigMoment || !!token}
                 take={take}
-                sounds={sounds}
+                sounds={win}
               />
             </div>
           )}
@@ -3998,7 +4076,7 @@ function Results({
             /* Playback started in the sheet stops with it: nothing on the
                glance could stop it (the review). The glance's own moment,
                started from its chip, plays on. */
-            if (!playsOnAfterSheet(take.span, glance.moment)) take.pause();
+            if (!playsOnAfterSheet(take.span, glance.moment, glance.proof?.moment)) take.pause();
             setSheetOpen(false);
           }}
           foot={primary("sheet")}
@@ -4046,6 +4124,18 @@ function Results({
             take={take}
           />
         </WholeRecording>
+      )}
+      {/* The proof token's door (#509): the swap's sheet over the glance,
+          its Done back to the token. No Remove here: the results have no
+          Undo. Its moments play stored recordings through their own
+          player, which hushes the take's while one plays. */}
+      {swapOpen && sheetItem && (
+        <SwapSheet
+          item={sheetItem}
+          today={dayOf(new Date())}
+          next={nextTestOn([sheetItem], sheetItem, dayOf(new Date()))}
+          onClose={() => setSwapAsked(false)}
+        />
       )}
       {tasteSheet}
     </>

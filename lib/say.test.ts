@@ -10,12 +10,13 @@ import {
   dueToday,
   endLine,
   freshState,
+  heardIn,
   markIn,
   mergeSwaps,
   nextDue,
   phraseAt,
   proofIn,
-  proofWords,
+  provedView,
   saidBetter,
   saidOn,
   sayLists,
@@ -29,9 +30,10 @@ import {
   type SwapView,
   type TakeText,
 } from "./say";
-import { GLANCE_WORDS, countWords, earnedLine, fitGlanceProof, starsBudget } from "./glance";
+import { GLANCE_WORDS, countWords, earnedLine, fitGlance, fitGlanceProof, proofToken, starsBudget } from "./glance";
 import { levelUpLine } from "./traits";
 import { starGoals } from "./metrics";
+import { readFileSync } from "node:fs";
 
 const at = (day: string, hour = 18) => new Date(`${day}T${String(hour).padStart(2, "0")}:12:00`).toISOString();
 
@@ -236,14 +238,70 @@ describe("the glance's proof line", () => {
     expect(proofIn(swaps, hidden, take)).toBeNull();
   });
 
-  it("counts its words as the ceiling does: the struck phrase, then the better one and its time", () => {
-    const p = proofIn(swaps, {}, take)!;
-    expect(proofWords(p, "full")).toBe("the thing is → ✓ the point is 0:03");
-    expect(countWords(proofWords(p, "full"))).toBe(7);
-    expect(countWords(proofWords(p, "short"))).toBe(4);
+  /* The #509 review: the recorder's screen read the swaps once, as it
+     opened, and kept that read for every take on it. A Retake, Practice 2
+     of 3 or the next lesson that said the same phrase proved it again:
+     the token, the round's sound and Demos's cheer on every take. */
+  it("says it once on the same screen too: the next take there (Retake, the next practice) never proves the swap again", () => {
+    const shownAt = new Date(at("2026-11-18", 21));
+    const after = heardIn({}, swaps[0], shownAt);
+    expect(proofIn(swaps, after, take)?.key).toBe("c:2");
+    // Its place in the test is kept: only when it was heard moves.
+    expect(after["c:1"]).toEqual({ ...freshState(swaps[0]), heardAt: shownAt.toISOString(), at: shownAt.toISOString() });
+    // A merged swap is heard under every key it stands for, as markHeard keeps it.
+    const merged = mergeSwaps(
+      [coachSwap({ id: "m1", original: "the thing is", upgrade: "the point is", created_at: at("2026-11-15"), rep_id: null })],
+      [wordSwap({ id: "m2", word: "the thing is", instead: "the point is", sentence: null, rep_id: null, created_at: at("2026-11-16") })]
+    )[0];
+    const both = heardIn({}, merged, shownAt);
+    expect(Object.keys(both).sort()).toEqual(["c:m1", "w:m2"]);
+    expect(proofIn([merged], both, take)).toBeNull();
+    // The screen keeps the mark it shows: the recorder holds the read its next take proves from.
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    expect(page).toMatch(/onHeard=\{\(swap\) => setSayData\(\(d\) => \(d \? \{ \.\.\.d, states: heardIn\(d\.states, swap\) \} : d\)\)\}/);
+    expect(page.slice(page.indexOf("function Results("))).toMatch(/void markHeard\(sayAtLanding\.states, swap\)[\s\S]{0,80}onHeard\?\.\(swap\)/);
   });
 
-  it("holds the ceiling in the worst case: the goals, a two-trait level-up, Demos's cue and the longest pair", () => {
+  /* The #509 review: the swaps were read once, as the recorder opened.
+     Every take stored with a coach's pair saves that pair (lib/db.ts
+     saveRep), so a Retake or Practice 2 of 3 that said the pair it had just
+     been given proved nothing, and Today's read then marked it heard: the
+     moment the proof exists for, lost for good (probe: coachretake). */
+  it("is read again for every take the recorder opens to, so the pair the last take was given can be proved on the next", () => {
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    const screen = page.slice(0, page.indexOf("function Results("));
+    const read = /const awaitingTake = result === null;\s*useEffect\(\(\) => \{\s*if \(!awaitingTake\) return;[\s\S]{0,120}fetchSwapsForProof\(\)[\s\S]{0,200}\}, \[awaitingTake\]\);/;
+    expect(screen).toMatch(read);
+    // Read after the result's own state, never before it (a hook reading it earlier would throw).
+    expect(screen.indexOf("const awaitingTake")).toBeGreaterThan(screen.indexOf("const [result, setResult]"));
+    expect(screen.match(/fetchSwapsForProof\(\)/g)).toHaveLength(1);
+  });
+
+  /* The #509 review: the door waited on Say it better's whole read (every
+     swap, their state, 200 recordings' text). On mobile data a tap did
+     nothing for as long as that took (probe: the read held 15 s, the
+     sheet opened 10.9 s after the tap, out of nowhere). */
+  it("opens the swap's sheet at once on what this take proved, the page's read taking its place when it lands", () => {
+    const shownAt = new Date(at("2026-11-18", 21));
+    const v = provedView(swaps[0], {}, { id: "rep-new", transcript: "The point is, the point is clear." }, shownAt);
+    expect(v.swap.key).toBe("c:1");
+    expect(v.state.heardAt).toBe(shownAt.toISOString());
+    expect(v.uses).toEqual([{ repId: "rep-new", createdAt: shownAt.toISOString(), times: 2, at: null }]);
+    expect(v.saidOn).toBe(swaps[0].savedAt);
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    const results = page.slice(page.indexOf("function Results("));
+    expect(results).toMatch(/const sheetItem = swapItem \?\? proved;/);
+    expect(results).toMatch(/const swapOpen = swapAsked && sheetItem !== null;/);
+    expect(results).toMatch(/<SwapSheet\s+item=\{sheetItem\}/);
+  });
+
+  it("hands the glance the pair and where it was said: the token's words, the struck phrase and the better one", () => {
+    const p = proofIn(swaps, {}, take)!;
+    expect(proofToken(p)).toMatchObject({ key: "c:1", better: "the point is", said: "the thing is", struck: "always" });
+    expect(proofToken(p).moment.clock).toBe("0:03");
+  });
+
+  it("holds the ceiling in the worst case and never waits: the goals, a two-trait level-up, Demos's cue and the longest pair", () => {
     // The longest pair #429 lets through: eight words said, six better.
     const longest = { key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 };
     const levelUp = levelUpLine(
@@ -264,36 +322,35 @@ describe("the glance's proof line", () => {
       cueShort: "A pause instead.",
     };
     const budget = starsBudget(GLANCE_WORDS, goals);
-    const fit = fitGlanceProof(p, budget, { full: proofWords(longest, "full"), short: proofWords(longest, "short") });
+    const fit = fitGlanceProof(p, budget, longest);
     expect(fit.words).toBeLessThanOrEqual(budget);
-    // Everything at once leaves no room for even the short line: the
-    // level-up, said only here, keeps its place and the proof waits (the
-    // page still counts the recording, and the next take can say it).
-    expect(fit.proof).toBeNull();
+    // Everything at once: #507's line waited here. The token stands, the
+    // level-up keeps its place and the glance is word for word the one
+    // without it; the longest pair's struck phrase is left to the sheet.
+    expect(fit.proof).toMatchObject({ key: "c:9", struck: "never" });
     expect(fit.earned).toMatch(/^Pace/);
-    const drawn = (f: typeof fit, proof: string) =>
-      countWords([...fixed, f.short ? p.lineShort : p.line, f.cue ?? "", f.earned ?? "", proof].join(" "));
-    expect(drawn(fit, "")).toBe(fit.words);
-    // One level crossed, no cue to carry and a common pair: the struck
-    // phrase goes first and the short proof stands, inside the ceiling.
+    const { proof: _proof, ...rest } = fit;
+    expect(rest).toEqual(fitGlance(p, budget));
+    const drawn = (f: typeof fit) => countWords([...fixed, f.short ? p.lineShort : p.line, f.cue ?? "", f.earned ?? ""].join(" "));
+    expect(drawn(fit)).toBe(fit.words);
+    // One level crossed, no cue to carry and a common pair: the token whole.
     const common = { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 };
     const oneUp = levelUpLine([{ key: "pace", from: 2, to: 3, paid: 93 }], () => "Pace")!;
     const lighter = { ...p, cue: null, cueShort: null, lineShort: null, line: "4 fillers.", earned: earnedLine({ bests: [], levelUp: oneUp, trait: "fillers" }) };
-    const fit2 = fitGlanceProof(lighter, budget, { full: proofWords(common, "full"), short: proofWords(common, "short") });
-    expect(fit2.proof).toBe("short");
-    expect(fit2.words).toBeLessThanOrEqual(budget);
-    expect(countWords([...fixed, lighter.line, fit2.earned ?? "", proofWords(common, "short")].join(" "))).toBe(fit2.words);
+    const fit2 = fitGlanceProof(lighter, budget, common);
+    expect(fit2.proof).toMatchObject({ said: "the thing is", struck: "always" });
+    expect(fit2.words).toBe(fitGlance(lighter, budget).words);
   });
 
-  it("keeps the struck phrase where it costs nothing, and drops it before the cue", () => {
+  it("never costs the cue, at any budget, and shows at every one", () => {
     const p = { fixed: ["665", "/1000", "Every number", "Done for today", "Retake"], line: "4 fillers, first 0:02", cue: "Tomorrow: a pause instead.", earned: null };
-    const proof = { full: "the thing is → ✓ the point is 0:14", short: "✓ the point is 0:14" };
-    expect(fitGlanceProof(p, GLANCE_WORDS, proof)).toMatchObject({ proof: "full", cue: "Tomorrow: a pause instead." });
-    // Tight: the full line would cost the cue, so the struck phrase goes and the cue stays.
-    const tight = countWords([...p.fixed, p.line, p.cue, proof.short].join(" "));
-    expect(fitGlanceProof(p, tight, proof)).toMatchObject({ proof: "short", cue: "Tomorrow: a pause instead.", words: tight });
-    // Tighter still: the proof waits rather than pass the ceiling.
-    expect(fitGlanceProof(p, 8, proof).proof).toBeNull();
+    const pair = { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 };
+    for (let budget = 6; budget <= 30; budget++) {
+      const f = fitGlanceProof(p, budget, pair);
+      expect(f.cue).toBe(fitGlance(p, budget).cue);
+      expect(f.words).toBe(fitGlance(p, budget).words);
+      expect(f.proof).not.toBeNull();
+    }
     expect(fitGlanceProof(p, GLANCE_WORDS, null).proof).toBeNull();
   });
 });

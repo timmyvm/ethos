@@ -118,7 +118,7 @@ describe("every screen that holds the take renders it, and the walk stops it", (
      started on the glance keeps playing in Hear it back under it. Its
      review: closing the sheet stops whatever was started in it, since
      nothing on the glance could, and only the glance's own moment plays
-     on (lib/glance.ts playsOnAfterSheet). */
+     on, Demos's or the proof token's (#509; lib/glance.ts playsOnAfterSheet). */
   it("the results pause the take when the felt question goes, never on opening the door, and on closing it unless the glance's moment plays", () => {
     const page = src("app/rep/page.tsx");
     const results = page.slice(page.indexOf("function Results("));
@@ -127,7 +127,7 @@ describe("every screen that holds the take renders it, and the walk stops it", (
     expect(results).not.toMatch(/\[sheetOpen[^\]]*stopTake\]/);
     expect(results).toMatch(/onClick=\{\(\) => setSheetOpen\(true\)\}/);
     expect(results).toMatch(
-      /onClose=\{\(\) => \{[\s\S]*?if \(!playsOnAfterSheet\(take\.span, glance\.moment\)\) take\.pause\(\);\s*setSheetOpen\(false\);/
+      /onClose=\{\(\) => \{[\s\S]*?if \(!playsOnAfterSheet\(take\.span, glance\.moment, glance\.proof\?\.moment\)\) take\.pause\(\);\s*setSheetOpen\(false\);/
     );
   });
 

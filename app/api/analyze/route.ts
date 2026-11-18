@@ -91,16 +91,32 @@ import {
 import { modIds, parseMods, xpMultiplier } from "@/lib/stress-mods";
 import { spokenAt } from "@/lib/spoken-at";
 import { transcribe } from "@/lib/transcribe";
+import { isFileFault } from "@/lib/whisper-fault";
 import { UNHEARD_COPY, unheard } from "@/lib/unheard";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // Vercel Hobby cap
+/*
+ * The route's own minute, not the plan's ceiling: hostile deploys at 120,
+ * so Fluid compute allows more (docs/scale/audit.md M12). A minute is
+ * Whisper plus the coach with room to store.
+ */
+export const maxDuration = 60;
 /**
  * The coach is done this long after the request came in, or gives up:
  * the rest of the minute stores the recording. A function killed at the
  * cap stores nothing and keeps the slot, and the phone sends it again.
  */
 const COACH_BUDGET_MS = 45_000;
+/**
+ * Whisper has its words in by this long after the request came in, or is
+ * cut off and answered as Whisper being down: a 502, the slot given back
+ * and the audio taken back out of the bucket, with ten seconds left to do
+ * it. Killed at the minute instead, the take kept its slot, left its
+ * audio in the bucket with no row, and was sent again whole
+ * (docs/scale/audit.md M7, FAIL-1). Upload's longest file is a few
+ * seconds of Whisper; only an OpenAI slowdown reaches this.
+ */
+const WHISPER_BUDGET_MS = 50_000;
 
 export interface AnalyzeResponse {
   transcript: string;
@@ -583,7 +599,9 @@ async function handleTake(
   clock.mark("whisperStart");
   let transcription;
   try {
-    transcription = await transcribe(audio, filename);
+    transcription = await transcribe(audio, filename, {
+      deadline: Math.max(startedAt + WHISPER_BUDGET_MS, Date.now() + 5_000),
+    });
     clock.mark("whisperEnd");
     clock.takeS = transcription.durationS;
   } catch (e) {
@@ -593,9 +611,11 @@ async function handleTake(
     const unconfigured = message.includes("OPENAI_API_KEY");
     // Whisper's own verdict on the FILE (it can't decode it, it's too
     // big, the type is wrong) is final: a resend gets the same answer,
-    // so it is 422, which the outbox lets go of. Its 401 or 429 is a
-    // fault on our side and stays a 502 to retry.
-    const undecodable = /^Whisper API (400|413|415):/.test(message);
+    // so it is 422, which the outbox lets go of. Its 401 or 429, a 400
+    // about the model (whisper-1 retired, lib/whisper-fault.ts)
+    // and a Whisper cut off at its deadline are faults on our side and
+    // stay a 502 to retry.
+    const undecodable = isFileFault(message);
     // The slot was spent on our outage, not on the person's upload: give
     // it back, or each retry of one recording costs another. Only the
     // file's own fault (the 422 above) keeps its slot: a 401, 403 or 404

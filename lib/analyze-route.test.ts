@@ -231,6 +231,34 @@ describe("POST /api/analyze", () => {
     }
   });
 
+  it("holds a take when Whisper refuses the model, never letting it go as the file's fault (scale audit M1)", async () => {
+    // whisper-1 is retired on 26 Feb 2027; a retired model may answer 400.
+    // As 422 the outbox would throw every take away, phone and server.
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockRejectedValue(
+      new Error('Whisper API 400: {"error":{"message":"The model `whisper-1` has been deprecated.","param":"model","code":"model_not_found"}}')
+    );
+    expect((await post(audioForm())).status).toBe(502);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-1");
+  });
+
+  it("gives Whisper until 50 seconds after the request, and answers one cut off as down: 502, slot back, audio out (scale audit M7)", async () => {
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(uploadRepAudio).mockResolvedValueOnce("u-1/cut.webm");
+    vi.mocked(removeRepAudio).mockClear();
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper timed out after 49990 ms."));
+    const before = Date.now();
+    const res = await post(audioForm());
+    expect(res.status).toBe(502);
+    const deadline = (vi.mocked(transcribe).mock.calls[0][2] as { deadline: number }).deadline;
+    expect(deadline).toBeGreaterThanOrEqual(before + 49_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 50_000);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-1");
+    expect(removeRepAudio).toHaveBeenCalledWith("u-1/cut.webm");
+  });
+
   it("keeps 502 for a Whisper refusal that is ours, not the file's, and gives the slot back", async () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
     for (const code of [401, 403, 404, 408, 429]) {

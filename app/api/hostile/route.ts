@@ -56,9 +56,12 @@ import {
   type LimitTier,
 } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
+import { isFileFault } from "@/lib/whisper-fault";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
+/** Whisper has the words in by 60 seconds of the request (docs/scale/audit.md M7). */
+const WHISPER_BY_MS = 60_000;
 
 /** Under this, there is nothing to interrogate. */
 const MIN_WORDS = 10;
@@ -191,6 +194,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handle(req: NextRequest, spend: Spend) {
+  const startedAt = Date.now();
   let form: FormData;
   try {
     form = await req.formData();
@@ -338,11 +342,11 @@ async function handle(req: NextRequest, spend: Spend) {
 
   let t;
   try {
-    t = await transcribe(audio, "hostile.webm");
+    t = await transcribe(audio, "hostile.webm", { deadline: startedAt + WHISPER_BY_MS });
   } catch (e) {
     console.error("hostile transcription failed", e);
     const message = e instanceof Error ? e.message : "";
-    spend.keep = /^Whisper API (400|413|415):/.test(message);
+    spend.keep = isFileFault(message);
     // A file Whisper refused starts no round: the screen says nothing was lost.
     spend.roundBack = true;
     return NextResponse.json(

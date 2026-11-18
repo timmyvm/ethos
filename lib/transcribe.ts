@@ -47,9 +47,32 @@ interface WhisperVerboseJson {
   segments?: { start: number; end: number; text: string }[];
 }
 
+/** Whisper's answers worth one more try: busy, rate-limited or down for a moment. */
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
+/**
+ * A second try starts only with at least this long left before the
+ * deadline: a 90-second take transcribes in a few seconds, so this
+ * leaves the retry room to finish (docs/scale/audit.md M10).
+ */
+export const WHISPER_RETRY_MIN_MS = 15_000;
+/** The wait before the second try, jittered so a burst of takes does not retry in step. */
+const retryPause = () => 400 + Math.floor(Math.random() * 600);
+
+/**
+ * `deadline` (epoch ms) is when the caller must have its words by: past
+ * it the call is cut off and this throws "Whisper timed out", which every
+ * route answers as Whisper being down (a 502, the slot given back, the
+ * audio taken back out of the bucket), where the platform's kill at
+ * maxDuration used to keep the slot, orphan the audio and answer nothing
+ * (docs/scale/audit.md M7, FAIL-1). A busy or failing Whisper (429, 5xx,
+ * a dropped connection) is asked once more after a short jittered wait,
+ * when the deadline leaves room (M10). Without a deadline nothing is cut
+ * off, as before, and the one retry still runs.
+ */
 export async function transcribe(
   audio: Blob,
-  filename: string
+  filename: string,
+  opts: { deadline?: number } = {}
 ): Promise<Transcription> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -58,30 +81,61 @@ export async function transcribe(
     );
   }
 
-  const form = new FormData();
-  form.append("file", audio, filename);
-  form.append("model", "whisper-1");
-  form.append("response_format", "verbose_json");
-  form.append("timestamp_granularities[]", "word");
-  form.append("timestamp_granularities[]", "segment");
-  form.append("prompt", DISFLUENCY_PROMPT);
-  // Deterministic. Whisper escalates temperature itself when a decode
-  // fails its compression/logprob thresholds, so this is a floor, not a
-  // ceiling — raising it here trades disfluency capture for hallucination.
-  form.append("temperature", "0");
+  const form = () => {
+    const f = new FormData();
+    f.append("file", audio, filename);
+    f.append("model", "whisper-1");
+    f.append("response_format", "verbose_json");
+    f.append("timestamp_granularities[]", "word");
+    f.append("timestamp_granularities[]", "segment");
+    f.append("prompt", DISFLUENCY_PROMPT);
+    // Deterministic. Whisper escalates temperature itself when a decode
+    // fails its compression/logprob thresholds, so this is a floor, not a
+    // ceiling — raising it here trades disfluency capture for hallucination.
+    f.append("temperature", "0");
+    return f;
+  };
 
-  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: form,
-  });
+  const left = () => (opts.deadline === undefined ? null : opts.deadline - Date.now());
+  const roomToRetry = () => {
+    const l = left();
+    return l === null || l > WHISPER_RETRY_MIN_MS;
+  };
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Whisper API ${res.status}: ${body.slice(0, 300)}`);
+  let data: WhisperVerboseJson | null = null;
+  for (let attempt = 1; data === null; attempt++) {
+    const ms = left();
+    if (ms !== null && ms <= 0) throw new Error("Whisper timed out before it was asked.");
+    const signal = ms === null ? undefined : AbortSignal.timeout(ms);
+    try {
+      const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form(),
+        signal,
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        if (attempt === 1 && RETRY_STATUS.has(res.status) && roomToRetry()) {
+          console.warn(`[whisper] ${res.status}, asking once more`);
+          await new Promise((r) => setTimeout(r, retryPause()));
+          continue;
+        }
+        throw new Error(`Whisper API ${res.status}: ${body.slice(0, 300)}`);
+      }
+      data = (await res.json()) as WhisperVerboseJson;
+    } catch (e) {
+      if (signal?.aborted) throw new Error(`Whisper timed out after ${ms} ms.`);
+      if (e instanceof Error && e.message.startsWith("Whisper API ")) throw e;
+      // A connection that dropped before an answer: once more, if there is time.
+      if (attempt === 1 && roomToRetry()) {
+        console.warn("[whisper] no answer, asking once more", e instanceof Error ? e.message : e);
+        await new Promise((r) => setTimeout(r, retryPause()));
+        continue;
+      }
+      throw e;
+    }
   }
-
-  const data = (await res.json()) as WhisperVerboseJson;
 
   return {
     text: data.text ?? "",

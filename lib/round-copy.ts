@@ -88,10 +88,27 @@ export function decidingCutIn(round: QaRound | InterviewRound): CutInFact | null
   return fired.reduce((a, b) => ((b.gap ?? 0) < (a.gap ?? 0) ? b : a));
 }
 
+/**
+ * A cut-in's silence in seconds, as every Q&A surface writes it: to the
+ * tenth, or to the hundredth where the tenth would round it onto the
+ * line its verdict is judged against (#494 review). A 0.77s pause is too
+ * short and reads "0.77s", never "0.8s", where held starts; a 3.52s one
+ * is too long and reads "3.52s", never "3.5s", the last that holds. The
+ * card, the glance, the taste sheet and the Log's row all read it, so
+ * one round says one number.
+ */
+export function gapSecs(f: Pick<CutInFact, "gap" | "verdict">): string {
+  const g = f.gap ?? 0;
+  const tenth = Math.round(g * 10) / 10;
+  const crosses =
+    (f.verdict === "breath" && tenth >= HELD_MIN_S) || (f.verdict === "long" && tenth <= DEAD_AIR_S);
+  return crosses ? `${g.toFixed(2)}s` : secs(g);
+}
+
 /** The take's measured silence after the cut-in, as written. */
 function gapNumber(f: CutInFact): string {
   if (f.verdict === "through" || f.gap === null || f.gap < BEAT_MIN_S) return `<${BEAT_MIN_S}s`;
-  return secs(f.gap);
+  return gapSecs(f);
 }
 
 /**
@@ -532,7 +549,7 @@ export function tasteHeadline(game: Game, round: GameRound | null): string {
       : `${lead} Finished at ${clock(round.lastWord)}.`;
   }
   const f = decidingCutIn(round);
-  return f && f.gap !== null ? `${lead} ${secs(f.gap)} after he cut in.` : asTitle(lead);
+  return f && f.gap !== null ? `${lead} ${gapSecs(f)} after he cut in.` : asTitle(lead);
 }
 
 /** Once per game, ever, on this device (localStorage). */

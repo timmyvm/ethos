@@ -39,7 +39,7 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
     the boss's lobby when its spent week's See your take did (`?from=boss`). */
 const BACK = { href: "/history", label: "Log" };
 const BACK_TODAY = { href: "/", label: "Today" };
-const BACK_BOSS = { href: "/boss", label: "Boss" };
+const BACK_BOSS = { href: "/boss", label: "Weekly boss" };
 /** The date line's height with no date to print, so the title holds
     one y from the skeleton to whichever state replaces it. */
 const HELD = "\u00a0";
@@ -269,10 +269,11 @@ export default function RepDetail({
     <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {/* log-3: the screen names the recording the Log row named, with
           the date over it, and its way back stays in the bar from the
-          transcript down. One idea per eyebrow: a boss says so after a
-          comma, never a middot. */}
+          transcript down. A boss's title is its one name, "Weekly boss"
+          (#494 review), so the date says only the date: ", boss" after
+          it said the boss twice. */}
       <ScreenHeader
-        eyebrow={rep.mode === "boss" ? `${date}, boss` : date}
+        eyebrow={date}
         title={recordingName(rep)}
         back={back}
       />

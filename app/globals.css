@@ -3133,6 +3133,52 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .practice-week[data-done] {
   color: var(--color-sage-800);
 }
+/* The week's topic as the boss stage's title (#494), on Practice and on
+   /boss: one size under the title step (the lead's 20, heavy, set tight)
+   because a topic is a phrase in the stage's narrow column, not a name,
+   and at the title's 26 three topics overflowed it at 390 and nineteen
+   took three lines or more at 320. The box is always three lines tall,
+   the most any topic takes at 320, so the stage is one height every
+   week and nothing moves when a cold open learns the week; the topic
+   hangs from its top, under the eyebrow as any stage's title does
+   (centred in the box, a one-line topic stood 23px off its eyebrow), and
+   the stage's line stands under the box, the house's foot line. On
+   /boss the box is the reel's window too (`--reel-cell`), so Spin turns
+   in the title's own slot. A one-word topic wider than the column at
+   320 ("Superconductivity", 166px in 142) hyphenates where the browser
+   has the dictionary (Safari, Chrome on Android) and breaks where it
+   has none, so it is never clipped by the reel's window nor run under
+   Demos (#494 review). */
+.boss-topic {
+  --boss-topic-lh: 1.15;
+  --reel-cell: calc(3 * var(--boss-topic-lh) * var(--text-lead));
+  display: flex;
+  align-items: flex-start;
+  height: var(--reel-cell);
+  font-size: var(--text-lead);
+  line-height: var(--boss-topic-lh);
+  letter-spacing: -0.012em;
+  font-weight: 800;
+  text-wrap: balance;
+  hyphens: auto;
+  /* `anywhere`, not `break-word`: the topic is a flex item on Practice,
+     and only `anywhere` lets its min-content width shrink below a word. */
+  overflow-wrap: anywhere;
+}
+/* A game's ladder, a dot per count it takes toward the next level:
+   sage once counted (earned), and not yet on the level meter's own track
+   (ink at 13%, You's trait rows, #482): sand vanished on the dark tile.
+   Round and 6px, the meter's height, the size of a bullet beside its
+   words. */
+.ladder-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+}
+.ladder-dot:not([data-counted]) {
+  background: color-mix(in srgb, var(--color-ink) 13%, transparent);
+}
 /* A game's tile: the tone itself with its ink glyph (3.1 to 3.8:1, over
    the 3:1 a glyph needs), a little light from the top so it has a face
    rather than reading as a flat swatch. 44px, a control's radius. */
@@ -4661,7 +4707,8 @@ summary::-webkit-details-marker {
   /* A trait's level (#482): the track's extent is half of what the bar
      says, so it takes the edge's ink round it, 3:1 or more on the ground
      and on the sheet in both themes. */
-  .level-track {
+  .level-track,
+  .ladder-dot:not([data-counted]) {
     box-shadow: inset 0 0 0 1px var(--color-edge);
   }
 }

@@ -14,8 +14,9 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { BackLink } from "@/components/ui/ScreenHeader";
-import { BOSS_DONE_LINE, BOSS_RESEARCH_SECONDS, takeThisWeek } from "@/lib/boss";
+import { BOSS_DONE_LINE, BOSS_RESEARCH_SECONDS, bossCardTopic, takeThisWeek } from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
+import { BOSS_ASK_LINE } from "@/lib/home-modes";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
 import { weekStart } from "@/lib/level";
 import { prefersReducedMotion } from "@/lib/prefs";
@@ -30,10 +31,8 @@ import { useBackFrom } from "@/lib/use-back-from";
 const FREE_SPINS = 2;
 const SPINS_KEY = "ethos.boss.spins";
 
-/** The most the lobby's Demos grows to when the stage takes the free height, px. */
-const BOSS_ART_MAX = 232;
-/** What the lobby's stage keeps clear above him: its eyebrow, its title and the padding. */
-const BOSS_ART_RESERVE = 96;
+/** Demos on the lobby's stage, px: the house size, Practice's (#494). */
+const BOSS_ART = 132;
 
 type Phase = "lobby" | "research";
 
@@ -55,10 +54,11 @@ function writeSpins(week: string, used: number): void {
 }
 
 /**
- * Cold Topic, the weekly boss (#292 names it). A topic you haven't
- * studied, 90 seconds to read, then 90 seconds from memory, scored on
- * delivery by the normal engine AND fact-checked against the topic's
- * ground truth.
+ * The weekly boss. A topic you haven't studied, 90 seconds to read,
+ * then 90 seconds from memory, scored on delivery by the normal engine
+ * AND fact-checked against the topic's ground truth. #292 named it Cold
+ * Topic; since #494 it has one name everywhere, "Weekly boss" (Today's
+ * tile, Practice, the Log, here), and the week's topic is its title.
  *
  * The week's benchmark (the games plan, item 16): the same 90 seconds
  * every week, no mods, so its number is the honest test of whether the
@@ -129,6 +129,13 @@ export default function BossPage() {
         const take = takeThisWeek(reps, now);
         setTakeId(take?.id ?? null);
         setTaken(take !== null);
+        /* A taken week opens on the topic its take stored, the one
+           Practice's card, Today's tile and the Log's row name under
+           "Done this week" and See your take opens (#494 review): a
+           Spin or a pick takes another than the week's. Unless a Spin
+           or a pick has already moved the title. */
+        const stored = bossCardTopic(reps, now);
+        setTopic((t) => (t === null || t.id === w.id ? stored : t));
       })
       // Unknown, not taken: a failed read never locks the week.
       .catch(() => setTaken(null));
@@ -237,52 +244,54 @@ export default function BossPage() {
 
       {phase === "lobby" && (
         <>
-          {/* Practice's stage, the same one (E30): sky, the sheet
-              radius, p-5, the screen's one elev-2, the week's boss named
-              as Practice names it, a taken week's sage line as Practice
-              draws it, and the clock Demos standing on its floor at the
-              right, without his spring: his arrival stays Practice's
-              weekly moment (#313). No clocks and no countdown (#486).
-              The title is the page's h1. Nothing on the stage is a tap.
-              On a pushed screen with room to spare it takes the free
-              height and he grows with it (132 to BOSS_ART_MAX), so the
-              card you tapped on Practice opens up here and no band of
-              bare ground is left over the shelf (R2F-09). */}
+          {/* Practice's stage, the same one (E30, #494): sky, the sheet
+              radius, p-5, the screen's one elev-2, at the house's tab
+              height, "Weekly boss" over the week's topic at the stage's
+              middle height as Practice centres them, the line Today's
+              tile says under them (what the boss asks, or "Done this
+              week" in sage once taken), and the clock Demos at
+              132 on its floor at the right, without his spring: his
+              arrival stays Practice's weekly moment (#313). No clocks
+              and no countdown (#486). The topic is the page's h1, and
+              the reel turns in it: Spin draws in the title's own slot,
+              three lines tall at the topic's size (`.boss-topic`, the
+              reel's `--reel-cell`), so the screen has one title and the
+              stage holds one height whichever topic lands. It took the
+              free height until #494 (R2F-09), which left 300pt of empty
+              sky over a title the ground then said again. Until the
+              mount read, the reel holds the first topic invisibly.
+              Nothing on the stage is a tap. */}
           <HeroStage
             data-look="boss-stage"
-            className="mt-4 flex-1"
-            artGrow={BOSS_ART_MAX}
-            artReserve={BOSS_ART_RESERVE}
-            eyebrow="This week's boss"
+            className="mt-4"
+            eyebrow="Weekly boss"
+            center
             line={
-              takenThisWeek ? (
-                <p className="practice-week arrive font-display mt-auto pt-3 text-link font-bold" data-done>
-                  {BOSS_DONE_LINE}
-                </p>
-              ) : undefined
+              <p
+                className={`practice-week font-display mt-1 text-link font-bold ${taken !== null ? "arrive" : ""}`}
+                data-done={takenThisWeek || undefined}
+                aria-hidden={taken === null ? true : undefined}
+              >
+                {taken === null ? "\u00a0" : takenThisWeek ? BOSS_DONE_LINE : BOSS_ASK_LINE}
+              </p>
             }
-            art={<DemosArt pose="clock" size={BOSS_ART_MAX} fit grounded halo={{ tone: "sky", kind: "stage" }} />}
+            artSize={BOSS_ART}
+            art={<DemosArt pose="clock" size={BOSS_ART} grounded halo={{ tone: "sky", kind: "stage" }} />}
           >
-            <h1 className="font-display mt-1.5 text-title font-extrabold">Cold Topic</h1>
+            <h1 className="boss-topic font-display mt-1.5">
+              <Reel
+                state={reel}
+                current={shown}
+                className={`min-w-0 flex-1 ${topic ? "" : "invisible"}`}
+                render={(t) => <span className="block">{t.title}</span>}
+              />
+            </h1>
           </HeroStage>
-
-          {/* The topic on the ground, at the title's 26/800. Topic title
-              only: the study sheet waits for the clock (#182), and what
-              the take earns is the results' to say (#486). */}
-          <Reel
-            state={reel}
-            current={shown}
-            className={`font-display mt-5 text-title font-extrabold [--reel-cell:3.75rem] ${
-              topic ? "" : "invisible"
-            }`}
-            render={(t) => (
-              <span className="flex h-full items-center text-balance">{t.title}</span>
-            )}
-          />
 
           {/* The wheel, or why there is none. Spin is the secondary pill
               with the allowance beside it: allotted, not earned, so never
-              sage, and the tier is named once, by the Premium head below.
+              sage, and the tier is named once, by the mark on the head
+              below.
               The count waits for the profile, so a paying account never
               sees one. A free account's spent week has nothing to spin
               for: the row says so instead, at the row's own height, so
@@ -312,15 +321,17 @@ export default function BossPage() {
             )}
           </div>
 
-          {/* Premium, as Practice draws it (E30, D31): the tier's head
-              with its one mark, over one plain card of rows, each a bare
-              ink glyph, the name, one line and the chevron. No
-              filled tap: the room's one tap is the take. Pick a topic
-              opens the library on a plan and the paywall without one.
-              Hostile Q&A left this card when it went free (#478): Today
-              and Practice's Free open it. */}
+          {/* Premium, as Practice draws it (E30, D31): the section's head
+              names what is in it and its one mark names the tier (#494:
+              "Premium" over a PREMIUM chip said the tier twice on one
+              row), over one plain card of rows, each a bare ink glyph,
+              the name, one line and the chevron. No filled tap: the
+              room's one tap is the take. Pick a topic opens the library
+              on a plan and the paywall without one. Hostile Q&A left
+              this card when it went free (#478): Today and Practice's
+              Free open it. */}
           <div className="mt-7 flex items-center justify-between gap-3">
-            <h2 className="section-head">Premium</h2>
+            <h2 className="section-head">Your pick</h2>
             <PremiumMark variant="chip" />
           </div>
           <div className="card mt-3 px-4">
@@ -440,7 +451,7 @@ export default function BossPage() {
             data-look="boss-stage"
             className="mt-4 flex-1"
             artGrow={184}
-            eyebrow="Cold Topic"
+            eyebrow="Weekly boss"
             line={
               <div className="arrive mt-auto pt-3">
                 <div
@@ -457,8 +468,10 @@ export default function BossPage() {
             }
             art={<DemosArt pose="clock" size={184} fit grounded halo={{ tone: "sky", kind: "stage" }} />}
           >
-            <h1 className="arrive font-display mt-1.5 text-title font-extrabold text-balance">
-              {topic.title}
+            {/* The topic at the lobby's size and in its slot, so it stays
+                put as the stage opens up around it (#494). */}
+            <h1 className="boss-topic font-display mt-1.5">
+              <span>{topic.title}</span>
             </h1>
           </HeroStage>
           {/* The sheet arrives into the room the lobby's rows left; the

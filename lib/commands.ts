@@ -69,7 +69,7 @@ export const COMMANDS: readonly Command[] = [
   ...TRAITS.map(
     (t): Command => ({ id: `trait:${t.id}`, title: t.name, group: "Traits", href: `/practice/${t.id}`, trait: t.id })
   ),
-  { id: "practice:boss", title: "Cold Topic", group: "Practice", href: "/boss", also: "boss weekly read explain" },
+  { id: "practice:boss", title: "Weekly boss", group: "Practice", href: "/boss", also: "cold topic read explain" },
   { id: "practice:hostile", title: "Hostile Q&A", group: "Practice", href: "/hostile", also: "questions claim interrogation" },
   { id: "practice:upload", title: "Upload a recording", group: "Practice", href: "/upload", also: "file meeting" },
   { id: "theme:system", title: "Theme: System", group: "Appearance", theme: "system", also: "appearance auto" },

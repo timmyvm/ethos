@@ -8,6 +8,7 @@ import {
   clock,
   clockTenth,
   decidingCutIn,
+  gapSecs,
   heldInARow,
   ladderView,
   roundHeader,
@@ -126,6 +127,34 @@ describe("the round card, Q&A (F3)", () => {
     const through = roundReveal(QA, qa({ cutIns: [fact({ verdict: "through", gap: 0.1 })] }));
     expect([through.number, through.line]).toEqual(["<0.3s", "You kept talking through him."]);
     for (const r of [breath, filled, long, through]) expect(r.win).toBe(false);
+  });
+
+  /* #494 review: written to the tenth, a 0.77s breath read "0.8s" over
+     "Held starts at 0.8s.", and a 3.52s pause "3.5s" over "Past 3.5s". */
+  it("never rounds a pause onto the line its verdict is judged against", () => {
+    const short = roundReveal(QA, qa({ cutIns: [fact({ verdict: "breath", gap: 0.77 })] }));
+    expect([short.number, short.line]).toEqual(["0.77s", "Held starts at 0.8s."]);
+    const over = roundReveal(QA, qa({ cutIns: [fact({ verdict: "long", gap: 3.52 })] }));
+    expect([over.number, over.line]).toEqual(["3.52s", "Past 3.5s, a pause reads as lost."]);
+    // Clear of the lines, the tenth as before.
+    expect(gapSecs({ verdict: "breath", gap: 0.74 })).toBe("0.7s");
+    expect(gapSecs({ verdict: "long", gap: 3.56 })).toBe("3.6s");
+    expect(gapSecs({ verdict: "held", gap: 0.8 })).toBe("0.8s");
+    expect(gapSecs({ verdict: "held", gap: 3.5 })).toBe("3.5s");
+    // Every gap the engine measures (to the hundredth), under its own verdict.
+    for (let h = 30; h <= 800; h++) {
+      const gap = h / 100;
+      const verdict = gap < 0.8 ? "breath" : gap <= 3.5 ? "held" : "long";
+      const n = Number.parseFloat(gapSecs({ verdict, gap }));
+      if (verdict === "breath") expect(n, `${gap}`).toBeLessThan(0.8);
+      else if (verdict === "held") expect(n >= 0.8 && n <= 3.5, `${gap}`).toBe(true);
+      else expect(n, `${gap}`).toBeGreaterThan(3.5);
+      expect(Math.abs(n - gap), `${gap}`).toBeLessThanOrEqual(0.05 + 1e-9);
+    }
+    // The taste sheet's headline says the same number as the card.
+    expect(tasteHeadline(QA, qa({ cutIns: [fact({ verdict: "breath", gap: 0.77 })] }))).toBe(
+      "Q&A, level 1. 0.77s after he cut in."
+    );
   });
 
   it("missed: he didn't get in, and when he would have", () => {

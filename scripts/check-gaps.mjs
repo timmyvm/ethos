@@ -31,10 +31,15 @@
  * capsule (or the viewport's foot). The gap above the first box is the
  * status bar's, not the screen's. Any gap over 64px fails.
  *
- * One exemption, D19: on the seven question screens of the
+ * Two exemptions. D19: on the seven question screens of the
  * introduction the band between a top-anchored answer list and the
  * docked Next is the layout of the reference itself (Duolingo's
- * 13-question-list-dark), so that one gap is reported, not failed.
+ * 13-question-list-dark), so that one gap is reported, not failed. And
+ * #494: /boss's lobby stands its stage at the house's tab height, so on
+ * a tall phone the band between Pick a topic and the docked Start
+ * reading is ground, the room the reading's sheet opens into; given to
+ * the stage, it was 300pt of empty sky (the morning tour). That one
+ * band is reported too, and every other gap on the screen still counts.
  * And a stage that takes every spare pixel by design (`data-gap-stage`,
  * LessonScreen's `stageGrows`: the trait page and the unit intro, E18)
  * has its own inner bands reported as the stage's room; the ground
@@ -313,7 +318,8 @@ async function check(page, name, theme, { scope, exemptFoot = false, report = nu
   lines.push(`${ok ? "ok  " : "FAIL"}  ${at}: largest ${worst ? say(worst) : "none"}`);
   if (exemptFoot) {
     const foot = m.gaps.find((g) => g.foot);
-    if (foot) lines.push(`      exempt (D19, list over docked Next): ${say(foot)}`);
+    const why = typeof exemptFoot === "string" ? exemptFoot : "D19, list over docked Next";
+    if (foot) lines.push(`      exempt (${why}): ${say(foot)}`);
   }
   for (const g of m.gaps.filter((g) => g.stage && g.size > LIMIT)) {
     lines.push(`      stage (E18, room the stage took): ${say(g)}`);
@@ -332,8 +338,9 @@ const SCREENS = [
   ["today", "/", "main .arrive"],
   ["lessons", "/lessons", "main h1"],
   ["games", "/games", "main h1"],
-  // /boss: a pushed screen with no tab bar, its tap in FooterShelf (R2F-09).
-  ["boss", "/boss", "main h1"],
+  // /boss: a pushed screen with no tab bar, its tap in FooterShelf (R2F-09);
+  // its stage at the tab height since #494, the band over the shelf reported.
+  ["boss", "/boss", "main h1", { exemptFoot: "#494, the boss's stage at the tab height over its docked tap" }],
   ["log", "/history", "main .arrive"],
   ["you", "/you", "main h1"],
   ["lesson", "/lessons/the-cold-open", "main h1"],
@@ -346,14 +353,14 @@ const SCREENS = [
 
 for (const theme of ["light", "dark"]) {
   const { context, page } = await open(theme);
-  for (const [name, path, ready] of SCREENS) {
+  for (const [name, path, ready, opts] of SCREENS) {
     if (!want(name)) continue;
     try {
       await page.goto(`${BASE}${path}`);
       await page.waitForSelector(ready, { timeout: 20000 });
       await settled(page);
       await sleep(900);
-      await check(page, name, theme);
+      await check(page, name, theme, opts);
     } catch (e) {
       failed += 1;
       lines.push(`FAIL  ${name} (${theme}): ${String(e.message ?? e).split("\n")[0]}`);

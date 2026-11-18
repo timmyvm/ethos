@@ -439,7 +439,7 @@ ok(
 );
 ok(
   "step 3 names the unit and where it stands on the road (#490: no count of stars)",
-  steps[2]?.[0] === "Then Pace Control" && /^Unit \d+ of \d+, the one for rushing\.$/.test(steps[2]?.[1] ?? ""),
+  steps[2]?.[0] === "Then Pace control" && /^Unit \d+ of \d+, the one for rushing\.$/.test(steps[2]?.[1] ?? ""),
   JSON.stringify(steps[2])
 );
 const numbersSet = await page.$$eval("main ol li span.tabular-nums.font-display", (els) => els.map((e) => e.textContent));
@@ -448,7 +448,7 @@ const shelf = Object.values(tops);
 ok("Next stands at one height on every question, the beat and the plan", shelf.length === 9 && shelf.every((y) => y !== null && y === shelf[0]), JSON.stringify(tops));
 const laddered = await page.$eval("main ol", (el) => el.className);
 ok("the plan's lines land one at a time", /stagger/.test(laddered), laddered);
-ok("the boss is the fine print", await page.getByText("Your boss, when you're ready: Cold Topic.").isVisible());
+ok("the boss is the fine print", await page.getByText("Your boss, when you're ready: Weekly boss.").isVisible());
 const clip = await anim("main img.demos");
 ok("the plan's Demos breathes", clip === "breath", clip);
 await shot("10-plan");

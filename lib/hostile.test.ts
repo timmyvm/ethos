@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   ANSWER_SECONDS,
@@ -231,5 +232,39 @@ describe("the claim of the day (#478)", () => {
     for (const key of ["", "nonsense", "1970-01-01", "2099-12-31"]) {
       expect(HOSTILE_PROMPTS).toContain(claimOfTheDay(key));
     }
+  });
+});
+
+/*
+ * #494, the morning tour (docs/look/tour/10-hostile-claim-390-light.png):
+ * the claim card said "3 free today" beside a PREMIUM chip, on a mode
+ * that is free for every plan since #478, and a line under the title
+ * explained the mode a second time.
+ */
+describe("Hostile's lobby says the mode once and names no tier", () => {
+  const page = readFileSync("app/hostile/page.tsx", "utf8");
+  const lobby = page.slice(page.indexOf('phase === "intro" && ('), page.indexOf('phase === "recording" && ('));
+
+  it("draws no Premium mark on the lobby", () => {
+    expect(lobby).not.toContain("PremiumMark");
+    expect(page).not.toMatch(/import \{ PremiumMark \}/);
+  });
+
+  it("keeps the title and the card's one rule, and drops the line between them", () => {
+    expect(lobby).toContain("{HOSTILE_LINE}");
+    expect(lobby).toContain("Argue either side.");
+    expect(page).not.toContain("Argue the claim, then answer Demos on what you said.");
+  });
+
+  it("still counts the free plan's rounds on the card, in words", () => {
+    expect(lobby).toContain("hostileLeftLine(capped ? 0 : allowance.left)");
+  });
+
+  /* #494 review: with the subtitle gone, Demos at his old 264 cap left
+     114pt of bare ground under the title at 390x844 (principle 7). The
+     room is his, up to the question's own cap. */
+  it("gives the room the subtitle left to Demos, up to the question's cap", () => {
+    expect(lobby).toContain("w-[clamp(112px,calc(100cqh+12px),min(330px,100cqw))]");
+    expect(lobby).not.toContain("264px)]");
   });
 });

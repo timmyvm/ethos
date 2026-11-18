@@ -237,7 +237,12 @@ export function recordingName(
   if (id?.startsWith("topic:") && topicById(id.slice("topic:".length))) return TODAYS_PRACTICE;
   const walk = traitWalk(id);
   if (walk) return TRAIT[walk].name;
-  return r.mode === "boss" ? "Boss" : "Recording";
+  /* The boss has one name everywhere (#494, and its review): a take
+     filed under its topic, or a boss take from before topics were
+     filed, is the Weekly boss, as Today's tile, Practice and the Log's
+     Games side call it. */
+  if (id?.startsWith("boss:") || r.mode === "boss") return "Weekly boss";
+  return "Recording";
 }
 
 /** The trait of a trait's walk (`practice:trait-pause`, lib/rep-config.ts), or null. */
@@ -248,16 +253,16 @@ function traitWalk(id: string | null): TraitId | null {
 
 /** The road's three trait-shaped units; the rest name no single trait. */
 const UNIT_TRAIT: Record<string, TraitId> = {
-  "Filler Elimination": "fillers",
-  "Pace Control": "pace",
-  "The Pause": "pause",
+  "Filler elimination": "fillers",
+  "Pace control": "pace",
+  "The pause": "pause",
 };
 
 /**
  * The trait a recording practised, so its row can wear that trait's
  * tone (`[data-trait]`) the way the lesson does on /lessons. Null for a
  * game, a boss, a free recording and the road's Structure, Compression
- * and Thinking Under Fire units: those practise no one trait, and a
+ * and Thinking under fire units: those practise no one trait, and a
  * tone they did not earn would teach the wrong colour.
  */
 export function recordingTrait(r: Pick<RepRow, "lesson_id">): TraitId | null {

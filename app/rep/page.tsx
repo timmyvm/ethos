@@ -2818,8 +2818,8 @@ function fmt(s: number) {
 }
 
 /**
- * One idea per eyebrow (PRINCIPLES 4): "Weekly boss · Cold Topic" and
- * "Games · Hot Take" keep the name they end on.
+ * One idea per eyebrow (PRINCIPLES 4): a unit named "Games · Hot Take"
+ * keeps the name it ends on.
  */
 function eyebrowOf(unit: string): string {
   const parts = unit.split(" · ");
@@ -3177,14 +3177,14 @@ function Results({
 
   /*
    * M07: what was practised names the results, read from the rep config:
-   * the lesson's title, the boss's Cold Topic, the game's name, or
+   * the lesson's title, the weekly boss (one name, #494), the game's name, or
    * Today's practice. Never "Lesson complete" on a recording that was
    * not a lesson (most of them are the floor, a boss or a game).
    */
   const practised = lesson
     ? lesson.title
     : config.kind === "boss"
-      ? "Cold Topic"
+      ? "Weekly boss"
       : game
         ? roundHeader(game.name, roundsNow)
         : "Today's practice";

@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HOSTILE_TAKE_LESSON } from "./client-data";
 import { bossWeekRows, gamesLog, roundLine, roundRows, type GamesLogRow } from "./games-log";
+import { COLD_TOPICS, weeklyTopic } from "./cold-topics";
+import { gameById, type Game } from "./games";
 import { HOSTILE_TAKE_ID, hostileRecord } from "./hostile";
+import { roundReveal } from "./round-copy";
 import type { InterviewRound, QaRound, RushRound } from "./round";
 
 /** #486: the Log's Games side, the weekly boss and every round. */
@@ -84,7 +87,7 @@ describe("the weekly boss's rows", () => {
     expect(weeks.map((w) => w.id)).toEqual(["new", "old"]);
     expect(weeks[0]).toMatchObject({ topic: "The Great Vowel Shift", index: 684, accuracy: 82, at: at(10, 4) });
     expect(weeks[0].week.getDay()).toBe(1);
-    expect(weeks[1].topic).not.toBe("Cold Topic");
+    expect(weeks[1].topic).not.toBe("Weekly boss");
   });
 
   it("counts a week's first scored take, as the lobby and the delta do", () => {
@@ -111,8 +114,20 @@ describe("the weekly boss's rows", () => {
     expect(weeks.map((w) => w.id)).toEqual(["mon", "sun"]);
   });
 
+  /* #494: the week's topic now turns on Monday, so a week before the
+     change can compute to a different topic than it was taken on. A
+     week's row names the topic its take stored (`boss:<id>`), never
+     the one the calendar computes for that week. */
+  it("names the topic each week's take stored, never the week's computed one", () => {
+    const monday = new Date(2026, 10, 2, 9);
+    const stored = COLD_TOPICS.find((t) => t.id !== weeklyTopic(monday).id) as (typeof COLD_TOPICS)[number];
+    const [w] = bossWeekRows([boss("x", monday.toISOString(), 640, stored.id)]);
+    expect(w.topic).toBe(stored.title);
+    expect(w.topic).not.toBe(weeklyTopic(monday).title);
+  });
+
   it("names a topic it does not know as the boss", () => {
-    expect(bossWeekRows([boss("x", at(10, 3), 600, "gone-topic")])[0].topic).toBe("Cold Topic");
+    expect(bossWeekRows([boss("x", at(10, 3), 600, "gone-topic")])[0].topic).toBe("Weekly boss");
   });
 });
 
@@ -130,16 +145,23 @@ describe("every round", () => {
 
   it("says each round's one number in words that stand alone, with the level in its name", () => {
     const [q] = roundRows([take({ id: "q", created_at: at(10, 3), lesson_id: "game:qa:qa14", ethos_index: 652, round: qa })]);
-    expect(q).toMatchObject({ kind: "game", name: "Q&A, level 2", line: "Held 1.2s at the cut-in", index: 652 });
+    expect(q).toMatchObject({ kind: "game", name: "Q&A, level 2", line: "Paused 1.2s, just right", index: 652 });
     const [r] = roundRows([take({ id: "r", created_at: at(10, 3), lesson_id: "game:rush:ru1", ethos_index: 620, round: rush })]);
     expect(r).toMatchObject({ name: "Speed rush, level 3", line: "Finished 2.4s early" });
   });
 
   it("says every way a round ends, with its number and never a pronoun with nobody behind it", () => {
     const cut = qa.cutIns[0];
-    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "breath", gap: 0.5 }] })).toBe("Paused 0.5s at the cut-in");
-    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "through", gap: null }] })).toBe("Talked through the cut-in");
-    expect(roundLine({ ...qa, cutIns: [{ ...cut, at: null }] })).toBe("Demos didn't get in");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "breath", gap: 0.5 }] })).toBe("Paused 0.5s, too short");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "long", gap: 4.1 }] })).toBe("Paused 4.1s, too long");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "filled", gap: 1.4, fillerAt: 8.2, fillerWord: "um" }] })).toBe(
+      "“Um” broke the pause"
+    );
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "filled", gap: 1.4, fillerAt: 8.2, fillerWord: null }] })).toBe(
+      "A sound broke the pause"
+    );
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "through", gap: null }] })).toBe("Talked over Demos");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, at: null }] })).toBe("Ended before Demos cut in");
     expect(roundLine({ ...rush, stoppedBy: "clock", landed: false })).toBe("Clock ran out at 0:20");
     const iv: InterviewRound = {
       game: "interview", v: 1, level: 1, cap: 90, durationS: 74, stoppedBy: "you", lastWord: 73.4, stars: 2,
@@ -150,6 +172,87 @@ describe("every round", () => {
     expect(roundLine({ ...iv, inWindow: false, lastWord: 89.7 })).toBe("Ended at 1:29.7, too long");
     expect(roundLine({ ...iv, inWindow: false, stoppedBy: "clock", lastWord: 89.9 })).toBe("Clock ran out at 1:30");
     for (const line of [roundLine(qa), roundLine(rush), roundLine(iv)]) expect(line).not.toMatch(/\bhe\b/);
+  });
+
+  /* #494, the morning tour (docs/look/tour/14-log-games-390-light.png):
+     "Paused 0.5s at the cut-in" and "Held 1.2s at the cut-in" stood a
+     row apart and neither said which went well. Every Q&A outcome now
+     carries its verdict in a plain word, and the deciding cut-in is the
+     first that missed, so one good pause never covers a bad one. */
+  it("says whether a Q&A pause went well, in the line itself", () => {
+    const cut = qa.cutIns[0];
+    const lines = (["held", "breath", "long"] as const).map((verdict) =>
+      roundLine({ ...qa, cutIns: [{ ...cut, verdict, gap: verdict === "held" ? 1.2 : verdict === "long" ? 4.1 : 0.5 }] })
+    );
+    expect(lines).toEqual(["Paused 1.2s, just right", "Paused 0.5s, too short", "Paused 4.1s, too long"]);
+    for (const line of lines) expect(line).toMatch(/, (just right|too short|too long)$/);
+    // Two cut-ins, the first held and the second short: the short one decides.
+    const second = { ...cut, at: 30, gap: 0.4, verdict: "breath" as const };
+    expect(roundLine({ ...qa, cutIns: [cut, second] })).toBe("Paused 0.4s, too short");
+    // Both held: the shorter one is the round's number.
+    expect(roundLine({ ...qa, cutIns: [cut, { ...cut, at: 30, gap: 0.9 }] })).toBe("Paused 0.9s, just right");
+    // No line is the old pair, which named a measure and no outcome.
+    expect(lines.join(" ")).not.toMatch(/at the cut-in|^Held /);
+  });
+
+  /* #494 review: a round whose pauses all held but that ended on the
+     speaker (stopped inside 5s of the last cut-in, or before Demos could
+     cut in again) does not count, and its card says "You stopped". The
+     Log's line said "just right" for it. */
+  it("says a held pause that ended the round was followed by a stop, as its card does", () => {
+    const cut = qa.cutIns[0];
+    const missed = { ...cut, at: null, line: null, gap: null, gapFrom: null, gapTo: null, verdict: "missed" as const, cleanAfter: null, spokeAfter: null };
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 2 }] })).toBe("Paused 1.2s, then stopped");
+    expect(roundLine({ ...qa, cutIns: [cut, missed] })).toBe("Paused 1.2s, then stopped");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 0 }] })).toBe("Paused 1.2s, then stopped");
+    // Kept talking 5s or more after every cut-in: the round went well.
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 5 }] })).toBe("Paused 1.2s, just right");
+    // The two held, the second answered: just right, the shorter one's number.
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, spokeAfter: 40 }, { ...cut, at: 30, gap: 0.9, spokeAfter: 18 }] })).toBe("Paused 0.9s, just right");
+    // Held then stopped, at the longest number, still one line at 320.
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, gap: 3.49, spokeAfter: 1 }] }).length).toBeLessThanOrEqual(27);
+    // The card agrees: no win, and it says the stop.
+    expect(roundReveal(gameById("qa") as Game, { ...qa, cutIns: [{ ...cut, spokeAfter: 2 }] }, 0).line).toMatch(/^You stopped/);
+  });
+
+  /* #494 review: to the tenth, a 0.77s pause read "Paused 0.8s, too
+     short" a row from "Paused 0.8s, just right". The number never lands
+     on the far side of the line its verdict names. */
+  it("never writes a number that contradicts its verdict", () => {
+    const cut = qa.cutIns[0];
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "breath", gap: 0.77 }] })).toBe("Paused 0.77s, too short");
+    expect(roundLine({ ...qa, cutIns: [{ ...cut, verdict: "long", gap: 3.52 }] })).toBe("Paused 3.52s, too long");
+    for (let h = 30; h <= 800; h++) {
+      const gap = h / 100;
+      const verdict = gap < 0.8 ? "breath" : gap <= 3.5 ? "held" : "long";
+      const line = roundLine({ ...qa, cutIns: [{ ...cut, verdict, gap }] });
+      const n = Number.parseFloat(line.replace(/^Paused /, ""));
+      const ok = verdict === "breath" ? n < 0.8 : verdict === "held" ? n >= 0.8 && n <= 3.5 : n > 3.5;
+      expect(ok, line).toBe(true);
+      expect(line.length, line).toBeLessThanOrEqual(27);
+    }
+  });
+
+  it("holds every round's line to one line of the Log's row at 320", () => {
+    const cut = qa.cutIns[0];
+    const iv: InterviewRound = {
+      game: "interview", v: 1, level: 1, cap: 90, durationS: 74, stoppedBy: "you", lastWord: 91.2, stars: 2,
+      scorable: true, counted: true, best: 712, firstWord: 0.6, inWindow: false, numberAtEnd: null, cutIns: [],
+    };
+    const every = [
+      roundLine(qa),
+      roundLine({ ...qa, cutIns: [{ ...cut, verdict: "breath", gap: 0.5 }] }),
+      roundLine({ ...qa, cutIns: [{ ...cut, verdict: "filled", gap: 1.4, fillerAt: 8.2, fillerWord: "you know" }] }),
+      roundLine({ ...qa, cutIns: [{ ...cut, verdict: "filled", gap: 1.4, fillerAt: 8.2, fillerWord: "basically" }] }),
+      roundLine({ ...qa, cutIns: [{ ...cut, verdict: "through", gap: null }] }),
+      roundLine({ ...qa, cutIns: [{ ...cut, at: null }] }),
+      roundLine(rush),
+      roundLine({ ...rush, stoppedBy: "clock", landed: false }),
+      roundLine(iv),
+    ];
+    // The row's text column at 320 is 174px: about 27 characters of
+    // caption (measured on the Log at 320, docs/look/tour-fixes/b/).
+    for (const line of every) expect(line.length, line).toBeLessThanOrEqual(27);
   });
 
   it("says Hostile's first verdict out of 100, and nothing it does not have", () => {

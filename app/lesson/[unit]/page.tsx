@@ -66,7 +66,7 @@ function LessonIntro() {
     unit.lessons[0];
   /*
    * The trait this unit works on, read the way the log reads a
-   * recording's: Filler Elimination, Pace Control and The Pause name
+   * recording's: Filler elimination, Pace control and The pause name
    * one, and the rest do not, so their stage stays the neutral surface
    * rather than wearing a tone nobody chose for them.
    */

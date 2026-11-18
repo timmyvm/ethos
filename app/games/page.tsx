@@ -19,8 +19,9 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { BOSS_DONE_LINE } from "@/lib/boss";
+import { BOSS_DONE_LINE, bossCardTopic } from "@/lib/boss";
 import { dayKey } from "@/lib/challenge";
+import { BOSS_ASK_LINE, hostileTile } from "@/lib/home-modes";
 import {
   fetchGameRounds,
   fetchProfile,
@@ -146,6 +147,10 @@ export default function GamesPage() {
   const [bossDone, setBossDone] = useState<boolean | null>(() =>
     heldRows ? bossTaken(heldRows, weekStart()) : null
   );
+  /* The same rows, for Hostile Q&A's allowance on its tile (#494): the
+     line Today's tile says, counted from the takes of the last 24 hours.
+     Null while in flight, so the line holds its place unseen. */
+  const [rows, setRows] = useState<RepRow[] | null>(heldRows);
   /* Today on the device, for the game of the day; null until mounted. */
   const [now, setNow] = useState<Date | null>(() => (warm ? new Date() : null));
   /* Every game round the ladder reads (lib/client-data.ts). */
@@ -173,8 +178,9 @@ export default function GamesPage() {
   /** The week's rows and the ladders, read behind whatever is drawn. */
   function readWeek(week: Date) {
     fetchReps()
-      .then((rows) => {
-        setBossDone(bossTaken(rows, week));
+      .then((read) => {
+        setBossDone(bossTaken(read, week));
+        setRows(read);
       })
       // A failed first read lands on an open week; a failed later one
       // leaves what the screen says.
@@ -185,6 +191,9 @@ export default function GamesPage() {
   }
   // Looked at again after a while, or back on the network: read again, quietly.
   useRevalidate(() => {
+    /* The clock too, so Hostile's "Next in about N hours" and the
+       week's topic are still true on a tab left open (#494). */
+    setNow(new Date());
     readPlan();
     readWeek(weekStart());
   });
@@ -206,6 +215,16 @@ export default function GamesPage() {
   }, []);
 
   const startLabel = bossDone ? "Again" : "Start";
+  /* The week's topic is the stage's title (#494, one name and one face
+     for the boss): read from the device's clock, so unknown until a
+     cold open has mounted. Once the week is taken it is the topic the
+     take stored (`bossCardTopic`, #494 review): a Spin or a pick takes
+     another, and "Done this week" under the week's own named a take
+     the Log's row says was on something else. */
+  const topic = now ? bossCardTopic(rows, now) : null;
+  /* Hostile Q&A's tile says what Today's says (lib/home-modes.ts): "3
+     free today", "Next in about 5 hours", or on Premium the one rule. */
+  const hostile = hostileTile({ now, premium, rows });
 
   const free = GAMES.filter((g) => !needsPremium(g));
   const paid = GAMES.filter(needsPremium);
@@ -269,33 +288,37 @@ export default function GamesPage() {
 
       {/* The weekly headliner. The sky stage is the card itself, the
           screen's one lifted thing, with Demos standing in it holding
-          his clock, the eyebrow and the name on the left. No time frame
-          and no countdown (#486, Timothy: "they don't need to know any
-          time frame"): the reading's clock runs on the reading. A week
-          already taken says so in sage under the name, the one state
-          that is earned. Nothing on the stage is a tap; Start sits on
+          his clock, "Weekly boss" over the week's topic on the left
+          (#494). No time frame and no countdown (#486, Timothy: "they
+          don't need to know any time frame"): the reading's clock runs
+          on the reading. A week already taken says so in sage under the
+          topic, the one state that is earned. Nothing on the stage is a tap; Start sits on
           the ground under it. */}
       <section aria-labelledby="boss-title" className="mt-5">
         {/* The house stage (components/ui/HeroStage.tsx): every tab's
             hero is this one, since the cohesion pass. */}
         <HeroStage
-          eyebrow="This week's boss"
-          title="Cold Topic"
-          titleId="boss-title"
+          eyebrow="Weekly boss"
           center
-          /* The line's slot is always there, under the name in the
-             centred group, so the eyebrow and the name hold one y from
-             the first frame to the week's read: it stood at the foot
-             with mt-auto, and a taken week pulled them 33px up the
-             stage as the read landed (#486 review). Empty while the
-             week is open or unknown, a no-break space at its height. */
+          /* The week's topic is the title (#494): "Weekly boss" names the
+             boss here, on Today's tile, in the Log and on /boss, and the
+             topic is what this week asks. It hangs in a box three lines
+             tall at the topic's own size (`.boss-topic`), the most a
+             topic takes at 320, so the stage holds one height whichever
+             week it is and nothing moves when a cold open reads the
+             clock. Under it, the line Today's tile says (lib/home-modes.ts
+             bossTile): what the boss asks while the week is open, "Done
+             this week" in sage once it is taken, so the stage, the tile
+             and /boss are one face. Its slot is always there, so the
+             eyebrow and the topic hold one y from the first frame to the
+             week's read (#486 review): a no-break space while unknown. */
           line={
             <p
-              className={`practice-week font-display mt-1 text-link font-bold ${bossDone ? "arrive" : ""}`}
+              className={`practice-week font-display mt-1 text-link font-bold ${bossDone !== null ? "arrive" : ""}`}
               data-done={bossDone || undefined}
-              aria-hidden={bossDone ? undefined : true}
+              aria-hidden={bossDone === null ? true : undefined}
             >
-              {bossDone ? BOSS_DONE_LINE : "\u00a0"}
+              {bossDone === null ? "\u00a0" : bossDone ? BOSS_DONE_LINE : BOSS_ASK_LINE}
             </p>
           }
           artSize={BOSS_ART}
@@ -310,10 +333,16 @@ export default function GamesPage() {
               />
             )
           }
-        />
+        >
+          <h2 id="boss-title" className="boss-topic font-display mt-1.5">
+            <span className={topic ? "arrive" : "invisible"}>
+              {topic?.title ?? "\u00a0"}
+            </span>
+          </h2>
+        </HeroStage>
         <Link
           href="/boss"
-          aria-label={`${startLabel}: Cold Topic`}
+          aria-label={`${startLabel}: Weekly boss${topic ? `, ${topic.title}` : ""}`}
           className={`${ACTION_CLASS} relative mt-3`}
         >
           {startLabel}
@@ -357,15 +386,28 @@ export default function GamesPage() {
           {/* Free for every plan since #478, three rounds a day on the
               free plan, said on its own screen before the take. It has
               no ladder: its numbers are a model's read, never a rung. */}
-          <GameTile glyph={GLYPH.hostile(28)} name="Hostile Q&A" href="/hostile" />
+          <GameTile
+            glyph={GLYPH.hostile(28)}
+            name="Hostile Q&A"
+            href="/hostile"
+            /* Its allowance in the line a game's ladder takes (#494),
+               the words Today's tile says: what you can do today, in
+               ink; at the cap, when the next opens, in stone, a date
+               rather than a door. A no-break space until the plan,
+               the rows and the clock are read. */
+            note={hostile.line}
+            noteQuiet={hostile.line.startsWith("Next in")}
+          />
           {/* An input, not a game: the grid's one wide door. */}
           <WideTile glyph={<IconUpload size={28} />} name="Upload a recording" href="/upload" />
         </div>
 
-        {/* The tier's head, its name and its mark (D31, D04): the mark
-            is a label at the head, never a filled tile. */}
+        {/* The section's head names what is in it and its mark names the
+            tier (D31, D04; #494): "Premium" over a PREMIUM chip said the
+            tier twice on one row. The mark is a label at the head, never
+            a filled tile. */}
         <div className="mt-7 flex items-center justify-between gap-3">
-          <h2 className="section-head">Premium</h2>
+          <h2 className="section-head">More games</h2>
           <PremiumMark variant="chip" />
         </div>
         {planFailed ? (
@@ -487,6 +529,7 @@ function GameTile({
   href,
   onPress,
   note,
+  noteQuiet = false,
   ladder,
   paywall = false,
   wide = false,
@@ -495,8 +538,10 @@ function GameTile({
   name: string;
   href?: string;
   onPress?: () => void;
-  /** The allowance, under the name ("Free today"). */
+  /** The allowance, under the name ("Free today", "3 free today"). */
   note?: string;
+  /** The allowance is a date, not a door ("Next in about 5 hours"): stone, as a spent game's is. */
+  noteQuiet?: boolean;
   /** A game's ladder; "loading" holds its place; absent or null draws none. */
   ladder?: TileLadder | "loading" | null;
   /** The tap opens the paywall. */
@@ -522,7 +567,7 @@ function GameTile({
           body face, so it never reads as a second line of the name. */}
       {note && (
         <span
-          className={`arrive mt-0.5 block text-caption font-semibold ${paywall ? "text-stone-500" : "text-ink"}`}
+          className={`arrive mt-0.5 block text-caption font-semibold ${paywall || noteQuiet ? "text-stone-500" : "text-ink"}`}
         >
           {note}
         </span>
@@ -548,10 +593,11 @@ function GameTile({
 }
 
 /**
- * The ladder's two lines: "Level 2" with its pips (sage counted,
- * outlined on sand not yet), or "Mastered" in their place; then the
- * best. The pips are pictures; the sentence beside them is what a
- * screen reader hears.
+ * The ladder's two lines: "Level 2" with its dots (sage counted, the
+ * level meter's track not yet), or "Mastered" in their place; then the best. The dots are
+ * pictures; the sentence beside them is what a screen reader hears.
+ * Round and unoutlined since #494: two 8px squares in a 1px outline on
+ * sand read as a font's missing-glyph boxes.
  */
 function LadderLines({ ladder }: { ladder: TileLadder }) {
   return (
@@ -566,9 +612,8 @@ function LadderLines({ ladder }: { ladder: TileLadder }) {
               {Array.from({ length: ladder.of }, (_, i) => (
                 <span
                   key={i}
-                  className={`size-2 rounded-[2px] ${
-                    i < ladder.counted ? "bg-sage-600" : "bg-sand shadow-[inset_0_0_0_1px_var(--color-edge)]"
-                  }`}
+                  data-counted={i < ladder.counted || undefined}
+                  className={`ladder-dot ${i < ladder.counted ? "bg-sage-600" : ""}`}
                 />
               ))}
             </span>

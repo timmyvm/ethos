@@ -183,7 +183,7 @@ export function resolveRepConfig(
       interrupt: false,
       kind: "boss",
       lessonId: bossLessonId(topic.id),
-      unit: "Weekly boss · Cold Topic",
+      unit: "Weekly boss",
       title: topic.title,
       prompt: bossPrompt(),
       maxSeconds: DAILY_MAX_SECONDS,

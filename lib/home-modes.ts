@@ -17,9 +17,8 @@
  * pushes this week's boss out of the count.
  */
 
-import { BOSS_DONE_LINE, takeThisWeek, type BossTakeRow } from "./boss";
+import { BOSS_DONE_LINE, bossCardTopic, takeThisWeek, type BossTakeRow } from "./boss";
 import { dayKey } from "./challenge";
-import { weeklyTopic } from "./cold-topics";
 import { claimOfTheDay, hostileAllowance, hostileLeftLine, hostileNextLine } from "./hostile";
 
 export interface ModeTile {
@@ -76,7 +75,9 @@ export const BOSS_ASK_LINE = "Read it, explain it";
 
 export function bossTile(opts: { now: Date | null; rows: readonly BossTakeRow[] | null }): ModeTile {
   const { now, rows } = opts;
-  const topic = now ? weeklyTopic(now).title : null;
+  /* Once taken, the topic the take stored, as Practice's stage and the
+     Log's row name it (#494 review): a Spin or a pick takes another. */
+  const topic = now ? bossCardTopic(rows, now).title : null;
   const done = now && rows ? takeThisWeek(rows, now) !== null : null;
   /* No countdown and no time frame (#486, Timothy: "get rid of 6 days
      left", "they don't need to know any time frame"): what the boss

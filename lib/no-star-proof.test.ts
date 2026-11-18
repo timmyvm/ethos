@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isScorable, starsFor, substance } from "./metrics";
 import { coachSwap, proofIn, usesOf, type TakeText, type TimedWord } from "./say";
-import { glanceCues, proofLeads, topMoment, withProof } from "./sound-recipes";
+import { glanceCues, proofLeads, topMoment, withProof, type GlanceWin } from "./sound-recipes";
 import { xpForTake } from "./xp";
 
 /*
@@ -39,7 +39,8 @@ describe("a take with no star that says the better phrase (#510 with #509)", () 
   it("pays no XP, plays nothing and Demos does not cheer, the proof or no proof", () => {
     expect(xpForTake(0)).toBe(0);
     expect(xpForTake(0, 2)).toBe(0);
-    const win = withProof({ stars: 0 }, true, true);
+    const take: GlanceWin = { stars: 0 };
+    const win = withProof(take, true, true);
     expect(glanceCues(win, { landAfter: 400, starStep: 300, starMs: 600, reduced: false })).toEqual([]);
     expect(topMoment(win)).toBeNull();
     expect(proofLeads(win)).toBe(false);

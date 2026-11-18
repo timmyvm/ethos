@@ -209,7 +209,7 @@ const lastHeard = (v: SwapView) => v.uses[0]?.createdAt ?? v.state.heardAt ?? ""
  * longest waiting first, then the oldest saved; three at most. One you
  * now say is never tested: the recording already proved it.
  */
-export function dueToday(views: readonly SwapView[], today: string): SwapView[] {
+export function dueToday<V extends SwapView>(views: readonly V[], today: string): V[] {
   return views
     .filter((v) => !v.state.hidden && !nowSays(v) && v.state.due <= today)
     .sort((a, b) => (a.state.due < b.state.due ? -1 : a.state.due > b.state.due ? 1 : a.swap.savedAt < b.swap.savedAt ? -1 : 1))
@@ -223,16 +223,16 @@ export function nextDue(views: readonly SwapView[], today: string): string | nul
 }
 
 /** The page's three lists and its number. */
-export interface SayLists {
-  due: SwapView[];
-  nowSay: SwapView[];
-  learning: SwapView[];
+export interface SayLists<V extends SwapView = SwapView> {
+  due: V[];
+  nowSay: V[];
+  learning: V[];
   /** N of M: the swaps you now say, and every swap on the list. */
   n: number;
   m: number;
 }
 
-export function sayLists(views: readonly SwapView[], today: string): SayLists {
+export function sayLists<V extends SwapView>(views: readonly V[], today: string): SayLists<V> {
   const shown = views.filter((v) => !v.state.hidden);
   const due = dueToday(shown, today);
   const dueKeys = new Set(due.map((v) => v.swap.key));
@@ -452,6 +452,11 @@ export function backLine(due: string, today: string): string {
   const d = dateOfDay(due);
   if (n < 7) return `Back ${WEEKDAY[d.getDay()].slice(0, 3)}`;
   return `Back ${d.getDate()} ${MONTH[d.getMonth()]}`;
+}
+
+/** When the next test is, on a day with none due: "Next test tomorrow", "Next test Fri". */
+export function nextTestLine(due: string, today: string): string {
+  return backLine(due, today).replace(/^Back /, "Next test ");
 }
 
 /** The day a recording was made, as the walk says it: "today", "yesterday", "Monday", "12 Nov". */

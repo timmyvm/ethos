@@ -142,7 +142,7 @@ import {
 } from "@/lib/rep-screen";
 import { unlockSound } from "@/lib/sound";
 import { holdAwake } from "@/lib/wake-lock";
-import { speechRecorderOptions } from "@/lib/speech-recorder";
+import { speechRecorder } from "@/lib/speech-recorder";
 import { computeStreak } from "@/lib/streak";
 import {
   askedIdsFrom,
@@ -1455,7 +1455,7 @@ function RepScreen() {
        */
       const audioOnly = new MediaStream(stream.getAudioTracks());
       // Speech at 32 kbps (#508): a quarter of the default's bytes to upload.
-      const recorder = new MediaRecorder(audioOnly, speechRecorderOptions());
+      const recorder = speechRecorder(audioOnly);
       opened.recorder = recorder;
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => {

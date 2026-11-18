@@ -37,6 +37,7 @@ import { sessionState } from "@/lib/auth";
 import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
+import { expectDraw, markDrawn } from "@/lib/first-draw";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
 import {
   introDue,
@@ -139,6 +140,10 @@ export default function Home() {
   const [rescued, setRescued] = useState(0);
   /** The plan: null until the profile answers, and on a failed read. */
   const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
+  useLayoutEffect(() => {
+    // Today announces when its numbers are drawn (the splash lands on them, #508).
+    expectDraw();
+  }, []);
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
   const [paywall, setPaywall] = useState<string | null>(null);
@@ -357,6 +362,8 @@ export default function Home() {
      */
     if (firstRun()) {
       router.replace("/welcome");
+      // The room is drawn by its server page (#508): nothing here to wait for.
+      markDrawn();
       return;
     }
     markWelcomed();
@@ -423,6 +430,12 @@ export default function Home() {
       window.clearInterval(minute);
     };
   }, [load]);
+
+  /* Today's numbers, or the failure that stands in for them, are on
+     screen: the splash may lift onto them, and what waited may go (#508). */
+  useEffect(() => {
+    if (reps !== null || failed) markDrawn();
+  }, [reps, failed]);
 
   const history = reps ?? [];
   /* Lifetime numbers count every recording, not the newest 90. */

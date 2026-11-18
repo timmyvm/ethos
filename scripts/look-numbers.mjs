@@ -144,14 +144,8 @@ for (const size of SIZES) {
     await shoot("trait", "fillers");
   }
 
-  /* ---- the Log's every-skill rows (Premium: LOOK_PLAN=code) -------------- */
-  if (want("history")) {
-    await page.goto(`${BASE}/history`);
-    await page.waitForSelector("main .arrive", { timeout: 20000 });
-    await settled();
-    await sleep(1400);
-    await at("history", "skills", 'main [data-trait="repairs"].log-metric, main .log-metric:has-text("Follow-through")', 260);
-  }
+  /* The Log's every-skill rows went with #506 (What moved and its
+     Premium skill trendlines); a recording's rows are shot on its page. */
 
   /* ---- Today's tiles, where the percentile is first met ------------------ */
   if (want("today")) {

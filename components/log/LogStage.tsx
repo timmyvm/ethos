@@ -1,0 +1,139 @@
+import { CountUp } from "@/components/CountUp";
+import { DemosArt } from "@/components/DemosArt";
+import { HeroStage } from "@/components/ui/HeroStage";
+import { TrendMark } from "@/components/ui/TrendMark";
+import { ethosLine, linePath } from "@/lib/log";
+import { DURATION } from "@/lib/motion";
+
+/**
+ * The Log's stage (#506, Timothy 18 Nov: "what am I even looking at when
+ * I see the log?"). Three things on the house sky and nothing else: the
+ * Ethos number now, large; one quiet pill that answers "am I getting
+ * better?" ("▲ 51 since you started"); and one line from a ring where
+ * you started to a dot where you are, with no axes, dates, fill or
+ * legend. It replaced the score card's hill, its "22 recordings" foot
+ * and its two end dates, and the What moved table under it.
+ *
+ * The number is the results' 72 (num-xl, until now the results' alone),
+ * 56 on a short or narrow phone, where the line gives up height before
+ * the number does. The line (`ethosLine`) starts on the first scored
+ * Ethos and ends on today's, so the ring and the dot are the two numbers
+ * the pill subtracts, and it is drawn on at least 100 points, so a
+ * 51-point rise climbs and a small dip stays small.
+ *
+ * States: no recording (a dash, "Your first recording starts the line."
+ * and Demos, the empty state's one moment); one scored recording (the
+ * number, "Your next recording starts the line."); two or more (number,
+ * pill, line). A fall says ▼ in the same stage ink: a fact, not an
+ * alarm, and never rust.
+ */
+export function LogStage({
+  index,
+  first,
+  series,
+  recordings,
+  from,
+  to,
+  draw = true,
+}: {
+  /** Today's Ethos: the latest scored recording's. Null with none scored. */
+  index: number | null;
+  /** The first scored recording's Ethos, the start the pill counts from. */
+  first: number | null;
+  /** Every scored Ethos, oldest first. */
+  series: number[];
+  /** How many recordings the account holds, scored or not. */
+  recordings: number;
+  /** The first and latest scored recordings' days, for the line's spoken name. */
+  from?: string;
+  to?: string;
+  /** False when the page drew what the visit held: the line is already there. */
+  draw?: boolean;
+}) {
+  const points = ethosLine(series);
+  const delta = points && index !== null && first !== null ? index - first : null;
+  const empty = recordings === 0;
+  return (
+    <HeroStage
+      eyebrow="Your Ethos"
+      className="log-stage"
+      data-look="log-stage"
+      art={
+        empty ? <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} /> : undefined
+      }
+      chart={
+        points && delta !== null ? (
+          <LogLine
+            points={points}
+            draw={draw}
+            label={`Ethos ${first}${from ? ` on ${from}` : ""} to ${index}${to ? ` on ${to}` : ""}, ${
+              delta === 0 ? "level" : `${delta > 0 ? "up" : "down"} ${Math.abs(delta)}`
+            }`}
+          />
+        ) : undefined
+      }
+    >
+      <div className="mt-1 flex items-baseline gap-2">
+        {index === null ? (
+          <span className="log-number font-display font-extrabold tabular-nums">—</span>
+        ) : (
+          <CountUp
+            value={index}
+            durationMs={DURATION.max}
+            className="log-number font-display font-extrabold tabular-nums"
+          />
+        )}
+        <span className="stage-ink whitespace-nowrap text-body font-semibold">/ 1000</span>
+      </div>
+      {delta !== null ? (
+        /* A label on the stage, never a tap: no press, no chevron. */
+        <p className="log-change font-display text-body font-bold tabular-nums">
+          {delta === 0 ? (
+            "Level with your first recording"
+          ) : (
+            <>
+              <span className="log-change-mark">
+                <TrendMark up={delta > 0} />
+              </span>
+              {Math.abs(delta)} since you started
+            </>
+          )}
+        </p>
+      ) : (
+        <p className="stage-ink font-display mt-auto pt-3 text-link font-bold">
+          {empty || index === null ? "Your first recording starts the line." : "Your next recording starts the line."}
+        </p>
+      )}
+    </HeroStage>
+  );
+}
+
+/**
+ * The line itself: a monotone curve through the smoothed points, in the
+ * stage's ink, stretched to the band `.log-chart` gives it (the stroke
+ * keeps its width), with the ring and the dot as their own round marks
+ * at its ends so neither stretches. One image to a screen reader, named
+ * with its two numbers and their days.
+ */
+function LogLine({ points, label, draw }: { points: [number, number][]; label: string; draw: boolean }) {
+  const W = 1000;
+  const H = 100;
+  const d = linePath(points.map(([x, y]) => [x * W, y * H]));
+  const [, y0] = points[0];
+  const [, y1] = points[points.length - 1];
+  return (
+    <div role="img" aria-label={label} data-draw={draw || undefined} className="log-chart">
+      <svg
+        aria-hidden
+        focusable="false"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        className="block size-full overflow-visible"
+      >
+        <path d={d} pathLength={1} className="log-path" />
+      </svg>
+      <span aria-hidden className="log-ring" style={{ left: "0%", top: `${y0 * 100}%` }} />
+      <span aria-hidden className="log-dot" style={{ left: "100%", top: `${y1 * 100}%` }} />
+    </div>
+  );
+}

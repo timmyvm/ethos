@@ -58,25 +58,19 @@ export function SkeletonRegion({
 }
 
 /**
- * The score card, on /history. Built from the card's own type roles with
- * the words hidden (`Line`), so every line is exactly the height of the
- * line it stands in for and nothing moves when the numbers land
- * (PRINCIPLES 8): the eyebrow, the 56px hero, the two stats on the
- * right (which set the row's height, with or without the change line),
- * then the foot.
+ * The Log's stage (#506, components/log/LogStage.tsx) while the Log
+ * reads: the stage at its landed height (`.log-stage`), the eyebrow, the
+ * number at its own size and the pill, each a bar where the words will
+ * be, so nothing moves when the numbers land (PRINCIPLES 8).
  */
-export function SkeletonScoreCard() {
-  /* On the house stage since the cohesion pass: the bars read the
-     stage's bone (`.practice-stage .skeleton`), at the landed lines. */
+export function SkeletonLogStage() {
+  /* On the house stage: the bars read the stage's bone (`.practice-stage .skeleton`). */
   const bar = "absolute inset-y-[22%] left-0";
   return (
-    <HeroStage>
+    <HeroStage className="log-stage">
       <Line className="eyebrow" bar={`${bar} w-20`} />
-      <Line className="font-display mt-1 text-num-hero" bar={`${bar} w-36`} text="000" />
-      <Line className="font-display mt-0.5 text-link" bar={`${bar} w-32`} />
-      <div className="mt-auto pt-3">
-        <Line className="font-display text-link" bar={`${bar} w-36`} />
-      </div>
+      <Line className="log-number font-display mt-1" bar={`${bar} w-40`} text="000" />
+      <Skeleton className="log-change w-48" rounded="rounded-full" />
     </HeroStage>
   );
 }

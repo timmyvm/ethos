@@ -406,7 +406,6 @@ describe("a trait's tone is only ever one of its forms", () => {
   const FORMS = {
     mark: "an 8px square or dot beside a trait's name, a trait's flat glyph before its name on Today's tiles (#478), a 3px tick on a track, or the underline under a word the transcript counted",
     measure: "a ring's arc, a bar on sand, the live waveform's stroke, or the closing note's number (#423)",
-    sparkline: "a sparkline",
     chip: "TraitChip",
     ground: "a named ground: Today's card, the lesson stage, the trait stage, the recording's topic card",
     pop: "the introduction's pop tones, never a trait",
@@ -423,10 +422,10 @@ describe("a trait's tone is only ever one of its forms", () => {
     // The dark stage of any trait outside the five (the five set their own).
     ':root[data-theme="dark"] [data-trait]': "ground",
     ".trait-dot": "mark",
-    ".log-swatch": "mark",
-    // A waiting row's tile keeps its 3px trait tick (#394); a logged
-    // recording's date is a bare column and the insight has no rule (D33).
-    ".log-date[data-trait]::after": "mark",
+    // The Log's line (#506): the ring and the dot cut from the stage's own
+    // sky, so the line runs into them rather than through them.
+    ".log-ring": "pop",
+    ".log-dot": "pop",
     ".home-trait-glyph": "mark",
     // The recording screen's live waveform (S08, D51).
     ".rec-wave": "measure",
@@ -452,10 +451,7 @@ describe("a trait's tone is only ever one of its forms", () => {
     "app/lessons/[id]/page.tsx": "ground",
     "app/practice/[trait]/page.tsx": "ground",
     "components/LessonScreen.tsx": "ground",
-    "app/history/page.tsx": "sparkline",
-    "components/Sparkline.tsx": "sparkline",
     "components/Ring.tsx": "measure",
-    "components/FillerHeatmap.tsx": "measure",
     "components/AudioScrubber.tsx": "mark",
     "components/DimensionList.tsx": "mark",
     "components/TraitChip.tsx": "chip",

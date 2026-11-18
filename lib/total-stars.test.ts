@@ -42,7 +42,7 @@ describe("no total of stars on any screen", () => {
     expect(today).not.toMatch(/IconStar|\} stars`/);
     expect(today).toContain("<StreakBadge streak={streak} />");
 
-    const card = readFileSync("components/ScoreCard.tsx", "utf8");
+    const card = readFileSync("components/log/LogStage.tsx", "utf8");
     expect(card).not.toMatch(/\bstars\??:\s*number/);
     expect(card).not.toMatch(/"stars?"/);
     expect(readFileSync("app/history/page.tsx", "utf8")).not.toMatch(/stars=\{/);
@@ -54,6 +54,10 @@ describe("no total of stars on any screen", () => {
 
   it("keeps each lesson's own stars", () => {
     expect(readFileSync("components/Stars.tsx", "utf8")).toMatch(/of \$\{total\} stars/);
-    expect(readFileSync("app/history/page.tsx", "utf8")).toContain("<Stars n={r.stars}");
+    /* The Log's rows say their Ethos number and no stars since #506 (the
+       tour's stored 1s down the list were the discouragement Timothy
+       named); a recording's own stars stay on its page, by its number. */
+    expect(readFileSync("components/RepResult.tsx", "utf8")).toContain("<Stars n={m.stars}");
+    expect(readFileSync("app/history/page.tsx", "utf8")).not.toMatch(/<Stars\b/);
   });
 });

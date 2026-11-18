@@ -23,7 +23,8 @@ import {
 } from "@/lib/client-data";
 import { parsePracticeId } from "@/lib/lesson-progress";
 import { readable, readFailure } from "@/lib/load";
-import { recordingName, recordingTrait } from "@/lib/log";
+import { recordingName, recordingTopic, recordingTrait } from "@/lib/log";
+import { poolHere } from "@/lib/pool";
 import { computeMetrics, substance } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { plainRead, tracedStrength } from "@/lib/plain-read";
@@ -263,17 +264,29 @@ export default function RepDetail({
   // M27: a lesson's practice says which lesson, and opens it.
   const practice = parsePracticeId(rep.lesson_id);
   const lesson = practice ? lessonById(practice.lessonId) : null;
+  /* What the Log's row called it (#506): the topic in this phone's pool,
+     as the recorder resolved it (#492). Under it, what was practised
+     ("Punctuate with silence", "Q&A, level 2"), unless the lesson's row
+     below says it or it would only repeat the title or the eyebrow. */
+  const topicTitle = recordingTopic(rep, poolHere());
+  const name = recordingName(rep);
+  const practisedLine =
+    lesson || name === topicTitle || name === "Recording" || name === "Boss" ? null : name;
 
   return (
     /* The tab bar stays on this page, Log lit (#442): the foot clears it. */
     <main className="px-5 pb-[var(--nav-clear)] pt-7">
       {/* log-3: the screen names the recording the Log row named, with
           the date over it, and its way back stays in the bar from the
-          transcript down. One idea per eyebrow: a boss says so after a
-          comma, never a middot. */}
+          transcript down. Since #506 the row names what was talked
+          about, so the page does too (a tap lands on the thing tapped);
+          what it was practising is the line under it, or the lesson's
+          own row below for a lesson's practice. One idea per eyebrow: a
+          boss says so after a comma, never a middot. */}
       <ScreenHeader
         eyebrow={rep.mode === "boss" ? `${date}, boss` : date}
-        title={recordingName(rep)}
+        title={topicTitle}
+        subtitle={practisedLine ?? undefined}
         back={back}
       />
 

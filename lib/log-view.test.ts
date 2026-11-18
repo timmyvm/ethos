@@ -110,11 +110,18 @@ describe("the switch on the Log", () => {
     expect(control).toContain('className="mt-2 -mb-2" data-look="log-switch"');
   });
 
-  it("puts Games in its own file and leaves Daily's rows where they were", () => {
+  it("puts Games in its own file, and both sides draw the same row (#506)", () => {
     expect(page).toContain('if (view === "games")');
     expect(page).toContain("<GamesLog />");
-    expect(page).toContain("Every recording");
-    expect(page).toContain("What moved");
+    // Daily: the stage and one list (What moved and its tables went).
+    expect(page).toContain("<LogStage");
+    expect(page).toContain("<LogRow");
+    expect(page).not.toMatch(/movedRows|MetricRow|Sparkline|FillerHeatmap/);
+    expect(readFileSync("components/log/GamesLog.tsx", "utf8")).toContain("<LogRow");
+    // No caps column heads on either side.
+    for (const f of ["app/history/page.tsx", "components/log/GamesLog.tsx", "components/log/LogRow.tsx"]) {
+      expect(readFileSync(f, "utf8"), f).not.toMatch(/label-micro/);
+    }
   });
 });
 

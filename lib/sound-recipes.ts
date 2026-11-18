@@ -539,7 +539,7 @@ export function xpTicksOwed(today: number, day: string, heard: { day: string; xp
   return today > heard.xp;
 }
 
-/** A Hostile round is won when the claim held: "Held the claim" at the Strong band (70, `LEVEL_AT`). */
+/** A Hostile round is won when the claim held: "Held the claim" at the Strong band (70, `STRONG_AT`). */
 export const HOSTILE_WIN_AT = 70;
 export function hostileWon(held: number | null | undefined): boolean {
   return typeof held === "number" && held >= HOSTILE_WIN_AT;

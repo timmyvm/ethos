@@ -141,19 +141,28 @@ for (const theme of ["light", "dark"]) {
   const door = await page.evaluate(audit);
   ok("the room's door: no round corner meets a continuous one", door.clashes.length === 0, door.clashes.slice(0, 3).join(" | "));
   ok("the room's door: its hold is still round", door.pills.length === 0, door.pills.slice(0, 4).join(" | "));
-  /* The beat (step 7: the room, six questions, then the beat) stands
-     Demos on the walk's stage. `walk: 2` is today's walk (lib/answers.ts):
-     a step with no mark is read as the old walk's, two screens later. */
+  /* The account ask stands Demos on the walk's sky stage, the one
+     `.intro-stage` the walk still draws since #501 cut the beat. A stored
+     step never resumes on the ask (the plan comes back instead), so the
+     walk is seeded on the plan, step 6 of layout 3 (lib/answers.ts
+     `WALK_LAYOUT`: the room, five questions, the plan, the ask), and its
+     Next taken. A step marked 2 is read in the old layout: 7 there was
+     the beat and now lands on the hour question, which has no stage. */
   await page.evaluate(() =>
-    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false, walk: 2 }))
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: { name: "Tim", pains: [] }, step: 6, done: false, synced: false, walk: 3 }))
   );
   await page.reload();
+  await page.getByRole("button", { name: "Next", exact: true }).click({ timeout: 20000 }).catch(() => {});
   await page.waitForSelector("main .intro-stage", { timeout: 20000 }).catch(() => {});
   await sleep(1200);
   const res = await page.evaluate(audit);
   ok("the introduction: no round corner meets a continuous one", res.clashes.length === 0, res.clashes.slice(0, 3).join(" | "));
   ok("the introduction: every pill and circle is still round", res.pills.length === 0, res.pills.slice(0, 4).join(" | "));
-  ok("the introduction's stage is drawn continuous", await page.evaluate(() => getComputedStyle(document.querySelector(".intro-stage")).cornerTopLeftShape !== "superellipse(1)"));
+  const stage = await page.evaluate(() => {
+    const el = document.querySelector("main .intro-stage");
+    return el ? getComputedStyle(el).cornerTopLeftShape : null;
+  });
+  ok("the introduction's stage is drawn continuous", stage !== null && stage !== "superellipse(1)", stage ?? "no .intro-stage on the account ask");
   await context.close();
 }
 

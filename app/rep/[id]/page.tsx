@@ -279,7 +279,7 @@ export default function RepDetail({
   const topicTitle = recordingTopic(rep, poolHere());
   const name = recordingName(rep);
   const practisedLine =
-    lesson || name === topicTitle || name === "Recording" || name === "Boss" ? null : name;
+    lesson || name === topicTitle || name === "Recording" ? null : name;
 
   return (
     /* The tab bar stays on this page, Log lit (#442): the foot clears it. */

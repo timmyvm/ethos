@@ -85,8 +85,10 @@ await page.waitForURL(/you/);
 ok("coming back out pushes from the left", (await pushClass()).includes("push-left"), await pushClass());
 
 // ---- 2. Lists mount with a stagger ---------------------------------------
-await page.goto(`${BASE}/`);
-await page.waitForSelector("main");
+/* On Lessons: each trait's lessons are a .stagger of three rows. Today
+   held the first .stagger (its tiles) until #500 made it one card. */
+await page.goto(`${BASE}/lessons`);
+await page.waitForSelector("main .stagger > *");
 await sleep(900);
 const delays = await page.evaluate(() => {
   const list = document.querySelector(".stagger");
@@ -201,8 +203,8 @@ await context.addInitScript(() => {
     JSON.stringify({ ...prefs, reducedMotion: true })
   );
 });
-await page.goto(`${BASE}/`);
-await page.waitForSelector("main");
+await page.goto(`${BASE}/lessons`);
+await page.waitForSelector("main .stagger > *");
 await sleep(500);
 const calm = await page.evaluate(() => {
   const list = document.querySelector(".stagger");

@@ -621,8 +621,9 @@ export function playsOnAfterSheet(
  * the cue come with shorter forms they are tried before anything goes:
  * the short line (its number, no chip), then the short cue (no
  * "Tomorrow:"), then both, each with the earned line whole and then with
- * its tail cut. Only then the cue goes, as before. `short` says the
- * line's short form was used.
+ * its tail cut. Only then the cue goes, as before, and the line keeps its
+ * long form only where the earned line still fits beside it. `short` says
+ * the line's short form was used.
  */
 export function fitGlance(
   p: {
@@ -649,11 +650,18 @@ export function fitGlance(
     if (p.lineShort) forms.push([p.lineShort, p.cue, true]);
     if (p.cueShort) forms.push([p.line, p.cueShort, false]);
     if (p.lineShort && p.cueShort) forms.push([p.lineShort, p.cueShort, true]);
-    for (const earned of earnedForms) {
-      for (const [line, cue, short] of forms) {
-        const words = total(line, cue, earned);
-        if (words <= budget) return { cue, earned, words, short };
-      }
+    /* Any other earned line keeps #477's order: the line and the cue
+       shorten before its tail goes. A level-up gives up its words before
+       the line or the cue gives up any (#498): its forms are tried inside
+       each of theirs, so "Pace: level 3" is tried before the line loses
+       its chip or the cue its "Tomorrow:" (the 18 Nov merge: "Pace
+       reached level 3" had kept its word while both of theirs went). */
+    const tries: [string | null, [string, string | null, boolean]][] = p.earned?.levelUp
+      ? forms.flatMap((f) => earnedForms.map((e): [string | null, [string, string | null, boolean]] => [e, f]))
+      : earnedForms.flatMap((e) => forms.map((f): [string | null, [string, string | null, boolean]] => [e, f]));
+    for (const [earned, [line, cue, short]] of tries) {
+      const words = total(line, cue, earned);
+      if (words <= budget) return { cue, earned, words, short };
     }
   }
   let cue = p.cue;
@@ -662,8 +670,19 @@ export function fitGlance(
     if (earned !== undefined) return { cue, earned, words: total(p.line, cue, earned), short: false };
   }
   if (total(p.line, cue, earnedForms[0]) > budget) cue = null;
-  const earned = earnedForms.find((e) => total(p.line, cue, e) <= budget) ?? earnedForms[earnedForms.length - 1];
-  return { cue, earned, words: total(p.line, cue, earned), short: false };
+  /* With the cue gone, the line's short form is tried too before the
+     earned line is held over the ceiling: a level-up keeps a form
+     whatever the room (#498), and beside the long line its shortest
+     could pass the ceiling where the short line fitted (the 18 Nov
+     merge's review). Where nothing fits, the fewest words. */
+  const lines: [string, boolean][] = cue === null && p.lineShort ? [[p.line, false], [p.lineShort, true]] : [[p.line, false]];
+  for (const [line, short] of lines) {
+    const earned = earnedForms.find((e) => total(line, cue, e) <= budget);
+    if (earned !== undefined) return { cue, earned, words: total(line, cue, earned), short };
+  }
+  const [line, short] = lines[lines.length - 1];
+  const earned = earnedForms[earnedForms.length - 1];
+  return { cue, earned, words: total(line, cue, earned), short };
 }
 
 /**

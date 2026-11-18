@@ -248,7 +248,7 @@ describe("Today's materials", () => {
     expect(block(".home-fig-label")).toContain("color: var(--color-stone-600);");
   });
 
-  it("what is earned is sage: the cleared line's check, the run's wave, the Cold Topic done this week", () => {
+  it("what is earned is sage: the cleared line's check, the run's wave, the Weekly boss done this week", () => {
     expect(block('.home-fig-mark[data-mark="check"],\n.home-fig-mark[data-mark="wave"]')).toContain("var(--color-sage-600)");
     expect(css).toContain(':root[data-theme="dark"] .home-fig-mark[data-mark="wave"] {\n  color: var(--color-sage-700);');
     expect(block(".home-mode-line[data-done]")).toContain("var(--color-sage-700)");

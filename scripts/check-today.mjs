@@ -14,10 +14,12 @@
  *    left with as many pips lit, or when the next opens; Read it, explain
  *    it, or Done this week); at 390 and 430 both stand on the first
  *    screen, clear of the nav. The Cold Topic's back names Today and
- *    returns there. Nothing moves when they land (#478 review): the
- *    server's paint, which has no clock, stands the rows, their names and
- *    their lines where they land, and every claim and every week's topic
- *    fits the two lines held, unclipped, at 320, 349 and 390.
+ *    returns there. Each row's name, subject and line hold together,
+ *    nearer each other than the row above (#500 review). Nothing moves
+ *    when they land (#478 review): the server's paint, which has no
+ *    clock, stands the rows, their names, marks and chevrons where they
+ *    land, its subject and line still blank, and every claim and every
+ *    week's topic fits the two lines held, unclipped, at 320, 349 and 390.
  * 3. The tactic in two lines. At 320 every tactic label the card can
  *    show (lib/tip-labels.ts) holds two lines in the card's words. The
  *    card shows the tactic once the day is spoken ("One more", #431),
@@ -35,12 +37,15 @@
  *    a day spoken, the games end at 734 (the `--rows-end` the foot's CSS
  *    reads), over the bar from 390 wide, and the foot either clears the
  *    bar or starts under the screen's foot: never under the glass at rest.
+ *    Again with each phone's status bar inset (#500 review): the games
+ *    end that much lower and the foot still never stands under the glass.
  * 6. The foot says what it is: two figures, today's line and the longest
  *    stretch with no filler, each a number with what it counts and a
  *    line in plain words; a first-day account has no foot and no zero.
  * 7. Both of the card's taps, Start and Another topic, stand clear of
  *    the tab bar at 320x568, 375x667 and 320x692 (#500: Another topic
- *    stood under the bar at 320x568).
+ *    stood under the bar at 320x568), and at 320x568 and 375x667 under
+ *    an installed SE's 20px status bar.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -174,6 +179,13 @@ for (const theme of ["light", "dark"]) {
             toned: name ? getComputedStyle(name).color === tone : false,
             subject: a.querySelector(".home-mode-subject")?.textContent.trim() ?? "",
             line: a.querySelector(".home-mode-line")?.textContent.trim() ?? "",
+            /* The words' inner gaps: name to subject, subject to line. */
+            nameEnd: name?.getBoundingClientRect().bottom ?? 0,
+            subjectTop: a.querySelector(".home-mode-subject > span")?.getBoundingClientRect().top ?? 0,
+            subjectEnd: a.querySelector(".home-mode-subject > span")?.getBoundingClientRect().bottom ?? 0,
+            lineTop: a.querySelector(".home-mode-line")?.getBoundingClientRect().top ?? 0,
+            lineEnd: a.querySelector(".home-mode-line")?.getBoundingClientRect().bottom ?? 0,
+            nameTop: name?.getBoundingClientRect().top ?? 0,
             pips: a.querySelectorAll(".home-pip").length,
             lit: a.querySelectorAll(".home-pip[data-on]").length,
             label: a.getAttribute("aria-label") ?? "",
@@ -208,6 +220,16 @@ for (const theme of ["light", "dark"]) {
         h.label.startsWith("Hostile Q&A.") && h.label.includes(h.subject) &&
         b.label.startsWith("Cold Topic.") && b.label.includes(b.subject),
       `"${h?.name}" "${h?.subject}" / "${h?.line}" ${h?.lit}/${h?.pips}; "${b?.name}" "${b?.subject}" / "${b?.line}"`
+    );
+    /* Proximity (#500 review): a row's name sits on its subject and its
+       line under it, nearer each other than the row above is, whatever
+       the subject's length. A one-line topic centred in two held lines
+       stood "Cold Topic" as far from its topic as from Hostile's line. */
+    const inner = (t) => Math.max(t.subjectTop - t.nameEnd, t.lineTop - t.subjectEnd);
+    ok(
+      `${theme} ${width}: each row's name, subject and line hold together, closer than the row above`,
+      modes.rows.length === 2 && inner(h) <= 4 && inner(b) <= 4 && b.nameTop - h.lineEnd >= inner(h) + 8,
+      `inner ${inner(h).toFixed(1)} / ${inner(b).toFixed(1)}, between rows ${(b.nameTop - h.lineEnd).toFixed(1)}`
     );
     if (width >= 390) {
       ok(
@@ -248,13 +270,20 @@ for (const theme of ["light", "dark"]) {
     hostile: [...readFileSync(new URL("../lib/hostile.ts", import.meta.url), "utf8").matchAll(/claim: "([^"]+)"/g)].map((m) => m[1]),
     boss: [...readFileSync(new URL("../lib/cold-topics.ts", import.meta.url), "utf8").matchAll(/title: "([^"]+)"/g)].map((m) => m[1]),
   };
+  /* What the server's paint shows: the row, its name, its mark and its
+     chevron, which must stand where they land. Its subject and line are
+     no-break spaces there (no clock), so they find their place unseen. */
   const measure = () => ({
     rows: [...document.querySelectorAll("main a.home-mode")].map((a) => {
       const r = a.getBoundingClientRect();
       const name = a.querySelector(".home-mode-name").getBoundingClientRect();
-      const line = a.querySelector(".home-mode-line").getBoundingClientRect();
-      return [Math.round(r.top), Math.round(r.height), Math.round(name.top), Math.round(line.top)];
+      const art = a.querySelector(".home-mode-art").getBoundingClientRect();
+      const chevron = a.querySelector(":scope > svg:last-child").getBoundingClientRect();
+      return [Math.round(r.top), Math.round(r.height), Math.round(name.top), Math.round(art.top), Math.round(chevron.top)];
     }),
+    unseen: [...document.querySelectorAll("main a.home-mode")].every(
+      (a) => a.querySelector(".home-mode-subject").textContent.trim() === "" && a.querySelector(".home-mode-line").textContent.trim() === ""
+    ),
   });
   for (const width of [320, 349, 390]) {
     const paint = await browser.newContext({
@@ -289,8 +318,8 @@ for (const theme of ["light", "dark"]) {
     }, subjects);
     const same = (x, y) => x.length === y.length && x.every((r, i) => r.every((v, j) => Math.abs(v - y[i][j]) <= 1));
     ok(
-      `${width}: the rows, their names and their lines stand at the server's paint as they land, and every claim and topic fits two lines`,
-      before.rows.length === 2 && same(before.rows, after.rows) && fits.length === 0,
+      `${width}: the rows, their names, marks and chevrons stand at the server's paint as they land, its subject and line unseen until then, and every claim and topic fits two lines`,
+      before.rows.length === 2 && before.unseen && same(before.rows, after.rows) && fits.length === 0,
       `paint ${JSON.stringify(before.rows)}, landed ${JSON.stringify(after.rows)}${fits.length ? `, broke on ${fits.slice(0, 3).join("; ")}` : ""}`
     );
     await context.close();
@@ -410,11 +439,16 @@ for (const [theme, spoken] of [
 testerMode.today = false;
 
 // 5: the foot against the tab bar, on six iPhones' first screens (#500).
-for (const spoke of [false, true]) {
+/* Each phone's status bar inset where the page is given one (#500
+   review): the header starts under it, so everything under it ends that
+   much lower, and the foot has to know. 0 is the camera's own view. */
+const NOTCH = { 375: 50, 390: 47, 393: 59, 402: 62, 430: 59, 440: 62 };
+for (const [spoke, notched] of [[false, false], [true, false], [false, true]]) {
   extraReps.length = 0;
   if (spoke) extraReps.push({ ...TODAY_REP });
   const out = [];
   for (const [width, height] of [[375, 812], [390, 844], [393, 852], [402, 874], [430, 932], [440, 956]]) {
+    const top = notched ? NOTCH[width] : 0;
     const context = await browser.newContext({
       viewport: { width, height },
       deviceScaleFactor: 1,
@@ -428,7 +462,7 @@ for (const spoke of [false, true]) {
     await context.addInitScript(seed, { theme: "light", session });
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
-    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 0, bottom: 34, left: 0, right: 0 } });
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top, bottom: 34, left: 0, right: 0 } });
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .home-foot", { timeout: 20000 });
     await page.waitForFunction(() => document.querySelectorAll(".skeleton").length === 0, null, { timeout: 15000 }).catch(() => {});
@@ -441,18 +475,26 @@ for (const spoke of [false, true]) {
     });
     const clear = at.bottom <= at.barTop;
     const below = at.top >= at.screen - 0.5;
-    out.push({ phone: `${width}x${height}`, clear, below, rowsEnd: Math.round(at.rowsEnd), rowsClear: at.rowsEnd <= at.barTop, at });
+    out.push({ phone: `${width}x${height}`, top, clear, below, rowsEnd: Math.round(at.rowsEnd), rowsClear: at.rowsEnd <= at.barTop, at });
   }
+  const day = `${spoke ? "spoken" : "open"} day${notched ? ", status bar inset" : ""}`;
   ok(
-    `${spoke ? "spoken" : "open"} day: on six iPhones the games end at 734 and the foot clears the tab bar or starts under the screen's foot, never under the glass`,
-    out.every((o) => (o.clear || o.below) && Math.abs(o.rowsEnd - 734) <= 1),
-    out.map((o) => `${o.phone} ${o.clear ? "clear" : o.below ? "below" : "UNDER GLASS"} rows ${o.rowsEnd}`).join(", ")
+    `${day}: on six iPhones the games end at 734 under the inset and the foot clears the tab bar or starts under the screen's foot, never under the glass`,
+    out.every((o) => (o.clear || o.below) && Math.abs(o.rowsEnd - 734 - o.top) <= 1),
+    out.map((o) => `${o.phone}+${o.top} ${o.clear ? "clear" : o.below ? "below" : "UNDER GLASS"} rows ${o.rowsEnd}`).join(", ")
   );
+  /* With the status bar's inset the rows end 47 to 62 lower, and from
+     390 to 402 the Cold Topic's row then stands under the bar at rest:
+     printed, and open in the #500 review. */
+  if (notched) {
+    console.log(`  (with the inset: ${out.map((o) => `${o.phone} rows ${o.rowsEnd} bar ${Math.round(o.at.barTop)}`).join(", ")})`);
+    continue;
+  }
   /* From 390 wide the whole job is on the first screen, clear of the
      bar. 375x812 (the minis) stands its bar at 714, so the Cold Topic's
      last line runs under it like any list: printed, and open in #500. */
   ok(
-    `${spoke ? "spoken" : "open"} day: from 390 wide both games end over the tab bar`,
+    `${day}: from 390 wide both games end over the tab bar`,
     out.filter((o) => !o.phone.startsWith("375")).every((o) => o.rowsClear),
     out.map((o) => `${o.phone} rows ${o.rowsEnd} bar ${Math.round(o.at.barTop)}`).join(", ")
   );
@@ -492,7 +534,9 @@ extraReps.length = 0;
 
 // 7: on a short screen both of the card's taps stand clear of the tab bar (#500).
 {
-  for (const [width, height, inset] of [[320, 568, 0], [375, 667, 0], [320, 692, 34]]) {
+  /* [width, height, bottom inset, top inset]: an SE installed gives the
+     page its 20px status bar (#500 review). */
+  for (const [width, height, inset, top] of [[320, 568, 0, 0], [375, 667, 0, 0], [320, 692, 34, 0], [320, 568, 0, 20], [375, 667, 0, 20]]) {
     const context = await browser.newContext({
       viewport: { width, height },
       deviceScaleFactor: 1,
@@ -506,7 +550,7 @@ extraReps.length = 0;
     await context.addInitScript(seed, { theme: "light", session });
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
-    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top: 0, bottom: inset, left: 0, right: 0 } });
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top, bottom: inset, left: 0, right: 0 } });
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .home-another", { timeout: 20000 });
     await sleep(600);
@@ -516,8 +560,10 @@ extraReps.length = 0;
       bar: document.querySelector("nav .nav-glass").getBoundingClientRect().top,
     }));
     ok(
-      `${width}x${height}: Start and Another topic both stand clear of the tab bar`,
-      at.start <= at.bar && at.another <= at.bar,
+      `${width}x${height}${top ? ` under a ${top}px status bar` : ""}: Start and Another topic both stand clear of the tab bar`,
+      /* 4 clear at least: the card's sum aims at 8, and a tap flush on
+         the glass's edge reads as under it. */
+      at.start <= at.bar - 4 && at.another <= at.bar - 4,
       `Start ends ${Math.round(at.start)}, Another topic ${Math.round(at.another)}, bar ${Math.round(at.bar)}`
     );
     await context.close();

@@ -159,6 +159,22 @@ describe("POST /api/say", () => {
     expect(error).not.toMatch(/whisper|api|server/i);
   });
 
+  it("takes a 15 second line as each phone records it, at the size it comes to (the final pass's review)", async () => {
+    /* lib/speech-recorder.ts makes every line: WebM Opus at 32 kbps where
+       the browser has it, else the browser's own format. Sizes are what
+       ffmpeg wrote for 15 s of speech-band noise: Opus at 32 kbps 57,828
+       bytes; AAC in MP4 at 128 kbps 244,080, and at 256 kbps stereo
+       487,737, the most a Safari that ignores the bitrate could send. */
+    const phones = [
+      { type: "audio/webm;codecs=opus", bytes: 57_828 }, // Chrome, Edge, Android, Safari 18.4 and later
+      { type: "audio/mp4", bytes: 244_080 }, // Safari before 18.4
+      { type: "audio/mp4;codecs=mp4a.40.2", bytes: 487_737 },
+      { type: "audio/ogg;codecs=opus", bytes: 57_828 }, // Firefox
+    ];
+    for (const p of phones) expect((await line(p)).status, p.type).toBe(200);
+    expect(h.transcribed).toBe(phones.length);
+  });
+
   it("stores nothing: no recording, no XP, no streak, nothing the count could read", async () => {
     await line();
     await line({ token: "guest" });

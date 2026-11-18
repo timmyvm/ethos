@@ -226,9 +226,11 @@ describe("Today's materials", () => {
     expect(rules).not.toMatch(/\.home-tile-glow|\.home-tile-art/);
     expect(rules).not.toMatch(/\.home-tile[^{}]*\{[^}]*(?:drop-shadow|radial-gradient)/);
     expect(block("\n.home-tile")).not.toMatch(/--tone/);
-    // And the two beside the card are flat too: no shadow, no gradient, no object.
+    // And the two beside the card are flat too: no shadow, no gradient, no
+    // standing object. Each name wears its mode's 3D mark at its side
+    // (#503), the size the chip's flame is, held in lib/stat-icons.test.ts.
     const modes = src("components/home/ModeTiles.tsx");
-    expect(modes).not.toMatch(/<img|elev-|shadow|glow/);
+    expect(modes).not.toMatch(/<img|objectSrc|elev-|shadow|glow/);
     expect(block(".home-mode")).not.toMatch(/shadow|gradient|filter/);
   });
 

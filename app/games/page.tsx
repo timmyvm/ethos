@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  IconBoss,
   IconBubble,
   IconGauge,
   IconCase,
@@ -96,7 +95,9 @@ const GLYPH: Record<string, (size: number) => ReactNode> = {
   /* The case, not the mic: the mic is Practice's own tab mark (D17),
      so on this screen it means Practice and nothing else. */
   interview: (s) => <IconCase size={s} />,
-  hostile: (s) => <IconBoss size={s} />,
+  /* Hostile's 3D mark (#503), the one Today's tile wears: a mode with no
+     ladder, so the same object marks it wherever it is a door. */
+  hostile: (s) => <StatIcon kind="hostile" size={s} />,
 };
 
 /** Demos on the boss stage, px: the stage's art at the house size. */

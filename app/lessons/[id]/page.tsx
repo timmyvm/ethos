@@ -172,13 +172,14 @@ export default function LessonPage() {
             className="absolute inset-0 flex items-center justify-center pb-6 [container-type:size]"
           >
             <span className="lesson-art relative block aspect-square w-[clamp(120px,calc(100cqh-16px),176px)] shrink-0">
-              {/* The glass object alone, standing in the room (the fix
-                  round): the render's own square was a full-strength
+              {/* The lesson's object alone, standing in the room (the
+                  fix round): a render's own square was a full-strength
                   tile of tone on the stage, the brightest thing one tap
-                  past Lessons. Keyed off its ground
-                  (scripts/key-lesson-art.py); a plain img (#274). The
-                  560 cut (#448): at 176pt a 3x iPhone draws 528px, and
-                  the list's 360 thumbnail was being stretched to it. */}
+                  past Lessons. Cut on a transparent ground
+                  (scripts/cut-lesson-icons.mjs, #503); a plain img
+                  (#274). The 560 cut (#448): at 176pt a 3x iPhone draws
+                  528px, and the list's 360 thumbnail was being
+                  stretched to it. */}
               <img
                 src={objectSrc(lesson.id, true)}
                 alt=""

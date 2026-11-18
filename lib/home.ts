@@ -83,7 +83,7 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
  */
 
 /**
- * The file. The 560 cut (`public/lessons/large/`, scripts/cut-lesson-art.mjs)
+ * The file. The 560 cut (`public/lessons/large/`, scripts/cut-lesson-icons.mjs)
  * for anything drawn over 180px, which the 360 thumbnail cannot hold at 2x.
  */
 export function objectSrc(id: string, large = false): string {

@@ -209,6 +209,21 @@ describe("where the line glyphs went", () => {
     }
   });
 
+  /* #503: Hostile Q&A and the weekly boss wear their 3D marks on Today's
+     two tiles, and Hostile's on Practice's tile, where the shield and the
+     stopwatch stood. The marks stay at a name's side, never a standing
+     object (#478: only the card stands one). */
+  it("Today's two tiles and Practice's Hostile tile wear the modes' 3D marks, at a name's size", () => {
+    const tiles = read("components/home/ModeTiles.tsx");
+    expect(tiles).not.toMatch(/\bIcon(Boss|Stopwatch)\b/);
+    expect(tiles).toMatch(/<StatIcon kind="hostile" size=\{MARK\} \/>/);
+    expect(tiles).toMatch(/<StatIcon kind="boss" size=\{MARK\} \/>/);
+    expect(Number(tiles.match(/const MARK = (\d+);/)![1])).toBeLessThanOrEqual(24);
+    const practice = read("app/games/page.tsx");
+    expect(practice).toMatch(/hostile: \(s\) => <StatIcon kind="hostile" size=\{s\} \/>/);
+    expect(practice).not.toMatch(/\bIconBoss\b/);
+  });
+
   it("the line cup is gone from the set; nothing draws it", () => {
     expect(read("components/Icon.tsx")).not.toMatch(/export function IconTrophy/);
   });

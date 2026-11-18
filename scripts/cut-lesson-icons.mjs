@@ -127,7 +127,7 @@ async function measure(name) {
   return { name, data, w, h, box: { left: x0, top: y0, width: bw, height: bh }, side, fill: mass / (side * side) };
 }
 
-/** The visible box of a written file, as fractions of its square (measure-lesson-art.py's rule). */
+/** The visible box of a written file, as fractions of its square: alpha over SEEN, the rule Today's card was laid out by. */
 async function bounds(file) {
   const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const { width: w, height: h } = info;

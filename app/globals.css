@@ -3288,11 +3288,11 @@ summary::-webkit-details-marker {
 .practice-stage .disclosure-mark {
   color: var(--stage-ink);
 }
-/* A lesson's picture off a stage: the glass object (keyed off its ground,
-   scripts/key-lesson-art.py) on the one tile every lesson shares, the
-   surface step, so the fifteen read as one set and the only colour is
-   each object's own pastel. On a stage it has no tile and stands in the
-   studio light (LessonArt's `stage`). */
+/* A lesson's picture off a stage: the lesson's 3D object (#503, cut on a
+   transparent ground by scripts/cut-lesson-icons.mjs) on the one tile
+   every lesson shares, the surface step, so the fifteen read as one set
+   and the only colour is each object's own. On a stage it has no tile
+   and stands in the studio light (LessonArt's `stage`). */
 .lesson-tile {
   background: var(--color-surface);
 }
@@ -6313,13 +6313,10 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-mode {
   background: color-mix(in srgb, var(--tone-wash) 45%, var(--color-surface));
 }
+/* The mode's 3D mark (#503, StatIcon): its own colours, no ink. */
 .home-mode-glyph {
   display: inline-flex;
   flex-shrink: 0;
-  color: var(--tone-ink);
-}
-.home-mode-glyph > svg {
-  stroke-width: 2.85;
 }
 /* What it is about now: the claim of the day, the week's topic, at the
    body size in the heavy face, four lines at most (the longest claim

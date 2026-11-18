@@ -2,25 +2,32 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { IconBoss, IconStopwatch } from "@/components/Icon";
+import { StatIcon } from "@/components/StatIcon";
 import type { ModeTile } from "@/lib/home-modes";
 
 /*
  * Hostile Q&A and this week's boss on Today (#478, docs/plan-next.md
  * section 10: "the bike in the room"): two equal tiles side by side under
- * the practice card, each one tap away. Flat: no object, no glow, no
- * shadow (section 1, only the thing to do today glows); their colour is
- * a pale ground of their picture tone and the glyph's ink, and each says
- * one thing worth coming back for (lib/home-modes.ts). The words are
- * what lib/home-modes.ts returns; until the clock is read the subject
- * holds its lines unseen and the line a no-break space, so nothing under
- * the tiles moves when they land.
+ * the practice card, each one tap away. Flat: no glow, no shadow
+ * (section 1, only the thing to do today glows); their colour is a pale
+ * ground of their picture tone, and each says one thing worth coming
+ * back for (lib/home-modes.ts). Since #503 each name wears its mode's 3D
+ * mark from the stat icons' family (Timothy, 18 Nov: Hostile and the
+ * cold topic "doesn't look that good"), a mark at the name's side as the
+ * streak chip's flame is, never an object standing on the tile. The
+ * words are what lib/home-modes.ts returns; until the clock is read the
+ * subject holds its lines unseen and the line a no-break space, so
+ * nothing under the tiles moves when they land.
  */
+
+/** The mark's side, px: a touch over the name's 17px line, as the chip's flame stands to its count. */
+const MARK = 24;
+
 const LOOK: Record<ModeTile["id"], { tone: string; glyph: ReactNode }> = {
-  /* The shield, Hostile's mark on Practice; coral, the argument's heat. */
-  hostile: { tone: "tone-coral", glyph: <IconBoss size={18} /> },
-  /* The stopwatch, the boss is timed; sky, as Practice's stage wears it. */
-  boss: { tone: "tone-sky", glyph: <IconStopwatch size={18} /> },
+  /* A coral bubble struck by a bolt: a claim argued under fire. */
+  hostile: { tone: "tone-coral", glyph: <StatIcon kind="hostile" size={MARK} /> },
+  /* A sky mountain with its pennant: the week's big climb. */
+  boss: { tone: "tone-sky", glyph: <StatIcon kind="boss" size={MARK} /> },
 };
 
 export function ModeTiles({ tiles }: { tiles: readonly ModeTile[] }) {
@@ -34,7 +41,7 @@ export function ModeTiles({ tiles }: { tiles: readonly ModeTile[] }) {
           data-mode={t.id}
           className={`home-mode ${LOOK[t.id].tone} press`}
         >
-          <span aria-hidden className="font-display flex min-h-[22px] items-center gap-1.5 text-row">
+          <span aria-hidden className="font-display flex min-h-6 items-center gap-2 text-row">
             <span className="home-mode-glyph">{LOOK[t.id].glyph}</span>
             {t.name}
           </span>

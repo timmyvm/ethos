@@ -69,15 +69,21 @@ export type Tone = "sun" | "sky" | "coral" | "mint";
 
 /**
  * His file at a scale that fits where he stands (#412). The set is cut at
- * 1024 for the big stages (280pt on a 3x phone wants 840) and again at
- * 512 in /demos-512 for every place he stands 170pt or less, where the
- * 1024 file was four times the pixels the phone had to decode and hold.
+ * 1024 for the big stages (280pt on a 3x phone wants 840), at 512 in
+ * /demos-512 for every place he stands 170pt or less, where the 1024 file
+ * was four times the pixels the phone had to decode and hold, and at 768
+ * in /demos-768 (#508, scripts/cut-pose-768.mjs) for 171 to 256pt, the
+ * boss's stage and every DemosArt at its 180 default: what a 3x phone
+ * draws there, at about 55 KB a pose against 100.
  */
 export const SMALL_POSE_MAX = 170;
+export const MID_POSE_MAX = 256;
 export const poseSrc = (pose: Pose, size?: number) =>
   size !== undefined && size <= SMALL_POSE_MAX
     ? `/demos-512/demos-onboard-${pose}.webp`
-    : `/demos-onboard-${pose}.webp`;
+    : (size ?? 180) <= MID_POSE_MAX
+      ? `/demos-768/demos-onboard-${pose}.webp`
+      : `/demos-onboard-${pose}.webp`;
 
 /**
  * Warm the next screen's pose while this one is being read (#288), so

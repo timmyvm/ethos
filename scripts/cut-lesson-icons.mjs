@@ -53,7 +53,14 @@ const SRC = "assets/lessons-3d/";
 const SIZES = [
   { size: 360, out: "public/lessons/" },
   { size: 560, out: "public/lessons/large/" },
+  /* Today's card on a 3x phone (#508, the speed audit's fix 21): its
+     object stands up to 260pt, which wants 780 pixels; the card asks for
+     this cut at 3x and the 560 cut below that (components/home/HomeHero.tsx). */
+  { size: 720, out: "public/lessons/hero/" },
 ];
+/* `ONLY=720 node scripts/cut-lesson-icons.mjs` cuts one size and leaves
+   the others, and lib/lesson-art-bounds.ts, as they are. */
+const ONLY = process.env.ONLY ? process.env.ONLY.split(",").map(Number) : null;
 /**
  * Air on each side of the fitted object, as a share of the square. The
  * glass set left about this much (its objects' longest sides averaged
@@ -150,6 +157,7 @@ const cMin = Math.min(...all.map((m) => m.fill));
 const boxes = {};
 
 for (const { size, out } of SIZES) {
+  if (ONLY && !ONLY.includes(size)) continue;
   mkdirSync(out, { recursive: true });
   const inner = size * (1 - 2 * MARGIN);
   for (const m of all) {
@@ -173,6 +181,7 @@ for (const { size, out } of SIZES) {
   }
 }
 
+if (Object.keys(boxes).length === 0) process.exit(0);
 const rows = Object.keys(boxes)
   .sort()
   .map((name) => {

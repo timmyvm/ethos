@@ -65,6 +65,9 @@ import {
   session,
   billingApiRoute,
   resetPlan,
+  SAY_SAVED,
+  sayMode,
+  savedWordsMode,
 } from "./look-fixtures.mjs";
 
 const BASE = process.env.BASE ?? process.env.LOOK_BASE ?? "http://localhost:3123";
@@ -366,6 +369,37 @@ for (const theme of ["light", "dark"]) {
     } catch (e) {
       failed += 1;
       lines.push(`FAIL  ${name} (${theme}): ${String(e.message ?? e).split("\n")[0]}`);
+    }
+  }
+
+  /* Say it better (#507), on its own fixtures: You's first card, the
+     page full, with nothing due, and new, and the test's first line.
+     The fixtures are put back after, for the screens that follow. */
+  const SAY_SCREENS = [
+    ["say-you", "/you", "[data-look='say-card'] .arrive", {}],
+    ["say", "/say", "[data-say-count]", {}],
+    ["say-dry", "/say", "[data-say-dry]", { dry: true }],
+    ["say-new", "/say", "main h1", { empty: true }],
+    ["say-test", "/say/test", "[data-say-sentence]", {}],
+  ];
+  for (const [name, path, ready, mode] of SAY_SCREENS) {
+    if (!want(name)) continue;
+    const kept = { ...sayMode };
+    const keptRows = savedWordsMode.rows;
+    Object.assign(sayMode, { on: true, dry: !!mode.dry, empty: !!mode.empty, table: "ok", written: [] });
+    savedWordsMode.rows = mode.empty ? [] : SAY_SAVED.map((r) => ({ ...r }));
+    try {
+      await page.goto(`${BASE}${path}`);
+      await page.waitForSelector(ready, { timeout: 20000 });
+      await settled(page);
+      await sleep(900);
+      await check(page, name, theme);
+    } catch (e) {
+      failed += 1;
+      lines.push(`FAIL  ${name} (${theme}): ${String(e.message ?? e).split("\n")[0]}`);
+    } finally {
+      Object.assign(sayMode, kept);
+      savedWordsMode.rows = keptRows;
     }
   }
 

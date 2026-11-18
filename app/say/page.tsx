@@ -158,7 +158,12 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
        * and the boomerang standing on it. On a new account the stage
        * takes the free height and Demos stands there instead, once.
        */}
-      <div className={`relative -mx-5 flex flex-col px-5 pt-[env(safe-area-inset-top)] ${empty ? "min-h-[232px] flex-1" : "h-[220px] shrink-0"}`}>
+      <div
+        /* On a new account the stage takes every spare pixel by design
+           (E18, LessonScreen's stageGrows): its room is the stage's. */
+        data-gap-stage={empty ? "" : undefined}
+        className={`relative -mx-5 flex flex-col px-5 pt-[env(safe-area-inset-top)] ${empty ? "min-h-[232px] flex-1" : "h-[220px] shrink-0"}`}
+      >
         <div aria-hidden className="say-stage absolute inset-x-0 bottom-0 -top-96">
           <div className="absolute inset-x-0 -bottom-px h-6 rounded-[50%_50%_0_0/100%_100%_0_0] bg-ground" />
         </div>

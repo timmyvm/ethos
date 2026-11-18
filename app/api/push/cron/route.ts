@@ -42,6 +42,7 @@ import {
 import { lastTake, reminderCopy } from "@/lib/reminder-copy";
 import { todayHrefOn, type PracticeRow } from "@/lib/home";
 import { poolForRow } from "@/lib/pool";
+import { inLanes } from "@/lib/lanes";
 import type { Pool } from "@/content/portfolio";
 
 export const runtime = "nodejs";
@@ -49,6 +50,16 @@ export const maxDuration = 60;
 
 /** At most the server's max_rows, so a full page reliably means "maybe more". */
 const SUB_PAGE = 1000;
+/**
+ * Reminders in flight at once (docs/scale/audit.md DB-4). One at a time,
+ * each one's four reads and its push took about a quarter second, so a
+ * tick served about 240 before the minute ran out, and pg_net gives up on
+ * the call at 30 s: about 1,000 subscriptions in the busiest hour. Sixteen
+ * lanes serve about sixteen times that. Order never mattered: each row's
+ * day is claimed by one atomic update before it is sent, so two lanes, or
+ * two ticks, can never ring the same person twice.
+ */
+const SEND_AT_ONCE = 16;
 
 interface SubRow {
   endpoint: string;
@@ -140,8 +151,10 @@ export async function GET(req: NextRequest) {
     dropped: 0,
   };
 
-  for (const sub of subs) {
-    if (sub.reminder_hour === null) continue;
+  /** One subscription: due or not, practised or not, claimed, sent. Never throws past its catch below. */
+  const serve = async (sub: SubRow): Promise<void> => {
+    if (!db) return;
+    if (sub.reminder_hour === null) return;
     // The zone's offset at this tick, so a daylight-saving change since
     // the device armed moves nothing; the stored offset only for rows
     // that never sent a zone.
@@ -157,8 +170,8 @@ export async function GET(req: NextRequest) {
     // Cheap gates first; the DB check only runs for real candidates.
     // A row saved before the endpoint list (lib/push-endpoint.ts) that is
     // not a push service's is never called.
-    if (!pushEndpointOk(sub.endpoint)) continue;
-    if (!shouldSend(win, false, now)) continue;
+    if (!pushEndpointOk(sub.endpoint)) return;
+    if (!shouldSend(win, false, now)) return;
     report.due++;
 
     // Midnight at the offset in force then, not at this tick: on a day the
@@ -176,11 +189,11 @@ export async function GET(req: NextRequest) {
     if (doneErr) {
       console.error("push cron: done-today check failed", doneErr.message);
       report.unsure++;
-      continue;
+      return;
     }
     if ((count ?? 0) > 0) {
       report.done++; // #143: today is already done.
-      continue;
+      return;
     }
 
     /* Claim the day before sending (#430): the update only lands on a row
@@ -196,11 +209,11 @@ export async function GET(req: NextRequest) {
     if (claimErr) {
       console.error("push cron: claim failed", claimErr.message);
       report.failed++;
-      continue;
+      return;
     }
     if (!claimed || claimed.length === 0) {
       report.taken++;
-      continue;
+      return;
     }
 
     // One number from their own last take for the body (lib/reminder-copy.ts).
@@ -251,7 +264,17 @@ export async function GET(req: NextRequest) {
           .eq("last_sent_on", today);
       }
     }
-  }
+  };
+
+  await inLanes(subs, SEND_AT_ONCE, async (sub) => {
+    try {
+      await serve(sub);
+    } catch (e) {
+      // One row's surprise is that row's: the others still go out.
+      console.error("push cron: a row failed", (e as Error).message);
+      report.failed++;
+    }
+  });
 
   return NextResponse.json({ ok: true, ...report });
 }

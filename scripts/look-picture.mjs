@@ -86,7 +86,7 @@ const SCREEN = {
   you: { path: "/you", ready: '[data-look="you-card"]', part: '[data-look="you-card"]' },
   settings: { path: "/settings", ready: '[data-look="settings-profile"]', part: '[data-look="settings-profile"]' },
   profile: { path: "/settings/profile", ready: "main h1", part: '[data-look="picture-section"], section:has(> h2:text-is("Picture"))' },
-  shop: { path: "/shop", ready: "main .card", part: 'main .card:has-text("mid-sentence")' },
+  shop: { path: "/shop", ready: "main .card", part: 'main .card:has-text("Demos, talking")' },
 };
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });

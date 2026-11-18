@@ -45,9 +45,11 @@
  * has its own inner bands reported as the stage's room; the ground
  * round it is measured as everywhere else.
  *
- * One scene is reported, never failed: the streak's moment (E18; since
- * #480 a screen of its own on the results' way out), settled, a centred
- * moment no judge gave a passing layout for.
+ * The streak's moment (since #480 a screen of its own on the results'
+ * way out) was reported here and never failed (E18), a centred moment
+ * with about 200pt of ground over its flame and over Continue. Since
+ * #496 its flame takes the free height and it is measured like every
+ * other screen.
  *
  * Screens: the five tabs, /boss, the lesson page, the trait page, the unit
  * intro, the Shop, Settings, the paywall, recording idle and live, the
@@ -419,9 +421,10 @@ for (const theme of ["light", "dark"]) {
         await sleep(900);
         await check(page, "rep-sheet", theme, { scope: '[role="dialog"] [data-whole-recording]' });
       }
-      /* The streak's moment on the way out (#480), settled: reported, never
-         failed (E18). Held for its one tap, its first screen and no scroll
-         by scripts/look-streak.mjs. */
+      /* The streak's moment on the way out (#480), settled: since #496 its
+         flame takes the free height, so it is held to 64 like every
+         screen. Held for its one tap, its first screen, no scroll and its
+         bands at three sizes by scripts/look-streak.mjs. */
       if (want("rep-celebration")) {
         const SHEET = '[role="dialog"][aria-label="Every number"]';
         if (await page.locator(SHEET).count()) {
@@ -438,7 +441,7 @@ for (const theme of ["light", "dark"]) {
               } catch {}
             }
           });
-          await check(page, "rep-celebration", theme, { report: "the streak's moment, a centred screen on the way out" });
+          await check(page, "rep-celebration", theme);
         } else lines.push(`note  rep-celebration (${theme}): no streak moment on the way out (today already spoken)`);
       }
     } catch (e) {

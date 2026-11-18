@@ -141,9 +141,14 @@
      translucent trough lands at #e2e2e2, a step under the row. The
      segmented controls only. */
   --color-trough: rgba(32, 30, 29, 0.085);
-  /* Destructive (D39): deleting an account, cancelling a plan. Its own
-     red so terracotta-600 stays Stop's alone. 5.4:1 on white, 4.9:1 on
-     surface. */
+  /* Destructive (D39, named in #496): iOS's own delete red, for the
+     words of a row or confirm whose tap deletes or cancels something
+     kept (Remove photo, Delete my recordings, Delete my account, Cancel
+     plan) and nothing else: never a fill, never a warning (rust is),
+     never Stop. Not rust: in light rust is terracotta-600's #b2432c,
+     Stop's red, so a delete in rust would read as a take running.
+     lib/destructive.test.ts holds where it may stand. 5.4:1 on white,
+     4.9:1 on surface. */
   --color-destructive: #d70015;
 
   /*
@@ -6022,6 +6027,16 @@ summary::-webkit-details-marker {
     0 8px 18px -10px rgb(0 0 0 / 0.3);
   transition: opacity var(--duration-max) var(--ease-out);
 }
+/* The recorder's topic card with no object on it (#496, the morning
+   tour at 320x568: the card dropped its glass object for want of room
+   and kept the lit corner that stands behind it, a pale blotch on the
+   blue): the light goes with the object; the low glow and the fall of
+   the family's colour stay. */
+.family-fill[data-object="none"]::before {
+  background:
+    radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
+    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 76%);
+}
 /* One family per trait. Light: the tone lit at the top falling to its
    ink. Dark: the same hue a step deeper and quieter. White 13px type
    holds 4.5:1 on every top colour in both themes, and the lit corner
@@ -8179,14 +8194,60 @@ html[data-test-tile] .test-tile-slot {
  * component's own (Web Animations, so a frame can be sought); reduced
  * motion draws the end.
  */
-.streak-flame {
+/* The free height goes to the art (#368), and since #496 all of it does
+   (the morning tour: at 390x844 the flame stood at 160 with about 200pt
+   of bare ground over it and again over Continue). The screen is a
+   column: a band over the flame, the flame, the count close under it, a
+   band to the week, the week, a band to Continue. Each band grows to at
+   most 64 of bare ground, counting the air the flame's square holds over
+   its object (5.7% of it) and the shelf's own 16 under the last; the
+   flame's slot takes the rest, from 112 up to 380 (never wider than the
+   screen): about 360 at 390x844 with no insets, nearer 280 on an iPhone
+   once its status bar and home bar take theirs, 220 at 375x667, 150 at
+   320x568. Whatever a tall phone leaves past that splits over and under. */
+.streak-stage {
+  min-height: 0;
+  justify-content: center;
+}
+.streak-gap {
+  display: block;
+  flex: 1 1 0;
+  min-height: 12px;
+  max-height: 64px;
+}
+/* Over the flame: 42, and the square's own air over the object makes 64. */
+.streak-gap[data-gap="top"] {
+  max-height: 42px;
+}
+/* The flame and its count are one figure: a fixed 8, the count's own line
+   box holding the rest of the air over its digits. */
+.streak-gap[data-gap="count"] {
+  flex: 0 0 8px;
+  min-height: 8px;
+}
+.streak-gap[data-gap="week"] {
+  min-height: 24px;
+  max-height: 56px;
+}
+.streak-gap[data-gap="foot"] {
+  min-height: 8px;
+  max-height: 48px;
+}
+.streak-flame-slot {
   position: relative;
-  /* The free height goes to the art (#368): the flame grows with the
-     screen, 160 tall at 390x844, 127 at 375x667, never under 112. Its
-     box is the flame's own (viewBox 5 3 14 16), so the count stands
-     under the flame and not under empty canvas. */
-  height: clamp(112px, 19dvh, 160px);
-  /* #487's 3D flame is drawn on a square, centred at one optical size. */
+  flex: 1 1 112px;
+  width: 100%;
+  min-height: 112px;
+  max-height: min(380px, calc(100vw - 16px));
+}
+.streak-flame {
+  /* #487's 3D flame is drawn on a square, centred at one optical size:
+     the slot's height, centred across it. */
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  translate: -50% 0;
   aspect-ratio: 1 / 1;
 }
 .streak-flame > span {
@@ -8204,6 +8265,18 @@ html[data-test-tile] .test-tile-slot {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--color-ink);
+  /* The count is the event: num-xl's 72 on the shortest phone, growing
+     with the screen to 160 (#496), sized to the screen as Today's topic
+     is (DESIGN principle 3: a hero at display size). Never wider than
+     the column (the screen less px-5's 40): a place is 0.59em of
+     Outfit 800's tabular figures, so 0.6em a place, `--places` of them
+     (the component sets it). A thousand days at 160 stood 378 wide in
+     390x844's 350 column; it sets at 145 and fits. */
+  font-size: clamp(
+    var(--text-num-xl),
+    min(19dvh, calc((100vw - 40px) / (var(--places, 1) * 0.6))),
+    10rem
+  );
 }
 /* One place of the odometer: a clip one line tall, the column inside it
    holding yesterday's digit over today's. */

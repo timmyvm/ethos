@@ -195,7 +195,7 @@ export function rowName(row: PictureRow, letter: string | null): string {
   if (row === PHOTO) return PICTURE_COPY.photo;
   if (row === INITIAL) return letter ? PICTURE_COPY.initial : PICTURE_COPY.none;
   if (row === HELLO) return "Hello";
-  // The Shop's name without "Demos, ": "Mid-sentence", "Celebrating".
+  // The Shop's name without "Demos, ": "Talking", "Celebrating".
   const name = itemById(row)?.name.replace(/^Demos,\s*/, "") ?? row;
   return `${name[0].toUpperCase()}${name.slice(1)}`;
 }

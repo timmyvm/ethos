@@ -91,7 +91,7 @@ export function achievements(reps: RepRow[]): Achievement[] {
     {
       id: "clean",
       name: "Clean run",
-      requirement: 'Say "um" or "like" under 3 times a minute',
+      requirement: "Say “um” or “like” under 3 times a minute",
       earned: cleanest < 3,
       progress:
         cleanest === Infinity ? 0 : Math.min(1, 3 / Math.max(cleanest, 0.01)),

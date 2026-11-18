@@ -100,11 +100,20 @@ async function measure(name) {
   return { name, data, w, h, box: { left: x0, top: y0, width: bw, height: bh }, side, fill: mass / (side * side) };
 }
 
+/**
+ * The one icon drawn large: the streak moment's flame (#480), which
+ * takes the screen's free height since #496, up to 380pt. 192px held it
+ * at 160pt; at 380pt on a 3x phone it would be stretched six times, so
+ * it has its own cut, at the source's own resolution (the flame fills
+ * about 840px of the 1024px render: nothing finer exists to give).
+ */
+const LARGE = { streak: 840 };
+
 const all = await Promise.all(NAMES.map(measure));
 const cMin = Math.min(...all.map((m) => m.fill));
-const inner = SIZE * (1 - 2 * MARGIN);
 
-for (const m of all) {
+async function cut(m, size, file) {
+  const inner = size * (1 - 2 * MARGIN);
   const scale = (inner / m.side) * (cMin / m.fill) ** 0.25 * OPTICAL[m.name];
   const tw = Math.max(1, Math.round(m.box.width * scale));
   const th = Math.max(1, Math.round(m.box.height * scale));
@@ -113,12 +122,16 @@ for (const m of all) {
     .resize(tw, th, { kernel: "lanczos3" })
     .png()
     .toBuffer();
-  const file = `${OUT}${m.name}.webp`;
-  await sharp({ create: { width: SIZE, height: SIZE, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite([{ input: object, left: Math.round((SIZE - tw) / 2), top: Math.round((SIZE - th) / 2) }])
+  await sharp({ create: { width: size, height: size, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: object, left: Math.round((size - tw) / 2), top: Math.round((size - th) / 2) }])
     .webp({ quality: 86, alphaQuality: 90, effort: 6, smartSubsample: true })
     .toFile(file);
   console.log(
-    `${m.name.padEnd(7)} fill ${m.fill.toFixed(3)}  scale ${scale.toFixed(3)}  ${tw}x${th} in ${SIZE}  ${statSync(file).size} bytes`
+    `${m.name.padEnd(7)} fill ${m.fill.toFixed(3)}  scale ${scale.toFixed(3)}  ${tw}x${th} in ${size}  ${statSync(file).size} bytes`
   );
+}
+
+for (const m of all) {
+  await cut(m, SIZE, `${OUT}${m.name}.webp`);
+  if (LARGE[m.name]) await cut(m, LARGE[m.name], `${OUT}${m.name}-large.webp`);
 }

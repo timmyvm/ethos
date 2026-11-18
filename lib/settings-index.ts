@@ -14,6 +14,8 @@ import { DECLINED, PENDING, type PlanKind } from "./plan-view";
 import type { PainId } from "./answers";
 import { MAX_PAINS } from "./answers";
 import { GOALS, PAINS } from "@/content/portfolio";
+import { DOOR_COPY, TEST, TEST_COPY } from "@/content/tester";
+import { testOver } from "./tester";
 
 /** Every page under /settings, in the index's order, with its title. */
 export const SETTINGS_PAGES = [
@@ -56,6 +58,37 @@ export function planWord(kind: PlanKind | null): "Premium" | "Free" | typeof DEC
   if (kind === "pastDue" || kind === "unpaid") return DECLINED;
   if (kind === "incomplete") return PENDING;
   return "Premium";
+}
+
+/** Who this account is to the test: not a tester, a tester, or one on an older consent. */
+export type Testing = "no" | "on" | "renew";
+
+/**
+ * The tester door's row (docs/testers.md), or null where there is no
+ * door to show. A tester keeps the row whatever the clock says, "Day 2
+ * of 14" during the test and "On" after it (collection carries on,
+ * #405, and the row opens on Stop testing, #416); one on an older
+ * consent reads "Agree again". Everyone else was offered "Tester code"
+ * for as long as the test could be joined, and since #496 not after it
+ * ends (`TEST.endsAt`, 00:00 on 16 November in Melbourne): a code for a
+ * test that is over is a door to nothing (the morning tour, 17 Nov).
+ */
+export function testerDoor({
+  testing,
+  day,
+  now = Date.now(),
+}: {
+  testing: Testing;
+  /** The test's day on this phone (lib/tester-days.ts `testDay`), or null before it is read. */
+  day: number | null;
+  now?: Date | number | string;
+}): { label: string; value?: string } | null {
+  if (testing === "renew") return { label: DOOR_COPY.settingsTesting, value: DOOR_COPY.settingsRenew };
+  if (testing === "on") {
+    const during = day !== null && day >= 1 && day <= TEST.days;
+    return { label: DOOR_COPY.settingsTesting, value: during ? TEST_COPY.settingsDay(day) : DOOR_COPY.settingsOn };
+  }
+  return testOver(now) ? null : { label: DOOR_COPY.settingsCode };
 }
 
 /** The theme's row: the word on its segment. */

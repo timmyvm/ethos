@@ -19,6 +19,7 @@ import { Talker, TalkLines } from "@/components/Talk";
 import { TapTick } from "@/components/ui/TapTick";
 import { DOOR_COPY } from "@/content/tester";
 import { setAudioSession } from "@/lib/audio-session";
+import { testOver } from "@/lib/tester";
 import { buzz } from "@/lib/prefs";
 import { askMic, askMotion, openMic, whenVisible, type Ask } from "@/lib/room-media";
 import {
@@ -512,6 +513,11 @@ export function Room({
   );
   const [store] = useState(createTiltStore);
   const recentre = useRoomTilt(store, host, reduced);
+  /* The tester's door, for as long as the test can be joined: a code
+     for a test that is over opens on nothing (#496). The room is drawn
+     only on the phone (app/welcome decides it in an effect), so the
+     phone's clock is the one read. */
+  const [testerDoor] = useState(() => !testOver());
 
   const [stage, setStage] = useState<Stage>("door");
   const [doorFading, setDoorFading] = useState(false);
@@ -862,10 +868,13 @@ export function Room({
                   {ROOM_COPY.signIn}
                 </Link>
                 {/* The tester's door (docs/testers.md): the quietest thing on
-                    the first screen, where it has always been. */}
-                <Link href="/tester?from=welcome" className="room-link">
-                  {DOOR_COPY.welcome}
-                </Link>
+                    the first screen, where it has always been, until the test
+                    is over (#496). */}
+                {testerDoor && (
+                  <Link href="/tester?from=welcome" className="room-link">
+                    {DOOR_COPY.welcome}
+                  </Link>
+                )}
               </>
             )}
           </div>

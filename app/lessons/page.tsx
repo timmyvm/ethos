@@ -12,7 +12,7 @@ import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { readable } from "@/lib/load";
 import { lessonProgress } from "@/lib/lesson-progress";
-import { lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
+import { FOCUS_ASIDE, lastReadings, traitForSaid, upNextLesson } from "@/lib/lesson-up-next";
 import { fmtRaw } from "@/lib/trait-readings";
 import { readOnboarding } from "@/lib/answers";
 import { buildPortfolio } from "@/lib/portfolio";
@@ -166,12 +166,11 @@ export default function LessonsPage() {
                 <span aria-hidden className="trait-dot" />
                 {t.name}
               </h2>
-              {/* Their own words, kept from the road (#231). */}
-              {focus === t.id && (
-                <span className="section-head-aside text-stone-500">
-                  You said {said}
-                </span>
-              )}
+              {/* The trait the introduction's pick points at (#231),
+                  named as Settings names that pick, "Focus" (#496: "You
+                  said fillers" read as a quote nobody remembered saying,
+                  over a head that already says Fillers). */}
+              {focus === t.id && <span className="section-head-aside text-stone-500">{FOCUS_ASIDE}</span>}
             </div>
             <TraitNumber
               trait={t}

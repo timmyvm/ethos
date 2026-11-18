@@ -910,14 +910,11 @@ export default function YouPage() {
                       className={toned ? "trait-dot" : "size-2 shrink-0 rounded-[2px] bg-stone-200"}
                     />
                     {/* 600, not 700: nine equally bold lines read as nine
-                        headings and the section loses its leader (#234). */}
-                    <span
-                      className={`font-display -ml-1 min-w-0 flex-1 truncate text-row font-semibold ${
-                        t.level > 0 ? "" : "text-stone-400"
-                      }`}
-                    >
-                      {name}
-                    </span>
+                        headings and the section loses its leader (#234).
+                        The name is ink at every level (#496): at level 0
+                        it was stone and read as a disabled row beside a
+                        bar with fill; only "Level 0" is quiet. */}
+                    <span className="font-display -ml-1 min-w-0 flex-1 truncate text-row font-semibold">{name}</span>
                     <LevelMeter
                       name={name}
                       level={t.level}
@@ -1296,7 +1293,9 @@ const SWAP_ROW = "flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-1 py-3 te
  * One swap: what you said, struck through, an arrow, and the word you
  * have now as a neutral label (`.you-word`): ink on the surface, so it
  * is neither a tap nor a badge (the cohesion pass; it wore Variety's
- * wash).
+ * wash). The arrow and the upgrade are one unit (#496): where the row
+ * wraps at 320, both go to the next line together, never the arrow
+ * left behind at the end of the first.
  */
 function Swap({ original, upgrade }: { original: string; upgrade: string }) {
   return (
@@ -1305,23 +1304,25 @@ function Swap({ original, upgrade }: { original: string; upgrade: string }) {
         <SwapFrom />
         {original}
       </span>
-      <svg
-        aria-hidden
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="shrink-0 text-stone-400"
-      >
-        <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
-      </svg>
-      <span className="you-word">
-        <SwapTo />
-        {upgrade}
+      <span data-swap-to="" className="flex min-w-0 max-w-full items-center gap-2.5">
+        <svg
+          aria-hidden
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0 text-stone-400"
+        >
+          <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
+        </svg>
+        <span className="you-word min-w-0">
+          <SwapTo />
+          {upgrade}
+        </span>
       </span>
     </>
   );

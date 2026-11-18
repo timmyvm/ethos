@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -56,5 +57,27 @@ describe("LevelMeter", () => {
     expect(html).toContain('data-size="sheet"');
     expect(html).toContain('role="progressbar"');
     expect(html).toContain('style="width:40%"');
+  });
+});
+
+/*
+ * You's trait rows (#496, the morning tour: a level 0 row's name stood
+ * in muted stone and read as a disabled row, though its bar had fill).
+ * The name is ink at every level; only the meter's "Level 0" is quiet.
+ */
+describe("You's trait rows", () => {
+  const you = readFileSync("app/you/page.tsx", "utf8").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const row = you.slice(you.indexOf("const rows = ranked.map("), you.indexOf("<LevelMeter", you.indexOf("const rows = ranked.map(")));
+
+  it("set the trait's name in ink whatever its level", () => {
+    const name = row.match(/<span className="([^"]*)">\{name\}<\/span>/);
+    expect(name, "the name's span").not.toBeNull();
+    expect(name![1]).not.toMatch(/stone-\d+/);
+    expect(row).not.toMatch(/t\.level > 0 \? "" : "text-stone/);
+  });
+
+  it("leave the quiet to the meter's own Level 0", () => {
+    expect(draw(0, 62)).toContain('class="level-value text-stone-400"');
+    expect(draw(1, 10)).toContain('class="level-value"');
   });
 });

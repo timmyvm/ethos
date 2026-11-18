@@ -90,6 +90,9 @@ const SHELL = [
   "/icons/3d/trophy.webp",
   "/icons/3d/hostile.webp",
   "/icons/3d/boss.webp",
+  /* The streak moment's flame, cut large (#496): the moment plays on the
+     way out of a take, which may be offline. A new path, so no CACHE bump. */
+  "/icons/3d/streak-large.webp",
   /* Demos's busts (#488): a picture worn as a pose is in Today's corner,
      the first screen a returning phone opens. New paths, so no CACHE
      bump; a re-cut keeps its path and moves CACHE. */

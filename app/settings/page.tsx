@@ -16,9 +16,8 @@ import { forgetPlanHint } from "@/lib/plan-hint";
 import { usePlan, type ProfileRead } from "@/lib/use-plan";
 import { useAccount } from "@/lib/use-account";
 import { useHourLabel } from "@/lib/time-label";
-import { planWord, reminderValue, themeWord } from "@/lib/settings-index";
+import { planWord, reminderValue, testerDoor, themeWord, type Testing } from "@/lib/settings-index";
 import { SIGNED_OUT_HOME } from "@/lib/account-gate";
-import { DOOR_COPY, TEST, TEST_COPY } from "@/content/tester";
 import { isCurrentTester } from "@/lib/tester";
 import { testDay, zoneDayKey } from "@/lib/tester-days";
 import { fetchTester, forgetTesterHint, readTesterHint, testZoneHere } from "@/lib/tester-client";
@@ -48,8 +47,11 @@ export default function SettingsPage() {
   /* Tester mode (docs/testers.md): the door is the code for everyone
      else, "Testing Ethos, On" for a tester, "Agree again" for one on an
      older consent. The device's last answer paints first. */
-  const [testing, setTesting] = useState<"no" | "on" | "renew">("no");
+  const [testing, setTesting] = useState<Testing>("no");
   const [testDayNow, setTestDayNow] = useState<number | null>(null);
+  /* The phone's clock, read after hydration: the server's page was drawn
+     at another time, and the door depends on whether the test is over. */
+  const [clock, setClock] = useState<number | null>(null);
   const [leaving, setLeaving] = useState(false);
 
   useLayoutEffect(() => {
@@ -60,7 +62,9 @@ export default function SettingsPage() {
     if (held !== undefined) setName(cleanName(held?.display_name) ?? local);
     else if (local) setName(local);
     setTesting(readTesterHint() ? "on" : "no");
-    setTestDayNow(testDay(zoneDayKey(Date.now(), testZoneHere())));
+    const now = Date.now();
+    setClock(now);
+    setTestDayNow(testDay(zoneDayKey(now, testZoneHere())));
   }, []);
 
   useEffect(() => {
@@ -92,6 +96,7 @@ export default function SettingsPage() {
   const { picture } = usePicture({ name: name ?? null, nameKnown: name !== undefined });
 
   const signedIn = account?.kind === "account";
+  const door = clock === null ? null : testerDoor({ testing, day: testDayNow, now: clock });
   const planValue = plan.failed ? "Didn't load" : plan.today ? planWord(plan.view.kind) : null;
 
   return (
@@ -146,22 +151,10 @@ export default function SettingsPage() {
       <Section>
         <LinkRow href="/settings/data" label="Privacy and data" />
         <LinkRow href="/settings/help" label="Help" />
-        <LinkRow
-          href="/tester?from=settings"
-          label={testing === "no" ? DOOR_COPY.settingsCode : DOOR_COPY.settingsTesting}
-          value={
-            testing === "on"
-              ? testDayNow !== null && testDayNow > TEST.days
-                ? // Collection carries on after the test (#405): On, never Ended.
-                  DOOR_COPY.settingsOn
-                : testDayNow !== null && testDayNow >= 1
-                  ? TEST_COPY.settingsDay(testDayNow)
-                  : DOOR_COPY.settingsOn
-              : testing === "renew"
-                ? DOOR_COPY.settingsRenew
-                : undefined
-          }
-        />
+        {/* The tester door (lib/settings-index.ts `testerDoor`): a
+            tester's row stays, "Tester code" goes once the test is over
+            (#496). Drawn once the phone's clock is read. */}
+        {door && <LinkRow href="/tester?from=settings" label={door.label} value={door.value} />}
       </Section>
 
       {/* Sign out alone, the way every phone's Settings ends: a guest has

@@ -8,6 +8,7 @@ import {
   planWord,
   reminderValue,
   restoreOffered,
+  testerDoor,
   themeWord,
   withFocus,
 } from "./settings-index";
@@ -145,4 +146,52 @@ describe("the marketing pages opened from Settings", () => {
       });
     }
   }
+});
+
+/*
+ * The tester door (#496, the morning tour, 17 Nov: Settings and the
+ * room's door still offered "Tester code" two days after the test
+ * ended). The clock before and after the end, 00:00 on 16 November in
+ * Melbourne (`TEST.endsAt`, 13:00 UTC on the 15th).
+ */
+describe("the tester door", () => {
+  const during = "2026-11-10T02:00:00Z";
+  const lastMinute = "2026-11-15T12:59:59Z";
+  const ended = "2026-11-15T13:00:00Z";
+  const later = "2026-11-17T01:00:00Z";
+
+  it("offers the code to everyone while the test can be joined", () => {
+    expect(testerDoor({ testing: "no", day: 8, now: during })).toEqual({ label: "Tester code" });
+    expect(testerDoor({ testing: "no", day: 14, now: lastMinute })).toEqual({ label: "Tester code" });
+    // Before the test began, as testers joined from 30 October.
+    expect(testerDoor({ testing: "no", day: -2, now: "2026-10-31T00:00:00Z" })).toEqual({ label: "Tester code" });
+  });
+
+  it("hides the code from everyone who is not a tester once the test has ended", () => {
+    expect(testerDoor({ testing: "no", day: 15, now: ended })).toBeNull();
+    expect(testerDoor({ testing: "no", day: 16, now: later })).toBeNull();
+    expect(testerDoor({ testing: "no", day: null, now: later })).toBeNull();
+  });
+
+  it("keeps a tester's row before and after the end: the day, then On", () => {
+    expect(testerDoor({ testing: "on", day: 8, now: during })).toEqual({ label: "Testing Ethos", value: "Day 8 of 14" });
+    expect(testerDoor({ testing: "on", day: 15, now: ended })).toEqual({ label: "Testing Ethos", value: "On" });
+    expect(testerDoor({ testing: "on", day: 16, now: later })).toEqual({ label: "Testing Ethos", value: "On" });
+    expect(testerDoor({ testing: "on", day: null, now: later })).toEqual({ label: "Testing Ethos", value: "On" });
+  });
+
+  it("keeps Agree again for a tester on an older consent, whatever the clock", () => {
+    expect(testerDoor({ testing: "renew", day: 8, now: during })).toEqual({ label: "Testing Ethos", value: "Agree again" });
+    expect(testerDoor({ testing: "renew", day: 16, now: later })).toEqual({ label: "Testing Ethos", value: "Agree again" });
+  });
+
+  it("is what Settings draws, and the room's door is held to the same end", () => {
+    const settings = readFileSync("app/settings/page.tsx", "utf8");
+    expect(settings).toMatch(/testerDoor\(\{ testing, day: testDayNow, now: clock \}\)/);
+    expect(settings).toMatch(/\{door && <LinkRow href="\/tester\?from=settings"/);
+    expect(settings).not.toMatch(/DOOR_COPY\.settingsCode/);
+    const room = readFileSync("components/room/Room.tsx", "utf8");
+    expect(room).toMatch(/const \[testerDoor\] = useState\(\(\) => !testOver\(\)\)/);
+    expect(room).toMatch(/\{testerDoor && \(\s*<Link href="\/tester\?from=welcome"/);
+  });
 });

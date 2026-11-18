@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
 import { IconFreeze } from "@/components/Icon";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { TapTick } from "@/components/ui/TapTick";
@@ -173,30 +173,56 @@ export function StreakMoment({
       data-end-ms={time.end}
       className="flex min-h-dvh flex-col bg-ground px-5 pt-[env(safe-area-inset-top)]"
     >
-      <div data-arrive="" className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-        {/* #487's 3D flame: the unlit one (the same file through
-            `--stat-unlit`) fades as the lit one springs in over it. */}
-        <div aria-hidden className="streak-flame">
-          {!calm && (
-            <span data-flame="unlit">
-              <StatIcon kind="streak" lit={false} size={160} />
+      {/* The free height is the flame's (#496, the morning tour: about
+          200pt of bare ground stood over the flame and again over
+          Continue). Four bands share the rest, each at most 64 with the
+          shelf's own 16 under the last (`.streak-gap`), and whatever is
+          left goes to the flame, up to 380pt. The count grows with the
+          screen too (`.streak-count`). */}
+      <div data-arrive="" className="streak-stage flex flex-1 flex-col items-center text-center">
+        <span aria-hidden className="streak-gap" data-gap="top" />
+        {/* #487's 3D flame, cut large for this screen: the unlit one (the
+            same file through `--stat-unlit`) fades as the lit one springs
+            in over it. */}
+        <div aria-hidden className="streak-flame-slot">
+          <div className="streak-flame">
+            {!calm && (
+              <span data-flame="unlit">
+                <StatIcon kind="streak" lit={false} size={380} large />
+              </span>
+            )}
+            <span data-flame="lit">
+              <StatIcon kind="streak" size={380} large />
             </span>
-          )}
-          <span data-flame="lit">
-            <StatIcon kind="streak" size={160} />
-          </span>
+          </div>
         </div>
+        <span aria-hidden className="streak-gap" data-gap="count" />
 
         {/* The one line, "4 days running": the count large, where it
             rolls, over the words that finish it, which come in once it
             has turned. A screen reader hears the line once, whole. */}
-        <h1 ref={head} tabIndex={-1} className="mt-5 flex flex-col items-center outline-none">
+        <h1 ref={head} tabIndex={-1} className="flex flex-col items-center outline-none">
           <span className="sr-only" data-streak-line="">
             {line}
           </span>
-          <span aria-hidden className="streak-count text-num-xl">
+          {/* Its places set its width's ceiling (`--places`, .streak-count):
+              a thousand days at 160 would stand wider than the column. */}
+          <span aria-hidden className="streak-count text-num-xl" style={{ "--places": places.length } as CSSProperties}>
             {calm ? (
-              moment.to
+              /* Today's count at rest, in the same one-line places the
+                 roll turns in, so the screen stands the same with or
+                 without motion. */
+              <span data-count="" className="inline-flex">
+                {String(moment.to)
+                  .split("")
+                  .map((d, i) => (
+                    <span key={i} className="streak-place">
+                      <span>
+                        <span>{d}</span>
+                      </span>
+                    </span>
+                  ))}
+              </span>
             ) : (
               <span data-count="" className="inline-flex">
                 {places.map((p, i) =>
@@ -223,7 +249,8 @@ export function StreakMoment({
           </span>
         </h1>
 
-        <div role="img" aria-label={weekName} className="streak-week mt-8">
+        <span aria-hidden className="streak-gap" data-gap="week" />
+        <div role="img" aria-label={weekName} className="streak-week">
           {moment.week.map((d, i) => (
             <span key={i} className="flex flex-col items-center gap-1.5">
               <span className="streak-day w-full" data-day={d.today ? "today" : d.mark}>
@@ -242,6 +269,7 @@ export function StreakMoment({
             {freeze}
           </p>
         )}
+        <span aria-hidden className="streak-gap" data-gap="foot" />
       </div>
 
       <FooterShelf hairline={false}>

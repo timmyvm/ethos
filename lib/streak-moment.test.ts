@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RECIPES, STREAK_LAND_S } from "./sound-recipes";
 import { computeStreak } from "./streak";
@@ -225,5 +226,84 @@ describe("the moment's clock", () => {
     expect(t.lineAt).toBeGreaterThan(t.rollAt);
     expect(t.end).toBeGreaterThanOrEqual(t.rollAt + t.rollMs);
     expect(t.end).toBeLessThanOrEqual(1500);
+  });
+});
+
+/*
+ * The moment's room (#496, the morning tour,
+ * docs/look/tour/07-streak-moment-end-390-light.png: a 160pt flame with
+ * about 200pt of bare ground over it and again over Continue). The free
+ * height goes to the flame; four bands share the rest, none over 64.
+ * scripts/look-streak.mjs measures them at 390x844, 375x667 and 320x568.
+ */
+describe("the moment's room", () => {
+  const css = readFileSync("app/globals.css", "utf8");
+  const tsx = readFileSync("components/StreakMoment.tsx", "utf8");
+  const rule = (sel: string) => {
+    const at = css.indexOf(`${sel} {`);
+    expect(at, sel).toBeGreaterThan(-1);
+    return css.slice(at, css.indexOf("}", at));
+  };
+  const px = (block: string, prop: string) => Number(block.match(new RegExp(`${prop}:\\s*(\\d+)px`))?.[1]);
+
+  it("stands four bands round the flame, the count, the words and the week", () => {
+    const gaps = [...tsx.matchAll(/className="streak-gap" data-gap="(\w+)"/g)].map((m) => m[1]);
+    expect(gaps).toEqual(["top", "count", "week", "foot"]);
+    // Each in its place: over the flame, flame to count, words to week, week to Continue.
+    const order = ["data-gap=\"top\"", "streak-flame-slot", "data-gap=\"count\"", "<h1", "data-gap=\"week\"", "streak-week", "data-gap=\"foot\"", "<FooterShelf"];
+    const at = order.map((o) => tsx.indexOf(o));
+    expect(at.every((v, i) => v > -1 && (i === 0 || v > at[i - 1])), order.join(" < ")).toBe(true);
+  });
+
+  it("lets no band grow past 64: the top's counting the flame's own air, the foot's the shelf's 16", () => {
+    expect(px(rule(".streak-gap"), "max-height")).toBe(64);
+    // The flame's square holds its object with (192 - 170) / 2 of 192 over it (scripts/cut-stat-icons.mjs).
+    const air = (380 * (192 - 170)) / 2 / 192;
+    expect(px(rule(`.streak-gap[data-gap="top"]`), "max-height") + air).toBeLessThanOrEqual(64);
+    expect(rule(`.streak-gap[data-gap="count"]`)).toMatch(/flex: 0 0 8px/);
+    expect(px(rule(`.streak-gap[data-gap="week"]`), "max-height")).toBeLessThanOrEqual(64);
+    // FooterShelf pads 16 over Continue (pt-4), and that padding is ground too.
+    expect(readFileSync("components/ui/FooterShelf.tsx", "utf8")).toMatch(/\bpt-4\b/);
+    expect(px(rule(`.streak-gap[data-gap="foot"]`), "max-height") + 16).toBeLessThanOrEqual(64);
+    expect(rule(".streak-stage")).toMatch(/justify-content: center/);
+  });
+
+  it("gives what is left to the flame, from 112 up to 380 and never wider than the screen, drawn from the large cut", () => {
+    const slot = rule(".streak-flame-slot");
+    expect(slot).toMatch(/flex: 1 1 112px/);
+    expect(px(slot, "min-height")).toBe(112);
+    expect(slot).toMatch(/max-height: min\(380px, calc\(100vw - 16px\)\)/);
+    expect(rule(".streak-flame")).toMatch(/aspect-ratio: 1 \/ 1/);
+    expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{380\} large \/>/g)?.length).toBe(2);
+  });
+
+  it("grows the count with the screen, from num-xl's 72 to 160", () => {
+    expect(rule(".streak-count").replace(/\s+/g, " ")).toMatch(
+      /font-size: clamp\( var\(--text-num-xl\), min\(19dvh, calc\(\(100vw - 40px\) \/ \(var\(--places, 1\) \* 0\.6\)\)\), 10rem \)/
+    );
+    expect(css).toMatch(/--text-num-xl: 4\.5rem;/);
+  });
+
+  /* The #496 review: at 160 a thousand days stood 378 wide in 390x844's
+     350 column (Outfit 800's tabular figure is 0.59em, measured on the
+     build). The column bounds the size by the count's places. */
+  it("never sets the count wider than the column, a thousand days included", () => {
+    const FIGURE = 0.59;
+    const size = (w: number, h: number, places: number) =>
+      Math.min(Math.max(72, Math.min(0.19 * h, (w - 40) / (places * 0.6))), 160);
+    for (const [w, h] of [[320, 568], [320, 692], [360, 800], [375, 667], [390, 844], [393, 852], [430, 932]]) {
+      for (const places of [1, 2, 3, 4]) {
+        expect(places * FIGURE * size(w, h, places), `${places} places at ${w}x${h}`).toBeLessThanOrEqual(w - 40);
+      }
+      // One place keeps the height's size: the bound only bites on a long count.
+      expect(size(w, h, 1)).toBe(Math.min(Math.max(72, 0.19 * h), 160));
+    }
+    expect(tsx).toMatch(/className="streak-count text-num-xl" style=\{\{ "--places": places\.length \} as CSSProperties\}/);
+  });
+
+  it("stands the count in the same one-line places with motion or without, so reduced motion lays out the same", () => {
+    const calm = tsx.slice(tsx.indexOf("{calm ? ("), tsx.indexOf(") : (", tsx.indexOf("{calm ? (")));
+    expect(calm).toMatch(/className="streak-place"/);
+    expect(calm).toMatch(/String\(moment\.to\)/);
   });
 });

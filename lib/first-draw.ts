@@ -91,23 +91,44 @@ export function whenIdle(fn: () => void, timeout = 2000): () => void {
 /**
  * Runs `fn` once the first screen is drawn and the phone is idle: what
  * can wait for the screen (#508, the speed audit's fix 11), the tab
- * swipe's neighbours, Demos's idle clip. A screen that never said it
- * would announce its draw counts as drawn, so this only ever waits on
- * one that did. Returns a cancel.
+ * swipe's neighbours, Demos's idle clip, the paywall's code. A screen that
+ * never said it would announce its draw counts as drawn, so this only
+ * ever waits on one that did. Returns a cancel.
+ *
+ * Whether the screen will say so is read once the phone is idle, not when
+ * this is asked (the review of the final pass, 18 Nov). A module that asks
+ * as it loads (components/LazyPaywall.tsx) runs while React renders the
+ * page, before the screen's layout effect has called `expectDraw`; read
+ * then, Today was taken as drawn and the paywall's code left beside its
+ * own reads. And a screen that has still not said by then, on a page not
+ * yet loaded, is asked again once it has: by then its effects have run.
  */
 export function afterFirstScreen(fn: () => void, timeout = 2000): () => void {
-  let cancelIdle = () => {};
+  let off = false;
+  let cancel = () => {};
   const go = () => {
-    cancelIdle = whenIdle(fn, timeout);
+    if (!off) cancel = whenIdle(fn, timeout);
   };
-  if (!expected || drawn) {
-    go();
-    return () => cancelIdle();
-  }
-  const stop = onDrawn(go);
+  const decide = (loaded: boolean) => {
+    if (off) return;
+    if (expected && !drawn) {
+      cancel = onDrawn(go);
+      return;
+    }
+    if (expected || loaded || typeof document === "undefined" || document.readyState === "complete") {
+      fn();
+      return;
+    }
+    const onLoad = () => {
+      if (!off) cancel = whenIdle(() => decide(true), timeout);
+    };
+    window.addEventListener("load", onLoad, { once: true });
+    cancel = () => window.removeEventListener("load", onLoad);
+  };
+  cancel = whenIdle(() => decide(false), timeout);
   return () => {
-    stop();
-    cancelIdle();
+    off = true;
+    cancel();
   };
 }
 

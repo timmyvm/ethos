@@ -70,6 +70,8 @@ const h = vi.hoisted(() => {
     },
     me: "",
     reads: [] as Read[],
+    /** What the reads wrote back (a swap marked heard), by table. */
+    writes: [] as { table: string; rows: unknown }[],
   };
   /* "words:whisper_raw->words" is supabase-js for a json field under an alias. */
   const col = (c: string) => {
@@ -151,7 +153,8 @@ const h = vi.hoisted(() => {
         return run().then((r) => (r.error ? r : { data: r.data?.[0] ?? null, error: null }));
       },
       /* Writes (a swap marked heard, a phone's newer copy) are not what is measured here. */
-      upsert() {
+      upsert(rows: unknown) {
+        state.writes.push({ table, rows });
         return Promise.resolve({ data: null, error: null });
       },
       then(ok: (v: unknown) => unknown, bad?: (e: unknown) => unknown) {
@@ -198,14 +201,14 @@ async function base(): Promise<PG> {
     insert into auth.users (id) values ('${A}'), ('${B}');
     -- A: the take a coach's pair came from, a later one that says the better
     -- phrase, a short one that is not an answer, a game round and a boss take.
-    insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars, whisper_raw, lesson_id)
-      values ('a0000000-0000-4000-8000-000000000001', '${A}', '${at(5)}', 60, '${answer("the thing is")}', 140, 2, 2, '{"words": []}', null),
-             ('a0000000-0000-4000-8000-000000000002', '${A}', '${at(2)}', 60, '${answer("the point is")}', 140, 1, 3, '{"words": []}', null),
-             ('a0000000-0000-4000-8000-000000000003', '${A}', '${at(1)}', 8, 'um hello', 90, 1, 0, null, null),
-             ('a0000000-0000-4000-8000-000000000004', '${A}', '${at(1)}', 45, '${answer("a round")}', 150, 0, 2, null, 'game:qa:1'),
-             ('a0000000-0000-4000-8000-000000000005', '${A}', '${at(3)}', 60, '${answer("a boss")}', 130, 3, 1, null, 'boss:2026-W46');
-    insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars)
-      values ('b0000000-0000-4000-8000-000000000001', '${B}', '${at(1)}', 60, '${answer("the point is")}', 150, 4, 1);
+    insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars, ethos_index, whisper_raw, lesson_id)
+      values ('a0000000-0000-4000-8000-000000000001', '${A}', '${at(5)}', 60, '${answer("the thing is")}', 140, 2, 2, 610, '{"words": []}', null),
+             ('a0000000-0000-4000-8000-000000000002', '${A}', '${at(2)}', 60, '${answer("the point is")}', 140, 1, 3, 640, '{"words": []}', null),
+             ('a0000000-0000-4000-8000-000000000003', '${A}', '${at(1)}', 8, 'um hello', 90, 1, 0, null, null, null),
+             ('a0000000-0000-4000-8000-000000000004', '${A}', '${at(1)}', 45, '${answer("a round")}', 150, 0, 2, 620, null, 'game:qa:1'),
+             ('a0000000-0000-4000-8000-000000000005', '${A}', '${at(3)}', 60, '${answer("a boss")}', 130, 3, 1, 590, null, 'boss:2026-W46');
+    insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars, ethos_index)
+      values ('b0000000-0000-4000-8000-000000000001', '${B}', '${at(1)}', 60, '${answer("the point is")}', 150, 4, 1, 600);
     insert into public.lexicon (user_id, original, upgrade, rep_id, created_at)
       values ('${A}', 'the thing is', 'the point is', 'a0000000-0000-4000-8000-000000000001', '${at(5)}'),
              ('${B}', 'the thing is', 'the point is', 'b0000000-0000-4000-8000-000000000001', '${at(1)}');
@@ -220,6 +223,7 @@ async function readAll(db: PG) {
   h.state.db = db as never;
   h.state.me = A;
   h.state.reads = [];
+  h.state.writes = [];
   vi.resetModules();
   const cd = await import("./client-data");
   const say = await import("./say-store");
@@ -241,7 +245,7 @@ async function readAll(db: PG) {
   };
   /* A second list read in the same page load: the fallback is paid once. */
   const second = await cd.fetchReps(200);
-  return { answers, second, reads: h.state.reads.slice() };
+  return { answers, second, reads: h.state.reads.slice(), writes: h.state.writes.slice() };
 }
 
 /** What a stage's answers come to, in the terms every screen reads them in. */
@@ -329,8 +333,8 @@ describe("the merged reads on Postgres, 0037 and 0038 in either order (final pas
     const db = (await start.clone()) as PG;
     await db.exec(F0038);
     await db.exec(F0037);
-    await db.exec(`insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars)
-      values ('a0000000-0000-4000-8000-000000000006', '${A}', '${at(0.5)}', 60, '${answer("the point is")}', 140, 0, 2)`);
+    await db.exec(`insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars, ethos_index)
+      values ('a0000000-0000-4000-8000-000000000006', '${A}', '${at(0.5)}', 60, '${answer("the point is")}', 140, 0, 2, 655)`);
     const r = await readAll(db);
     const fallback = r.reads.filter((x) => x.select === "id, transcript");
     // Once for each of the two list reads (90 and 200), each for that row only.
@@ -356,7 +360,7 @@ describe("the merged reads on Postgres, 0037 and 0038 in either order (final pas
     await db.exec(F0038);
     const r = await readAll(db);
     // The count's reads name the transcript; the lists' (after 0037) do not.
-    const sayReads = r.reads.filter((x) => x.table === "reps" && x.select === "id, created_at, transcript");
+    const sayReads = r.reads.filter((x) => x.table === "reps" && /^id, created_at, transcript\b/.test(x.select));
     expect(sayReads.length).toBeGreaterThan(0);
     expect(r.reads.filter(LIST).every((x) => !/\btranscript\b/.test(x.select))).toBe(true);
     // A's later take said the better phrase; B's take, which said it too, is not A's.
@@ -366,6 +370,35 @@ describe("the merged reads on Postgres, 0037 and 0038 in either order (final pas
     expect(r.reads.filter((x) => x.table === "lexicon" && /rep_id/.test(x.select))).toHaveLength(3);
     // The stored page reads its transcript whole, by its id.
     expect(r.answers.one?.transcript).toBe(answer("the point is"));
+    await db.close();
+  }, 120_000);
+
+  it("c. a take with no star that says the better phrase is no use: no token, no XP, no count, and the swap stays unheard for the scored take", async () => {
+    const db = (await start.clone()) as PG;
+    await db.exec(F0037);
+    await db.exec(F0038);
+    // A second pair, from the first take; its better phrase said only in a
+    // take with no star (three words: not scored, no Ethos number, #504).
+    await db.exec(`
+      insert into public.lexicon (id, user_id, original, upgrade, rep_id, created_at)
+        values ('c0000000-0000-4000-8000-000000000001', '${A}', 'a lot of', 'many', 'a0000000-0000-4000-8000-000000000001', '${at(5)}');
+      insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars, ethos_index)
+        values ('a0000000-0000-4000-8000-000000000007', '${A}', '${at(0.5)}', 4, 'many many um', 60, 1, 0, null);
+    `);
+    const r = await readAll(db);
+    const item = r.answers.say.items.find((i) => i.swap.better === "many")!;
+    expect(item.uses).toEqual([]);
+    expect(item.state.heardAt).toBeNull();
+    // Nothing marks it heard, so the next scored take that says "many" proves it.
+    const heardWrites = r.writes
+      .filter((w) => w.table === "say_better")
+      .flatMap((w) => (Array.isArray(w.rows) ? w.rows : [w.rows]) as { swap: string; heard_at: string | null }[])
+      .filter((row) => row.swap === "c:c0000000-0000-4000-8000-000000000001" && row.heard_at);
+    expect(heardWrites).toEqual([]);
+    // The scored pair still counts its scored take.
+    expect(r.answers.say.items.find((i) => i.swap.better === "the point is")!.uses.map((u) => u.repId)).toEqual([
+      "a0000000-0000-4000-8000-000000000002",
+    ]);
     await db.close();
   }, 120_000);
 });

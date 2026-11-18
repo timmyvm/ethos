@@ -479,6 +479,11 @@ export interface TakeText {
   id: string;
   created_at: string;
   transcript: string | null;
+  /**
+   * Its Ethos number: null on a take with no star, which was not scored
+   * (#504, #510), and then it is no use; undefined when not read.
+   */
+  ethos_index?: number | null;
   /** Whisper's timed words, when read; undefined when not read. */
   words?: readonly TimedWord[] | null;
 }
@@ -496,10 +501,14 @@ export interface SwapUse {
 /**
  * The real recordings that used a swap's better phrase, newest first:
  * stored after the swap was saved, never a recording it came from (any
- * row merged into it included). Whisper's own text finds them, never
- * inside a place the old phrase was said again; where the timed words
- * were read they must hold it too, and give the moment. The test's
- * one-line takes are never stored, so they are never here.
+ * row merged into it included), and only one with an Ethos number (#507
+ * review): a take with no star was not scored and won nothing (#510),
+ * so it is no use, as it proves nothing on the glance (#509), and it
+ * never marks the swap heard ahead of the scored take that earns the
+ * token. Whisper's own text finds them, never inside a place the old
+ * phrase was said again; where the timed words were read they must hold
+ * it too, and give the moment. The test's one-line takes are never
+ * stored, so they are never here.
  */
 export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
   const out: SwapUse[] = [];
@@ -507,6 +516,7 @@ export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
   const saved = Date.parse(swap.savedAt);
   for (const t of takes) {
     if (from.has(t.id) || !(Date.parse(t.created_at) > saved)) continue;
+    if (t.ethos_index === null) continue;
     const times = timesIn(t.transcript, swap.better, swap.said);
     if (times === 0) continue;
     let at: number | null = null;

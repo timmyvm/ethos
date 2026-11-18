@@ -10,7 +10,12 @@
  * then send a first run to the room (app/page.tsx, which stays as the
  * fallback). This sends it before anything of Today's loads. The test is
  * lib/onboarding.ts `isFirstRun`, the same keys: no `ethos.welcomed` and
- * no stored session. A `?splash` asked of `/` is carried along.
+ * no stored session. A `?splash` asked of `/` is carried along. The
+ * graphics boot (lib/graphics.ts) has already marked `/` alive by then,
+ * and a page sent on before its code loads never says it went: the mark
+ * is taken down here, or the room would read a crash, run lite and
+ * reduced, and report it (a page leaving on purpose is an end the app
+ * saw, as `markGone` has it).
  *
  * `walkBootScript` (fix 13) runs after it, on /welcome only. The room's
  * door is now drawn by the server (app/welcome/page.tsx), so a first run
@@ -36,6 +41,7 @@
  * nothing on a splash that is no longer `on`.
  */
 
+import { ALIVE_KEY } from "./graphics";
 import { WELCOMED_KEY } from "./onboarding";
 import { SPLASH_FLOOR_MS } from "./splash-timing";
 
@@ -49,6 +55,7 @@ export const firstRunBootScript = `
   for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
   if (keys.indexOf(${JSON.stringify(WELCOMED_KEY)}) >= 0) return;
   for (var j = 0; j < keys.length; j++) if (/^sb-.+-auth-token$/.test(keys[j] || '')) return;
+  localStorage.removeItem(${JSON.stringify(ALIVE_KEY)});
   location.replace('/welcome' + (/[?&]splash\\b/.test(location.search) ? '?splash' : ''));
 }catch(e){}})();
 `;

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { firstRunBootScript, walkBootScript, ONBOARDING_KEY } from "./walk-boot";
 import { readOnboarding } from "./answers";
 import { isFirstRun, roomDue, WELCOMED_KEY } from "./onboarding";
+import { ALIVE_KEY } from "./graphics";
 
 /*
  * The first minute before any JavaScript (#508): the home-screen icon
@@ -26,6 +27,7 @@ function page(pathname: string, search = "", store: Record<string, string> = {},
       },
       key: (i: number) => [...disk.keys()][i] ?? null,
       getItem: (k: string) => (disk.has(k) ? disk.get(k)! : null),
+      removeItem: (k: string) => void disk.delete(k),
     },
     document: {
       documentElement: {
@@ -53,6 +55,27 @@ describe("the home-screen icon on a first run (fix 14)", () => {
     const p = page("/");
     p.run(firstRunBootScript);
     expect(p.replaced).toEqual(["/welcome"]);
+  });
+
+  it("takes down the alive mark the graphics boot put up for `/`, so the room never reads a crash", () => {
+    // lib/graphics.ts's boot runs first and marks the page alive; a page
+    // sent on before its code loads never takes the mark down itself, and
+    // the room's boot would read it as a crash: lite graphics, reduced
+    // motion, a crash report, for every new phone (#508).
+    const p = page("/", "", { [ALIVE_KEY]: JSON.stringify({ path: "/", at: 1 }) });
+    p.run(firstRunBootScript);
+    expect(p.replaced).toEqual(["/welcome"]);
+    expect(p.keys()).not.toContain(ALIVE_KEY);
+    // A page that stays keeps its mark.
+    const stays = page("/", "", { [WELCOMED_KEY]: "x", [ALIVE_KEY]: "{}" });
+    stays.run(firstRunBootScript);
+    expect(stays.keys()).toContain(ALIVE_KEY);
+  });
+
+  it("runs after the graphics boot in the layout's head", () => {
+    const layout = readFileSync(path.join(root, "app/layout.tsx"), "utf8");
+    expect(layout.indexOf("__html: graphicsBootScript")).toBeGreaterThan(0);
+    expect(layout.indexOf("__html: firstRunBootScript")).toBeGreaterThan(layout.indexOf("__html: graphicsBootScript"));
   });
 
   it("carries a camera's ?splash along", () => {

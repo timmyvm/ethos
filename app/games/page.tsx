@@ -159,10 +159,9 @@ export default function GamesPage() {
   const [rounds, setRounds] = useState<Rounds>(() => (warm ? heldGameRounds() : null));
   /* Practice says when its ladder is drawn (or failed), so what can wait
      for the screen does: Demos's idle clip, the tab swipe's neighbours,
-     the worker's install (#508, lib/first-draw.ts). */
-  useLayoutEffect(() => {
-    expectDraw();
-  }, []);
+     the worker's install (#508, lib/first-draw.ts). Left before the
+     ladder lands, its leaving lets them go. */
+  useLayoutEffect(() => expectDraw(), []);
   useEffect(() => {
     if (rounds !== null) markDrawn();
   }, [rounds]);

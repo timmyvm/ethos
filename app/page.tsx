@@ -157,9 +157,10 @@ export default function Home() {
   /** The freezes have answered (or failed): the streak on screen is the one that stays. */
   const [streakSettled, setStreakSettled] = useState(false);
   useLayoutEffect(() => {
-    // Today announces when its numbers are drawn (the splash lands on them, #508).
-    expectDraw();
-    if (!coldOpen.current || !restoreHeld()) return;
+    // Today announces when its numbers are drawn (the splash lands on them, #508),
+    // and its leaving releases what waited, if it goes before they land.
+    const leave = expectDraw();
+    if (!coldOpen.current || !restoreHeld()) return leave;
     const all = heldSpine();
     if (all) {
       setSpine(all);
@@ -173,6 +174,7 @@ export default function Home() {
     }
     const plan = heldPremium();
     if (plan !== null) setPremium(plan);
+    return leave;
   }, []);
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);

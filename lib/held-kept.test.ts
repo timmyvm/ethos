@@ -271,7 +271,7 @@ describe("Today draws what was kept on a fresh open, and only then", () => {
 
   it("restores in a layout effect, after hydration, never in the hydrating render", () => {
     expect(today).toMatch(/const coldOpen = useRef\(!warm\);/);
-    expect(today).toMatch(/useLayoutEffect\(\(\) => \{[\s\S]{0,200}if \(!coldOpen\.current \|\| !restoreHeld\(\)\) return;/);
+    expect(today).toMatch(/useLayoutEffect\(\(\) => \{[\s\S]{0,200}if \(!coldOpen\.current \|\| !restoreHeld\(\)\) return leave;/);
     expect(today).not.toMatch(/useState[^\n]*restoreHeld/);
   });
 

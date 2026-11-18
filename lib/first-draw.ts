@@ -13,6 +13,12 @@
  * it is known before any effect asks) and `markDrawn()` once its data, or
  * its failure, is on screen. A screen that never says so is taken as
  * drawn when the page has loaded, as before.
+ *
+ * `expectDraw()` hands back the screen's leaving, which the layout effect
+ * returns as its cleanup: a screen left before its numbers landed (a tab
+ * tapped while Today still read) never says it drew, and without that
+ * everything waiting on it (Demos's clip, the tab neighbours, the
+ * paywall's code, You's warm reads) would wait for the rest of the visit.
  */
 
 type Waiter = () => void;
@@ -21,9 +27,12 @@ let expected = false;
 let drawn = false;
 const waiters = new Set<Waiter>();
 
-/** This screen will say when its numbers are drawn. */
-export function expectDraw(): void {
+/** This screen will say when its numbers are drawn. Returns its leaving: what waited goes then. */
+export function expectDraw(): () => void {
   expected = true;
+  return () => {
+    if (!drawn) markDrawn();
+  };
 }
 
 /** Whether the screen on show said it would. */

@@ -34,7 +34,8 @@
  *
  * Shots: docs/look/proof/after/<scene>-<w>x<h>-<theme>.png (LOOK_OUT to
  * move them), deviceScaleFactor 2; returning, level, first and none at
- * 390x844 and 320x568 in both themes, worst at both sizes in light, late
+ * 390x844 and 320x568 in both themes (the first three at 375x667 too,
+ * where Demos stands beside his line), worst at all three in light, late
  * at 390x844 light, door at 390x844 in both themes (LOOK_SIZES narrows
  * them). Prints, per shot, the token as drawn, Demos's line and cue, the
  * earned line, the visible words with the token's apart, the filled
@@ -59,11 +60,11 @@ const size = (s) => {
   return { w, h, theme, name: s };
 };
 const SIZES_OF = {
-  returning: ["390x844-light", "390x844-dark", "320x568-light", "320x568-dark"],
-  level: ["390x844-light", "390x844-dark", "320x568-light", "320x568-dark"],
-  first: ["390x844-light", "390x844-dark", "320x568-light", "320x568-dark"],
+  returning: ["390x844-light", "390x844-dark", "375x667-light", "320x568-light", "320x568-dark"],
+  level: ["390x844-light", "390x844-dark", "375x667-light", "320x568-light", "320x568-dark"],
+  first: ["390x844-light", "390x844-dark", "375x667-light", "320x568-light", "320x568-dark"],
   none: ["390x844-light", "390x844-dark", "320x568-light", "320x568-dark"],
-  worst: ["390x844-light", "320x568-light"],
+  worst: ["390x844-light", "375x667-light", "320x568-light"],
   late: ["390x844-light"],
   door: ["390x844-light", "390x844-dark"],
 };

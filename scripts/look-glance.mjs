@@ -41,7 +41,8 @@
  * count beside them. LOOK_STRIP=1 adds the sheet's rise as a strip (0,
  * 80, 160, 240, 400ms); LOOK_LAND=1 shoots the glance's top as the stars
  * land over their goals (#504); LOOK_BLUR=7 blurs the glance for the
- * squint test. Every lit goal must be one the served take meets and
+ * squint test. LOOK_PROOF=0 empties the coach's pairs, so no proof
+ * token stands (#509). Every lit goal must be one the served take meets and
  * every open one one it misses (#504 review). LOOK_SOUND=1 logs the
  * notes the glance starts (#505); LOOK_SOUND=off does it with Settings'
  * Sound off and fails on any note; both fail a note before the Record tap.
@@ -301,6 +302,15 @@ for (const size of SIZES) {
     colorScheme: size.theme, serviceWorkers: "block",
   });
   await context.route("http://supabase.local/**", F.supabaseRoute);
+  /* LOOK_PROOF=0 (#509): the coach's pairs empty, so no swap is proved
+     and the glance stands as it does without Say it better's token (the
+     fixture take says "making the habit small", a saved pair's better
+     phrase). */
+  if (process.env.LOOK_PROOF === "0") {
+    await context.route("http://supabase.local/rest/v1/lexicon**", (route) =>
+      route.request().method() === "GET" ? route.fulfill(F.json([])) : route.fallback()
+    );
+  }
   await context.route("**/api/analyze", async (route) => {
     await sleep(1500);
     await route.fulfill(F.json(bodies[VARIANT]()));

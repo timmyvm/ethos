@@ -1370,9 +1370,15 @@ function Glance({
 
   /* Demos in his room, his line over his head: everywhere but a phone
      under 600pt, and a tester's glance on one under 700pt, where he
-     stands beside his line at 112 so the question fits. */
-  const beside = !short && !!under && !tall;
-  const plain = short;
+     stands beside his line at 112 so the question fits. The proof token
+     (#509) takes its height the same way on a phone under 700pt: he
+     stands beside his line; and where the glance also asks something
+     there (a tester's question, the reminder ask, whose row stacks in a
+     bubble beside him), he steps off and his line stays plain, as under
+     600. The token never costs the glance its one screen (375x667
+     scrolled by 21 to 45pt with him in his room). */
+  const plain = short || (!tall && !!view.proof && (!!under || !!ask));
+  const beside = !plain && !tall && (!!under || !!view.proof);
   return (
     <div data-glance className="flex w-full flex-1 flex-col">
       {/* Up to 24pt over the stars, so the header's back to the stars

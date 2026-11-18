@@ -359,6 +359,96 @@ export const SAVED_ROWS = [
 ];
 export const savedWordsMode = { rows: [], fail: false, delay: 0 };
 
+/*
+ * Say it better (#507, scripts/look-say-it-better.mjs): a list in every
+ * state. sayMode.on puts SAY_LEXICON in the coach's table, SAY_SAVED in
+ * the word sheet's, the recordings they came from and the later ones that
+ * use them in the reps reads, and SAY_STATE in the test's table:
+ *
+ *   to test today  the thing is, doing stuff for, kind of like (never
+ *                  tested, saved 2 to 4 days ago)
+ *   you now say    make a decision about → decide on (a later recording,
+ *                  twice), at the end of the day → in the end (yesterday's),
+ *                  got → landed (a later recording)
+ *   learning       a lot of rain (said once, back in 2 days), making the
+ *                  thing small (back in 5; the live take says "making the
+ *                  habit small", so the glance's proof line fires), very
+ *                  cold (missed yesterday, over today's three: back
+ *                  tomorrow), a lot of people (back in 6)
+ *
+ * sayMode.dry moves every test day into the future (nothing due);
+ * sayMode.table "missing" answers the test's table as production does
+ * before 0036 (the phone keeps the test); sayMode.empty is a new account.
+ */
+export const sayMode = { on: process.env.LOOK_SAY === "1", dry: false, empty: false, table: "ok", written: [] };
+const sayUuid = (n) => `5a1b2c3d-0000-4000-8000-${String(n).padStart(12, "0")}`;
+/** Whisper's timed words for a transcript: about 0.38s a word, a breath after each full stop. */
+function timedWords(text) {
+  const raw = text.split(/\s+/).filter(Boolean);
+  let t = 0.6;
+  return raw.map((tok) => {
+    const word = tok.replace(/[^A-Za-z0-9']/g, "");
+    const w = { word, start: Math.round(t * 100) / 100, end: Math.round((t + 0.3) * 100) / 100 };
+    t += 0.38 + (/[.?!]$/.test(tok) ? 0.9 : 0);
+    return w;
+  });
+}
+const sayRep = (n, ago, transcript) => ({
+  ...reps[reps.length - 1],
+  id: sayUuid(100 + n),
+  client_id: `look-say-${n}`,
+  created_at: iso(ago),
+  lesson_id: "h4",
+  transcript,
+  words: timedWords(transcript),
+});
+export const SAY_REPS = [
+  sayRep(1, 2, "I want to talk about habits. Most people think it comes down to motivation. So the thing is, habits compound when nobody's watching. Five minutes a day is enough."),
+  sayRep(2, 3, "Last month was hectic. I was doing stuff for the trip all week, so the practice slipped. It came back once the bags were packed."),
+  sayRep(3, 4, "Planning is easy to get wrong. It's kind of like when you plan a week nobody could actually do. Then one missed day ends the plan."),
+  sayRep(4, 12, "The wedding was a lot of work. We had to make a decision about the venue before anything else. That took a month."),
+  sayRep(5, 10, "The trip went sideways twice. At the end of the day, it was worth it. I would do it again tomorrow."),
+  sayRep(6, 6, "The weekend was a wash. There was a lot of rain on Saturday, so we stayed in and cooked."),
+  sayRep(7, 5, "Every project needs one call made early. I had to decide on a scope before the team could start. Then we had to decide on a date, and that one was harder."),
+  sayRep(8, 1, "I spent the weekend fixing the plan. In the end the plan held, and nobody had to stay late. I landed the interview on Monday too."),
+];
+export const SAY_LEXICON = [
+  { id: sayUuid(1), original: "the thing is", upgrade: "the point is", rep_id: SAY_REPS[0].id, created_at: iso(2) },
+  { id: sayUuid(2), original: "doing stuff for", upgrade: "getting ready for", rep_id: SAY_REPS[1].id, created_at: iso(3) },
+  { id: sayUuid(3), original: "kind of like", upgrade: "for example", rep_id: SAY_REPS[2].id, created_at: iso(4) },
+  { id: sayUuid(4), original: "make a decision about", upgrade: "decide on", rep_id: SAY_REPS[3].id, created_at: iso(12) },
+  { id: sayUuid(5), original: "at the end of the day", upgrade: "in the end", rep_id: SAY_REPS[4].id, created_at: iso(10) },
+  { id: sayUuid(6), original: "a lot of rain", upgrade: "heavy rain", rep_id: SAY_REPS[5].id, created_at: iso(6) },
+  { id: sayUuid(7), original: "making the thing small", upgrade: "making the habit small", rep_id: (reps.find((r) => r.created_at === iso(8)) ?? reps[0]).id, created_at: iso(8) },
+];
+export const SAY_SAVED = [
+  { id: sayUuid(11), word: "very cold", instead: "freezing", sentence: "It was very cold on the walk home.", rep_id: null, created_at: iso(3) },
+  { id: sayUuid(12), word: "got", instead: "landed", sentence: "I got the job last week.", rep_id: null, created_at: iso(9) },
+  { id: sayUuid(13), word: "a lot of people", instead: "crowds", sentence: "There were a lot of people at the protest on Saturday.", rep_id: null, created_at: iso(7) },
+];
+/** The test's table (0036): the swaps already tested, keyed as the app keys them. */
+const sayState = (key, step, dueIn, last, testedAgo) => ({
+  swap: key,
+  step,
+  due: dateOnly(-dueIn),
+  last,
+  tested_on: testedAgo === null ? null : dateOnly(testedAgo),
+  heard_at: null,
+  hidden: false,
+  updated_at: iso(testedAgo ?? 1),
+});
+export function sayStateRows() {
+  if (sayMode.dry) {
+    return [...SAY_LEXICON.map((l) => `c:${l.id}`), ...SAY_SAVED.map((w) => `w:${w.id}`)].map((k, i) => sayState(k, 1, 2 + (i % 4), "said", 1));
+  }
+  return [
+    sayState(`c:${sayUuid(6)}`, 1, 2, "said", 1),
+    sayState(`c:${sayUuid(7)}`, 2, 5, "said", 2),
+    sayState(`w:${sayUuid(11)}`, 0, 0, "missed", 1),
+    sayState(`w:${sayUuid(13)}`, 2, 6, "said", 1),
+  ];
+}
+
 /**
  * Rows a camera adds to the reps reads (scripts/look-glance.mjs's lesson3:
  * the lesson's first two practices, taken earlier today). Empty by
@@ -609,6 +699,18 @@ async function supabase(route) {
       return route.fulfill({ status: 204, headers: cors, body: "" });
     }
   }
+  /* Say it better's test (0036): sayMode.table "missing" answers as
+     production does before the migration; a write is kept. */
+  if (url.pathname.startsWith("/rest/v1/say_better")) {
+    if (sayMode.table === "missing") {
+      return route.fulfill(json({ code: "PGRST205", message: "Could not find the table 'public.say_better' in the schema cache" }, 404));
+    }
+    if (req.method() === "GET") return route.fulfill(json(sayMode.on && !sayMode.empty ? sayStateRows() : []));
+    try {
+      sayMode.written.push(req.postDataJSON());
+    } catch {}
+    return route.fulfill({ status: 201, headers: cors, body: "" });
+  }
   if (url.pathname.startsWith("/rest/v1/billing")) {
     const row = plan.billing;
     if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
@@ -618,6 +720,8 @@ async function supabase(route) {
   if (req.method() !== "GET") return route.fulfill(json([]));
   if (table === "reps" && testerMode.repsFail) return route.fulfill(json({ code: "XX000", message: "look: history refused" }, 500));
   let rows = table === "reps" && repsMode.rows ? repsMode.rows : TABLES[table] ?? [];
+  if (sayMode.on && table === "lexicon") rows = sayMode.empty ? [] : SAY_LEXICON;
+  if (sayMode.on && table === "reps" && !FRESH && !sayMode.empty) rows = [...rows, ...SAY_REPS];
   if (table === "reps" && testerMode.today && !FRESH) rows = [...rows, TODAY_REP];
   if (table === "reps" && extraReps.length > 0 && !FRESH) rows = [...rows, ...extraReps];
   if (table === "reps" && gamesMode.on && !FRESH) {
@@ -638,6 +742,11 @@ async function supabase(route) {
   const limit = Number(url.searchParams.get("limit"));
   if (limit > 0) rows = rows.slice(0, limit);
   const id = url.searchParams.get("id");
+  /* PostgREST's in.(…) on ids (Say it better reads a few recordings' timed words). */
+  if (id && id.startsWith("in.(")) {
+    const want = new Set(id.slice(4, -1).split(",").map((s) => s.replace(/^"|"$/g, "")));
+    return route.fulfill(json(rows.filter((r) => want.has(r.id))));
+  }
   if (id) {
     const found = rows.find((r) => r.id === id.replace(/^eq\./, ""));
     return route.fulfill(single ? (found ? json(found) : json({ code: "PGRST116", message: "0 rows" }, 406)) : json(found ? [found] : []));

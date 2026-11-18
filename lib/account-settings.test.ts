@@ -243,6 +243,7 @@ describe("signing out everywhere", () => {
       disk.set("ethos.held", JSON.stringify({ v: 1, owner: "user-a", items: { profile: { display_name: "Tim" } } }));
       disk.set("ethos.cue", JSON.stringify({ text: "a sentence of their own words" }));
       disk.set("ethos.cue.skipped", "1");
+      disk.set("ethos.say.v1", JSON.stringify({ uid: "user-a", states: { "c:1": { step: 1, due: "2026-11-20", at: "2026-11-18T08:00:00.000Z" } } }));
       disk.set("ethos.theme", "dark");
       vi.stubGlobal("localStorage", {
         getItem: (k: string) => disk.get(k) ?? null,
@@ -251,12 +252,13 @@ describe("signing out everywhere", () => {
       });
     };
 
-    it("goes with it: the numbers kept between opens and the carried cue", async () => {
+    it("goes with it: the numbers kept between opens, the carried cue and Say it better's test", async () => {
       kept();
       expect(await signOutEverywhere()).toEqual({ ok: true });
       expect(disk.has("ethos.held")).toBe(false);
       expect(disk.has("ethos.cue")).toBe(false);
       expect(disk.has("ethos.cue.skipped")).toBe(false);
+      expect(disk.has("ethos.say.v1")).toBe(false);
       // The phone's own settings are not the account's.
       expect(disk.get("ethos.theme")).toBe("dark");
     });
@@ -267,6 +269,7 @@ describe("signing out everywhere", () => {
       await signOutEverywhere();
       expect(disk.has("ethos.held")).toBe(true);
       expect(disk.has("ethos.cue")).toBe(true);
+      expect(disk.has("ethos.say.v1")).toBe(true);
     });
   });
 });

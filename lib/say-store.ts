@@ -46,9 +46,10 @@ import {
   type TimedWord,
 } from "./say";
 import { saidIn } from "./upgrade";
+import { SAY_KEY } from "./say-keys";
 
-/** This phone's copy of the test, per account. */
-export const SAY_KEY = "ethos.say.v1";
+/** This phone's copy of the test, per account (lib/say-keys.ts, so signing out can forget it). */
+export { SAY_KEY };
 
 /** The table's answers before 0036 is applied. */
 export function missingSayTable(error: { code?: string; message?: string; status?: number } | null): boolean {

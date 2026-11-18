@@ -39,14 +39,14 @@ const TEXTS = [
 ];
 
 describe("what the server writes", () => {
-  it("is the substance the take was scored on: its verdict, its words, its different words", () => {
+  it("is a substance's verdict, its words, its different words", () => {
     const s = substance(said(30, 12));
     expect(substanceColumns(s)).toEqual({ scorable: true, word_count: 30, distinct_words: 12 });
     expect(substanceColumns(substance(said(10, 10)))).toEqual({ scorable: false, word_count: 10, distinct_words: 10 });
     expect(substanceColumns(substance(""))).toEqual({ scorable: false, word_count: 0, distinct_words: 0 });
   });
 
-  it("is the verdict the stars were given on, from the words Whisper timed", () => {
+  it("reads a substance counted from Whisper's timed words as it reads any other", () => {
     const words = said(25, 25).split(" ").map((word, i) => ({ word, start: i, end: i + 0.8 }));
     const m = computeMetrics(words, 30);
     expect(m.stars).toBeGreaterThan(0);
@@ -87,8 +87,8 @@ describe("what a reader reads", () => {
     expect(distinctRatioOf(0, 0)).toBe(0);
   });
 
-  it("takes the row's own verdict over its text: a new take's is the engine's", () => {
-    // The engine counted Whisper's words; a stored text can differ in punctuation.
+  it("takes the row's own verdict over its text", () => {
+    // The server writes it from the same text (lib/db.ts saveRep); a row whose two disagree reads its column.
     expect(rowScorable({ scorable: true, word_count: 22, distinct_words: 20, transcript: "too short" })).toBe(true);
     expect(rowScorable({ scorable: false, transcript: said(40, 40) })).toBe(false);
   });

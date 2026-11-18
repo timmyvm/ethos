@@ -14,7 +14,7 @@ import type { CoachOutput } from "./coach";
 import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
 import type { MeterState } from "./metering";
-import type { RepMetrics } from "./metrics";
+import { substance, type RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
@@ -419,8 +419,12 @@ export async function saveRep(params: {
     ...row,
     ...(params.clientId ? { client_id: params.clientId } : {}),
     ...(params.round ? { round: params.round } : {}),
-    // What its words came to (0037, #511), from the substance it was scored on.
-    ...(substanceColumns(metrics.substance) ?? {}),
+    /* What its transcript's words came to (0037, #511), by the rule every
+       reader ran on the stored transcript until now, so the columns read
+       the same as the text they stand in for. Not `metrics.substance`:
+       the engine counts Whisper's word list, which can part from its
+       text ("Twenty" and "20", a word in one and not the other). */
+    ...(substanceColumns(substance(transcript)) ?? {}),
   };
   let { data, error } = await insert(attempt);
   // Once per optional group at most; a taken key (23505) is not a missing column.

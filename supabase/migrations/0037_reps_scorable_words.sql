@@ -17,9 +17,9 @@
 --                   substance rounds it
 --
 -- /api/analyze writes all three with every recording it stores, from the
--- substance it already computes (lib/db.ts saveRep). A row stored before
--- that is filled here, once, from its transcript, by the same rule the
--- readers ran on it until now (lib/trait-readings.ts `measured`):
+-- transcript it stores (lib/db.ts saveRep). A row stored before that is
+-- filled here, once, from its transcript, by the same rule the readers
+-- ran on it until now (lib/trait-readings.ts `measured`):
 --
 --   * the text is lowercased as JavaScript's toLowerCase lowercases it,
 --     for the only characters whose lowercase lands in a word: A to Z,

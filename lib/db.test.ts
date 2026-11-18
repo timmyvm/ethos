@@ -437,19 +437,51 @@ describe("saveRep and a game round (0026)", () => {
   });
 
   /*
-   * 0037 (#511): what the take's words came to, from the substance it
-   * was scored on, so the lists read three numbers, not its transcript.
+   * 0037 (#511): what the stored transcript's words came to, so the lists
+   * read three numbers in its place and answer what they answered from it.
    */
-  it("stores the substance the take was scored on: its verdict, its words, its different words", async () => {
-    const { substance } = await import("./metrics");
+  it("stores what its transcript's words came to: its verdict, its words, its different words", async () => {
     const said = Array.from({ length: 30 }, (_, i) => `w${i % 12}`).join(" ");
-    await saveRep(params({ metrics: { ...(metrics as object), substance: substance(said) } as unknown as Parameters<typeof saveRep>[0]["metrics"] }));
+    await saveRep(params({ transcript: said }));
     const row = inserts.find((i) => i.table === "reps")!.row;
     expect([row.scorable, row.word_count, row.distinct_words]).toEqual([true, 30, 12]);
     inserts = [];
-    await saveRep(params({ metrics: { ...(metrics as object), substance: substance("too short") } as unknown as Parameters<typeof saveRep>[0]["metrics"] }));
+    await saveRep(params({ transcript: "too short" }));
     const thin = inserts.find((i) => i.table === "reps")!.row;
     expect([thin.scorable, thin.word_count, thin.distinct_words]).toEqual([false, 2, 2]);
+  });
+
+  /*
+   * The #511 review: whisper-1's text and its word list are two answers
+   * (lib/__fixtures__/whisper-take.ts: "Twenty" in one is "20" in the
+   * other, and a word can be in the text and not the list). The engine
+   * scores the list; every reader judged a stored row by its transcript
+   * until now, and the stored page, 0037's fill and the per-row fallback
+   * still do. A row the server writes from the list read differently
+   * through the columns than through its own transcript: here a take of
+   * twenty different words whose list dropped one was stored "not
+   * scorable, 19 words", where every reader before #511 said scored.
+   */
+  it("reads the same through its columns as through its transcript when Whisper's two answers differ", async () => {
+    const { computeMetrics, substance, isScorable } = await import("./metrics");
+    const { whisperTake } = await import("./__fixtures__/whisper-take");
+    const { rowScorable, rowSubstance } = await import("./rep-substance");
+    const take = whisperTake([
+      { text: "So the thing I keep {really|} noticing is how every small habit we choose quietly compounds into who we become." },
+    ]);
+    const m = computeMetrics(take.words, take.durationS, take.segments);
+    // The two answers part on exactly the line that decides "scored".
+    expect(m.substance.wordCount).toBe(19);
+    expect(substance(take.text).wordCount).toBe(20);
+    expect(isScorable(substance(take.text))).toBe(true);
+
+    await saveRep(params({ transcript: take.text, metrics: m }));
+    const row = inserts.find((i) => i.table === "reps")!.row as Record<string, number | boolean | null>;
+    const columns = { scorable: row.scorable as boolean, word_count: row.word_count as number, distinct_words: row.distinct_words as number };
+    expect(rowScorable(columns)).toBe(rowScorable({ transcript: take.text }));
+    expect(rowSubstance(columns)).toEqual(rowSubstance({ transcript: take.text }));
+    // What it pays still follows the stars the engine gave it (#510).
+    expect(row.stars).toBe(m.stars);
   });
 
   it("stores the recording without the three in one more insert on a table before 0037", async () => {

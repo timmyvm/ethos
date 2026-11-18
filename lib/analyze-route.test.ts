@@ -572,8 +572,8 @@ describe("the XP a take pays (#510)", () => {
     });
   }
 
-  /* #511: every path stores through saveRep, which writes 0037's columns
-     from the substance the route scored on (lib/db.test.ts holds the row). */
+  /* #511: every path stores through saveRep, with the transcript 0037's
+     columns are counted from (lib/db.test.ts holds the row). */
   it("hands the save the substance its stars and Index were given on, on every path", async () => {
     for (const [name, fill] of paths) {
       for (const fixture of [FIXTURE, EMPTY_FIXTURE]) {
@@ -587,6 +587,8 @@ describe("the XP a take pays (#510)", () => {
         expect(sent!.metrics.substance).toEqual(body.metrics.substance);
         expect(substanceColumns(sent!.metrics.substance)).toMatchObject({ scorable: body.scorable, word_count: body.metrics.substance.wordCount });
         expect(sent!.metrics.substance.distinctWords).toBeGreaterThan(0);
+        // The text the columns are counted from is the one stored and answered.
+        expect(sent!.transcript).toBe(body.transcript);
       }
     }
   });

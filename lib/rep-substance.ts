@@ -43,10 +43,14 @@ export type StoredSubstance = Pick<Substance, "wordCount" | "distinctRatio">;
 const count = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 /**
- * What the server writes with a recording, from the substance it was
- * scored on (`metrics.substance`): the same verdict its stars were given
- * on. Null without one, and a null `distinct_words` for a Substance that
- * did not count them, which a reader then reads from the transcript.
+ * The three columns of a Substance. The server writes them with a
+ * recording from `substance` of the transcript it stores (lib/db.ts
+ * saveRep), the rule every reader ran on that transcript before 0037, so
+ * the columns and the text they stand in for always agree. Never from
+ * `metrics.substance`: the engine counts Whisper's word list, which can
+ * part from its text (#511 review). Null without one, and a null
+ * `distinct_words` for a Substance that did not count them, which a
+ * reader then reads from the transcript.
  */
 export function substanceColumns(
   s: Substance | null | undefined

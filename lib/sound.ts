@@ -34,8 +34,9 @@
  * from a fixed seed, about a second and a half of soft, darkening
  * tail); the master runs through a high-pass at 140 Hz (a phone speaker
  * cannot move air below it and only distorts trying), a shelf down 4 dB
- * over 6 kHz (a phone speaker is shrill up there) and a limiter, so no
- * pile-up of coins can ever clip.
+ * over 6 kHz (a phone speaker is shrill up there), a limiter, and last a
+ * ceiling (`CEILING`) that bends anything over -1.5 dBFS into -0.5, so
+ * no pile-up of sounds can ever clip.
  */
 
 import { setAudioSession } from "./audio-session";
@@ -58,9 +59,9 @@ export function soundContext(): AudioContext | null {
 }
 
 /**
- * Inside a tap: make the context if there is none, wake it if the phone
- * paused it, and on first making it play one silent sample, which an
- * older iPhone needs before it lets a context sound later. Returns the
+ * Inside a tap: make the context if there is none, and while it is not
+ * running play one silent sample (what an older iPhone needs before it
+ * lets a context sound later) and wake it. Returns the
  * context, or null where there is no Web Audio (everything plays on,
  * mute). Cheap to call on every tap: an awake context is left alone.
  * The introduction's blips share it (lib/intro-sound.ts on wt-onboard,
@@ -74,22 +75,21 @@ export function unlockSound(): AudioContext | null {
     } catch {
       ctx = null;
     }
-    if (ctx) {
-      try {
-        const b = ctx.createBuffer(1, 1, ctx.sampleRate);
-        const s = ctx.createBufferSource();
-        s.buffer = b;
-        s.connect(ctx.destination);
-        s.start(0);
-      } catch {}
-    }
   }
   const c = soundContext();
   /* Mix with whatever else is playing, and follow the silent switch,
      from the first sample (a recorder asks for "auto" again before its
      mic opens). */
   if (c) ambient();
-  if (c && c.state !== "running") void c.resume().catch(() => {});
+  /* The silent sample and the wake ride on every tap until one takes,
+     not only on the tap that made the context (wt-onboard's #501 review,
+     399ea8f): a tap's first event is its pointerdown, which WebKit does
+     not count as the gesture, so an iPhone makes the context there and
+     lets it sound only on the same tap's touchend. */
+  if (c && c.state !== "running") {
+    prime(c);
+    void c.resume().catch(() => {});
+  }
   /* The chain now, in the tap: its limiter starts clamped and takes
      about half a second to let go, long before a take earns anything. */
   if (c) {
@@ -98,6 +98,29 @@ export function unlockSound(): AudioContext | null {
     } catch {}
   }
   return c;
+}
+
+/** One silent sample: what an older iPhone needs, inside a gesture, before a context may sound. */
+function prime(c: AudioContext): void {
+  try {
+    const b = c.createBuffer(1, 1, c.sampleRate);
+    const s = c.createBufferSource();
+    s.buffer = b;
+    s.connect(c.destination);
+    s.start(0);
+  } catch {}
+}
+
+/**
+ * Close the context and forget it; the next tap makes a new one. The
+ * introduction calls it as it is left (wt-onboard's `closeIntroSound`,
+ * #501 review), so nothing holds the phone's audio awake on the screens
+ * after it until a tap asks for sound again.
+ */
+export function closeSound(): void {
+  const c = ctx;
+  ctx = null;
+  if (c && c.state !== "closed") void c.close().catch(() => {});
 }
 
 /** Whether a sound may play now: Sound on (unless forced), and a running context. */
@@ -129,6 +152,32 @@ export const MASTER_OUT = 0.89;
 export const LIMIT = { threshold: -3, knee: 0, ratio: 20, attack: 0.001, release: 0.12 } as const;
 /** The room: seconds of tail, and how fast it dies. */
 export const ROOM = { seconds: 1.5, decay: 4.6, seed: 505 } as const;
+
+/**
+ * The last stage, after the master's level: a ceiling. The limiter is a
+ * Web Audio compressor (ratio 20 at most, with its own make-up gain), so
+ * a pile of sounds started together still rises past it: eleven of the
+ * kit's sounds at once rendered at +0.6 dBFS and ten payouts at +1.6
+ * (the #505 review). Under `knee` the curve is the signal itself, so no
+ * sound the app plays alone is touched (the loudest, the payout, peaks
+ * at 0.82); over it the curve bends into `top`, -0.5 dBFS, and an input
+ * past full scale is held at the curve's end. Nothing can clip.
+ */
+export const CEILING = { knee: 0.84, top: 0.944 } as const;
+
+/** The ceiling's curve for a WaveShaper: odd length, so silence maps to silence. */
+export function ceilingCurve(points = 2049): Float32Array<ArrayBuffer> {
+  const n = points % 2 === 1 ? points : points + 1;
+  const curve = new Float32Array(n);
+  const span = CEILING.top - CEILING.knee;
+  for (let i = 0; i < n; i++) {
+    const x = (2 * i) / (n - 1) - 1;
+    const a = Math.abs(x);
+    const y = a <= CEILING.knee ? a : CEILING.knee + span * Math.tanh((a - CEILING.knee) / span);
+    curve[i] = Math.sign(x) * y;
+  }
+  return curve;
+}
 
 type Master = { input: GainNode; room: ConvolverNode; noise: AudioBuffer; born: number };
 /** The limiter's own settling: a sound asked for sooner waits for it. */
@@ -186,7 +235,10 @@ export function master(c: BaseAudioContext): Master {
   limit.release.value = LIMIT.release;
   const out = c.createGain();
   out.gain.value = MASTER_OUT;
-  input.connect(hp).connect(shelf).connect(limit).connect(out).connect(c.destination);
+  const ceiling = c.createWaveShaper();
+  ceiling.curve = ceilingCurve();
+  ceiling.oversample = "4x";
+  input.connect(hp).connect(shelf).connect(limit).connect(out).connect(ceiling).connect(c.destination);
   const room = c.createConvolver();
   room.buffer = roomImpulse(c);
   const roomOut = c.createGain();
@@ -269,8 +321,9 @@ function playHiss(c: BaseAudioContext, h: Hiss, t0: number, noise: AudioBuffer, 
 
 /**
  * A sound laid on the clock: stop() fades it out in 40ms (one not yet
- * started never sounds); drop() stops it only if it has not started, so a
- * screen left mid-sound lets it ring out.
+ * started never sounds); drop() silences it only if it has not started,
+ * at once and whole, so a screen left mid-sound lets it ring out and a
+ * cue replaced just before its time leaves no 40ms of itself behind.
  */
 export type Playing = { stop: () => void; drop: () => void; startsAt: number; endsAt: number };
 
@@ -297,7 +350,22 @@ export function renderRecipe(c: BaseAudioContext, r: Recipe, t0: number): Playin
     startsAt: t0,
     endsAt,
     drop() {
-      if (c.currentTime < t0) this.stop();
+      const now = c.currentTime;
+      if (stopped || now >= t0) return;
+      /* Not started: its gain to nothing now, and every source stopped
+         before its start, so not one sample of it sounds. A fade here
+         (stop's 40ms) would let a sound due inside it start and be
+         heard on the way down. */
+      stopped = true;
+      try {
+        bus.gain.cancelScheduledValues(now);
+        bus.gain.setValueAtTime(0, now);
+      } catch {}
+      for (const s of stops) {
+        try {
+          s.stop(now);
+        } catch {}
+      }
     },
     stop() {
       if (stopped) return;

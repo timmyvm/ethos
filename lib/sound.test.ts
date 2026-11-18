@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  CEILING,
   CueRunner,
   LIMIT,
   SETTLE_S,
+  ceilingCurve,
+  closeSound,
   playBlips,
   playSound,
   resetSoundForTests,
@@ -67,12 +70,20 @@ class FakeContext {
   sampleRate = 4000;
   destination = { kind: "destination" } as unknown as Node;
   resumes = 0;
+  closes = 0;
+  /* A real phone answers resume() later; a test can hold it suspended. */
+  wakes = true;
   constructor() {
     FakeContext.made++;
   }
   resume() {
     this.resumes++;
-    this.state = "running";
+    if (this.wakes) this.state = "running";
+    return Promise.resolve();
+  }
+  close() {
+    this.closes++;
+    this.state = "closed";
     return Promise.resolve();
   }
   createGain() {
@@ -92,6 +103,9 @@ class FakeContext {
   }
   createConvolver() {
     return Object.assign(new Node("convolver", this), { buffer: null as unknown });
+  }
+  createWaveShaper() {
+    return Object.assign(new Node("shaper", this), { curve: null as Float32Array | null, oversample: "none" });
   }
   createStereoPanner() {
     return Object.assign(new Node("panner", this), { pan: new Param() });
@@ -154,6 +168,37 @@ describe("the context: made only in a tap", () => {
     expect(FakeContext.made).toBe(1);
   });
 
+  /* #505 review, from wt-onboard's 399ea8f: an iPhone makes the context
+     on a tap's pointerdown, which WebKit does not count as the gesture,
+     and lets it sound only on the same tap's touchend. */
+  it("primes and wakes again on every tap until the context runs, then leaves it alone", () => {
+    const c = unlockSound() as unknown as FakeContext;
+    c.state = "suspended";
+    c.wakes = false;
+    unlockSound();
+    expect(FakeContext.made).toBe(1);
+    expect(c.of("buffer").filter((b) => (b as Source).started === 0)).toHaveLength(2);
+    expect(c.resumes).toBe(2);
+    c.state = "running";
+    unlockSound();
+    expect(c.of("buffer").filter((b) => (b as Source).started === 0)).toHaveLength(2);
+    expect(c.resumes).toBe(2);
+  });
+
+  it("closes when asked (leaving the introduction), and the next tap makes a new one", () => {
+    const c = unlockSound() as unknown as FakeContext;
+    closeSound();
+    expect(c.closes).toBe(1);
+    expect(soundContext()).toBeNull();
+    expect(playSound("star-1")).toBeNull();
+    const d = unlockSound() as unknown as FakeContext;
+    expect(FakeContext.made).toBe(2);
+    expect(d).not.toBe(c);
+    expect(d.of("compressor")).toHaveLength(1);
+    expect(() => closeSound()).not.toThrow();
+    expect(() => closeSound()).not.toThrow();
+  });
+
   it("asks for the ambient session in the tap, so the silent switch holds and other audio keeps playing", () => {
     unlockSound();
     expect(session?.type).toBe("ambient");
@@ -209,6 +254,45 @@ describe("playing a sound", () => {
     expect(lim.threshold.value).toBe(LIMIT.threshold);
     expect(LIMIT.threshold).toBeLessThanOrEqual(-1);
     expect(lim.ratio.value).toBeGreaterThanOrEqual(12);
+  });
+
+  /* The #505 review rendered stacks through Chromium's own Web Audio:
+     eleven sounds at once came out at +0.6 dBFS, ten payouts at +1.6,
+     past the compressor. The chain ends in a ceiling. */
+  it("ends the chain in a ceiling no stack of sounds can pass", () => {
+    const c = unlockSound() as unknown as FakeContext;
+    const [shaper] = c.of("shaper") as unknown as { curve: Float32Array; oversample: string; outs: unknown[] }[];
+    expect(shaper.outs).toEqual([c.destination]);
+    expect(shaper.oversample).toBe("4x");
+    const gains = c.of("gain") as unknown as { gain: Param; outs: unknown[] }[];
+    expect(gains.some((g) => g.outs[0] === shaper && g.gain.value > 0)).toBe(true);
+    const curve = shaper.curve;
+    expect(Math.max(...curve.map(Math.abs))).toBeLessThanOrEqual(CEILING.top + 1e-6);
+    expect(20 * Math.log10(CEILING.top)).toBeLessThanOrEqual(-0.5 + 1e-3);
+  });
+
+  it("leaves every level a sound reaches alone, and bends only what is over the knee", () => {
+    const curve = ceilingCurve();
+    const at = (x: number) => {
+      /* The WaveShaper's own reading: linear between the curve's points. */
+      const p = ((x + 1) / 2) * (curve.length - 1);
+      const i = Math.min(curve.length - 2, Math.floor(p));
+      return curve[i] + (curve[i + 1] - curve[i]) * (p - i);
+    };
+    expect(curve.length % 2).toBe(1);
+    expect(at(0)).toBeCloseTo(0, 9);
+    for (const x of [0.01, 0.2, 0.5, 0.82, CEILING.knee]) {
+      expect(at(x)).toBeCloseTo(x, 5);
+      expect(at(-x)).toBeCloseTo(-x, 5);
+    }
+    let last = -Infinity;
+    for (let x = -1; x <= 1; x += 0.001) {
+      const y = at(x);
+      expect(y).toBeGreaterThanOrEqual(last - 1e-9);
+      last = y;
+    }
+    expect(at(1)).toBeLessThan(CEILING.top);
+    expect(at(1)).toBeGreaterThan(CEILING.knee);
   });
 
   it("stops a sound in a 40ms fade", () => {
@@ -324,6 +408,29 @@ describe("a moment's cues on the audio clock", () => {
     const firstOf = (id: "star-1" | "star-2") => 20 + 0.01 + (id === "star-1" ? 0.66 : 0.78);
     expect(Math.min(...starts)).toBeCloseTo(firstOf("star-1"), 6);
     expect(starts.some((t) => Math.abs(t - firstOf("star-2")) < 1e-6)).toBe(true);
+  });
+
+  /* The #505 review: a drop was stop()'s 40ms fade, so a cue replaced
+     (or a screen left) within 40ms of its start sounded on the way down. */
+  it("drops a sound due within the fade whole: gain to nothing now, every source stopped before its start", () => {
+    const c = unlockSound() as unknown as FakeContext;
+    c.currentTime = 40;
+    const before = c.of("osc").length;
+    const gainsBefore = c.of("gain").length;
+    const p = playSound("star-2")!;
+    expect(p.startsAt).toBeCloseTo(40.01, 6);
+    p.drop();
+    const oscs = c.of("osc").slice(before) as Source[];
+    for (const o of oscs) expect(o.stopped!).toBeLessThan(o.started!);
+    const bus = c.of("gain")[gainsBefore] as unknown as { gain: Param };
+    expect(bus.gain.calls.at(-1)).toEqual(["set", 0, 40]);
+    /* A sound already sounding is not dropped: it rings out. */
+    const q = playSound("star-1")!;
+    const sounding = c.of("osc").slice(before + oscs.length) as Source[];
+    const ends = sounding.map((o) => o.stopped);
+    c.currentTime = 40.2;
+    q.drop();
+    expect(sounding.map((o) => o.stopped)).toEqual(ends);
   });
 
   it("stops a cue that has not started when the screen goes", () => {

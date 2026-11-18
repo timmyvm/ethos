@@ -259,6 +259,34 @@ describe("POST /api/analyze", () => {
     expect(removeRepAudio).toHaveBeenCalledWith("u-1/cut.webm");
   });
 
+  it("never lets Whisper's deadline pass the route's own minute, however long the upload took (scale review)", async () => {
+    // The minute counts from the request, the upload included. A take that
+    // took 57 s to arrive used to get "now + 5 s", 62 s, past the platform's
+    // kill at 60: the slot kept and the audio left in the bucket, the very
+    // ending the deadline was built to stop. It must end by 55 s and answer
+    // 502 with the slot given back.
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
+    vi.mocked(refundRateLimit).mockClear();
+    vi.mocked(transcribe).mockRejectedValue(new Error("Whisper timed out before it was asked."));
+    const t0 = Date.now();
+    let at = t0;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => at);
+    onTestFinished(() => clock.mockRestore());
+    const req = new Request("http://test.local/api/analyze", { method: "POST", body: audioForm() });
+    const read = req.formData.bind(req);
+    // The upload lands 57 seconds after the request came in.
+    req.formData = async () => {
+      const form = await read();
+      at = t0 + 57_000;
+      return form;
+    };
+    const res = await POST(req as unknown as NextRequest);
+    expect(res.status).toBe(502);
+    const deadline = (vi.mocked(transcribe).mock.calls.at(-1)![2] as { deadline: number }).deadline;
+    expect(deadline).toBeLessThanOrEqual(t0 + 55_000);
+    expect(refundRateLimit).toHaveBeenCalledWith("u:u-1");
+  });
+
   it("keeps 502 for a Whisper refusal that is ours, not the file's, and gives the slot back", async () => {
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-1", anonymous: false });
     for (const code of [401, 403, 404, 408, 429]) {

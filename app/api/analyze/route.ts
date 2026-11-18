@@ -118,6 +118,13 @@ const COACH_BUDGET_MS = 45_000;
  * seconds of Whisper; only an OpenAI slowdown reaches this.
  */
 const WHISPER_BUDGET_MS = 50_000;
+/**
+ * However late the take arrived, Whisper is never given past this: the
+ * minute counts from the request, the upload included, and a slow upload
+ * that reached Whisper after 55 s used to get "now + 5 s", past the kill
+ * at 60, which is the ending the budget above exists to prevent.
+ */
+const WHISPER_LAST_MS = 55_000;
 
 export interface AnalyzeResponse {
   transcript: string;
@@ -602,7 +609,10 @@ async function handleTake(
   let transcription;
   try {
     transcription = await transcribe(audio, filename, {
-      deadline: Math.max(startedAt + WHISPER_BUDGET_MS, Date.now() + 5_000),
+      deadline: Math.min(
+        Math.max(startedAt + WHISPER_BUDGET_MS, Date.now() + 5_000),
+        startedAt + WHISPER_LAST_MS
+      ),
     });
     clock.mark("whisperEnd");
     clock.takeS = transcription.durationS;

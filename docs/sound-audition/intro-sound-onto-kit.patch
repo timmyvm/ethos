@@ -1,0 +1,122 @@
+diff --git a/lib/intro-sound.ts b/lib/intro-sound.ts
+index 1e0b76f..9dde079 100644
+--- a/lib/intro-sound.ts
++++ b/lib/intro-sound.ts
+@@ -36,7 +36,7 @@
+  * the name question after the room can talk without another tap.
+  */
+ 
+-import { readPrefs } from "./prefs";
++import { playBlips, soundContext, unlockSound } from "./sound";
+ 
+ export type Rng = () => number;
+ 
+@@ -79,97 +79,25 @@ export function talkBlip(rng: Rng = Math.random): Blip {
+   };
+ }
+ 
+-type AudioContextCtor = new () => AudioContext;
+-
+-let ctx: AudioContext | null = null;
+-
+-function ctor(): AudioContextCtor | undefined {
+-  if (typeof window === "undefined") return undefined;
+-  const w = window as unknown as { AudioContext?: AudioContextCtor; webkitAudioContext?: AudioContextCtor };
+-  return w.AudioContext ?? w.webkitAudioContext;
+-}
+-
+-/** The walk's context, if a tap has made one. */
+-export function introContext(): AudioContext | null {
+-  return ctx && ctx.state !== "closed" ? ctx : null;
+-}
+-
+-/**
+- * Inside a tap: make the context if there is none, wake it if the phone
+- * paused it, and on first making it play one silent sample, which an
+- * older iPhone needs before it lets a context sound later. Returns the
+- * context, or null where there is no Web Audio (the walk plays on, mute).
+- * Cheap to call on every tap: an awake context is left alone.
++/*
++ * One kit (#505): the context, the switch and the gate are the app's
++ * (lib/sound.ts). The introduction's first tap makes the context every
++ * later sound in the app plays through; the room borrows it for its pops
++ * and its mic's level.
+  */
+-export function unlockIntroSound(): AudioContext | null {
+-  if (!introContext()) {
+-    const C = ctor();
+-    try {
+-      ctx = C ? new C() : null;
+-    } catch {
+-      ctx = null;
+-    }
+-    if (ctx) {
+-      try {
+-        const b = ctx.createBuffer(1, 1, ctx.sampleRate);
+-        const s = ctx.createBufferSource();
+-        s.buffer = b;
+-        s.connect(ctx.destination);
+-        s.start(0);
+-      } catch {}
+-    }
+-  }
+-  const c = introContext();
+-  if (c && c.state !== "running") void c.resume().catch(() => {});
+-  return c;
+-}
+ 
+-/** Whether a blip may sound now: Sound on, and a running context. */
+-function live(): AudioContext | null {
+-  const c = introContext();
+-  if (!c || c.state !== "running") return null;
+-  if (!readPrefs().sound) return null;
+-  return c;
+-}
++/** The walk's context, if a tap has made one: the app's. */
++export const introContext = soundContext;
+ 
+-function play(c: AudioContext, b: Blip): void {
+-  const at = c.currentTime + 0.005 + b.at;
+-  const end = at + b.attackS + b.decayS;
+-  const g = c.createGain();
+-  g.gain.setValueAtTime(0.0001, at);
+-  g.gain.linearRampToValueAtTime(b.peak, at + b.attackS);
+-  g.gain.exponentialRampToValueAtTime(0.0001, end);
+-  const lp = c.createBiquadFilter();
+-  lp.type = "lowpass";
+-  lp.frequency.value = LOWPASS_HZ;
+-  const o = c.createOscillator();
+-  o.type = b.type;
+-  o.frequency.setValueAtTime(b.freq, at);
+-  if (b.endFreq !== b.freq) o.frequency.exponentialRampToValueAtTime(b.endFreq, end);
+-  o.connect(g).connect(lp).connect(c.destination);
+-  o.start(at);
+-  o.stop(end + 0.03);
+-  o.onended = () => {
+-    try {
+-      lp.disconnect();
+-    } catch {}
+-  };
+-}
++/** Inside a tap: the app's context, made or woken (lib/sound.ts `unlockSound`). */
++export const unlockIntroSound = unlockSound;
+ 
+ /** A word landing in Demos's bubble. */
+ export function playTalk(): void {
+-  const c = live();
+-  if (!c) return;
+-  try {
+-    play(c, talkBlip());
+-  } catch {}
++  playBlips([talkBlip()]);
+ }
+ 
+ /** An answer chosen. */
+ export function playPick(): void {
+-  const c = live();
+-  if (!c) return;
+-  try {
+-    for (const b of PICK) play(c, b);
+-  } catch {}
++  playBlips(PICK);
+ }

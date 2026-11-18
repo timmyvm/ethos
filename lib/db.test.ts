@@ -436,6 +436,36 @@ describe("saveRep and a game round (0026)", () => {
     expect(Object.keys(reps[2].row)).not.toContain("client_id");
   });
 
+  /*
+   * 0037 (#511): what the take's words came to, from the substance it
+   * was scored on, so the lists read three numbers, not its transcript.
+   */
+  it("stores the substance the take was scored on: its verdict, its words, its different words", async () => {
+    const { substance } = await import("./metrics");
+    const said = Array.from({ length: 30 }, (_, i) => `w${i % 12}`).join(" ");
+    await saveRep(params({ metrics: { ...(metrics as object), substance: substance(said) } as unknown as Parameters<typeof saveRep>[0]["metrics"] }));
+    const row = inserts.find((i) => i.table === "reps")!.row;
+    expect([row.scorable, row.word_count, row.distinct_words]).toEqual([true, 30, 12]);
+    inserts = [];
+    await saveRep(params({ metrics: { ...(metrics as object), substance: substance("too short") } as unknown as Parameters<typeof saveRep>[0]["metrics"] }));
+    const thin = inserts.find((i) => i.table === "reps")!.row;
+    expect([thin.scorable, thin.word_count, thin.distinct_words]).toEqual([false, 2, 2]);
+  });
+
+  it("stores the recording without the three in one more insert on a table before 0037", async () => {
+    const { substance } = await import("./metrics");
+    tableWithout(["word_count", "scorable", "distinct_words"]);
+    const saved = await saveRep(
+      params({ clientId: "k1", round, metrics: { ...(metrics as object), substance: substance("a b c") } as unknown as Parameters<typeof saveRep>[0]["metrics"] })
+    );
+    expect(saved?.id).toBe("rep-1");
+    const reps = inserts.filter((i) => i.table === "reps");
+    expect(reps).toHaveLength(2);
+    for (const c of ["scorable", "word_count", "distinct_words"]) expect(c in reps[1].row).toBe(false);
+    expect(reps[1].row.client_id).toBe("k1");
+    expect(reps[1].row.round).toEqual(round);
+  });
+
   it("never retries a taken key as a missing column", async () => {
     repInsert = { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint reps_user_client_id_uniq on round" } };
     existing = { id: "rep-0" };

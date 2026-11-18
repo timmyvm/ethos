@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { achievements } from "./achievements";
-import type { RepRow } from "./client-data";
+import type { StoredRep as RepRow } from "./client-data";
 
 /** Enough words to score (`measured`): the rows below are real takes. */
 const SAID =

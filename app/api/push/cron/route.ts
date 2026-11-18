@@ -27,6 +27,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { supabaseAdmin } from "@/lib/db";
+import { SUBSTANCE_SELECT, missingSubstanceColumn, withTranscripts } from "@/lib/rep-substance";
 import { PUSH_SEND_TIMEOUT_MS, pushEndpointOk } from "@/lib/push-endpoint";
 import { dbTickMatches, matchedSecret, namedTickSecrets, tickCaller, type TickCaller, type TickSecretName } from "@/lib/cron-auth";
 import { TICK_KEEP_HOURS, tickSubject } from "@/lib/push-clock";
@@ -264,24 +265,36 @@ export async function GET(req: NextRequest) {
  * every reminder opened a different topic from Today's. The practice is
  * chosen from the newest measured recording, so the newest thirty are
  * read; a read that fails opens Today, which chooses for itself.
+ *
+ * Their substance is 0037's three columns (#511), not thirty
+ * transcripts; before 0037 (42703) the read is the one it always was,
+ * and a row 0037 has not filled has its transcript read on its own
+ * (lib/rep-substance.ts).
  */
+const PRACTICE_COLUMNS = `id, created_at, duration_s, wpm, filler_count, fillers, pauses, dimensions, ${SUBSTANCE_SELECT}`;
+const PRACTICE_COLUMNS_BEFORE_0037 = "id, created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, dimensions";
+
 async function practiceUrl(
   db: NonNullable<ReturnType<typeof supabaseAdmin>>,
   userId: string,
   now: Date,
   tzOffset: number
 ): Promise<string> {
-  const [{ data, error }, pool] = await Promise.all([
-    db
-      .from("reps")
-      .select("created_at, duration_s, transcript, wpm, filler_count, fillers, pauses, dimensions")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(30),
-    poolOf(db, userId),
-  ]);
+  const read = (columns: string) =>
+    db.from("reps").select(columns).eq("user_id", userId).order("created_at", { ascending: false }).limit(30);
+  const [first, pool] = await Promise.all([read(PRACTICE_COLUMNS), poolOf(db, userId)]);
+  const { data, error } = missingSubstanceColumn(first.error) ? await read(PRACTICE_COLUMNS_BEFORE_0037) : first;
   if (error || !data) return "/";
-  const rows = (data as PracticeRow[]).slice().reverse();
+  let rows: (PracticeRow & { id: string })[];
+  try {
+    rows = await withTranscripts((data as unknown as (PracticeRow & { id: string })[]).slice().reverse(), async (ids) => {
+      const got = await db.from("reps").select("id, transcript").in("id", ids);
+      if (got.error) throw got.error;
+      return (got.data as { id: string; transcript: string | null }[] | null) ?? [];
+    });
+  } catch {
+    return "/";
+  }
   // The day is already claimed (#430): an address that cannot be worked
   // out opens Today rather than costing the person their reminder.
   try {

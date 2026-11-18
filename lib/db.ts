@@ -19,6 +19,7 @@ import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
 import type { GameRound } from "./round";
 import { xpForTake } from "./xp";
+import { SUBSTANCE_COLUMNS, substanceColumns } from "./rep-substance";
 
 export function supabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -246,10 +247,13 @@ async function storedPremium(userId: string | null): Promise<boolean> {
 
 /**
  * Columns a recording is stored without when the table lacks them yet,
- * because their migrations are applied by hand: the outbox key (0016) and
- * a game's round (0026). Losing either is better than losing the take.
+ * because their migrations are applied by hand: the outbox key (0016), a
+ * game's round (0026), and what its words came to (0037, #511: the three
+ * go together, so a table before 0037 costs one more insert, not three).
+ * Losing any is better than losing the take; the readers re-read a row
+ * without 0037's columns from its transcript (lib/rep-substance.ts).
  */
-const OPTIONAL_COLUMNS = ["client_id", "round"] as const;
+const OPTIONAL_COLUMNS: readonly (readonly string[])[] = [["client_id"], ["round"], SUBSTANCE_COLUMNS];
 
 /**
  * The reps table's check refused a take of 0 stars (#504): Postgres's
@@ -415,16 +419,18 @@ export async function saveRep(params: {
     ...row,
     ...(params.clientId ? { client_id: params.clientId } : {}),
     ...(params.round ? { round: params.round } : {}),
+    // What its words came to (0037, #511), from the substance it was scored on.
+    ...(substanceColumns(metrics.substance) ?? {}),
   };
   let { data, error } = await insert(attempt);
-  // Once per optional column at most; a taken key (23505) is not a missing column.
+  // Once per optional group at most; a taken key (23505) is not a missing column.
   for (let tries = 0; tries < OPTIONAL_COLUMNS.length && error && error.code !== "23505"; tries++) {
     const message = error.message;
-    const missing = OPTIONAL_COLUMNS.find(
-      (k) => k in attempt && new RegExp(`\\b${k}\\b`).test(message)
+    const missing = OPTIONAL_COLUMNS.find((group) =>
+      group.some((k) => k in attempt && new RegExp(`\\b${k}\\b`).test(message))
     );
     if (!missing) break;
-    attempt = Object.fromEntries(Object.entries(attempt).filter(([k]) => k !== missing));
+    attempt = Object.fromEntries(Object.entries(attempt).filter(([k]) => !missing.includes(k)));
     ({ data, error } = await insert(attempt));
   }
   // A take that earned no star (#504) on a table whose check still says

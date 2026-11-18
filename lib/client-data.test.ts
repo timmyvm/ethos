@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * does, so the test asks the same question the database answers: which
  * rows does a capped read return, and in what order does the app see them.
  */
-type Row = { id: string; created_at: string };
+type Row = { id: string; created_at: string; scorable?: boolean; word_count?: number; distinct_words?: number };
 let table: Row[] = [];
 let profileError: { message: string } | null = null;
 /** The columns the last read asked for. */
@@ -18,7 +18,7 @@ function query(rows: Row[]) {
       selected = columns;
       return q;
     },
-    order: (col: keyof Row, { ascending }: { ascending: boolean }) => {
+    order: (col: "id" | "created_at", { ascending }: { ascending: boolean }) => {
       out.sort((a, b) => (a[col] < b[col] ? -1 : a[col] > b[col] ? 1 : 0) * (ascending ? 1 : -1));
       return q;
     },
@@ -53,8 +53,9 @@ const day = (n: number) => new Date(Date.UTC(2026, 0, 1) + n * 86_400_000).toISO
 
 describe("fetchReps", () => {
   beforeEach(() => {
-    // 120 recordings, one a day, stored in no particular order.
-    table = Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, created_at: day(i) })).reverse();
+    // 120 recordings, one a day, stored in no particular order, each
+    // carrying 0037's columns (#511) so the list needs no transcripts.
+    table = Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, created_at: day(i), scorable: true, word_count: 40, distinct_words: 30 })).reverse();
   });
 
   it("keeps the newest rows when the log runs past the limit", async () => {

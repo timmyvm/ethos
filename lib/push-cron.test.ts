@@ -142,10 +142,10 @@ function repsQuery() {
       return q;
     },
     order: () => q,
-    // The address's read (#431, the one with the transcript) finds no
+    // The address's read (#431, the one with the dimensions) finds no
     // measured recording here, so the reminder opens Today; the address
     // itself is lib/push-cron-url.test.ts's subject.
-    limit: () => Promise.resolve({ data: cols.includes("transcript") ? [] : recent, error: null }),
+    limit: () => Promise.resolve({ data: cols.includes("dimensions") ? [] : recent, error: null }),
     then: (ok: (v: unknown) => unknown) =>
       Promise.resolve(
         head

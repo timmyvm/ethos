@@ -91,6 +91,7 @@ import { transcribe } from "@/lib/transcribe";
 import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope";
 import { ethosIndex, pauseScore, type Tier1Scores } from "@/lib/index-score";
 import { computeMetrics } from "@/lib/metrics";
+import { substanceColumns } from "@/lib/rep-substance";
 import { reportJudged, type JudgedPause } from "@/lib/pause-quality";
 import { PAUSE_RULES, rulesNote } from "@/lib/pause-rules";
 import { SHAPED_TAKE, whisperTake } from "@/lib/__fixtures__/whisper-take";
@@ -570,6 +571,25 @@ describe("the XP a take pays (#510)", () => {
       expect(body.xp).toBeGreaterThan(0);
     });
   }
+
+  /* #511: every path stores through saveRep, which writes 0037's columns
+     from the substance the route scored on (lib/db.test.ts holds the row). */
+  it("hands the save the substance its stars and Index were given on, on every path", async () => {
+    for (const [name, fill] of paths) {
+      for (const fixture of [FIXTURE, EMPTY_FIXTURE]) {
+        vi.mocked(saveRep).mockClear();
+        vi.mocked(transcribe).mockResolvedValue(fixture);
+        const form = audioForm();
+        fill(form);
+        const body = await (await post(form)).json();
+        const sent = vi.mocked(saveRep).mock.calls[0]?.[0];
+        expect(sent, name).toBeTruthy();
+        expect(sent!.metrics.substance).toEqual(body.metrics.substance);
+        expect(substanceColumns(sent!.metrics.substance)).toMatchObject({ scorable: body.scorable, word_count: body.metrics.substance.wordCount });
+        expect(sent!.metrics.substance.distinctWords).toBeGreaterThan(0);
+      }
+    }
+  });
 
   it("answers xp 0 when nothing was stored: no session, or a failed save", async () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);

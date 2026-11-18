@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 import type { RepRow } from "./client-data";
+import { substance } from "./metrics";
+import { substanceColumns } from "./rep-substance";
 
 /*
  * The reminder opens Today's own practice, ready to record (#431). It
@@ -11,8 +13,11 @@ import type { RepRow } from "./client-data";
 const words = (distinct: number) =>
   Array.from({ length: 150 }, (_, i) => `word${i % distinct}`).join(" ");
 
-/** A stored recording, as the cron's read returns it (newest first). */
+let nextId = 0;
+/** A stored recording, as the cron's read returns it (newest first): 0037's columns filled from its words. */
 const stored = (at: Date): Partial<RepRow> => ({
+  id: `r${++nextId}`,
+  ...substanceColumns(substance(words(90)))!,
   created_at: at.toISOString(),
   duration_s: 60,
   transcript: words(90),
@@ -28,6 +33,12 @@ const stored = (at: Date): Partial<RepRow> => ({
 
 let history: Partial<RepRow>[] = [];
 let historyError: { message: string } | null = null;
+/** The table has 0037's columns; false answers a select naming one with 42703, as production before it. */
+let has0037 = true;
+/** Every select the practice read made, in order. */
+let practiceSelects: string[] = [];
+/** The ids a transcript read asked for. */
+let transcriptReads: string[][] = [];
 const payloads: { url: string; body: string }[] = [];
 
 function subsQuery() {
@@ -66,6 +77,16 @@ function subsQuery() {
   return q;
 }
 
+/** Only the columns asked for, as PostgREST answers. */
+const pick = (r: Partial<RepRow>, cols: string) =>
+  Object.fromEntries(
+    cols
+      .split(",")
+      .map((c) => c.trim())
+      .filter((c) => c in r)
+      .map((c) => [c, (r as Record<string, unknown>)[c]])
+  );
+
 function repsQuery() {
   let head = false;
   let cols = "";
@@ -78,14 +99,21 @@ function repsQuery() {
     eq: () => q,
     gte: () => q,
     order: () => q,
-    limit: () =>
-      Promise.resolve(
-        cols.includes("transcript")
-          ? historyError
-            ? { data: null, error: historyError }
-            : { data: [...history].reverse(), error: null }
-          : { data: history.map((r) => ({ created_at: r.created_at })), error: null }
-      ),
+    /* The practice read (#431): it names the dimensions; the last take's read does not. */
+    limit: () => {
+      if (!cols.includes("dimensions")) return Promise.resolve({ data: history.map((r) => ({ created_at: r.created_at })), error: null });
+      practiceSelects.push(cols);
+      if (!has0037 && /\b(scorable|word_count|distinct_words)\b/.test(cols)) {
+        return Promise.resolve({ data: null, error: { code: "42703", message: "column reps.scorable does not exist" } });
+      }
+      if (historyError) return Promise.resolve({ data: null, error: historyError });
+      return Promise.resolve({ data: [...history].reverse().map((r) => pick(r, cols)), error: null });
+    },
+    /* A row 0037 has not filled: its transcript, read on its own. */
+    in: (_c: string, ids: string[]) => {
+      transcriptReads.push(ids);
+      return Promise.resolve({ data: history.filter((r) => ids.includes(r.id!)).map((r) => pick(r, cols)), error: null });
+    },
     then: (ok: (v: unknown) => unknown) =>
       Promise.resolve(head ? { count: 0, error: null } : { data: [], error: null }).then(ok),
   };
@@ -145,6 +173,9 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000);
 beforeEach(() => {
   history = [];
   historyError = null;
+  has0037 = true;
+  practiceSelects = [];
+  transcriptReads = [];
   payloads.length = 0;
   answers = { data: { age_band: "18_24", context: null }, error: null };
 });
@@ -250,5 +281,43 @@ describe("the reminder's address", () => {
     expect(res).toMatchObject({ sent: 1, failed: 0 });
     expect(payloads[0].url).toBe("/");
     expect(JSON.parse(payloads[0].body)).toMatchObject({ title: expect.any(String), body: expect.any(String) });
+  });
+});
+
+/*
+ * #511: the address reads 0037's columns, not thirty transcripts, and
+ * opens the same practice from either. Before 0037 it reads what it
+ * always read; a row 0037 has not filled has its transcript read alone.
+ */
+describe("the reminder's address and migration 0037", () => {
+  const three = () => [stored(daysAgo(3)), stored(daysAgo(2)), stored(daysAgo(1))];
+
+  it("names the three columns and never the transcript", async () => {
+    history = three();
+    await tick();
+    expect(practiceSelects).toHaveLength(1);
+    expect(practiceSelects[0]).toMatch(/\bscorable, word_count, distinct_words\b/);
+    expect(practiceSelects[0]).not.toMatch(/\btranscript\b/);
+    expect(transcriptReads).toEqual([]);
+    expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(), 0, "all"));
+  });
+
+  it("before 0037, goes back to the read it always made, and opens the same practice", async () => {
+    history = three();
+    has0037 = false;
+    await tick();
+    expect(practiceSelects).toHaveLength(2);
+    expect(practiceSelects[1]).toMatch(/\btranscript\b/);
+    expect(practiceSelects[1]).not.toMatch(/\bscorable\b/);
+    expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(), 0, "all"));
+    expect(new URL(payloads[0].url, "http://ethos.local").searchParams.get("ready")).toBe("1");
+  });
+
+  it("reads the transcript of a row 0037 has not filled, and only that row's", async () => {
+    history = three();
+    history[1] = { ...history[1], scorable: null, word_count: null, distinct_words: null };
+    await tick();
+    expect(transcriptReads).toEqual([[history[1].id]]);
+    expect(payloads[0].url).toBe(todayHrefOn(history as RepRow[], new Date(), 0, "all"));
   });
 });

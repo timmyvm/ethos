@@ -1,6 +1,6 @@
 import type { RepRow } from "@/lib/client-data";
 import { sinceDayOne } from "@/lib/log";
-import { ALL_FILLERS_PER_MIN, HELD_PER_RECORDING, unitBreak } from "@/lib/metric-labels";
+import { ALL_FILLERS_PER_MIN, PAUSES_PER_RECORDING, WORDS_A_MINUTE, pausesBetween } from "@/lib/metric-labels";
 
 /**
  * Day-1 vs day-N — the core retention asset AND the core marketing
@@ -31,8 +31,9 @@ export function ComparisonCard({
 
   const fpm = (r: RepRow) =>
     r.duration_s > 0 ? (r.filler_count / (r.duration_s / 60)) : 0;
-  const held = (r: RepRow) =>
-    (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
+  /* Pauses between sentences only (#495): the mid-sentence ones are the
+     fault, and counting them read as better. */
+  const held = (r: RepRow) => pausesBetween(r.pauses);
 
   const rows: { label: string; a: string; b: string; better: boolean }[] = [
     {
@@ -42,14 +43,14 @@ export function ComparisonCard({
       better: fpm(last) < fpm(first),
     },
     {
-      label: "Words / min",
+      label: WORDS_A_MINUTE,
       a: String(first.wpm),
       b: String(last.wpm),
       better:
         Math.abs(last.wpm - 145) < Math.abs(first.wpm - 145),
     },
     {
-      label: HELD_PER_RECORDING,
+      label: PAUSES_PER_RECORDING,
       a: String(held(first)),
       b: String(held(last)),
       better: held(last) > held(first),
@@ -67,8 +68,8 @@ export function ComparisonCard({
 
   const LEAD_LABEL: Record<string, string> = {
     fillers: ALL_FILLERS_PER_MIN,
-    wpm: "Words / min",
-    pause: HELD_PER_RECORDING,
+    wpm: WORDS_A_MINUTE,
+    pause: PAUSES_PER_RECORDING,
   };
   const leadLabel = lead ? LEAD_LABEL[lead] : undefined;
   if (leadLabel) {
@@ -82,9 +83,9 @@ export function ComparisonCard({
       <div className="mt-4 space-y-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-3">
-            {/* 112px: "Held pauses / recording" takes two lines, and
-                breaks only before its slash (L08). */}
-            <span className="w-28 shrink-0 text-caption text-cream/60">{unitBreak(r.label)}</span>
+            {/* 112px: "Pauses between sentences in a recording" takes
+                three lines, its unit in words (#495). */}
+            <span className="w-28 shrink-0 text-caption text-cream/60">{r.label}</span>
             <span className="font-display text-num-s tabular-nums text-cream/45">
               {r.a}
             </span>

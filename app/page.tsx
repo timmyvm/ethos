@@ -670,9 +670,13 @@ export default function Home() {
 
       {/* The switch (ToyCad's Start / My Recent), on the shared Segmented
           and its keys. Gone on a failed read, where neither side has a
-          number to show. */}
+          number to show. The space over it is `.home-seg-gap` (#495
+          and its review): at the section's 28 it stood half under the
+          floating tab bar on the first screen, its labels cut, so it
+          either clears the bar or starts at the bar's top, whatever the
+          phone's height. */}
       {!failed && (
-        <div className="mt-7">
+        <div className="home-seg-gap">
           <Segmented
             label="Show"
             size="lg"

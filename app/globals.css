@@ -3383,8 +3383,16 @@ summary::-webkit-details-marker {
   width: 18px;
   height: 18px;
 }
-/* An open day: the flame is unlit until today's recording lands. It
-   replaces the words, which the chip keeps as sr-only text. */
+/* An open day: the chip is neutral and the flame unlit until today's
+   recording lands (#495, the morning tour: a sage wash, the earned
+   register, held a grey flame on a day not yet spoken). The surface step
+   and the ink: the count is still the person's, only today is not yet
+   earned. The flame replaces the words, which the chip keeps as sr-only
+   text. */
+.today-earned[data-open="true"] {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
 .today-earned[data-open="true"] .today-earned-mark {
   color: var(--color-stone-400);
 }
@@ -4326,11 +4334,20 @@ summary::-webkit-details-marker {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
   opacity: 0;
-  transition: opacity 180ms var(--ease-out);
+  transition:
+    opacity 180ms var(--ease-out),
+    background-color 180ms var(--ease-out);
   pointer-events: none;
 }
 .screen-bar[data-edge]::before {
   opacity: 1;
+}
+/* Over a coloured card (`data-bar-solid`, Today's practice card) the
+   material is the ground, opaque (#495, the morning tour: at 74% the
+   frost took the navy foot into a blue smear and "Another topic" ghosted
+   through). The soft edge stays, so the card still slides under one. */
+.screen-bar[data-solid]::before {
+  background: var(--color-ground);
 }
 .screen-bar-side {
   display: flex;
@@ -6170,6 +6187,35 @@ summary::-webkit-details-marker {
   color: var(--color-ground);
 }
 
+/* The space over the switch (#495 and its review). On the first screen
+   the switch either clears the floating tab bar or starts at its top,
+   never half under it with its labels cut. #495's fixed 60px did that at
+   390x844, 393x852 and 430x932 and moved the fault to 402x874 (iPhone 16
+   Pro, 17, 17 Pro), where the switch stood 20px out over the bar. So the
+   gap is read from the room left between the two tiles' foot and the
+   bar's top, `--seg-room`: the header, the card's 376 and the two tiles
+   stand 696px down on every open and spoken day from 360 to 440 wide
+   (check-today 5 measures it at six iPhones, so a change above the
+   switch has to change this number with it). The small viewport, so an
+   address bar that folds away mid-scroll never moves it.
+     room 12 to 64: the gap is the room, the switch's top on the bar's
+       top, wholly under it, and no band over 64;
+     room over 64: the switch clears the bar by 8 where it can (12 at
+       least, 28 the section's rhythm);
+     room under 12 (a short phone, the switch below the first screen):
+       the rhythm's 28.
+   Each branch is a line, and the two steps are ramps a hundredth of a
+   pixel wide, so it is one expression with no script and nothing moves
+   on load. */
+.home-seg-gap {
+  --seg-room: calc(100svh - max(14px, env(safe-area-inset-bottom)) - var(--nav-h) - 696px);
+  margin-top: max(
+    min(var(--seg-room), calc(64px - (var(--seg-room) - 64px) * 100)),
+    clamp(12px, calc(var(--seg-room) - 60px), 28px),
+    min(28px, calc(28px - (var(--seg-room) - 12px) * 100))
+  );
+}
+
 /* The switch: ToyCad's Start / My Recent capsule, on the shared
    Segmented (its roving radio and keys). The thumb is the raised step,
    not ink: an ink thumb outweighed Start in the squint. */
@@ -6223,18 +6269,20 @@ summary::-webkit-details-marker {
   background: linear-gradient(180deg, #212121, var(--color-surface) 96px);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
 }
+/* Each trait tile is its name, its number and its unit in words under
+   it (#495), top-aligned so a pair's numbers stand on one line whatever
+   their units wrap to. The minimums are the tallest landed content at
+   the width, so the skeleton holds it and nothing moves: the wide
+   tile's unit takes two lines from 360 up, three under (Pausing's
+   "pauses between sentences a minute" in a 130px column at 320). */
 .home-tile[data-wide] {
   min-height: 168px;
 }
-/* The line and the clean run: every compact tile's content (a 28px
-   head, the number's line, the bar and a two-line caption) stays under
-   this, so the two land at one height, their numbers on one line, and
-   the skeleton holds exactly that height. */
 .home-tile[data-compact] {
   min-height: 168px;
 }
-/* The clean run as one row (D23): its head and number at the left, the
-   bar and its two-line caption at the right. */
+/* The no-filler run as one row (D23): its head and number at the left,
+   its one sentence at the right, on the number's foot. */
 .home-tile[data-row] {
   min-height: 120px;
 }
@@ -6257,11 +6305,51 @@ summary::-webkit-details-marker {
   flex-direction: column;
   align-items: flex-start;
 }
-/* The caption's two lines, held whatever the caption says: "Over it on
-   5 of your last 6." wraps where "On your line." does not, and the two
-   numbers above them sat 18px apart. */
-.home-caption {
-  min-height: calc(2 * 1.45 * var(--text-caption));
+/* The number 14px under its name, its unit 4px under it (#495). */
+.home-tile:is([data-wide], [data-four]) .home-num-line {
+  margin-top: 14px;
+}
+.home-unit-line {
+  display: block;
+  margin-top: 4px;
+}
+/* The wide tile's 56px number reaches 7px under its line box; its unit
+   steps down with it, so the two never touch (check-type). */
+.home-tile[data-wide] .home-unit-line {
+  margin-top: 8px;
+}
+/* Today's line: one sentence, at the tile's foot, its last line level
+   with the unit's under the number, as the left half stands its number
+   over its unit (R2F-07: the two halves read on one level). */
+.home-line-sentence {
+  margin-top: auto;
+  padding-top: 8px;
+}
+/* The run's sentence stands at the row's foot, on the number's line. */
+.home-run-line {
+  align-self: end;
+  margin: 0;
+}
+/* The run's wave, the one Earned draws for a take with few fillers: a
+   stretch with no filler is earned, so sage, never Fillers' own tone. */
+.home-run-glyph {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-sage-600);
+}
+:root[data-theme="dark"] .home-run-glyph {
+  color: var(--color-sage-700);
+}
+.home-run-glyph > svg {
+  stroke-width: 2.85;
+}
+/* The run's seconds on the number's baseline, tight to it: "46s", never
+   "46 s" (#495). */
+.home-suffix {
+  margin-left: 1px;
+  font-size: 0.5em;
+  font-weight: 800;
+  color: var(--color-stone-500);
 }
 /*
  * Flat since #478 (Timothy, 16 Nov: "the glow in today traits is bad so
@@ -6282,9 +6370,18 @@ summary::-webkit-details-marker {
   stroke-width: 2.85;
 }
 /* With no object to stand, the four keep the room their words need:
-   the name, the number's line and the bar, with air between. */
+   the name, the number's line and a unit of two lines (#495). */
 .home-tile[data-four] {
-  min-height: 136px;
+  min-height: 146px;
+}
+/* Under 360 a unit can take three lines (Pausing's in a 102px column). */
+@media (max-width: 359px) {
+  .home-tile[data-four] {
+    min-height: 165px;
+  }
+  .home-tile[data-wide] {
+    min-height: 186px;
+  }
 }
 
 /*
@@ -6409,43 +6506,9 @@ summary::-webkit-details-marker {
   letter-spacing: 0;
   color: var(--color-stone-500);
 }
-/* A measured bar: sand trough, the trait's tone. */
-.home-bar {
-  position: relative;
-  height: 4px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--color-sand);
-}
-.home-bar > i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 999px;
-  background: var(--tone);
-}
-/* What is earned fills in sage: clearing your line, a clean stretch.
-   The ring's own `measured` sage, 600: the 500 is 2.9:1 on light sand,
-   under the 3:1 a measurement needs (lib/today-colour.test.ts). */
-.home-bar-earned > i {
-  background: var(--color-sage-600);
-}
-/* A mark on the bar: the line to clear, or the best so far. */
-.home-bar-mark {
-  position: absolute;
-  top: -3px;
-  width: 2px;
-  height: 10px;
-  margin-left: -1px;
-  border-radius: 1px;
-  background: var(--color-ink);
-}
-.home-bar[data-marked] {
-  overflow: visible;
-}
 /* The check on a closed line: earned, so sage. The flag on an open one:
-   the line still to clear, in ink on the surface's sand. Both end the
-   bar (its row stays the bar's 4px, the circle standing over it), so
-   the number's line is the number's and its unit's. */
+   the line still to clear, in ink on the surface's sand. Both stand
+   beside "Today's line" in its 22px head. */
 .home-check,
 .home-flag {
   display: grid;

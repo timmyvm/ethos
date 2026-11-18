@@ -175,8 +175,10 @@ const heard = (el) => {
   });
   const says = (n) => new RegExp(`\\b${n}\\b`).test(row?.label ?? "");
   ok(
-    "a Log row's name carries its Ethos, stars, fillers, pace and pauses",
-    !!row && /Ethos \d+, \d of 3 stars, \d+ fillers?, \d+ words a minute, \d+ held pauses?$/.test(row.label) && row.cells.slice(1).every(says),
+    /* The row shows its Ethos number and stars since #495 (FILL, WPM and
+       HELD went: none read in two seconds), and its name says both. */
+    "a Log row's name carries its Ethos number and stars",
+    !!row && /Ethos \d+, \d of 3 stars$/.test(row.label) && row.cells.length >= 2 && row.cells.slice(1).every(says),
     JSON.stringify(row)
   );
   await context.close();

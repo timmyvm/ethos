@@ -189,6 +189,8 @@ export function HomeHero({
         ref={cardRef}
         data-family={loading ? "none" : family}
         data-spin={face.spin}
+        /* The page bar goes solid over the card's colour (#495). */
+        data-bar-solid
         className="home-hero vt-shared"
         style={{
           ...(loading ? {} : (artBox(object) as CSSProperties)),

@@ -163,7 +163,26 @@ describe("insights", () => {
         ],
       })
     );
-    expect(has(insights([...early, ...later]), "silence-up")).toBe(true);
+    const line = insights([...early, ...later]).find((i) => i.id === "silence-up");
+    expect(line?.detail).toBe("0.0 pauses between sentences in a recording early on, 2.0 now.");
+  });
+
+  /* The review of #495: the insight counted every pause of a second or
+     more, so a run of takes that stopped mid-sentence more read "You're
+     pausing more", praise for the fault the results name. */
+  it("never counts a pause mid-sentence as pausing more", () => {
+    const early = Array.from({ length: 3 }, () => rep({ pauses: [{ t: 4, len: 1.1, kind: "pre" as const }] }));
+    const later = Array.from({ length: 5 }, () =>
+      rep({
+        pauses: [
+          { t: 4, len: 1.1, kind: "pre" as const },
+          { t: 9, len: 1.4, kind: "mid" as const },
+          { t: 15, len: 1.2, kind: "mid" as const },
+          { t: 21, len: 0.5, kind: "beat" as const },
+        ],
+      })
+    );
+    expect(has(insights([...early, ...later]), "silence-up")).toBe(false);
   });
 
   /* A one-word take at 7 wpm or 614 wpm is no pace, and its fillers no pattern. */
@@ -184,9 +203,9 @@ describe("insights", () => {
     const rates = [1, 2, 2, 2, 3]; // fillers in 60 seconds: 1.0 to 3.0 a minute, sd 0.63
     const steady = insights(rates.map((n) => rep({ filler_count: n })));
     const line = steady.find((i) => i.id === "consistent");
-    expect(line?.detail).toBe("All fillers / min: 1.0 to 3.0 in every recording.");
+    expect(line?.detail).toBe("All fillers a minute: 1.0 to 3.0 in every recording.");
     const same = insights([2, 2, 2, 2, 2].map((n) => rep({ filler_count: n }))).find((i) => i.id === "consistent");
-    expect(same?.detail).toBe("All fillers / min: 2.0 in every recording.");
+    expect(same?.detail).toBe("All fillers a minute: 2.0 in every recording.");
   });
 
   it("every insight carries a detail line with numbers", () => {

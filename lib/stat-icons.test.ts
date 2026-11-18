@@ -117,7 +117,10 @@ describe("StatIcon", () => {
       .toBuffer({ resolveWithObject: true });
     const css = read("app/globals.css");
     const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+    /* A lit flame stands on the earned chip, sage-100; an unlit one on
+       the surface step since #495 (neutral until today is spoken). */
     const [chipLight, chipDark] = [...css.matchAll(/--color-sage-100:\s*(#[0-9a-f]{6});/gi)].map((m) => rgb(m[1]));
+    const [openLight, openDark] = [...css.matchAll(/--color-surface:\s*(#[0-9a-f]{6});/gi)].map((m) => rgb(m[1]));
     const clamp = (v: number) => Math.min(1, Math.max(0, v));
     /** Mean Greyscale lightness (0 to 255) of the flame's body through `filter`, over `ground`. */
     const lightness = (filter: string, ground: number[]) => {
@@ -148,24 +151,24 @@ describe("StatIcon", () => {
     const more = [...css.slice(at).matchAll(/--stat-unlit: ([^;]+);/g)].map((m) => m[1]);
     const [light, dark, darkOs] = values;
     expect(darkOs).toBe(dark);
-    const cases: [string, string, number[]][] = [
-      ["light", light, chipLight],
-      ["dark", dark, chipDark],
-      ["light, more contrast", more[0], chipLight],
-      ["dark, more contrast", more[1], chipDark],
+    const cases: [string, string, number[], number[]][] = [
+      ["light", light, chipLight, openLight],
+      ["dark", dark, chipDark, openDark],
+      ["light, more contrast", more[0], chipLight, openLight],
+      ["dark, more contrast", more[1], chipDark, openDark],
     ];
-    for (const [name, filter, ground] of cases) {
+    for (const [name, filter, ground, open] of cases) {
       const lit = lightness("", ground);
-      const unlit = lightness(filter, ground);
+      const unlit = lightness(filter, open);
       expect(Math.abs(unlit - lit), `${name}: lit ${lit.toFixed(0)}, unlit ${unlit.toFixed(0)}`).toBeGreaterThanOrEqual(30);
     }
     // Light: darker than lit, as the chip's stone ink is; firmer still under more contrast.
-    expect(lightness(light, chipLight)).toBeLessThan(lightness("", chipLight));
-    expect(lightness(more[0], chipLight)).toBeLessThan(lightness(light, chipLight));
+    expect(lightness(light, openLight)).toBeLessThan(lightness("", chipLight));
+    expect(lightness(more[0], openLight)).toBeLessThan(lightness(light, openLight));
     // Dark: dimmer than lit, so it never reads lit beside the white number;
     // under more contrast it moves the way the stone ink does there, brighter.
-    expect(lightness(dark, chipDark)).toBeLessThan(lightness("", chipDark));
-    expect(lightness(more[1], chipDark)).toBeGreaterThan(lightness("", chipDark));
+    expect(lightness(dark, openDark)).toBeLessThan(lightness("", chipDark));
+    expect(lightness(more[1], openDark)).toBeGreaterThan(lightness("", chipDark));
   });
 });
 
@@ -182,6 +185,20 @@ describe("the streak chip's flame", () => {
     expect(h).toContain('src="/icons/3d/streak.webp"');
     expect(h).not.toContain('data-lit="false"');
     expect(h).toContain("Streak 6");
+  });
+
+  /* #495, the morning tour: the chip stood in sage, the earned wash, on a
+     day not yet spoken, holding the unlit flame. Neutral until today is
+     spoken, then sage with the lit flame. */
+  it("sits on the neutral surface until today is spoken, then on the sage wash", () => {
+    expect(badge(6, true)).toContain('data-open="true"');
+    expect(badge(6, false)).not.toContain('data-open="true"');
+    const sheet = read("app/globals.css");
+    const at = sheet.indexOf('.today-earned[data-open="true"] {');
+    expect(at).toBeGreaterThan(0);
+    const rule = sheet.slice(at, sheet.indexOf("}", at));
+    expect(rule).toContain("background: var(--color-surface);");
+    expect(rule).not.toMatch(/sage/);
   });
 
   it("is the same flame greyed on an open day and at zero, the words still said", () => {

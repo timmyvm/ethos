@@ -113,7 +113,7 @@ export default function About() {
           </li>
           <li>
             <span className="font-semibold text-ink">Hard numbers.</span>{" "}
-            Filler count with timestamps, words per minute, and a pause map
+            Filler count with timestamps, words a minute, and a pause map
             that separates composure from panic.
           </li>
           <li>

@@ -434,7 +434,7 @@ const steps = await page.$$eval("main ol li", (els) =>
 );
 ok(
   "step 2 names the first pain's number",
-  steps[1]?.[0] === "First number" && steps[1]?.[1] === "Words per minute against the 130 to 160 zone.",
+  steps[1]?.[0] === "First number" && steps[1]?.[1] === "Your words a minute against the 130 to 160 zone.",
   JSON.stringify(steps[1])
 );
 ok(

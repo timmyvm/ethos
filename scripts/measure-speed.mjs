@@ -22,7 +22,9 @@
  * Scenes (ONLY=a,b to run some):
  *   routes   each screen cold (empty cache, no service worker) and warm
  *            (the same screen opened again with the worker installed)
+ *   sw       the service worker's install (bytes, time) and an open offline
  *   tabs     Today, Log, You, Lessons, Practice and back, tap to painted
+ *   doors    Today to a trait, Lessons to a lesson, the Log to a recording
  *   open     Today as the installed app opens it: the splash, then Today
  *   room     /welcome on a first open, and "/" (start_url) to the room
  *   upload   what a 60 s take weighs as Chromium records it, and the
@@ -31,6 +33,8 @@
  *            with the stubs (scripts/speed-stubs.mjs; STOP_BASE names it)
  *
  * Env: RUNS (3, the median is kept), PROFILE (phone | fast), SUPA_MS (40),
+ * ROUTES (route scene names, e.g. today,you), MERGE=1 (keep the rest of an
+ * earlier <label>.json and replace only what this run measured),
  * BUILD_DIR (.next-build: the first-load JS table is read from it),
  * STOP_BASE (a stubbed server for the stop scene, skipped without one).
  *
@@ -329,16 +333,16 @@ function pageProbe() {
     if (performance.now() < until + (S.tapAt ?? 0)) requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-  /** A tap on the tab bar, timed from the tap to the destination's ready frame. */
-  window.__speedTap = (href) => {
-    const a = document.querySelector(`nav[aria-label="Sections"] a[href="${href}"]`);
-    if (!a) return false;
+  /** A tap on the tab bar (or on any link a selector finds), timed from the tap to the destination's ready frame. */
+  window.__speedTap = (href, selector) => {
+    const a = document.querySelector(selector ?? `nav[aria-label="Sections"] a[href="${href}"]`);
+    if (!a) return null;
     S.ready = null;
-    S.target = href;
+    S.target = new URL(a.getAttribute("href"), location.href).pathname;
     S.tapAt = performance.now();
     a.click();
     requestAnimationFrame(tick);
-    return true;
+    return a.getAttribute("href");
   };
 }
 
@@ -415,7 +419,7 @@ const browser = await chromium.launch({
   proxy: { server: `http://127.0.0.1:${link.port}`, bypass: "<-loopback>" },
 });
 
-async function newContext({ returning = true, installed = false } = {}) {
+async function newContext({ returning = true, installed = false, expired = false } = {}) {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 3,
@@ -429,6 +433,15 @@ async function newContext({ returning = true, installed = false } = {}) {
       "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1",
   });
   if (returning) await context.addInitScript(seed, { theme: "light", session });
+  /* A phone back the next day: the access token (an hour) has run out, so
+     the client asks for a new one before its first read. */
+  if (returning && expired)
+    await context.addInitScript(() => {
+      for (const k of ["sb-supabase-auth-token", "sb-supabase.local-auth-token"]) {
+        const s = JSON.parse(localStorage.getItem(k) ?? "null");
+        if (s) localStorage.setItem(k, JSON.stringify({ ...s, expires_at: Math.floor(Date.now() / 1000) - 60 }));
+      }
+    });
   // The installed app's open: the splash's head script skips an automated browser.
   if (installed) await context.addInitScript(() => Object.defineProperty(Navigator.prototype, "webdriver", { get: () => false }));
   await context.addInitScript(pageProbe);
@@ -550,6 +563,8 @@ const ROUTES = [
   ["settings", "/settings"],
   ["shop", "/shop"],
   ["signin", "/signin"],
+  // Today as a daily user opens it: the token from yesterday has expired.
+  ["today-next-day", "/", { expired: true }],
 ];
 const ROUTE_ONLY = (process.env.ROUTES ?? "").split(",").filter(Boolean);
 
@@ -600,12 +615,12 @@ async function swReady(page) {
 
 if (want("routes")) {
   results.routes = {};
-  for (const [name, url] of ROUTES) {
+  for (const [name, url, opts = {}] of ROUTES) {
     if (ROUTE_ONLY.length && !ROUTE_ONLY.includes(name)) continue;
     const cold = [], warm = [];
     let sw = null;
     for (let i = 0; i < RUNS; i++) {
-      const context = await newContext();
+      const context = await newContext(opts);
       const { page } = await newPage(context);
       cold.push(await visit(page, url, `${name}:cold:${i}`));
       sw = await swReady(page);
@@ -727,6 +742,49 @@ if (want("tabs")) {
   results.tabs = {
     order: "Today > Log > You > Lessons > Practice > Lessons > You > Log > Today, warm (worker installed, Today opened again first)",
     median: runs[0].map((s, j) => ({ from: s.from, to: s.to, tapToReady: round(median(runs.map((r) => r[j].tapToReady))), longTaskMs: round(median(runs.map((r) => r[j].longTaskMs))) })),
+    runs,
+  };
+  writeOut();
+}
+
+if (want("doors")) {
+  // The doors off the tabs a day goes through: a trait from Today, a lesson
+  // from Lessons, a recording from the Log. Warm, as the tabs are.
+  const DOORS = [
+    ["Today > trait", "/", 'main a[href^="/practice/"]'],
+    ["Lessons > lesson", "/lessons", 'main a[href^="/lessons/"]'],
+    ["Log > recording", "/history", 'main a[href^="/rep/"]'],
+  ];
+  const runs = [];
+  for (let i = 0; i < RUNS; i++) {
+    const context = await newContext();
+    const { page } = await newPage(context);
+    await visit(page, "/", `doors:prime:${i}`);
+    await swReady(page);
+    const steps = [];
+    for (const [name, from, sel] of DOORS) {
+      await visit(page, from, `doors:${i}:open:${name}`);
+      const phase = `doors:${i}:${name}`;
+      link.phase(phase);
+      const t0 = now();
+      const href = await page.evaluate(([s]) => window.__speedTap(null, s), [sel]);
+      await page.waitForFunction(() => window.__speed.ready !== null, null, { timeout: 20000, polling: 50 }).catch(() => {});
+      await link.quiet(800, 10000);
+      const m = await page.evaluate(() => ({ ready: window.__speed.ready, tapAt: window.__speed.tapAt }));
+      const t = traffic(phase, t0);
+      const tap = m.ready !== null ? m.ready - m.tapAt : null;
+      steps.push({
+        door: name, href, tapToReady: round(tap),
+        beforeReady: t.waterfall.filter((e) => tap !== null && e.start <= tap).map((e) => `${e.kind} ${e.method} ${e.url} ${e.start}-${e.end}ms ${e.bytes}B`),
+      });
+    }
+    runs.push(steps);
+    await context.close();
+    link.log.length = 0;
+    process.stdout.write(`doors run ${i + 1}: ${steps.map((s) => `${s.door} ${s.tapToReady}`).join(", ")}\n`);
+  }
+  results.doors = {
+    median: runs[0].map((s, j) => ({ door: s.door, href: s.href, tapToReady: round(median(runs.map((r) => r[j].tapToReady))) })),
     runs,
   };
   writeOut();
@@ -886,10 +944,26 @@ if (want("stop") && process.env.STOP_BASE) {
   writeOut();
 }
 
+/* MERGE=1 keeps what an earlier run of the same label measured and
+   replaces only what this run measured (a scene, or a route by name). */
+let priorRead;
+function priorRun() {
+  if (priorRead !== undefined) return priorRead;
+  priorRead = null;
+  if (process.env.MERGE === "1") {
+    try {
+      priorRead = JSON.parse(readFileSync(join(ROOT, "docs", "speed", `${LABEL}.json`), "utf8"));
+    } catch {}
+  }
+  return priorRead;
+}
 function writeOut() {
   const dir = join(ROOT, "docs", "speed");
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, `${LABEL}.json`), JSON.stringify(results, null, 1) + "\n");
+  const prior = priorRun();
+  const out = prior ? { ...prior, ...results, routes: { ...(prior.routes ?? {}), ...(results.routes ?? {}) } } : results;
+  if (prior) out.meta = { ...results.meta, merged: [...(prior.meta?.merged ?? [prior.meta?.when]), results.meta.when] };
+  writeFileSync(join(dir, `${LABEL}.json`), JSON.stringify(out, null, 1) + "\n");
 }
 
 writeOut();

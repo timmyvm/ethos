@@ -26,6 +26,7 @@
 
 import { rememberEmailAsked } from "./account-gate";
 import { forgetCarriedCue } from "./cue-keys";
+import { forget as forgetHeld } from "./held";
 import { supabaseBrowser } from "./supabase-browser";
 import { carryTesting, keepCarryForLink, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
@@ -972,6 +973,8 @@ export async function signOut(): Promise<void> {
   await supabaseBrowser()?.auth.signOut();
   /* The carried cue's copy holds a sentence of this person's own words (#477 review). */
   forgetCarriedCue();
+  /* And the numbers kept between opens (lib/held.ts, #508) are this account's. */
+  forgetHeld();
 }
 
 /**
@@ -1019,6 +1022,7 @@ export async function deleteAccount({ plan = false }: { plan?: boolean } = {}): 
     };
   }
   await db.auth.signOut().catch(() => {});
+  forgetHeld();
   return { ok: true };
 }
 

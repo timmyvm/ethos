@@ -37,6 +37,7 @@ import { sessionState } from "@/lib/auth";
 import { heldFreezes, syncFreezes } from "@/lib/freeze-sync";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
+import { restoreHeld } from "@/lib/held";
 import { expectDraw, markDrawn } from "@/lib/first-draw";
 import { firstRun, markWelcomed } from "@/lib/onboarding";
 import {
@@ -140,9 +141,33 @@ export default function Home() {
   const [rescued, setRescued] = useState(0);
   /** The plan: null until the profile answers, and on a failed read. */
   const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
+  /*
+   * A fresh open (#508, lib/held.ts rule 4): the numbers this phone kept
+   * from the last open, for the account it is signed in to, are drawn
+   * before the first paint after hydration (the server's page has none of
+   * them, so never in the hydrating render itself): the streak, the name,
+   * the plan and the two rows under the card. The card and its foot read
+   * the newest 90 recordings, which are never kept, and land with the
+   * read as before.
+   */
+  const coldOpen = useRef(!warm);
+  const [spineKept, setSpineKept] = useState(false);
+  /** A reconciled streak is on screen: the read's bare count never stands in for it. */
+  const streakKept = useRef(false);
   useLayoutEffect(() => {
     // Today announces when its numbers are drawn (the splash lands on them, #508).
     expectDraw();
+    if (!coldOpen.current || !restoreHeld()) return;
+    const all = heldSpine();
+    if (all) {
+      setSpine(all);
+      setSpineKept(true);
+      const kept = heldFreezes();
+      setStreak(kept?.streak ?? computeStreak(all.map((r) => new Date(r.created_at))));
+      streakKept.current = kept !== null;
+    }
+    const plan = heldPremium();
+    if (plan !== null) setPremium(plan);
   }, []);
   const [mods, setMods] = useState<string[]>([]);
   const [showMods, setShowMods] = useState(false);
@@ -323,7 +348,7 @@ export default function Home() {
     // freezes (which may involve a write). A screen already showing a
     // reconciled streak keeps it until the next one lands, so the flame
     // never dips to the bare count and back.
-    if (!quiet) setStreak(computeStreak(dates));
+    if (!quiet && !streakKept.current) setStreak(computeStreak(dates));
     const sync = await readable(() => syncFreezes(dates));
     if (!sync.ok) return;
     setStreak(sync.data.streak);
@@ -553,7 +578,7 @@ export default function Home() {
         leading={<AvatarCoin name={name} known={nameKnown} />}
         barTrailing={
           <span className="mr-3 flex h-9 items-center gap-2">
-            {reps !== null && (
+            {(reps !== null || spineKept) && (
               /* The streak, the one standing score in the header (#176),
                  a sage chip with a gold mark, never a tap. It lands with
                  the read; at zero it reads as an unlit zero (D25) until
@@ -653,8 +678,8 @@ export default function Home() {
           until the history lands. */}
       <ModeRows
         tiles={[
-          hostileTile({ now: clock, premium, rows: reps === null ? null : spine }),
-          bossTile({ now: clock, rows: reps === null ? null : spine }),
+          hostileTile({ now: clock, premium, rows: reps === null && !spineKept ? null : spine }),
+          bossTile({ now: clock, rows: reps === null && !spineKept ? null : spine }),
         ]}
       />
 

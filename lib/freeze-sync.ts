@@ -16,7 +16,8 @@ import {
   purchasedFreezes,
   spendFreezes,
 } from "./client-data";
-import { FREEZES_KEY, held, heldMark, hold, once } from "./held";
+import { FREEZES_KEY, SPINE_KEY, held, heldMark, hold, keepBetweenOpens, once } from "./held";
+import type { RepSpine } from "./client-data";
 import { outboxAll, ownedBy } from "./rep-outbox";
 import { currentSession } from "./supabase-browser";
 import {
@@ -60,6 +61,29 @@ export interface FreezeSync {
  * that made it, so what is held never carries one.
  */
 export const heldFreezes = (): FreezeSync | null => held<FreezeSync>(FREEZES_KEY) ?? null;
+
+/**
+ * The freezes are kept between opens (lib/held.ts, rule 4, #508): the
+ * days a freeze covered and how many are held, as numbers and dates. The
+ * streak itself is not kept, since it moves with the clock ("did today",
+ * "at risk"): it is counted again from the kept spine and these days at
+ * the moment they are read back. No spine, nothing read back.
+ */
+export function keptFreezes(raw: unknown, now: Date = new Date()): FreezeSync | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const { frozenDays, equipped } = raw as Record<string, unknown>;
+  if (!Array.isArray(frozenDays) || typeof equipped !== "number" || !Number.isFinite(equipped)) return null;
+  const days = frozenDays.map((d) => (typeof d === "string" ? new Date(d) : null));
+  if (days.some((d) => d === null || Number.isNaN(d.getTime()))) return null;
+  const spine = held<RepSpine[]>(SPINE_KEY);
+  if (!spine) return null;
+  const streak = computeStreak(spine.map((r) => new Date(r.created_at)), now, days as Date[]);
+  return { streak, frozenDays: days as Date[], equipped, rescued: [] };
+}
+keepBetweenOpens<FreezeSync>(FREEZES_KEY, {
+  save: (v) => ({ frozenDays: v.frozenDays.map((d) => d.toISOString()), equipped: v.equipped }),
+  load: (raw) => keptFreezes(raw),
+});
 
 export function syncFreezes(repDates: Date[], now = new Date()): Promise<FreezeSync> {
   return once(FREEZES_KEY, () => runFreezeSync(repDates, now));

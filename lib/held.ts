@@ -17,11 +17,25 @@
  *    counted from recordings, so no screen shows yesterday's numbers for
  *    a beat after today's take. A read still in flight across either
  *    drop is not kept (`heldMark`).
- * 3. **Memory only.** Nothing is written to the phone: a transcript
- *    stays where Privacy says it is, and a cold open reads as it always
- *    did. Coins in the Shop are never held (a balance is read, not
+ * 3. **Memory, and three numbers kept (#508).** Almost everything is
+ *    held in memory only: a transcript stays where Privacy says it is.
+ *    Coins in the Shop are never held (a balance is read, not
  *    remembered). The plan is held for a first frame only (#468): it is
  *    read again on every mount, never handed back by `once`.
+ *
+ * 4. **Kept between opens** (#508, bending rule 3 for Today's numbers):
+ *    the spine (each recording's date, lesson, stars and Index), the
+ *    profile row (the name, the plan, the picture) and the freezes are
+ *    also written to the phone, so the next open draws them in its first
+ *    frame instead of after the reads. Never a transcript, never audio,
+ *    never a balance: only the keys that register a codec
+ *    (`keepBetweenOpens`) are written, and only through it. The record
+ *    names the account it belongs to and is versioned; it is cleared by
+ *    every drop above (an account change, a sign-out, a write), and
+ *    restored only into an empty store, for the account this phone's
+ *    session names (`restoreHeld`). It only ever stands in for a first
+ *    frame: a restored answer is never handed back by `once`, so the
+ *    reads always run.
  */
 
 import { supabaseBrowser } from "./supabase-browser";
@@ -55,6 +69,7 @@ let watching = false;
 export function heldFor(id: string | null): void {
   if (owner !== undefined && owner !== id) forget();
   owner = id;
+  if (typeof id === "string") flushKept();
 }
 
 function watch(): void {
@@ -81,6 +96,10 @@ export function hold<T>(key: string, value: T, mark: number = epoch): T {
   if (mark === epoch) {
     store.set(key, value);
     at.set(key, Date.now());
+    if (codecs.has(key)) {
+      unsaved.add(key);
+      flushKept();
+    }
   }
   return value;
 }
@@ -114,19 +133,29 @@ export function held<T>(key: string): T | undefined {
   return store.get(key) as T | undefined;
 }
 
-/** Drop everything, or every key the test names. */
+/** Drop everything, or every key the test names; on the phone as in memory. */
 export function forget(only?: (key: string) => boolean): void {
   epoch += 1;
   if (!only) {
     store.clear();
     at.clear();
     flying.clear();
+    unsaved.clear();
+    writeKept(null);
     return;
   }
   for (const key of [...store.keys()]) if (only(key)) store.delete(key);
   for (const key of [...flying.keys()]) if (only(key)) flying.delete(key);
+  for (const key of [...unsaved]) if (only(key)) unsaved.delete(key);
+  const kept = readKept();
+  if (kept && Object.keys(kept.items).some(only)) {
+    const items = Object.fromEntries(Object.entries(kept.items).filter(([key]) => !only(key)));
+    writeKept(Object.keys(items).length > 0 ? { ...kept, items } : null);
+  }
 }
 
+/** Every recording's date, lesson, stars and Index (lib/client-data.ts `fetchRepSpine`). */
+export const SPINE_KEY = "spine";
 /** The account's own row: a recording does not change it. */
 export const PROFILE_KEY = "profile";
 /** The billing row (lib/client-data.ts `heldBilling`): goes with the profile. */
@@ -152,11 +181,146 @@ export function forgetBalance(): void {
   forget((key) => key === COINS_KEY || key === FREEZES_KEY || key === POSES_KEY);
 }
 
+/* ---- Kept between opens (rule 4, #508) ---------------------------------- */
+
+/** How a kept key goes to the phone and comes back: numbers only, or null to drop it. */
+export interface KeptCodec<T> {
+  save(value: T): unknown;
+  load(raw: unknown): T | null;
+}
+
+/** The keys that may be kept, in the order they are restored (the freezes read the spine). */
+export const KEPT_KEYS = [SPINE_KEY, PROFILE_KEY, FREEZES_KEY] as const;
+export type KeptKey = (typeof KEPT_KEYS)[number];
+
+/** Where the record lives on the phone, and its shape's version: a new shape is a new number. */
+export const KEPT_STORE = "ethos.held";
+export const KEPT_VERSION = 1;
+
+interface KeptRecord {
+  v: typeof KEPT_VERSION;
+  /** The account the numbers are, by its id. */
+  owner: string;
+  items: Partial<Record<KeptKey, unknown>>;
+}
+
+const codecs = new Map<string, KeptCodec<unknown>>();
+/** Kept keys held since the last write, waiting for the account to be known. */
+const unsaved = new Set<string>();
+
+/** A key's codec, registered by the module that reads it (lib/client-data.ts, lib/freeze-sync.ts). */
+export function keepBetweenOpens<T>(key: KeptKey, codec: KeptCodec<T>): void {
+  codecs.set(key, codec as KeptCodec<unknown>);
+}
+
+function phone(): Storage | null {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function readKept(): KeptRecord | null {
+  try {
+    const raw = phone()?.getItem(KEPT_STORE);
+    if (!raw) return null;
+    const rec = JSON.parse(raw) as Partial<KeptRecord> | null;
+    if (!rec || rec.v !== KEPT_VERSION || typeof rec.owner !== "string" || typeof rec.items !== "object" || !rec.items) {
+      phone()?.removeItem(KEPT_STORE);
+      return null;
+    }
+    return rec as KeptRecord;
+  } catch {
+    return null;
+  }
+}
+
+function writeKept(rec: KeptRecord | null): void {
+  try {
+    if (rec) phone()?.setItem(KEPT_STORE, JSON.stringify(rec));
+    else phone()?.removeItem(KEPT_STORE);
+  } catch {
+    /* A full or blocked store: the next open reads, as it always did. */
+  }
+}
+
+/** Write what was held under kept keys, once the account it belongs to is known. */
+function flushKept(): void {
+  if (typeof owner !== "string" || unsaved.size === 0) return;
+  const was = readKept();
+  const items: KeptRecord["items"] = was && was.owner === owner ? { ...was.items } : {};
+  for (const key of unsaved) {
+    const codec = codecs.get(key);
+    if (!codec || !store.has(key)) continue;
+    try {
+      items[key as KeptKey] = codec.save(store.get(key));
+    } catch {
+      delete items[key as KeptKey];
+    }
+  }
+  unsaved.clear();
+  writeKept({ v: KEPT_VERSION, owner, items });
+}
+
+/**
+ * The account this phone's session names, read straight from the auth
+ * client's own storage (no network, no wait): the key supabase-js keeps
+ * the session under for this project. Null without one.
+ */
+export function phoneAccount(url: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL): string | null {
+  if (!url) return null;
+  try {
+    const key = `sb-${new URL(url).hostname.split(".")[0]}-auth-token`;
+    const raw = phone()?.getItem(key);
+    if (!raw) return null;
+    const id = (JSON.parse(raw) as { user?: { id?: unknown } } | null)?.user?.id;
+    return typeof id === "string" && id.length > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Put what the phone kept into an empty store, for the account the
+ * session names. Anything else (another account's numbers, no session,
+ * an old shape) is dropped from the phone, never drawn. A restored answer
+ * stands in for a first frame only: `once` never hands it back, so every
+ * screen still reads. Returns whether anything was restored.
+ */
+export function restoreHeld(account: string | null = phoneAccount()): boolean {
+  const kept = readKept();
+  if (!kept) return false;
+  if (account === null || kept.owner !== account || (owner !== undefined && owner !== account)) {
+    writeKept(null);
+    return false;
+  }
+  let any = false;
+  for (const key of KEPT_KEYS) {
+    if (store.has(key) || !(key in kept.items)) continue;
+    const codec = codecs.get(key);
+    if (!codec) continue;
+    let value: unknown;
+    try {
+      value = codec.load(kept.items[key]);
+    } catch {
+      value = null;
+    }
+    if (value === null || value === undefined) continue;
+    store.set(key, value);
+    at.set(key, 0);
+    any = true;
+  }
+  if (owner === undefined) owner = account;
+  return any;
+}
+
 /** Tests only: an empty store that belongs to nobody yet. */
 export function resetHeld(): void {
   store.clear();
   at.clear();
   flying.clear();
+  unsaved.clear();
   tabToTab = false;
   epoch = 0;
   owner = undefined;

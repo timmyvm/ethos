@@ -1910,6 +1910,12 @@ body::after {
 :root[data-motion="reduce"] .says-word.talk-word[data-on] {
   animation: none;
 }
+/* A line that follows the keys (the typed name's reply, #501 review) is
+   simply there: re-popped on every key, its words shrank and spread
+   under the typing. */
+.says-word.talk-word[data-on][data-still] {
+  animation: none;
+}
 /* His bubble arriving with the page (#501): up from its tail on a
    spring with a little overshoot, after the slide has started, so the
    bubble lands just before its first word. */

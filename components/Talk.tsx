@@ -77,11 +77,22 @@ export function useTalk(lines: readonly string[], lead: number, sound = true, in
     };
   }, [talking, finish]);
 
-  return { plan, shown, talking, finish };
+  return { plan, shown, talking, finish, still: whole };
 }
 
 /** One line of a plan: its words, the first `shown - from` of them landed. */
-export function TalkWords({ words, from, shown }: { words: readonly string[]; from: number; shown: number }) {
+export function TalkWords({
+  words,
+  from,
+  shown,
+  still = false,
+}: {
+  words: readonly string[];
+  from: number;
+  shown: number;
+  /** Simply there, with no pop of its own: a line that follows the keys. */
+  still?: boolean;
+}) {
   return (
     <span aria-hidden>
       {words.map((w, i) => (
@@ -89,7 +100,11 @@ export function TalkWords({ words, from, shown }: { words: readonly string[]; fr
           {i > 0 && " "}
           {/* `says-word` too: the walk's gate and its CSS for a page a
               swipe brought in find a said word by that name. */}
-          <span className="says-word talk-word" data-on={from + i < shown ? "" : undefined}>
+          <span
+            className="says-word talk-word"
+            data-on={from + i < shown ? "" : undefined}
+            data-still={still ? "" : undefined}
+          >
             {w}
           </span>
         </Fragment>
@@ -126,7 +141,7 @@ export function TalkLines({
   /** He started or stopped talking: his art moves while he does. */
   onTalking?: (talking: boolean) => void;
 }) {
-  const { plan, shown, talking } = useTalk(lines, lead, sound, instant);
+  const { plan, shown, talking, still } = useTalk(lines, lead, sound, instant);
   const said = useRef(onTalking);
   useEffect(() => {
     said.current = onTalking;
@@ -147,7 +162,7 @@ export function TalkLines({
         return (
           <Tag key={k} className={classes[k]} aria-hidden={ariaHidden || undefined}>
             {!ariaHidden && <span className="sr-only">{kept[k]}</span>}
-            <TalkWords words={words} from={start} shown={shown} />
+            <TalkWords words={words} from={start} shown={shown} still={still} />
           </Tag>
         );
       })}

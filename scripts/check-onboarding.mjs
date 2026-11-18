@@ -236,12 +236,13 @@ ok("a drag that starts in the name field is the field's", (await heading()) === 
     whole.push(
       await page.evaluate(() => {
         const w = [...document.querySelectorAll("main [data-speech] .talk-word")];
-        return w.length > 0 && w.every((x) => x.hasAttribute("data-on"));
+        /* There, and still: re-popped per key, the words shrank under the typing. */
+        return w.length > 0 && w.every((x) => x.hasAttribute("data-on") && getComputedStyle(x).animationName === "none");
       })
     );
   }
   const typed = (await osc()) - before;
-  ok("typing the name, his reply is whole at every key, with no blip per key", whole.every(Boolean) && typed === 0, `${whole.join(",")} / ${typed} blips`);
+  ok("typing the name, his reply is whole and still at every key, with no blip per key", whole.every(Boolean) && typed === 0, `${whole.join(",")} / ${typed} blips`);
 }
 await page.getByLabel("Your name").fill("Tim");
 await page.getByLabel("Your name").blur();

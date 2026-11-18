@@ -40,8 +40,8 @@ export function ModeRows({ tiles }: { tiles: readonly ModeTile[] }) {
           </span>
           <span aria-hidden className="home-mode-words">
             <span className="home-mode-name font-display">{t.name}</span>
-            <span className={`home-mode-subject font-display ${t.subject ? "arrive" : "invisible"}`}>
-              {t.subject ?? " "}
+            <span className="home-mode-subject font-display">
+              <span className={t.subject ? "arrive" : "invisible"}>{t.subject ?? " "}</span>
             </span>
             <span data-done={t.done || undefined} className="home-mode-line font-display">
               {t.pips && <Pips left={t.pips.left} of={t.pips.of} />}

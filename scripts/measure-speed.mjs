@@ -615,7 +615,8 @@ async function visit(page, url, phase, base = BASE) {
   await page.waitForFunction(() => window.__speed && window.__speed.ready !== null, null, { timeout: 30000, polling: 100 }).catch(() => {});
   link.phase(`${phase}:after`);
   await link.quiet(1200, 20000);
-  const m = await readPage(page);
+  // A page that died part way leaves a hole in the table, not a dead run.
+  const m = await readPage(page).catch((e) => ({ error: String(e?.message ?? e).slice(0, 200), imgs: [], media: [], fonts: [], splash: {} }));
   // The page's clock starts at its navigation; the link's at the goto. Close enough to line up.
   const t = traffic(phase, t0);
   const a = traffic(`${phase}:after`, t0);

@@ -469,6 +469,13 @@ export interface Substance {
   distinctRatio: number;
   /** Largest share of the rep taken up by one repeated phrase. */
   repeatShare: number;
+  /**
+   * How many of the words are different: the count `distinctRatio` is
+   * rounded from, kept with a stored recording as `reps.distinct_words`
+   * (migration 0037, DECISIONS #511) so Variety reads it without the
+   * transcript. Set by `substance`; absent on a Substance built elsewhere.
+   */
+  distinctWords?: number;
 }
 
 const WORD_RE = /[a-z0-9']+/g;
@@ -477,9 +484,10 @@ export function substance(text: string): Substance {
   const tokens = (text.toLowerCase().match(WORD_RE) ?? []).filter(Boolean);
   const wordCount = tokens.length;
   if (wordCount === 0) {
-    return { wordCount: 0, distinctRatio: 0, repeatShare: 1 };
+    return { wordCount: 0, distinctRatio: 0, repeatShare: 1, distinctWords: 0 };
   }
-  const distinctRatio = new Set(tokens).size / wordCount;
+  const distinctWords = new Set(tokens).size;
+  const distinctRatio = distinctWords / wordCount;
 
   // How much of the rep is one phrase said over and over.
   const trigrams = new Map<string, number>();
@@ -495,6 +503,7 @@ export function substance(text: string): Substance {
     wordCount,
     distinctRatio: Math.round(distinctRatio * 1000) / 1000,
     repeatShare: Math.round(repeatShare * 1000) / 1000,
+    distinctWords,
   };
 }
 

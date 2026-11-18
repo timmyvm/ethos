@@ -23,6 +23,11 @@
  *   quiet      Sound off in Settings: not one pop
  *   click      a press that is not a finger's (a screen reader's double
  *              tap, a mouse) opens the room on its click
+ *   early      the door drawn by the server before its code has run (the
+ *              page's scripts held back): a finger put down then and kept
+ *              there fills from when it landed once the door wakes, and
+ *              its lift opens the room; one lifted before the door woke
+ *              leaves it a door (the final pass of 18 Nov)
  *   frames     no frame loop runs while nothing moves
  *   places     a finished walk, and a walk left part way through the
  *              old three-screen pitch, never land on the room or off
@@ -585,6 +590,68 @@ if (want("click")) {
   ok("click: and the mic was asked in it", (await room(page))?.mic === "granted");
   ok("click: no page errors", errors.length === 0, errors.join(" | "));
   await browser.close();
+}
+
+/* ------------------------------------------------------------------ */
+if (want("early")) {
+  /* The door as the server draws it, its code held back: what a phone
+     shows for about two seconds before the door can be held (#508). */
+  const asleep = async () => {
+    const o = await open();
+    let held = true;
+    await o.context.route("**/_next/static/chunks/**", async (route) => {
+      const res = await route.fetch();
+      while (held) await sleep(40);
+      await route.fulfill({ response: res });
+    });
+    await o.page.goto(`${BASE}/welcome`, { waitUntil: "commit" });
+    await o.page.waitForSelector("[data-room-hold]", { state: "visible" });
+    const awake = () =>
+      o.page.waitForFunction(() => {
+        const b = document.querySelector("[data-room-hold]");
+        return !!b && Object.keys(b).some((k) => k.startsWith("__reactProps"));
+      }, null, { timeout: 30_000 });
+    return { ...o, wake: () => (held = false), awake };
+  };
+  const at = async (page) => {
+    const box = await page.locator("[data-room-hold]").boundingBox();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  {
+    const { browser, page, cdp, errors, wake, awake } = await asleep();
+    ok("early: the server's door stands before its code has run", (await room(page))?.stage === "door");
+    const p = await at(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+    await sleep(500);
+    wake();
+    await awake();
+    await sleep(150);
+    const filling = await page.$eval("[data-room-hold]", (b) => Number(b.style.getPropertyValue("--hold") || 0));
+    ok("early: a finger down before the door woke fills it from when it landed", filling >= 0.6, filling.toFixed(2));
+    await sleep(700);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await page.waitForFunction(() => document.querySelector("main.room")?.dataset.stage === "scene", null, { timeout: 3000 }).catch(() => {});
+    ok("early: and its lift opens the room", (await room(page))?.stage === "scene");
+    ok("early: no page errors", errors.length === 0, errors.join(" | "));
+    await browser.close();
+  }
+  {
+    const { browser, page, cdp, wake, awake } = await asleep();
+    const p = await at(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
+    await sleep(950);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    wake();
+    await awake();
+    await sleep(1200);
+    const fill = await page.$eval("[data-room-hold]", (b) => Number(b.style.getPropertyValue("--hold") || 0));
+    ok("early: a press lifted before the door woke leaves it a door, unfilled", (await room(page))?.stage === "door" && fill === 0, `${(await room(page))?.stage}, ${fill}`);
+    /* And it holds as ever once awake. */
+    const filled = await hold(page, cdp, 950);
+    await page.waitForFunction(() => document.querySelector("main.room")?.dataset.stage === "scene", null, { timeout: 3000 }).catch(() => {});
+    ok("early: then a hold opens it as ever", filled >= 0.99 && (await room(page))?.stage === "scene", filled.toFixed(2));
+    await browser.close();
+  }
 }
 
 /* ------------------------------------------------------------------ */

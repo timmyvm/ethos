@@ -57,6 +57,8 @@ import RoomArt, { type RoomArtProps } from "./RoomArt";
 
 /** How long the hold takes to fill. */
 const HOLD_MS = 800;
+/** A press made before the door woke is taken up only this soon after it landed. */
+const EARLY_PRESS_MS = 10_000;
 /** The frosted glass clearing, before his first line. */
 const ENTER_MS = 900;
 /** Between your turn ending and his next line. */
@@ -399,19 +401,17 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
     s.raf = requestAnimationFrame(back);
   };
 
-  const press = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
+  /* Fills from `start`, the moment the hold began, to full. */
+  const hold = (start: number, downAt: number, downType: string) => {
     const s = state.current;
-    if (s.done) return;
     cancelAnimationFrame(s.raf);
     s.pressed = true;
-    s.downAt = performance.now();
-    s.downType = e.pointerType;
+    s.downAt = downAt;
+    s.downType = downType;
     s.full = false;
     setFull(false);
     setPressing(true);
-    const from = Number(btn.current?.style.getPropertyValue("--hold") || 0);
-    s.start = performance.now() - from * HOLD_MS;
+    s.start = start;
     const fill = (now: number) => {
       const p = Math.min(1, (now - s.start) / HOLD_MS);
       paint(p);
@@ -425,6 +425,35 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
     };
     s.raf = requestAnimationFrame(fill);
   };
+
+  const press = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (state.current.done) return;
+    const from = Number(btn.current?.style.getPropertyValue("--hold") || 0);
+    const now = performance.now();
+    hold(now - from * HOLD_MS, now, e.pointerType);
+  };
+
+  /*
+   * A finger already down when the door wakes (the final pass of 18 Nov).
+   * The server draws the door about two seconds before its code can hold
+   * it on a phone; the head script (lib/walk-boot.ts) keeps a press made
+   * in that gap, and one still down is taken up here, filling from the
+   * moment it landed. Its lift is the door's as ever (the touchend below,
+   * or the pointerup), so the room still opens inside the gesture. A
+   * press already lifted is gone, as it always was.
+   */
+  useLayoutEffect(() => {
+    const w = window as Window & { __roomPress?: { down: boolean; at: number; type: string }; __roomAwake?: boolean };
+    w.__roomAwake = true;
+    const early = w.__roomPress;
+    if (!early?.down || state.current.done) return;
+    early.down = false;
+    if (performance.now() - early.at > EARLY_PRESS_MS) return;
+    hold(early.at, early.at, early.type);
+    // Mount only: a press is taken up once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* The lift. A finger's is its touchend (the gesture WebKit asks for);
      a mouse's is its pointerup. */

@@ -1538,21 +1538,24 @@ function Glance({
           </div>
           {/* Demos takes what the bands leave, from 88: at a moment his
               share comes first, on an ordinary practice the bands' (about
-              200 at 390x844). Up to 240 beside the number; up to 270
-              (#400's ceiling) on a take too short to score, where there is
-              no number for him to outweigh and he is the message. */}
+              200 at 390x844). Up to 240 beside the number; up to 290 on a
+              take too short to score, where there is no number for him to
+              outweigh and he is the message. #400's 270 left a daily one
+              (no lesson bar) 14 that both bands were full for, so his feet
+              stood 74 off the door at 390x844 (rule 7's 64; the final pass
+              of 19 Nov): at 290 he takes it, 284 there, 272 in a lesson. */}
           <div
-            className={`relative mt-3 min-h-[88px] basis-0 ${scorable ? "max-h-[240px]" : "max-h-[270px]"} ${
+            className={`relative mt-3 min-h-[88px] basis-0 ${scorable ? "max-h-[240px]" : "max-h-[290px]"} ${
               moment ? "grow-[4]" : "grow"
             }`}
           >
             <div className="absolute inset-0 [container-type:size]">
               <div
                 className={`absolute bottom-0 left-1/2 -translate-x-1/2 [container-type:size] ${
-                  scorable ? "size-[min(100cqh,240px)]" : "size-[min(100cqh,270px)]"
+                  scorable ? "size-[min(100cqh,240px)]" : "size-[min(100cqh,290px)]"
                 }`}
               >
-                {demos(scorable ? 240 : 270, true)}
+                {demos(scorable ? 240 : 290, true)}
                 {burst}
               </div>
             </div>

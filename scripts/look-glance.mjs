@@ -457,7 +457,8 @@ for (const size of SIZES) {
     const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : VARIANT === "lesson3" ? 30 : 25;
     await beat("glance", { ceiling });
     console.log(`${at} glance: the tap is live ${tapLiveMs}ms after the first frame`);
-    if (tapLiveMs > 400) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
+    /* LOOK_LAND holds the clock for its frames, so the tap is timed only without it. */
+    if (tapLiveMs > 400 && !LAND) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
 
     /* The chip plays, and keeps playing once the sheet is open. */
     const chip = await page.$("main [data-glance-chip]");

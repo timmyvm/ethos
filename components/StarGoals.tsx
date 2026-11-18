@@ -48,12 +48,20 @@ export function StarGoals({
         const middle = k === (goals.length - 1) / 2;
         return (
           <li key={k} className="flex min-w-0 flex-1 flex-col items-center">
-            <span
-              aria-hidden
-              className={`inline-flex ${earned ? "earned-lit" : "text-stone-400"} ${landing ? "star-land" : ""}`}
-              style={{ ...(middle ? { marginTop: 4 } : null), ...timing }}
-            >
-              <IconStar size={size} filled={earned} />
+            {/* A star that lands lands on its own empty slot: the outline
+                holds the place, so the goal is never under nothing. */}
+            <span aria-hidden className="relative inline-flex" style={middle ? { marginTop: 4 } : undefined}>
+              {landing && (
+                <span className="inline-flex text-stone-400">
+                  <IconStar size={size} filled={false} />
+                </span>
+              )}
+              <span
+                className={`inline-flex ${earned ? "earned-lit" : "text-stone-400"} ${landing ? "star-land absolute inset-0" : ""}`}
+                style={timing}
+              >
+                <IconStar size={size} filled={earned} />
+              </span>
             </span>
             <span
               data-star-goal={earned ? "met" : "open"}

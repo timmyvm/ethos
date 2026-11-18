@@ -645,9 +645,10 @@ export default function Home() {
         ]}
       />
 
-      {/* The test, for a tester (#402): above the freeze card, so that
-          card landing late never moves it. It draws a failed history as
-          unknown rather than hiding. */}
+      {/* The test, for a tester (#402): above the freeze's note, so that
+          note landing late never moves it, and on the ground with no box
+          since #500. It draws a failed history as unknown rather than
+          hiding. */}
       {test.shown ? (
         <TestTile
           presence={test}

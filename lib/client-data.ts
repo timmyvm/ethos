@@ -5,6 +5,7 @@
  */
 
 import { sessionToken, supabaseBrowser } from "./supabase-browser";
+import { own } from "./own-rows";
 import { BILLING_KEY, PROFILE_KEY, SPINE_KEY, forgetBalance, forgetProfile, held, heldMark, hold, keepBetweenOpens, once } from "./held";
 import type { AccuracyResult } from "./accuracy";
 import type { JudgedDimension } from "./coach";
@@ -89,6 +90,20 @@ function missingRoundColumn(error: { code?: string; message?: string } | null): 
   );
 }
 
+/**
+ * The session's account id, read on the phone (no request), for a read
+ * that names its account (lib/own-rows.ts); null when there is no session
+ * or it cannot be read, and the read is left to the policy alone.
+ */
+async function sessionUserId(db: NonNullable<ReturnType<typeof supabaseBrowser>>): Promise<string | null> {
+  try {
+    const { data } = await db.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function fetchReps(limit = 90): Promise<RepRow[]> {
   return once(repsKey(limit), () => readReps(limit));
 }
@@ -99,13 +114,12 @@ async function readReps(limit = 90): Promise<RepRow[]> {
   const mark = heldMark();
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
+  const me = session.session.user?.id;
   // The NEWEST `limit` rows. Ascending with a limit kept the oldest 90,
   // so anyone past 90 recordings lost this week's (the boss's "taken
   // this week", Hostile's allowance, today's streak day).
   const read = (columns: string) =>
-    db
-      .from("reps")
-      .select(columns)
+    own(db.from("reps").select(columns), me)
       .order("created_at", { ascending: false })
       .limit(limit);
   let { data, error } = await read(REP_COLUMNS);
@@ -182,10 +196,9 @@ async function readGameRounds(): Promise<GameRoundRow[]> {
   const mark = heldMark();
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
+  const me = session.session.user?.id;
   const read = (columns: string) =>
-    db
-      .from("reps")
-      .select(columns)
+    own(db.from("reps").select(columns), me)
       .like("lesson_id", "game:%")
       .order("created_at", { ascending: false })
       .limit(GAME_ROUNDS_LIMIT);
@@ -242,8 +255,9 @@ async function readPracticeTakes(): Promise<PracticeTakeRow[]> {
   const mark = heldMark();
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
+  const me = session.session.user?.id;
   const read = async (columns: string) => {
-    const base = () => db.from("reps").select(columns).order("created_at", { ascending: false }).limit(PRACTICE_TAKES_LIMIT);
+    const base = () => own(db.from("reps").select(columns), me).order("created_at", { ascending: false }).limit(PRACTICE_TAKES_LIMIT);
     const [boss, hostile] = await Promise.all([
       base().like("lesson_id", "boss:%"),
       base().eq("lesson_id", HOSTILE_TAKE_LESSON),
@@ -301,11 +315,10 @@ async function readAll<T>(
   if (!db) return [];
   const { data: session } = await db.auth.getSession();
   if (!session.session) return [];
+  const me = session.session.user?.id;
   const out: T[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await db
-      .from(table)
-      .select(columns)
+    const { data, error } = await own(db.from(table).select(columns), me)
       .order("created_at", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
@@ -390,9 +403,8 @@ async function readLexicon(limit = 100): Promise<LexiconRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const mark = heldMark();
-  const { data, error } = await db
-    .from("lexicon")
-    .select("id, original, upgrade, created_at")
+  const me = await sessionUserId(db);
+  const { data, error } = await own(db.from("lexicon").select("id, original, upgrade, created_at"), me)
     .order("created_at", { ascending: false })
     .limit(limit);
   // An answered error is "didn't load", not "no upgrades yet" (#147).
@@ -670,9 +682,8 @@ export async function fetchStreakRow(): Promise<StreakRow | null> {
 export async function fetchFrozenDays(): Promise<Date[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data, error } = await db
-    .from("streak_freezes")
-    .select("used_on")
+  const me = await sessionUserId(db);
+  const { data, error } = await own(db.from("streak_freezes").select("used_on"), me)
     .order("used_on", { ascending: true });
   // A failed read must not look like "no freezes spent": the streak
   // would lose its bridged days, and a sync would spend them twice.
@@ -742,9 +753,8 @@ export function fetchWholeLedger(): Promise<CoinRow[]> {
 export async function fetchCoinLedger(limit = 400): Promise<CoinRow[]> {
   const db = supabaseBrowser();
   if (!db) return [];
-  const { data, error } = await db
-    .from("coin_ledger")
-    .select("id, kind, amount, reason, earned_on, created_at")
+  const me = await sessionUserId(db);
+  const { data, error } = await own(db.from("coin_ledger").select("id, kind, amount, reason, earned_on, created_at"), me)
     .order("created_at", { ascending: false })
     .limit(limit);
   // An answered error used to come back as [], and the shop priced every
@@ -851,9 +861,8 @@ export async function grantFreezes(target: number): Promise<number> {
 export async function purchasedFreezes(): Promise<number> {
   const db = supabaseBrowser();
   if (!db) return 0;
-  const { data, error } = await db
-    .from("coin_ledger")
-    .select("kind, reason, amount")
+  const me = await sessionUserId(db);
+  const { data, error } = await own(db.from("coin_ledger").select("kind, reason, amount"), me)
     .eq("kind", "spent")
     .eq("reason", "shop:streak_freeze");
   // A failed read is not "none bought": the sync would write a lower count.

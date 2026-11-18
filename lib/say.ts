@@ -592,6 +592,29 @@ export function heardIn(states: SwapStates, swap: Swap, at: Date = new Date()): 
   return out;
 }
 
+/**
+ * The swap's sheet as the take that proved it can draw it (#509), before
+ * or without Say it better's own read: heard, this take its one use, its
+ * day the day it was saved. The token's door opens on it at once, and the
+ * page's read takes its place when it lands (the #509 review: the door
+ * waited on that whole read, and a tap on mobile data did nothing for as
+ * long as it took).
+ */
+export function provedView(
+  swap: Swap,
+  states: SwapStates,
+  take: { id: string; transcript: string | null | undefined },
+  at: Date = new Date()
+): SwapView & { saidOn: string } {
+  const iso = at.toISOString();
+  return {
+    swap,
+    state: { ...stateOf(swap, states), heardAt: iso },
+    uses: usesOf(swap, [{ id: take.id, created_at: iso, transcript: take.transcript ?? null }]),
+    saidOn: swap.savedAt,
+  };
+}
+
 /* ---- the words on the screens ------------------------------------------ */
 
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;

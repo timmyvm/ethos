@@ -131,7 +131,7 @@ import { writeSpokeHint } from "@/lib/spoke-hint";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
 import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
-import { dayOf, heardIn, nextTestOn, proofIn, stateOf, usesOf, type Swap, type SwapStates } from "@/lib/say";
+import { dayOf, heardIn, nextTestOn, proofIn, provedView, type Swap, type SwapStates } from "@/lib/say";
 import { fetchSay, fetchSwapsForProof, markHeard, type SayItem } from "@/lib/say-store";
 import { SwapSheet } from "@/components/say/SwapSheet";
 import { proofLeads, withProof } from "@/lib/sound-recipes";
@@ -3633,29 +3633,28 @@ function Results({
    * streak's moment and Since day one stay on the ways that leave, and
    * its Done comes back to the glance with focus on the token. The page's
    * read is asked for as the token lands (the stored take is in it now),
-   * so the sheet's counts and sentence are the page's own; a tap before
-   * it lands opens the sheet when it does, and a read that fails opens it
-   * on what this take proved.
+   * so the sheet's counts and sentence are the page's own once it lands;
+   * a tap before then opens the sheet at once on what this take proved,
+   * and a read that fails leaves it there.
    */
   const [swapItem, setSwapItem] = useState<SayItem | null>(null);
   const [swapAsked, setSwapAsked] = useState(false);
+  /* What this take proved, held from the token's first frame: the sheet
+     opens on it at once, and on it for good when the read fails (lib/say.ts
+     provedView; the #509 review: a tap waited on the whole read). */
+  const proved = useMemo((): SayItem | null => {
+    if (!token || !sayAtLanding || !result.repId) return null;
+    const swap = sayAtLanding.swaps.find((s) => s.key === token.key);
+    return swap ? provedView(swap, sayAtLanding.states, { id: result.repId, transcript: result.transcript }) : null;
+    // Once per take: the token is fixed at the glance's first frame.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token?.key]);
   useEffect(() => {
     if (!token || !sayAtLanding) return;
     let live = true;
-    const here = (): SayItem | null => {
-      const swap = sayAtLanding.swaps.find((s) => s.key === token.key);
-      if (!swap || !result.repId) return null;
-      const at = new Date().toISOString();
-      return {
-        swap,
-        state: { ...stateOf(swap, sayAtLanding.states), heardAt: at },
-        uses: usesOf(swap, [{ id: result.repId, created_at: at, transcript: result.transcript ?? null }]),
-        saidOn: swap.savedAt,
-      };
-    };
     fetchSay().then(
-      (read) => live && setSwapItem(read.items.find((i) => i.swap.key === token.key) ?? here()),
-      () => live && setSwapItem(here())
+      (read) => live && setSwapItem(read.items.find((i) => i.swap.key === token.key) ?? null),
+      () => {}
     );
     return () => {
       live = false;
@@ -3663,7 +3662,8 @@ function Results({
     // Once per take: the token is fixed at the glance's first frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token?.key]);
-  const swapOpen = swapAsked && swapItem !== null;
+  const sheetItem = swapItem ?? proved;
+  const swapOpen = swapAsked && sheetItem !== null;
   /* Its sound and Demos's cheer wait for the take's other rewards: a
      level-up read after the stars keeps its fanfare (the #509 review). */
   const win = withProof(sounds, !!token, rewardsIn);
@@ -4117,11 +4117,11 @@ function Results({
           its Done back to the token. No Remove here: the results have no
           Undo. Its moments play stored recordings through their own
           player, which hushes the take's while one plays. */}
-      {swapOpen && swapItem && (
+      {swapOpen && sheetItem && (
         <SwapSheet
-          item={swapItem}
+          item={sheetItem}
           today={dayOf(new Date())}
-          next={nextTestOn([swapItem], swapItem, dayOf(new Date()))}
+          next={nextTestOn([sheetItem], sheetItem, dayOf(new Date()))}
           onClose={() => setSwapAsked(false)}
         />
       )}

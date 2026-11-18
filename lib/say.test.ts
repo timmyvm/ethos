@@ -16,6 +16,7 @@ import {
   nextDue,
   phraseAt,
   proofIn,
+  provedView,
   saidBetter,
   saidOn,
   sayLists,
@@ -259,6 +260,24 @@ describe("the glance's proof line", () => {
     const page = readFileSync("app/rep/page.tsx", "utf8");
     expect(page).toMatch(/onHeard=\{\(swap\) => setSayData\(\(d\) => \(d \? \{ \.\.\.d, states: heardIn\(d\.states, swap\) \} : d\)\)\}/);
     expect(page.slice(page.indexOf("function Results("))).toMatch(/void markHeard\(sayAtLanding\.states, swap\)[\s\S]{0,80}onHeard\?\.\(swap\)/);
+  });
+
+  /* The #509 review: the door waited on Say it better's whole read (every
+     swap, their state, 200 recordings' text). On mobile data a tap did
+     nothing for as long as that took (probe: the read held 15 s, the
+     sheet opened 10.9 s after the tap, out of nowhere). */
+  it("opens the swap's sheet at once on what this take proved, the page's read taking its place when it lands", () => {
+    const shownAt = new Date(at("2026-11-18", 21));
+    const v = provedView(swaps[0], {}, { id: "rep-new", transcript: "The point is, the point is clear." }, shownAt);
+    expect(v.swap.key).toBe("c:1");
+    expect(v.state.heardAt).toBe(shownAt.toISOString());
+    expect(v.uses).toEqual([{ repId: "rep-new", createdAt: shownAt.toISOString(), times: 2, at: null }]);
+    expect(v.saidOn).toBe(swaps[0].savedAt);
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    const results = page.slice(page.indexOf("function Results("));
+    expect(results).toMatch(/const sheetItem = swapItem \?\? proved;/);
+    expect(results).toMatch(/const swapOpen = swapAsked && sheetItem !== null;/);
+    expect(results).toMatch(/<SwapSheet\s+item=\{sheetItem\}/);
   });
 
   it("hands the glance the pair and where it was said: the token's words, the struck phrase and the better one", () => {

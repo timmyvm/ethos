@@ -1304,7 +1304,7 @@ function Glance({
      asks of a take this long, lit where the take met it. */
   const goals = starGoals(m.durationS);
   const stars = (n: number, after: number) => (
-    <div className={waiting ? "invisible" : ""}>
+    <div className={`w-full ${waiting ? "invisible" : ""}`}>
       <StarGoals key={waiting ? "wait" : "land"} n={n} goals={goals} size={starSize} land={live && !waiting} landAfterMs={after} />
     </div>
   );

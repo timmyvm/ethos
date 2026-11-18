@@ -18,6 +18,9 @@ import { IconStar } from "@/components/Icon";
  * `land` each earned star scales in after `landAfterMs`, 120ms apart,
  * its words turning sage as it lands (`.goal-land`).
  *
+ * Three columns of at most 96pt, so the row holds at 320 inside the
+ * page's gutters and the stars sit about a thumb apart.
+ *
  * A screen reader hears "2 of 3 stars", then each goal and whether it was
  * earned: the colour and the fill are never the whole message.
  */
@@ -35,7 +38,7 @@ export function StarGoals({
   landAfterMs?: number;
 }) {
   return (
-    <ul data-star-goals aria-label={`${n} of ${goals.length} stars`} className="flex justify-center">
+    <ul data-star-goals aria-label={`${n} of ${goals.length} stars`} className="mx-auto flex w-full max-w-[18rem] justify-center">
       {goals.map((goal, k) => {
         const earned = k < n;
         const landing = land && earned;
@@ -44,7 +47,7 @@ export function StarGoals({
           : undefined;
         const middle = k === (goals.length - 1) / 2;
         return (
-          <li key={k} className="flex w-[6.5rem] flex-col items-center">
+          <li key={k} className="flex min-w-0 flex-1 flex-col items-center">
             <span
               aria-hidden
               className={`inline-flex ${earned ? "earned-lit" : "text-stone-400"} ${landing ? "star-land" : ""}`}

@@ -35,7 +35,9 @@
  * Shots: LOOK_OUT, default docs/look/results-lighter/, as
  * <tag>-<variant>-<size>-<beat>-<s0|full>.png, and a JSON report of every
  * count beside them. LOOK_STRIP=1 adds the sheet's rise as a strip (0,
- * 80, 160, 240, 400ms); LOOK_BLUR=7 blurs the glance for the squint test.
+ * 80, 160, 240, 400ms); LOOK_LAND=1 shoots the glance's top as the stars
+ * land over their goals (#504); LOOK_BLUR=7 blurs the glance for the
+ * squint test.
  */
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -63,6 +65,7 @@ const STAR_GOAL_WORDS = () => {
   return t.split(/\s+/).filter((x) => /[A-Za-z0-9]/.test(x)).length;
 };
 const STRIP = process.env.LOOK_STRIP === "1";
+const LAND = process.env.LOOK_LAND === "1";
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const failures = [];
@@ -434,6 +437,15 @@ for (const size of SIZES) {
   /* The landing: the results' first frame, then when the tap is live. */
   await page.waitForSelector("main .arrive-x", { timeout: 30000 });
   const t0 = Date.now();
+  /* LOOK_LAND=1 (#504): the stars landing over their goals, the top of
+     the glance at fixed times after its first frame, for a strip. */
+  if (LAND) {
+    for (const at of [0, 400, 650, 800, 950, 1300]) {
+      const wait = at - (Date.now() - t0);
+      if (wait > 0) await sleep(wait);
+      await page.screenshot({ path: `${OUT}${TAG}-${VARIANT}-${size.name}-land-${String(at).padStart(4, "0")}.png`, clip: { x: 0, y: 0, width: size.w, height: 300 } });
+    }
+  }
   await page.waitForSelector("main [data-step-action]", { state: "visible", timeout: 10000 });
   const tapLiveMs = Date.now() - t0;
   const glance = await page.$("main [data-glance]");

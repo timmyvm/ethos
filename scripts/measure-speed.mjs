@@ -855,6 +855,14 @@ if (want("room")) {
       const context = await newContext({ returning: false });
       const { page } = await newPage(context);
       const c = await visit(page, url, `room:${name}:cold:${i}`);
+      // From `/`, a first run is now sent on by a head script (#508 fix 14):
+      // a new document, whose clock starts at the redirect. Time it from
+      // the first navigation, as a person tapping the icon waits.
+      const hop = url !== "/welcome" ? c.waterfall?.find((e) => e.kind === "doc" && e.url.startsWith("/welcome")) : null;
+      if (hop) {
+        for (const k of ["ready", "fcp", "lcp"]) if (c[k] != null) c[k] += hop.start;
+        c.redirectAt = hop.start;
+      }
       cold.push(c);
       await swReady(page);
       warm.push(await visit(page, url, `room:${name}:warm:${i}`));
@@ -930,6 +938,11 @@ if (want("stop") && process.env.STOP_BASE) {
   // Whisper, Claude and Supabase are stubs with known delays
   // (scripts/speed-stubs.mjs). Each stage's line is timed as it lands.
   const STOP = process.env.STOP_BASE.replace(/\/$/, "");
+  // Shaped like a real session's token (an unsigned JWT naming the stubs'
+  // user, scripts/speed-stubs.mjs), so the route's gate takes the path a
+  // phone's take does (#508 fix 17); the stub answers any token.
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const STOP_TOKEN = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "00000000-0000-4000-8000-000000000001", role: "authenticated" })}.speed`;
   const context = await newContext();
   const { page } = await newPage(context);
   await page.goto(STOP + "/settings/help", { waitUntil: "load" }).catch(() => {});
@@ -937,14 +950,14 @@ if (want("stop") && process.env.STOP_BASE) {
   for (const kb of [Number(process.env.TAKE_KB ?? 0) || (results.upload?.asShipped?.bytesPer60s ?? 960000) / 1024, 180]) {
     link.visit(`stop:${kb}`);
     const wall = Date.now();
-    const r = await page.evaluate(async ({ kb, stop }) => {
+    const r = await page.evaluate(async ({ kb, stop, token }) => {
       const form = new FormData();
       form.append("audio", new Blob([new Uint8Array(Math.round(kb * 1024))], { type: "audio/webm" }), "rep.webm");
       form.append("lessonId", "f1");
       form.append("clientId", "speed-" + Math.random().toString(36).slice(2));
       form.append("tzOffset", "-660");
       const t0 = performance.now();
-      const res = await fetch(stop + "/api/analyze", { method: "POST", body: form, headers: { Accept: "application/x-ndjson", Authorization: "Bearer speed" } });
+      const res = await fetch(stop + "/api/analyze", { method: "POST", body: form, headers: { Accept: "application/x-ndjson", Authorization: `Bearer ${token}` } });
       const lines = [];
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -964,7 +977,7 @@ if (want("stop") && process.env.STOP_BASE) {
         }
       }
       return { status: res.status, lines, total: Math.round(performance.now() - t0) };
-    }, { kb, stop: STOP });
+    }, { kb, stop: STOP, token: STOP_TOKEN });
     // The server's calls to its stubs, on the same clock as the send.
     let calls = [];
     try {

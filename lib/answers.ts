@@ -127,22 +127,37 @@ export function answered(a: Answers): boolean {
 const KEY = "ethos.onboarding";
 
 /**
- * The walk the stored step counts in (#475). Until the room, the walk
- * opened on three pitch screens (#209), so its steps ran two ahead of
- * today's: the room stands where those three stood. A step stored then
- * carries no mark; every write since carries this one.
+ * The walk the stored step counts in. Until the room (#475), the walk
+ * opened on three pitch screens (#209), so its steps ran two ahead: the
+ * room stands where those three stood, and a step stored then carries no
+ * mark. Layout 2 is the room's walk: the room 0, seven questions with
+ * the beat before the hour, the plan 9, the account ask 10. Layout 3
+ * (#501) is today's: the goal, the place and the beat went, so the room
+ * 0, the name 1, the age 2, what you notice 3, how much you've practised
+ * 4, the hour 5, the plan 6, the account ask 7.
  */
-export const WALK_LAYOUT = 2;
+export const WALK_LAYOUT = 3;
 
 /**
- * A stored step in today's walk. Someone who left part way through the
- * old walk lands on the question they left, never two further on: the
- * pitch's three screens become the room (step 0), and every screen after
- * them moves up two, the plan and the account ask included.
+ * Layout 2's steps in today's walk (#501): a screen that went sends you
+ * to the one that took its place, the next question, never back.
+ *
+ *   room name age goal pains level place beat hour plan ask
+ *    0    1    2   3    4     5     6     7    8    9    10
+ *    0    1    2   3    3     4     5     5    5    6    7
+ */
+const FROM_LAYOUT_2 = [0, 1, 2, 3, 3, 4, 5, 5, 5, 6, 7] as const;
+
+/**
+ * A stored step in today's walk. Someone who left part way through an
+ * older walk lands on the screen they left, or the one that took its
+ * place: the pitch's three screens become the room (step 0), and every
+ * screen of the room's walk moves to where it stands now.
  */
 export function stepFromStore(step: number, layout: unknown): number {
   if (layout === WALK_LAYOUT) return step;
-  return step <= 2 ? 0 : step - 2;
+  const two = layout === 2 ? step : step <= 2 ? 0 : step - 2;
+  return FROM_LAYOUT_2[Math.min(two, FROM_LAYOUT_2.length - 1)];
 }
 
 export function readOnboarding(): OnboardingState {

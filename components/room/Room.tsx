@@ -15,6 +15,7 @@ import {
 import { preloadPose } from "@/components/DemosArt";
 import { IntroDemos } from "@/components/IntroDemos";
 import { SpeechBubble } from "@/components/SpeechBubble";
+import { Talker, TalkLines } from "@/components/Talk";
 import { TapTick } from "@/components/ui/TapTick";
 import { DOOR_COPY } from "@/content/tester";
 import { setAudioSession } from "@/lib/audio-session";
@@ -29,6 +30,7 @@ import {
   type RoomScript,
   type RoomVerdict,
 } from "@/lib/room-script";
+import { unlockIntroSound } from "@/lib/intro-sound";
 import { createPopper, type Popper, type PopVoice } from "@/lib/room-sound";
 import { inScreen, pointerTilt, springStep, TiltTracker, ZERO, type Axis, type Tilt } from "@/lib/room-tilt";
 import { createVoiceGate, roomVerdict, type LevelSample, type TurnTrace } from "@/lib/room-verdict";
@@ -536,6 +538,10 @@ export function Room({
   const nextBtn = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLDivElement>(null);
   const keys = useRef(0);
+  /* Finishes the line streaming now, if one is (#501). */
+  const finishLine = useRef<(() => void) | null>(null);
+  /* Demos on the door, while his guide lands. */
+  const [doorTalking, setDoorTalking] = useState(false);
 
   /* Demos's pose is fetched while the scene plays. */
   useEffect(() => {
@@ -585,26 +591,43 @@ export function Room({
     to();
   };
 
-  /** A line, streamed chunk by chunk with a pop under each. */
+  /**
+   * A line, streamed chunk by chunk with a pop under each. A tap anywhere
+   * while it streams finishes it at once (#501): the rest of the words
+   * land together, without their pops, and the line is still held its
+   * reading time before the scene moves on.
+   */
   const stream = (voice: PopVoice, text: string, signal: AbortSignal, onPlan: (l: Line) => void, onShown: (n: number) => void) =>
     new Promise<StreamPlan>((resolve) => {
       const plan = planStream(text, { reduced });
       const key = ++keys.current;
       onPlan({ key, plan, shown: 0 });
       setSaid(text);
+      let over = false;
+      const end = () => {
+        if (over) return;
+        over = true;
+        finishLine.current = null;
+        resolve(plan);
+      };
       const stop = playStream(
         plan,
         (i) => {
           onShown(i + 1);
           popper.current?.pop(voice);
         },
-        () => resolve(plan)
+        end
       );
+      finishLine.current = () => {
+        stop();
+        onShown(plan.chunks.length);
+        end();
+      };
       signal.addEventListener(
         "abort",
         () => {
           stop();
-          resolve(plan);
+          end();
         },
         { once: true }
       );
@@ -776,7 +799,10 @@ export function Room({
   /** Inside the lift: the sound, the mic and motion asked, then the scene. */
   const enter = (viaKeys: boolean) => {
     fromKeys.current = viaKeys;
-    popper.current = createPopper();
+    /* The walk's one context (lib/intro-sound.ts), unlocked by this same
+       lift and left open when the room ends, so the questions after it
+       talk without another tap. */
+    popper.current = createPopper(unlockIntroSound());
     const micAnswer = askMic();
     void askMotion();
     setMic("asking");
@@ -803,6 +829,9 @@ export function Room({
     <main
       ref={host}
       className="room"
+      /* A tap anywhere finishes the line streaming (#501). Capture, so a
+         tap on Skip or Next finishes it on its way. */
+      onPointerDownCapture={() => finishLine.current?.()}
       data-stage={stage}
       data-beat={beat}
       data-turn={turn ?? undefined}
@@ -841,6 +870,27 @@ export function Room({
             )}
           </div>
           <div className="room-foot room-door">
+            {/*
+             * The guide (#501, Jonathan: "we don't even know what we're
+             * doing here"): Demos, before anything asks for a mic, saying
+             * what is behind the glass and what you do in it. No sound
+             * yet: a phone plays nothing before its first tap.
+             */}
+            <div className="room-guide">
+              <Talker talking={doorTalking} className="room-guide-coin [container-type:size]">
+                <IntroDemos pose="wave" size={88} fit pop halo={{ tone: "sky", kind: "coin" }} />
+              </Talker>
+              <div className="room-guide-say talk-bubble talk-bubble-left min-w-0">
+                <SpeechBubble tail="left">
+                  <TalkLines
+                    lines={[ROOM_COPY.guide]}
+                    lead={420}
+                    classes={["text-pretty"]}
+                    onTalking={setDoorTalking}
+                  />
+                </SpeechBubble>
+              </div>
+            </div>
             <HoldToStep label={ROOM_COPY.hold} onComplete={enter} />
             <button type="button" className="room-link room-not-now" onClick={() => leave(onSkip)}>
               {ROOM_COPY.notNow}
@@ -876,7 +926,11 @@ export function Room({
               <span />
               <span />
             </div>
-            <span className="room-turn-label">{ROOM_COPY.yourTurn}</span>
+            <span className="room-turn-words">
+              <span className="room-turn-label">{ROOM_COPY.yourTurn}</span>
+              {/* What to do, and the tap that ends it (#501). */}
+              <span className="room-turn-hint">{ROOM_COPY.turnHint}</span>
+            </span>
             <button
               ref={doneBtn}
               type="button"
@@ -903,9 +957,13 @@ export function Room({
          */
         <div ref={sheet} className="room-sheet rounded-t-sheet" data-leaving={handOff === null ? undefined : ""}>
           <div className="flex items-start gap-3">
-            <div className="relative size-[clamp(96px,14vh,128px)] shrink-0 [container-type:size]">
+            {/* He bobs while his line streams (#501). */}
+            <Talker
+              talking={demos.some((l) => l.shown < l.plan.chunks.length)}
+              className="relative size-[clamp(96px,14vh,128px)] shrink-0 [container-type:size]"
+            >
               <IntroDemos pose="speaking" size={128} fit pop halo={{ tone: "sky", kind: "coin" }} />
-            </div>
+            </Talker>
             {/* His bubble's room, held at its full size from the first
                 frame by the whole of what he will say, drawn invisibly; the
                 bubble he speaks from grows inside it from the tail down, so

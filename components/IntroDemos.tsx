@@ -10,7 +10,10 @@ import { DemosArt } from "@/components/DemosArt";
  * animation"). Every Demos on /welcome goes through this, so no screen
  * of the walk can bring the clip back (lib/welcome-idle.test.ts renders
  * it to check).
+ *
+ * And he talks here (#501): the layer his bob moves while his line lands
+ * (components/Talk.tsx) is drawn for the introduction's Demos only.
  */
-export function IntroDemos(props: Omit<ComponentProps<typeof DemosArt>, "idle">) {
-  return <DemosArt {...props} idle={false} />;
+export function IntroDemos(props: Omit<ComponentProps<typeof DemosArt>, "idle" | "talkLayer">) {
+  return <DemosArt {...props} idle={false} talkLayer />;
 }

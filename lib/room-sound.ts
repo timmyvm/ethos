@@ -70,25 +70,33 @@ type AudioContextCtor = new () => AudioContext;
  * silent sample, which is what an older iPhone needs to let it sound
  * later. Without Web Audio (a native shell, an old browser) every pop is
  * a quiet no-op and the scene plays on.
+ *
+ * `borrowed` (#501): the introduction's own context (lib/intro-sound.ts),
+ * already unlocked by the same tap. The popper plays through it and
+ * leaves it open on `close`, so the questions after the room can talk
+ * without asking for another tap.
  */
-export function createPopper(): Popper {
+export function createPopper(borrowed?: AudioContext | null): Popper {
   const Ctor: AudioContextCtor | undefined =
     typeof window === "undefined"
       ? undefined
       : ((window as unknown as { AudioContext?: AudioContextCtor; webkitAudioContext?: AudioContextCtor }).AudioContext ??
         (window as unknown as { webkitAudioContext?: AudioContextCtor }).webkitAudioContext);
-  let ctx: AudioContext | null = null;
-  try {
-    ctx = Ctor ? new Ctor() : null;
-  } catch {
-    ctx = null;
+  const owned = !borrowed;
+  let ctx: AudioContext | null = borrowed ?? null;
+  if (owned) {
+    try {
+      ctx = Ctor ? new Ctor() : null;
+    } catch {
+      ctx = null;
+    }
   }
   setAudioSession("ambient");
   const wake = () => {
     if (ctx && ctx.state !== "running" && ctx.state !== "closed") void ctx.resume().catch(() => {});
   };
-  if (ctx) {
-    wake();
+  if (ctx) wake();
+  if (ctx && owned) {
     try {
       const b = ctx.createBuffer(1, 1, ctx.sampleRate);
       const s = ctx.createBufferSource();
@@ -132,7 +140,7 @@ export function createPopper(): Popper {
     },
     close() {
       setAudioSession("auto");
-      if (ctx && ctx.state !== "closed") void ctx.close().catch(() => {});
+      if (owned && ctx && ctx.state !== "closed") void ctx.close().catch(() => {});
       ctx = null;
     },
   };

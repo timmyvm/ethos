@@ -101,6 +101,7 @@ export function DemosArt({
   halo,
   fit = false,
   idle = true,
+  talkLayer = false,
 }: {
   pose: Pose;
   /** His size in px, and with `fit`, the most he grows to. */
@@ -151,6 +152,12 @@ export function DemosArt({
    * the small avatars, where a clip is bytes nobody can see move.
    */
   idle?: boolean;
+  /**
+   * Draw the layer his talking moves (#501, `.demos-talk`, moved by
+   * components/Talk.tsx). Only the introduction's Demos talks, so only
+   * it has the layer, and every other Demos is drawn as it was.
+   */
+  talkLayer?: boolean;
 }) {
   const frame = useRef<HTMLDivElement>(null);
   const [clipLive, setClipLive] = useState(false);
@@ -205,9 +212,12 @@ export function DemosArt({
           <span className={GROUND[loop]} />
         </div>
       )}
-      {/* Three layers, three clocks, one transform each: the arrival on
-          the outside, the nod in the middle, the pose loop on the art. */}
+      {/* Four layers, four clocks, one transform each: the arrival on
+          the outside, then his talking (#501: moved by whoever plays his
+          line, components/Talk.tsx, and still everywhere else), the nod,
+          and the pose loop on the art. */}
       <div className={`relative z-[1] h-full w-full ${pop ? "demos-pop" : ""}`}>
+        <TalkLayer on={talkLayer}>
         <div
           ref={frame}
           className="relative h-full w-full"
@@ -246,9 +256,15 @@ export function DemosArt({
           {pose === "speaking" && <SoundArcs />}
           {pose === "celebrate" && <Sparkles />}
         </div>
+        </TalkLayer>
       </div>
     </div>
   );
+}
+
+/** The layer his talking moves, where he talks; nothing anywhere else. */
+function TalkLayer({ on, children }: { on: boolean; children: React.ReactNode }) {
+  return on ? <div className="demos-talk relative h-full w-full">{children}</div> : <>{children}</>;
 }
 
 /**

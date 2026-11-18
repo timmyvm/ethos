@@ -36,63 +36,52 @@ export type QuestionId =
   | "time";
 
 /**
- * The seven questions after the introduction (DECISIONS #232, #249,
- * #288), one per screen, said by Demos from his bubble. Same template,
- * same budget (lib/copy.test.ts reads these). The answers and what they
- * do live in lib/answers.ts and content/portfolio.ts.
+ * The questions after the room (DECISIONS #232, #249, #288, #501), one
+ * per screen, said by Demos from his bubble. Same template, same budget
+ * (lib/copy.test.ts reads these). The answers and what they do live in
+ * lib/answers.ts and content/portfolio.ts.
+ *
+ * Five since #501 (Timothy, 18 Nov, with Jonathan, a tester: "we don't
+ * even know what we're doing here. We just want to do it, and we just
+ * want to get better at it"). Three screens went because they did not
+ * help that person reach their first recording:
+ *
+ *  - the goal ("What do you want this for?"): Jonathan's own words are
+ *    its answer. It named the plan's headline and its boss; it stays in
+ *    Settings, Profile, Goal, for anyone who wants one.
+ *  - the place ("Where does it matter most?"): once the age is known it
+ *    only ever moved the topic pool for an adult who said Class, three
+ *    prompts of 365 (lib/pool.ts).
+ *  - the beat before the hour: no question, one more Next. Its line is
+ *    now the hour's own second line, where the time is chosen.
+ *
+ * `QuestionId` keeps all seven: the answers still hold the goal and the
+ * place, Settings still sets the goal, and a deep link to a question that
+ * went (`?step=goal`) opens where the walk stands instead.
+ *
+ * The second line is the guide (#501): Demos saying, in plain words,
+ * what happens next or what to tap, where the rows do not already say
+ * it. The name says the shape of the whole walk; what you notice says
+ * that not knowing is an answer too (Skip), so nobody is asked to
+ * diagnose themselves; the hour says what the minute is. The age and how
+ * much you have practised need nothing: the rows are the answer.
  *
  * Next waits for an answer on every one and Skip is the way past
- * (#288), so there is no longer an essential flag: one rule, one
- * button.
- *
- * Most questions are the question and nothing under it (#288, the
- * reference's own chrome budget: a question screen there is a bar, the
- * mascot, the bubble, the options and the button). The two that keep a
- * second line carry something the screen cannot say otherwise: the
- * name is where the mascot is introduced by name, and the pains are the
- * one multi-choice, which looks like every single-choice list until it
- * says "up to three". "Pick the closest." and "Roughly." were
- * instructions the rows already give; "It changes the prompts you get,
- * nothing else." was a design decision justified to the user, which
- * COPY-RULES cuts on sight; "Optional." is what Skip says.
- *
- * The NAME goes first, and it is the walk's only typed answer. First
- * rather than last because a name given at the start is spent on six
- * screens and one given at the end is spent on one, and because this
- * is the only place in the whole app where the mascot is introduced by
- * name: the ask is reciprocal rather than a form field. Skip keeps
- * every no-name line working.
- *
- * The TIME goes last, after the answers and before the plan, and it
- * asks for no permission (content/portfolio.ts, TIMES).
+ * (#288). The NAME goes first, the only typed answer, spent on every
+ * screen after it; the TIME goes last and asks for no permission
+ * (content/portfolio.ts, TIMES).
  */
 export const QUESTIONS: readonly {
   id: QuestionId;
   title: string;
   line?: string;
 }[] = [
-  { id: "name", title: "What do I call you?", line: "I'm Demos, by the way." },
+  { id: "name", title: "What do I call you?", line: "I'm Demos. A few questions, then you speak for 60 seconds." },
   { id: "ageBand", title: "How old are you?" },
-  { id: "goal", title: "What do you want this for?" },
-  { id: "pains", title: "What do you notice when you talk?", line: "Up to three." },
+  { id: "pains", title: "What do you notice when you talk?", line: "Pick up to three, or Skip if you're not sure." },
   { id: "level", title: "How much have you practised?" },
-  { id: "context", title: "Where does it matter most?" },
-  { id: "time", title: "When do you want your minute?" },
+  { id: "time", title: "When do you want your minute?", line: "It takes 60 seconds a day. Pick an hour you'd keep." },
 ];
-
-/**
- * The one beat between the questions (#288): a full-screen Demos line
- * before the hour is asked, so seven questions do not run as one form.
- * The reference puts "It can be hard to stay motivated..." in the same
- * slot before its reminder ask. This one promises nothing the walk
- * cannot do: the hour is a preference and no permission is asked here,
- * so it says what a time does and not what the phone will do
- * (lib/portfolio.test.ts keeps that vocabulary off this screen too).
- */
-export const WELCOME_BEAT = {
-  title: "Practice with a set time gets done.",
-  line: "It takes 60 seconds. Pick an hour you'd keep.",
-} as const;
 
 /** The name field's own furniture: it is the one answer you type. */
 export const NAME_FIELD = {
@@ -111,6 +100,14 @@ export const PLAN_COPY = {
   action: "Start",
   toAccount: "Next",
   done: "Done",
+  /**
+   * The plan's guide (#501): what Next does and what comes after it.
+   * Said under his line to them while the walk is being walked; editing
+   * from You has nowhere next to name.
+   */
+  next: "Save it next, then you speak for 60 seconds.",
+  /** The same guide where there is nothing to save: an account is in. */
+  start: "Tap Start, then speak for 60 seconds.",
 } as const;
 
 /** Supabase-js persists its session under `sb-<project-ref>-auth-token`. */

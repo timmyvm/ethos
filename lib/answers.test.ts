@@ -130,14 +130,23 @@ describe("a walk stored before the room", () => {
   });
 
   /* The old walk: pitch 0 to 2, the six questions 3 to 8, the beat 9,
-     the hour 10, the plan 11, the account ask 12. Today's: the room 0,
-     the questions 1 to 6, the beat 7, the hour 8, the plan 9, the ask 10. */
-  it("lands on the question it was on, not two further", () => {
+     the hour 10, the plan 11, the account ask 12. The room's walk
+     (layout 2): the room 0, the questions 1 to 6, the beat 7, the hour 8,
+     the plan 9, the ask 10. Today's (#501): the room 0, the name 1, the
+     age 2, what you notice 3, how much 4, the hour 5, the plan 6, the
+     ask 7. */
+  it("lands on the question it was on, or the one in its place", () => {
     expect(stepFromStore(3, undefined)).toBe(1); // the name
-    expect(stepFromStore(5, undefined)).toBe(3); // the third question
-    expect(stepFromStore(9, undefined)).toBe(7); // the beat
-    expect(stepFromStore(11, undefined)).toBe(9); // the plan
-    expect(stepFromStore(12, undefined)).toBe(10); // the account ask
+    expect(stepFromStore(5, undefined)).toBe(3); // the goal, gone: what you notice
+    expect(stepFromStore(9, undefined)).toBe(5); // the beat, gone: the hour
+    expect(stepFromStore(11, undefined)).toBe(6); // the plan
+    expect(stepFromStore(12, undefined)).toBe(7); // the account ask
+  });
+
+  it("moves the room's walk (layout 2) to today's", () => {
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => stepFromStore(n, 2))).toEqual([0, 1, 2, 3, 3, 4, 5, 5, 5, 6, 7]);
+    /* Past the end is the account ask, never past it. */
+    expect(stepFromStore(14, 2)).toBe(7);
   });
 
   it("puts the pitch's three screens on the room", () => {

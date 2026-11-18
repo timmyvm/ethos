@@ -33,7 +33,8 @@ describe("the interview, as Timothy wrote it", () => {
 
   it("ends on Demos, in words, from the level alone", () => {
     expect(INTERVIEW.verdict).toEqual({ alright: "That was alright.", horrible: "That was horrible." });
-    expect(INTERVIEW.after).toEqual(["What if that was real?"]);
+    /* Timothy's line, then the guide's (#501): what Ethos is for. */
+    expect(INTERVIEW.after).toEqual(["What if that was real?", "Let's get you ready for it."]);
     expect(INTERVIEW.noMic).toBe("I couldn't hear you, so let's get you set up.");
     /* One plain sentence: no fragment standing as one (COPY-RULES). */
     expect(INTERVIEW.noMic.split(/[.!?]\s/).length).toBe(1);
@@ -41,6 +42,13 @@ describe("the interview, as Timothy wrote it", () => {
 
   it("opens on one hold", () => {
     expect(ROOM_COPY.hold).toBe("Hold to step in");
+  });
+
+  it("says, before anything is asked of you, what is behind the glass and what you do in it (#501)", () => {
+    expect(ROOM_COPY.guide).toMatch(/interview/);
+    expect(ROOM_COPY.guide).toMatch(/out loud/);
+    /* And at your turn, the tap that ends it. */
+    expect(ROOM_COPY.turnHint).toMatch(/Done/);
   });
 
   it("moves him from at ease, to unimpressed, to his verdict", () => {

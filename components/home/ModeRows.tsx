@@ -19,10 +19,12 @@ import type { ModeTile } from "@/lib/home-modes";
  *
  * Each row is one link whose name starts with its own (lib/home-modes.ts
  * builds the sentence), and a press lights the row with its tone's wash
- * rather than scaling it. Until the clock is read the subject holds its
- * two lines unseen and the line a no-break space, and every row holds
- * the height the longest claim and topic take, so nothing under the rows
- * moves when they land (#478 review, check-today 2b).
+ * rather than scaling it. Until the clock is read the subject and the
+ * line are no-break spaces, and every row holds the height the longest
+ * claim and topic take, so nothing under the rows moves when they land
+ * (#478 review, check-today 2b). The words hang from the row's top, so
+ * the name sits on its subject and the line under it whatever the
+ * subject's length (#500 review).
  */
 export function ModeRows({ tiles }: { tiles: readonly ModeTile[] }) {
   return (

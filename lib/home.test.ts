@@ -192,6 +192,40 @@ describe("every object stands in the card's zone, by its visible box", () => {
 });
 
 /*
+ * Under the card (#500 review). The games' words hang from the row's
+ * top: a one-line topic centred in the two lines a row holds stood the
+ * name as far from its own topic as from the row above, and the boss's
+ * topic is one line nearly every week. And the two expressions that
+ * place things against the tab bar count the status bar's inset, since
+ * the header starts under it: a bare 734 put the foot half under the
+ * glass at 430x932 with a 59 inset, and a bare 160 put Another topic on
+ * the bar's edge on an installed SE.
+ */
+describe("under the card: the rows hang from their top, and the bar's sums count the status bar", () => {
+  const css = readFileSync(path.join(root, "app", "globals.css"), "utf8");
+  const rule = (sel: string, from = 0) => {
+    const at = css.indexOf(`${sel} {`, from);
+    expect(at, sel).toBeGreaterThan(-1);
+    return css.slice(at, css.indexOf("\n}", at));
+  };
+  it("each row's words, mark and chevron stand from its top, and the subject holds no lines of its own", () => {
+    expect(rule("\n.home-mode")).toMatch(/align-items: flex-start;/);
+    expect(rule("\n.home-mode")).toMatch(/min-height: 81px;/);
+    const subject = rule("\n.home-mode-subject");
+    expect(subject).not.toMatch(/min-height|align-items|display: flex/);
+    expect(rule(".home-mode > svg:last-child")).toContain("margin-top: calc((var(--mark) - 14px) / 2);");
+  });
+  it("the foot's --rows-end and the card's short-screen height both take the top inset", () => {
+    const ends = [...css.matchAll(/--rows-end: ([^;]+);/g)].map((m) => m[1]);
+    expect(ends).toEqual(["calc(734px + env(safe-area-inset-top))", "calc(730px + env(safe-area-inset-top))"]);
+    const hero = rule("\n.home-hero");
+    const min = hero.slice(hero.indexOf("min-height: min("), hero.indexOf(");\n", hero.indexOf("min-height: min(")));
+    expect(min).toContain("376px");
+    expect(min).toMatch(/100svh - 160px - env\(safe-area-inset-top\) - var\(--nav-h\)/);
+  });
+});
+
+/*
  * The foot (#500): the two numbers only Today holds, each a figure over
  * one plain line (#483's two seconds). Timothy could not read "Restarts";
  * "Clean run 46s" and a bare "Today's line 1.0" were the same kind of

@@ -5758,10 +5758,15 @@ summary::-webkit-details-marker {
      topic 8px over the tab bar (#500: it stood under the bar there, a
      tap hidden behind the nav). The difference comes out of the air
      between the lead and the topic, which is all `margin-top: auto`,
-     never out of the topic or Start. 160 is where the card starts. */
+     never out of the topic or Start. 160 is where the card starts, under
+     the status bar's inset on a phone that gives the page one (#500
+     review: an installed SE's 20 put Another topic on the bar's edge). */
   min-height: min(
     376px,
-    calc(100svh - 160px - var(--nav-h) - max(14px, env(safe-area-inset-bottom)) - 8px)
+    calc(
+      100svh - 160px - env(safe-area-inset-top) - var(--nav-h) - max(14px, env(safe-area-inset-bottom)) -
+        8px
+    )
   );
   padding: 20px;
   border-radius: var(--radius-hero);
@@ -6223,10 +6228,17 @@ summary::-webkit-details-marker {
   position: relative;
   isolation: isolate;
   display: flex;
-  align-items: center;
+  /* The mark, the words and the chevron hang from the row's top, so the
+     name sits tight on its subject and the line tight under it whatever
+     the subject's length: a one-line topic centred in two held lines
+     stood the name as far from its own topic as from the row above
+     (#500 review: the boss's topic is one line 51 weeks in 52 at 390). */
+  align-items: flex-start;
   gap: 16px;
   /* The words' three lines with the subject's two held: a row is this
-     tall whatever its claim or topic, landed or not (check-today 2b). */
+     tall whatever its claim or topic, landed or not (check-today 2b).
+     A one-line subject leaves the spare line under the row, between
+     the games, where it reads as the gap it is. */
   min-height: 81px;
   border-radius: 20px;
   color: var(--color-ink);
@@ -6250,6 +6262,11 @@ summary::-webkit-details-marker {
 }
 .home-mode:focus-visible {
   outline-offset: 6px;
+}
+/* The Disclosure (14px tall) on the mark's centre line, the row's one
+   fixed point, so the two chevrons stand one row's height apart. */
+.home-mode > svg:last-child {
+  margin-top: calc((var(--mark) - 14px) / 2);
 }
 /* The mark, centred in its slot by its visible box (the cut centres
    each object on its square, scripts/cut-stat-icons.mjs), so the wide
@@ -6307,13 +6324,11 @@ summary::-webkit-details-marker {
 }
 /* What it is about now: the claim of the day, the week's topic, at 17
    in the heavy face, balanced over two lines at most ("Social media
-   does / more good than harm", never "than harm" alone). It holds both
-   lines while the clock is unread and centres a one-line topic in them,
-   so the name and the line never move when it lands. */
+   does / more good than harm", never "than harm" alone), straight under
+   the name. The row holds its two lines (`.home-mode`'s min-height), so
+   nothing under the row moves when it lands; the line under it is a
+   no-break space until then, so the line finding its place is not seen. */
 .home-mode-subject {
-  display: flex;
-  align-items: center;
-  min-height: calc(2 * 1.3125rem);
   font-size: 1.0625rem;
   line-height: 1.3125rem;
   font-weight: 700;
@@ -6370,7 +6385,6 @@ summary::-webkit-details-marker {
     min-height: 79px;
   }
   .home-mode-subject {
-    min-height: calc(2 * 1.25rem);
     font-size: 1rem;
     line-height: 1.25rem;
   }
@@ -6390,8 +6404,12 @@ summary::-webkit-details-marker {
  * `--rows-end` is where the games' rows end on every open and spoken
  * day from 360 to 440 wide: the header's 160, the card's 376, 24 and
  * two rows of 81 with 12 between (check-today 5 measures it, so a change
- * above the foot changes this number with it). The small viewport, so
- * an address bar folding away never moves it.
+ * above the foot changes this number with it), plus the status bar's
+ * inset where the phone gives the page one: the header starts under it,
+ * so everything under the header ends that much lower (#500 review: at
+ * 430x932 with the 59 an installed Pro Max gives, a bare 734 stood the
+ * foot 24 under the games and half under the glass). The small
+ * viewport, so an address bar folding away never moves it.
  *   room for the foot and its 24: the 24 (430x932, 440x956);
  *   less: the screen's foot (390x844, 393x852, 402x874), reached by a
  *     scroll; on a short phone the games are past the fold already and
@@ -6400,7 +6418,7 @@ summary::-webkit-details-marker {
  * nothing moves on load.
  */
 .home-foot {
-  --rows-end: 734px;
+  --rows-end: calc(734px + env(safe-area-inset-top));
   --foot-h: 68px;
   --foot-gap: 24px;
   --foot-room: calc(100svh - max(14px, env(safe-area-inset-bottom)) - var(--nav-h) - var(--rows-end));
@@ -6424,7 +6442,7 @@ html:not([data-test-tile]) .home-modes + .test-tile-slot + .home-foot {
   .home-foot {
     /* Two rows of 79 under 360; on every such phone the games run past
        the first screen, so the foot takes its 24 there. */
-    --rows-end: 730px;
+    --rows-end: calc(730px + env(safe-area-inset-top));
     grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -16,7 +16,11 @@
  *   3. nothing on it replays its arrival (`.arrive` is for content that
  *      lands over a skeleton);
  *   4. a cold open of every tab still hydrates clean and shows its
- *      skeleton first, exactly as before.
+ *      skeleton first, exactly as before;
+ *   5. Say it better's card, You's first (#507), is read by Today only
+ *      once Today is drawn (#508's deferral), and You opened directly
+ *      reads it itself: it never waits on a draw that never comes (the
+ *      final pass of 18 Nov).
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -108,9 +112,31 @@ const settled = async (page) => {
   await sleep(250);
 };
 
+/* When Today's first frame without a skeleton came, and when the page
+   first asked for Say it better's table, on the page's own clock. */
+const drawnAndAsked = () => {
+  window.__sayAskedAt = null;
+  window.__todayDrawnAt = null;
+  const real = window.fetch;
+  window.fetch = function (input, init) {
+    const url = typeof input === "string" ? input : input?.url ?? String(input);
+    if (window.__sayAskedAt === null && url.includes("/rest/v1/say_better")) window.__sayAskedAt = performance.now();
+    return real.call(this, input, init);
+  };
+  const tick = () => {
+    if (location.pathname === "/" && document.querySelector("main .home-hero") && !document.querySelector("main .skeleton")) {
+      window.__todayDrawnAt = performance.now();
+      return;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+};
+
 // ---- 1. the walk -----------------------------------------------------------
 {
   const { context, page, asked, errors } = await open();
+  await page.addInitScript(drawnAndAsked);
   await page.goto(`${BASE}/`);
   await page.waitForSelector("main");
   // Once its numbers are drawn and the phone is idle, Today reads You's
@@ -120,6 +146,13 @@ const settled = async (page) => {
   ok("a cold open of Today still shows its skeleton first", coldBones > 0, `${coldBones} bones`);
   await settled(page);
   ok("Today, once drawn, reads You's XP for it (#508)", await xpRead);
+  await page.waitForFunction(() => window.__sayAskedAt !== null, null, { timeout: 15000 }).catch(() => {});
+  const when = await page.evaluate(() => ({ drawn: window.__todayDrawnAt, say: window.__sayAskedAt }));
+  ok(
+    "Today reads Say it better's card for You only once its own numbers are drawn (#507, #508)",
+    when.drawn !== null && when.say !== null && when.say >= when.drawn,
+    `drawn ${Math.round(when.drawn ?? -1)} ms, asked ${Math.round(when.say ?? -1)} ms`
+  );
   await sleep(LATENCY * 3 + 300);
 
   for (const round of [1, 2]) {
@@ -163,6 +196,16 @@ for (const tab of TABS) {
   const n = await bones(page);
   await settled(page);
   ok(`${tab.name} cold: skeleton first, then its numbers, no hydration error`, n > 0 && errors.length === 0, `${n} bones${errors.length ? `, ${errors[0]}` : ""}`);
+  if (tab.href === "/you") {
+    /* No Today drew in this visit: the card reads for itself (#507). */
+    const landed = await page
+      .waitForFunction(() => {
+        const card = document.querySelector("[data-look='say-card']");
+        return !!card && !card.querySelector(".skeleton, [aria-busy='true']") && !!card.querySelector(".arrive");
+      }, null, { timeout: 15000 })
+      .then(() => true, () => false);
+    ok("You cold: Say it better's card reads for itself and lands, with no Today drawn", landed);
+  }
   await context.close();
 }
 

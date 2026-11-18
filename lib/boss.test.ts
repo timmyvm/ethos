@@ -12,6 +12,7 @@ import {
 import * as boss from "./boss";
 import { COLD_TOPICS, weeklyTopic } from "./cold-topics";
 import { bossWeekRows } from "./games-log";
+import { recordingName } from "./log";
 import { bossTile } from "./home-modes";
 import { BOSS_XP_BASE } from "./rep-config";
 
@@ -123,6 +124,16 @@ describe("the boss card says the boss, not its clocks", () => {
         "takeThisWeek",
       ].sort()
     );
+  });
+
+  /* The 18 Nov merge's review: #506 hid a stored boss take's practised
+     line while the Log called it "Boss"; #494 renamed it "Weekly boss",
+     the boss's one name, so the check had nothing left to match and the
+     line under the topic is the name, as the page's comment says. */
+  it("names a stored boss take Weekly boss under its topic, with no check left for the old name", () => {
+    const page = readFileSync("app/rep/[id]/page.tsx", "utf8");
+    expect(page).not.toMatch(/name === "Boss"/);
+    expect(recordingName({ lesson_id: "boss:great-vowel-shift", mode: "daily" })).toBe("Weekly boss");
   });
 
   it("still runs the reading's clock on the reading, at 90 seconds", () => {

@@ -580,6 +580,58 @@ await expectOk("a table made later gives the browser nothing", async () => {
     q(`insert into public.say_better (user_id, swap, due) values ('${A}', 'c:' || repeat('a', 2000000), current_date)`)));
 }
 
+// 0038: the database as it grows (docs/scale/audit.md, #512). The
+// fifteen policies the advisor named run auth.uid() once a statement,
+// each meaning what it meant (lib/migrations.test.ts compares them before
+// and after); here, that the browser's roles still reach only their own
+// rows, and that the hourly sweep is the server's alone. Found by name,
+// so the check holds whichever number it lands at.
+{
+  const file = FILES.find((f) => /^\d{4}_scale\.sql$/.test(f));
+  await expectOk("the scale migration applies again", async () => {
+    if (!file) throw new Error("no *_scale.sql migration");
+    await ex(readFileSync(`${DIR}/${file}`, "utf8"));
+    return file;
+  });
+  await expectOk("no policy calls auth.uid() once a row (the advisor's auth_rls_initplan)", async () => {
+    const r = await q("select tablename || '/' || policyname as k, qual, with_check from pg_policies where schemaname = 'public'");
+    const bare = r.rows.filter((p) => /(?<!SELECT )auth\.uid\(\)/.test(`${p.qual ?? ""} ${p.with_check ?? ""}`)).map((p) => p.k);
+    if (bare.length) throw new Error(bare.join(", "));
+    return `${r.rows.length} policies`;
+  });
+  for (const t of ["reps", "lexicon", "xp_events", "coin_ledger", "profiles", "streaks", "streak_freezes", "onboarding", "billing"]) {
+    await expectOk(`B reads no one else's ${t}`, () => as("authenticated", B, async () => {
+      const r = await q(`select count(*)::int as n from public.${t} where user_id <> '${B}'`);
+      if (r.rows[0].n !== 0) throw new Error(JSON.stringify(r.rows));
+    }));
+  }
+  await expectOk("anon reads no recording", () => as("anon", null, async () => {
+    const r = await q("select count(*)::int as n from public.reps");
+    if (r.rows[0].n !== 0) throw new Error(JSON.stringify(r.rows));
+  }));
+  await expectRefused("B writes a profile for C", () => as("authenticated", B, () =>
+    q(`insert into public.profiles (user_id, display_name) values ('${C}', 'x')`)));
+  await expectRefused("B starts a streak for C", () => as("authenticated", B, () =>
+    q(`insert into public.streaks (user_id) values ('${C}')`)));
+  await expectRefused("B pays C a coin", () => as("authenticated", B, () =>
+    q(`insert into public.coin_ledger (user_id, kind, amount, reason, earned_on) values ('${C}', 'earned', 1, 'streak_day', current_date)`)));
+  await expectOk("B renames A and nothing moves", async () => {
+    await as("authenticated", B, () => q(`update public.profiles set display_name = 'x' where user_id = '${A}'`));
+    const r = await q(`select display_name from public.profiles where user_id = '${A}'`);
+    if (r.rows[0]?.display_name !== "Ana") throw new Error(JSON.stringify(r.rows));
+  });
+  for (const role of ["anon", "authenticated"]) {
+    await expectRefused(`${role} runs the sweep`, () => as(role, role === "anon" ? null : B, () => q("select private.sweep_kept_rows()")));
+  }
+  await expectOk("the sweep takes limiter rows past two days and keeps the rest", async () => {
+    await ex(`insert into public.rate_limits (subject, at) values ('ip:gone', now() - interval '3 days'), ('ip:kept', now() - interval '1 hour')`);
+    const r = await q("select private.sweep_kept_rows() as r");
+    const left = await q("select count(*)::int as n from public.rate_limits where subject in ('ip:gone', 'ip:kept')");
+    if (r.rows[0].r.rate_limits < 1 || left.rows[0].n !== 1) throw new Error(JSON.stringify({ r: r.rows[0].r, left: left.rows[0].n }));
+    return JSON.stringify(r.rows[0].r);
+  });
+}
+
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);
 await expectOk("A's account removal takes its tester rows", async () => {

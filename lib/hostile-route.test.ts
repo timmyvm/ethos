@@ -117,6 +117,30 @@ afterEach(() => {
  * answers, a guest was cut off at the second answer, and every session
  * took four recordings out of the day's room.
  */
+/*
+ * Every phase inside the two minutes (docs/scale/audit.md M7): Whisper's
+ * words by 60 seconds, a question within 25 of them, every model call by
+ * 100, so nothing ends in the platform's 504.
+ */
+describe("Hostile's deadlines", () => {
+  it("gives Whisper 60 seconds, a question 25 and the verdict 100, from the request", async () => {
+    const { hostileQuestion } = await import("@/lib/hostile-server");
+    const before = Date.now();
+    await take();
+    const whisper = (vi.mocked(transcribe).mock.calls[0][2] as { deadline: number }).deadline;
+    expect(whisper).toBeGreaterThanOrEqual(before + 60_000);
+    expect(whisper).toBeLessThanOrEqual(Date.now() + 60_000);
+    const question = vi.mocked(hostileQuestion).mock.calls.at(-1)?.[1] as number;
+    expect(question).toBeGreaterThanOrEqual(before + 24_000);
+    expect(question).toBeLessThanOrEqual(Date.now() + 25_000);
+    const at = Date.now();
+    await judge();
+    const verdict = vi.mocked(hostileVerdict).mock.calls.at(-1)?.[2] as number;
+    expect(verdict).toBeGreaterThanOrEqual(at + 99_000);
+    expect(verdict).toBeLessThanOrEqual(Date.now() + 100_000);
+  });
+});
+
 describe("Hostile's allowance", () => {
   it("is its own, never the recording allowance: the free plan's room, or a Premium account's own", async () => {
     await answer();

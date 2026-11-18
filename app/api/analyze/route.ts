@@ -745,7 +745,7 @@ async function handleTake(
         clock.coachAttempts = n;
       }),
       bossTopic
-        ? judgeAccuracy(transcription.text, bossTopic)
+        ? judgeAccuracy(transcription.text, bossTopic, startedAt + COACH_BUDGET_MS)
         : Promise.resolve(null),
     ]);
     clock.mark("coachEnd");

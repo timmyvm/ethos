@@ -34,6 +34,14 @@ import { SAY_AUDIO_BYTES, SAY_LIMITED, checkLine, cleanPhrase } from "@/lib/say"
 import { transcribe } from "@/lib/transcribe";
 
 export const runtime = "nodejs";
+/*
+ * One line of a few seconds: Whisper has its words by 20 seconds or the
+ * line is answered as one that did not come through, inside a function
+ * of 30, where the default held an instance for Fluid's 300 on a hung
+ * call (docs/scale/audit.md M12).
+ */
+export const maxDuration = 30;
+const WHISPER_BY_MS = 20_000;
 
 const json = (body: Record<string, unknown>, status = 200, headers?: Record<string, string>) =>
   NextResponse.json(body, { status, headers });
@@ -43,6 +51,7 @@ const AUDIO = /^audio\/(webm|mp4|mpeg|ogg|wav|x-m4a|aac)(;.*)?$/;
 const EXT: Record<string, string> = { webm: "webm", mp4: "mp4", mpeg: "mp3", ogg: "ogg", wav: "wav", "x-m4a": "m4a", aac: "aac" };
 
 export async function POST(req: NextRequest) {
+  const startedAt = Date.now();
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > SAY_AUDIO_BYTES + 8192) return json({ error: "Too long. Say just the one line." }, 413);
 
@@ -78,7 +87,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const heard = await transcribe(audio, `line.${EXT[type[1]] ?? "webm"}`).catch((e) => {
+  const heard = await transcribe(audio, `line.${EXT[type[1]] ?? "webm"}`, { deadline: startedAt + WHISPER_BY_MS }).catch((e) => {
     console.error("say: Whisper failed", e instanceof Error ? e.message : e);
     return null;
   });

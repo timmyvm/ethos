@@ -183,3 +183,22 @@ describe("POST /api/say", () => {
     expect(h.writes).toEqual([]);
   });
 });
+
+/*
+ * One line inside its own half minute (docs/scale/audit.md M12): Whisper
+ * has the words by 20 seconds or the line is said not to have come
+ * through, where a hung call held an instance for Fluid's 300.
+ */
+describe("Say it better's line, on the clock", () => {
+  it("gives Whisper 20 seconds from the request, inside a route of 30", async () => {
+    const { transcribe } = await import("@/lib/transcribe");
+    const route = await import("@/app/api/say/route");
+    expect(route.maxDuration).toBe(30);
+    const before = Date.now();
+    await line();
+    const deadline = (vi.mocked(transcribe).mock.calls.at(-1)?.[2] as { deadline: number }).deadline;
+    expect(deadline).toBeGreaterThanOrEqual(before + 20_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 20_000);
+  });
+});
+

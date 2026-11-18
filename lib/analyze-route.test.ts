@@ -382,6 +382,11 @@ describe("POST /api/analyze", () => {
     expect(body.xpMultiplier).toBe(1.5);
     expect(body.accuracy.score).toBe(25);
     expect(vi.mocked(judgeAccuracy).mock.calls[0][1].id).toBe("crispr");
+    // The coach's deadline, so a stalled check cannot hold the take past
+    // the minute (docs/scale/audit.md M7).
+    const deadline = vi.mocked(judgeAccuracy).mock.calls[0][2] as number;
+    expect(deadline).toBeGreaterThan(Date.now() + 40_000);
+    expect(deadline).toBeLessThanOrEqual(Date.now() + 45_000);
   });
 
   /* The games plan, item 16: the boss is the week's benchmark. */

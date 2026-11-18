@@ -156,14 +156,21 @@ export function scoreAccuracy(
 }
 
 const MAX_ATTEMPTS = 2;
+/** No attempt starts with less than this left before the deadline (the coach's own floor). */
+export const ACCURACY_MIN_ATTEMPT_MS = 10_000;
 
 /**
  * Best-effort, exactly like the coach layer: a boss take that can't be
- * fact-checked still returns its delivery numbers.
+ * fact-checked still returns its delivery numbers. `deadline` (epoch ms)
+ * is the coach's: the route waits on both together, so a check with none
+ * held a boss take past the minute the coach is held inside, and the
+ * function was killed with nothing stored (docs/scale/audit.md M7). No
+ * attempt starts too close to it, and the one in flight is cut off at it.
  */
 export async function judgeAccuracy(
   transcript: string,
-  topic: ColdTopic
+  topic: ColdTopic,
+  deadline?: number
 ): Promise<AccuracyResult | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
 
@@ -178,18 +185,35 @@ export async function judgeAccuracy(
   ];
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5",
-      max_tokens: 3000,
-      system: SYSTEM,
-      output_config: {
-        effort: "low",
-        format: { type: "json_schema", schema: JSON_SCHEMA },
-      },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      messages,
-    });
+    const left = deadline === undefined ? null : deadline - Date.now();
+    if (left !== null && left < ACCURACY_MIN_ATTEMPT_MS) {
+      console.warn(`[accuracy] out of time before attempt ${attempt}`);
+      return null;
+    }
+    // One signal covers the SDK's own retries too.
+    const signal = left === null ? undefined : AbortSignal.timeout(left);
+    let response: Anthropic.Beta.BetaMessage;
+    try {
+      response = await client.beta.messages.create(
+        {
+          model: "claude-opus-5",
+          max_tokens: 3000,
+          system: SYSTEM,
+          output_config: {
+            effort: "low",
+            format: { type: "json_schema", schema: JSON_SCHEMA },
+          },
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          messages,
+        },
+        signal ? { signal } : undefined
+      );
+    } catch (e) {
+      if (!signal?.aborted) throw e;
+      console.warn(`[accuracy] cut off at the deadline on attempt ${attempt}`);
+      return null;
+    }
 
     if (response.stop_reason === "refusal") return null;
     const text = response.content.find((b) => b.type === "text")?.text ?? "";

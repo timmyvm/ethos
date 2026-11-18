@@ -124,13 +124,47 @@ function contextBlock(ctx: HostileContext): string {
 }
 
 const MAX_ATTEMPTS = 3;
+/** No attempt starts with less than this left before the deadline: it would be cut off before it answered. */
+export const HOSTILE_MIN_ATTEMPT_MS = 5_000;
 
 /**
- * The next skeptical question. Null only when the key is absent or all
- * attempts failed — the route falls back rather than stalling the boss.
+ * One model call under the phase's deadline (epoch ms), the coach's way
+ * (lib/coach.ts): no attempt starts too close to it, and one signal cuts
+ * the call in flight off at it, the SDK's own retries included, which a
+ * per-call timeout would not. Null when the time is gone or the call was
+ * cut off; anything else thrown is thrown, as before. With no deadline
+ * the call goes as it did: the SDK's ten minutes and two retries, under
+ * a route that is killed at two (docs/scale/audit.md M7).
+ */
+async function callBefore(
+  client: Anthropic,
+  body: Anthropic.Beta.MessageCreateParamsNonStreaming,
+  deadline: number | undefined,
+  label: string
+): Promise<Anthropic.Beta.BetaMessage | null> {
+  const left = deadline === undefined ? null : deadline - Date.now();
+  if (left !== null && left < HOSTILE_MIN_ATTEMPT_MS) {
+    console.warn(`[hostile] ${label}: out of time`);
+    return null;
+  }
+  const signal = left === null ? undefined : AbortSignal.timeout(left);
+  try {
+    return await client.beta.messages.create(body, signal ? { signal } : undefined);
+  } catch (e) {
+    if (!signal?.aborted) throw e;
+    console.warn(`[hostile] ${label}: cut off at the deadline`);
+    return null;
+  }
+}
+
+/**
+ * The next skeptical question. Null only when the key is absent, all
+ * attempts failed or `deadline` passed: the route falls back rather than
+ * stalling the boss.
  */
 export async function hostileQuestion(
-  ctx: HostileContext
+  ctx: HostileContext,
+  deadline?: number
 ): Promise<HostileQuestion | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
   const client = new Anthropic();
@@ -149,20 +183,25 @@ export async function hostileQuestion(
   ];
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5",
-      max_tokens: 600,
-      system: INTERROGATOR_SYSTEM,
-      // The user is standing at a mic waiting for this.
-      output_config: {
-        effort: "low",
-        format: { type: "json_schema", schema: QUESTION_JSON },
+    const response = await callBefore(
+      client,
+      {
+        model: "claude-opus-5",
+        max_tokens: 600,
+        system: INTERROGATOR_SYSTEM,
+        // The user is standing at a mic waiting for this.
+        output_config: {
+          effort: "low",
+          format: { type: "json_schema", schema: QUESTION_JSON },
+        },
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        messages,
       },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      messages,
-    });
-    if (response.stop_reason === "refusal") return null;
+      deadline,
+      `question attempt ${attempt}`
+    );
+    if (!response || response.stop_reason === "refusal") return null;
     const text = response.content.find((b) => b.type === "text")?.text ?? "";
 
     let parsed: HostileQuestion;
@@ -206,7 +245,8 @@ export const FALLBACK_QUESTIONS = FALLBACKS;
  */
 export async function hostileVerdict(
   ctx: HostileContext,
-  roundNumbers: { fillersPerMin: number; midSentencePauses: number }[]
+  roundNumbers: { fillersPerMin: number; midSentencePauses: number }[],
+  deadline?: number
 ): Promise<HostileVerdict | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
   const client = new Anthropic();
@@ -220,19 +260,24 @@ export async function hostileVerdict(
   ];
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5",
-      max_tokens: 1500,
-      system: INTERROGATOR_SYSTEM,
-      output_config: {
-        effort: "low",
-        format: { type: "json_schema", schema: VERDICT_JSON },
+    const response = await callBefore(
+      client,
+      {
+        model: "claude-opus-5",
+        max_tokens: 1500,
+        system: INTERROGATOR_SYSTEM,
+        output_config: {
+          effort: "low",
+          format: { type: "json_schema", schema: VERDICT_JSON },
+        },
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        messages,
       },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      messages,
-    });
-    if (response.stop_reason === "refusal") return null;
+      deadline,
+      `verdict attempt ${attempt}`
+    );
+    if (!response || response.stop_reason === "refusal") return null;
     const text = response.content.find((b) => b.type === "text")?.text ?? "";
 
     let parsed: HostileVerdict;

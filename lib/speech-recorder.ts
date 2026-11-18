@@ -9,7 +9,8 @@
  * is what Whisper was built on.
  *
  * Every recorder whose take leaves the phone is made here (`speechRecorder`):
- * the daily take (app/rep/page.tsx) and Hostile (app/hostile/page.tsx).
+ * the daily take (app/rep/page.tsx), Hostile (app/hostile/page.tsx) and
+ * Say it better's spoken test (app/say/test/page.tsx, #507).
  * The mime type logic is unchanged: WebM Opus where the browser has it,
  * the browser's own choice where it does not (Safari before 18.4 records
  * MP4/AAC, which honours the same bitrate). A browser that ignores

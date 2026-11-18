@@ -22,8 +22,8 @@
  *             browser" line has no scene here.)
  *   squint    the first screen at 390x844 light, blurred 7px.
  *
- * Shots go to docs/look/today-cards/after/ (LOOK_OUT moves the root),
- * deviceScaleFactor 2.
+ * Shots go to docs/look/today-cards/<LOOK_PHASE, after>/ (LOOK_OUT moves
+ * the root), deviceScaleFactor 2.
  */
 import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
@@ -46,7 +46,10 @@ import {
 
 const ONLY = process.argv.slice(2);
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3966";
-const OUT = `${process.env.LOOK_OUT ?? "docs/look/today-cards"}/after/`;
+/* LOOK_PHASE=before photographs a build from before #500 (the tour's
+   Today) at the same sizes: its tiles were links of the same class. */
+const PHASE = process.env.LOOK_PHASE ?? "after";
+const OUT = `${process.env.LOOK_OUT ?? "docs/look/today-cards"}/${PHASE}/`;
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const want = (s) => ONLY.length === 0 || ONLY.includes(s);

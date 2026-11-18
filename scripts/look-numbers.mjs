@@ -159,7 +159,7 @@ for (const size of SIZES) {
     await page.waitForSelector("main .arrive", { timeout: 20000 });
     await settled();
     await sleep(1400);
-    await at("today", "tiles", "main [data-wide]", 120);
+    await at("today", "foot", "main .home-foot", 120);
   }
   await context.close();
 }

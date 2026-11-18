@@ -103,7 +103,8 @@ async function settle(page) {
 async function today(page) {
   for (let i = 0; ; i++) {
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" }).catch(() => {});
-    const ok = await page.waitForSelector("main .home-tile[data-wide]", { timeout: 20000 }).then(() => true, () => false);
+    /* Since #500 the tiles are gone; the games' rows are what lands. */
+    const ok = await page.waitForSelector("main a.home-mode", { timeout: 20000 }).then(() => true, () => false);
     if (ok) break;
     if (i === 3) throw new Error("Today never landed");
   }

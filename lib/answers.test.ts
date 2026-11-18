@@ -107,6 +107,16 @@ describe("persistence", () => {
     expect(readOnboarding().synced).toBe(false);
   });
 
+  it("keeps the accounts it settled with when an answer changes, and reads only user ids (#499)", () => {
+    writeOnboarding({ answers: { ...EMPTY_STATE.answers, level: "never" }, done: true, synced: true, syncedTo: ["acct-a", "acct-b"] });
+    writeOnboarding({ answers: { ...EMPTY_STATE.answers, level: "some" } });
+    expect(readOnboarding()).toMatchObject({ synced: false, syncedTo: ["acct-a", "acct-b"] });
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: {}, step: 9, done: true, synced: true, syncedTo: "acct-a" }));
+    expect(readOnboarding().syncedTo).toEqual([]);
+    localStorage.setItem("ethos.onboarding", JSON.stringify({ answers: {}, step: 9, done: true, syncedTo: ["acct-a", 4, null, "acct-a", "acct-b"] }));
+    expect(readOnboarding().syncedTo).toEqual(["acct-a", "acct-b"]);
+  });
+
   it("survives a corrupt value", () => {
     localStorage.setItem("ethos.onboarding", "{not json");
     expect(readOnboarding()).toEqual(EMPTY_STATE);

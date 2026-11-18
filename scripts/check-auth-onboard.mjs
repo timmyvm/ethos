@@ -24,6 +24,10 @@
  *                      Next, and Next is the room
  *   guest-finished     a guest who finished the walk here signs in to an account
  *                      with no row: finished, Today, the walk goes up to the account
+ *   two-accounts       (#499) that guest signs in to A by email, signs out in
+ *                      Settings, then to B with Google: B gets the walk too, once,
+ *                      and lands on Today; C, which finished the introduction
+ *                      itself, keeps its own
  *
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
  *     BASE=http://localhost:3123 node scripts/check-auth-onboard.mjs
@@ -62,6 +66,14 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const guestToken = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "guest1", aud: "authenticated", role: "authenticated", exp, is_anonymous: true, session_id: "g1" })}.sig`;
 const guestUser = { id: "guest1", aud: "authenticated", role: "authenticated", email: "", is_anonymous: true, app_metadata: {}, user_metadata: {}, identities: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
 const guestSession = { access_token: guestToken, token_type: "bearer", expires_in: 3600 * 24, expires_at: exp, refresh_token: "rg", user: guestUser };
+/* Two more accounts on the same device (#499): B by Google, C by email. */
+const other = (id, email) => {
+  const token = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: id, aud: "authenticated", role: "authenticated", exp, is_anonymous: false, session_id: `s-${id}` })}.sig`;
+  const user = { ...accountSession.user, id, email };
+  return { user, session: { ...accountSession, access_token: token, refresh_token: `r-${id}`, user } };
+};
+const B = other("u2", "bee@example.com");
+const C = other("u3", "cee@example.com");
 const payload = (auth) => {
   try {
     return JSON.parse(Buffer.from((auth ?? "").replace(/^Bearer /, "").split(".")[1] ?? "", "base64url").toString());
@@ -76,7 +88,7 @@ const payload = (auth) => {
  * obfuscated user). `fresh`: the account's one way in was made just now
  * (a new Google account).
  */
-function host({ row = null, signup = "new", fresh = false } = {}) {
+function host({ row = null, signup = "new", fresh = false, rows = null } = {}) {
   const calls = { token: 0, signup: 0, onboardingRead: 0, onboardingWrite: [] };
   const now = new Date().toISOString();
   const user = fresh
@@ -94,6 +106,7 @@ function host({ row = null, signup = "new", fresh = false } = {}) {
     } catch {}
     if (p === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") {
       calls.token++;
+      if (rows && body.email === C.user.email && body.password === PASSWORD) return route.fulfill(json(C.session));
       if (body.email !== EMAIL || body.password !== PASSWORD) {
         return route.fulfill({ status: 400, headers: { ...cors, "Content-Type": "application/json" }, body: JSON.stringify({ code: "invalid_credentials", message: "Invalid login credentials" }) });
       }
@@ -109,16 +122,20 @@ function host({ row = null, signup = "new", fresh = false } = {}) {
     if (p === "/auth/v1/user" && req.method() === "GET") {
       const who = payload(req.headers()["authorization"]);
       if (!who.sub) return route.fulfill(json({ code: 401, message: "no session" }, 401));
-      return route.fulfill(json(who.is_anonymous ? guestUser : user));
+      return route.fulfill(json(who.is_anonymous ? guestUser : who.sub === B.user.id ? B.user : who.sub === C.user.id ? C.user : user));
     }
     if (p.startsWith("/rest/v1/onboarding")) {
+      /* `rows`: each account's own row, by user id, as the owner policy reads it. */
+      const by = payload(req.headers()["authorization"]).sub ?? null;
+      const theirs = rows ? rows[by] ?? null : row;
       if (req.method() === "GET") {
         calls.onboardingRead++;
         const single = /vnd\.pgrst\.object/.test(req.headers()["accept"] ?? "");
-        if (single) return route.fulfill(row ? json(row) : json({ code: "PGRST116", message: "0 rows" }, 406));
-        return route.fulfill(json(row ? [row] : []));
+        if (single) return route.fulfill(theirs ? json(theirs) : json({ code: "PGRST116", message: "0 rows" }, 406));
+        return route.fulfill(json(theirs ? [theirs] : []));
       }
-      calls.onboardingWrite.push(body);
+      if (rows && by) rows[by] = body;
+      calls.onboardingWrite.push({ ...body, by });
       return route.fulfill({ status: 201, headers: cors, body: "" });
     }
     return supabaseRoute(route);
@@ -268,10 +285,10 @@ if (run("signup-existing-unfinished")) {
 }
 
 // ---- 5 and 6. Google through /auth/callback --------------------------------
-async function googleReturn(page, mode) {
+async function googleReturn(page, mode, token = accountSession.access_token) {
   await page.goto(BASE + "/about", { waitUntil: "networkidle" });
   await page.evaluate((mode) => sessionStorage.setItem("ethos.oauth", JSON.stringify({ from: "/signin", mode, at: Date.now() })), mode);
-  await page.goto(`${BASE}/auth/callback#access_token=${accountSession.access_token}&expires_in=86400&expires_at=${exp}&refresh_token=r1&token_type=bearer`, { waitUntil: "load" });
+  await page.goto(`${BASE}/auth/callback#access_token=${token}&expires_in=86400&expires_at=${exp}&refresh_token=r1&token_type=bearer`, { waitUntil: "load" });
   return page.getByText("You're in", { exact: true }).waitFor({ timeout: 10000 }).then(() => true, () => false);
 }
 const callbackLine = (page) => page.locator("main p").first().textContent().then((t) => (t ?? "").trim(), () => "");
@@ -324,6 +341,53 @@ if (run("guest-finished")) {
   ok("a guest who finished here: counted as finished, on Today", path(page) === "/", page.url());
   ok("a guest who finished here: the walk went up to the account", calls.onboardingWrite.some((b) => b?.goal === "feet"), JSON.stringify(calls.onboardingWrite).slice(0, 160));
   ok("a guest who finished here: says it signed in to the account", (await noteText(page)) === NOTE.signedIn);
+  await close();
+}
+
+// ---- 8. Two accounts on one device, a sign-out between (#499) ---------------
+if (run("two-accounts")) {
+  const rows = { u1: null, u2: null, u3: ROW };
+  const { page, calls, errors, close } = await open({ rows }, { walk: "done", guest: true });
+  const to = (id) => calls.onboardingWrite.filter((b) => b.by === id);
+  // A, by email.
+  await signInOn(page, "/signin");
+  await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 10000 }).catch(() => {});
+  ok("two accounts: A, by email, lands on Today", path(page) === "/", page.url());
+  await sleep(800);
+  ok("two accounts: the walk went up to A", to("u1").length === 1 && to("u1")[0]?.goal === "feet", JSON.stringify(calls.onboardingWrite).slice(0, 200));
+  // Sign out, in Settings.
+  await page.goto(BASE + "/settings", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.waitForURL(/\/signin/, { timeout: 10000 }).catch(() => {});
+  const kept = await stored(page);
+  ok("two accounts: signed out, the walk stays this device's, settled with A", kept?.done === true && JSON.stringify(kept?.syncedTo) === '["u1"]', JSON.stringify(kept));
+  // B, by Google.
+  const inn = await googleReturn(page, "signin", B.session.access_token);
+  ok("two accounts: B, by Google, signed in", inn);
+  const line = await callbackLine(page);
+  ok("two accounts: the callback names B", line === `Signed in to your account as ${B.user.email}.`, line);
+  const href = await callbackTap(page).getAttribute("href").catch(() => null);
+  ok("two accounts: B is not sent through the introduction again: the way on is Today", href === "/", String(href));
+  ok("two accounts: the walk went up to B too", to("u2").length === 1 && to("u2")[0]?.goal === "feet" && to("u2")[0]?.level === "some", JSON.stringify(to("u2")).slice(0, 200));
+  await callbackTap(page).click();
+  await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 10000 }).catch(() => {});
+  await sleep(1200);
+  await page.reload({ waitUntil: "networkidle" });
+  await sleep(1200);
+  ok("two accounts: once: Today's syncs send B nothing more, and A nothing more", to("u2").length === 1 && to("u1").length === 1, `A ${to("u1").length}, B ${to("u2").length}`);
+  // C, which finished the introduction itself, by email.
+  await page.goto(BASE + "/settings", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.waitForURL(/\/signin/, { timeout: 10000 }).catch(() => {});
+  await page.locator("#email").fill(C.user.email);
+  await page.locator("#password").fill(PASSWORD);
+  await page.locator('form button[type="submit"]').click();
+  await page.waitForURL((u) => new URL(u).pathname === "/", { timeout: 10000 }).catch(() => {});
+  await sleep(1200);
+  ok("two accounts: C, finished itself, lands on Today and keeps its own", path(page) === "/" && to("u3").length === 0 && rows.u3 === ROW, `${page.url()} ${to("u3").length}`);
+  const last = await stored(page);
+  ok("two accounts: the device is settled with A, B and C", JSON.stringify(last?.syncedTo) === '["u1","u2","u3"]', JSON.stringify(last?.syncedTo));
+  ok("two accounts: no page errors", errors.length === 0, errors.join(" | ").slice(0, 200));
   await close();
 }
 

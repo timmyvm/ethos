@@ -58,8 +58,19 @@ export interface OnboardingState {
   step: number;
   /** The plan was shown: the walk is finished. */
   done: boolean;
-  /** The account holds the same answers. */
+  /**
+   * The answers as they stand have gone up since they last changed: a
+   * change made here waits for the account signed in to hear it.
+   */
   synced: boolean;
+  /**
+   * Every account this device's finished walk has been settled with
+   * (#499), by user id: the answers went up to it, or it had finished
+   * the introduction itself and kept its own. One mark per account, not
+   * one per device, so each account this device signs into gets the
+   * walk once (lib/answers-sync.ts).
+   */
+  syncedTo: string[];
 }
 
 export const EMPTY_ANSWERS: Answers = {
@@ -77,7 +88,22 @@ export const EMPTY_STATE: OnboardingState = {
   step: 0,
   done: false,
   synced: false,
+  syncedTo: [],
 };
+
+/**
+ * The most accounts one device remembers settling with. A phone shared
+ * by a household is a handful; past this the oldest is dropped, and an
+ * account dropped and met again is read again, never written over.
+ */
+export const MAX_SYNCED_TO = 24;
+
+/** User ids, deduplicated, newest last, capped. Anything else is dropped. */
+export function cleanSyncedTo(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const ids = raw.filter((id): id is string => typeof id === "string" && id.length > 0 && id.length <= 64);
+  return ids.filter((id, i) => ids.lastIndexOf(id) === i).slice(-MAX_SYNCED_TO);
+}
 
 const has = (list: readonly { id: string }[], v: unknown) =>
   typeof v === "string" && list.some((x) => x.id === v);
@@ -156,6 +182,7 @@ export function readOnboarding(): OnboardingState {
       step: Number.isInteger(p.step) && (p.step as number) >= 0 ? stepFromStore(p.step as number, p.walk) : 0,
       done: p.done === true,
       synced: p.synced === true,
+      syncedTo: cleanSyncedTo(p.syncedTo),
     };
   } catch {
     return EMPTY_STATE;
@@ -164,7 +191,9 @@ export function readOnboarding(): OnboardingState {
 
 /**
  * A changed answer is unsynced until the account hears it; a caller
- * that only moves the step, or marks the sync, says so explicitly.
+ * that only moves the step, or marks the sync, says so explicitly. The
+ * accounts already settled with stay settled: a change goes up to the
+ * account it was made under, never to every account this device met.
  */
 export function writeOnboarding(patch: Partial<OnboardingState>): OnboardingState {
   const current = readOnboarding();
@@ -173,6 +202,7 @@ export function writeOnboarding(patch: Partial<OnboardingState>): OnboardingStat
     ...patch,
     answers: patch.answers ? cleanAnswers(patch.answers) : current.answers,
     synced: patch.synced ?? (patch.answers ? false : current.synced),
+    syncedTo: patch.syncedTo ? cleanSyncedTo(patch.syncedTo) : current.syncedTo,
   };
   try {
     /* Marked with today's walk, so the step is never moved twice. */

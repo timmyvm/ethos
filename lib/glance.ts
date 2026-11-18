@@ -621,8 +621,9 @@ export function playsOnAfterSheet(
  * the cue come with shorter forms they are tried before anything goes:
  * the short line (its number, no chip), then the short cue (no
  * "Tomorrow:"), then both, each with the earned line whole and then with
- * its tail cut. Only then the cue goes, as before. `short` says the
- * line's short form was used.
+ * its tail cut. Only then the cue goes, as before, and the line keeps its
+ * long form only where the earned line still fits beside it. `short` says
+ * the line's short form was used.
  */
 export function fitGlance(
   p: {
@@ -669,8 +670,19 @@ export function fitGlance(
     if (earned !== undefined) return { cue, earned, words: total(p.line, cue, earned), short: false };
   }
   if (total(p.line, cue, earnedForms[0]) > budget) cue = null;
-  const earned = earnedForms.find((e) => total(p.line, cue, e) <= budget) ?? earnedForms[earnedForms.length - 1];
-  return { cue, earned, words: total(p.line, cue, earned), short: false };
+  /* With the cue gone, the line's short form is tried too before the
+     earned line is held over the ceiling: a level-up keeps a form
+     whatever the room (#498), and beside the long line its shortest
+     could pass the ceiling where the short line fitted (the 18 Nov
+     merge's review). Where nothing fits, the fewest words. */
+  const lines: [string, boolean][] = cue === null && p.lineShort ? [[p.line, false], [p.lineShort, true]] : [[p.line, false]];
+  for (const [line, short] of lines) {
+    const earned = earnedForms.find((e) => total(line, cue, e) <= budget);
+    if (earned !== undefined) return { cue, earned, words: total(line, cue, earned), short };
+  }
+  const [line, short] = lines[lines.length - 1];
+  const earned = earnedForms[earnedForms.length - 1];
+  return { cue, earned, words: total(line, cue, earned), short };
 }
 
 /**

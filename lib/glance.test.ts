@@ -13,6 +13,7 @@ import {
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_ASK,
   askBudget,
+  rulesBudget,
   starsBudget,
   glanceLine,
   glanceTrait,
@@ -32,10 +33,13 @@ import { gameById, type Game } from "./games";
 import type { LadderState } from "./ladder";
 import type { GameRound, QaRound } from "./round";
 import { ladderView, roundReveal } from "./round-copy";
-import { computeMetrics, substance, type RepMetrics, type Word } from "./metrics";
+import { computeMetrics, starGoals, substance, type RepMetrics, type Word } from "./metrics";
 import { heldPauseMarks } from "./pause-mark";
 import { endNote, MOST_PAUSES, type RewardMoment } from "./rewards";
 import { levelUpLine } from "./traits";
+import { answerLine, cueSentence, cueShortSentence, type CueKind } from "./carried-cue";
+import { DIMENSION_NAME } from "./dimension-rows";
+import { PAUSE_RULES, rulesNote } from "./pause-rules";
 import type { StreakState } from "./streak";
 
 /*
@@ -465,6 +469,93 @@ describe("earnedLine", () => {
     );
     expect(f).toMatchObject({ cue: "Tomorrow: pause where “um” was.", earned: "Pace: level 3", short: true });
     expect(f.words).toBeLessThanOrEqual(starsBudget(GLANCE_WORDS, goals));
+  });
+  it("holds its ceiling with everything on it at once: goals, a level-up, the rules note and a carried cue (the 18 Nov merge)", () => {
+    /* The worst a road take can bring, every piece from its own source,
+       the fixed words as app/rep/page.tsx lays them: a coin, "▲ 213
+       since last time", the #491 note on the jump, #504's three goals,
+       #498's level-up with its two longest names and "and 3 more", and
+       #477's line and cue at their longest: an answer with its cue, or
+       the cue's own evidence with the chip, each with its short form.
+       Whenever any arrangement of the line, the cue and the level-up fits
+       the ceiling, the glance takes one that does; where none can, it
+       takes the fewest words. The goals, the note, the score and the taps
+       never go, and the level-up always keeps a form. */
+    const name = (k: string) => DIMENSION_NAME[k as keyof typeof DIMENSION_NAME];
+    const ups = [
+      levelUpLine([{ key: "fillers", from: 2, to: 3, paid: 93 }], name)!,
+      levelUpLine(
+        [
+          { key: "repairs", from: 9, to: 10, paid: 95 },
+          { key: "fillers", from: 9, to: 10, paid: 94 },
+          { key: "pace", from: 1, to: 2, paid: 90 },
+          { key: "range", from: 1, to: 2, paid: 80 },
+          { key: "pause", from: 1, to: 2, paid: 70 },
+        ],
+        name
+      )!,
+    ];
+    const kinds: CueKind[] = ["filler", "searching", "filled", "unheld", "restarts", "fast", "slow", "repeat"];
+    /* cueEvidence's own templates, with the chip, and their short forms. */
+    const EVIDENCE: Record<CueKind, [string, string]> = {
+      filler: ["“basically” 12 times, first 0:20", "“basically” 12 times."],
+      repeat: ["“basically” 12 times, first 0:20", "“basically” 12 times."],
+      searching: ["3 misplaced pauses, first 0:20", "3 misplaced pauses."],
+      filled: ["3 pauses had an um, first 0:20", "3 pauses had an um."],
+      unheld: ["3 pauses between sentences, first 0:20", "3 pauses between sentences."],
+      restarts: ["4 restarts in 300s.", "4 restarts."],
+      fast: ["188 words a minute.", "188 words a minute."],
+      slow: ["98 words a minute.", "98 words a minute."],
+    };
+    const lines = kinds.flatMap((kind) => {
+      const cue = { kind, word: kind === "filler" || kind === "repeat" ? "basically" : null };
+      const now = kind === "fast" ? 188 : kind === "slow" ? 98 : 3;
+      const answer = answerLine({ ...cue, now, before: kind === "fast" || kind === "slow" ? 150 : 0, held: false, rested: false });
+      const [line, lineShort] = EVIDENCE[kind];
+      return [
+        { line: answer.line.sentence, lineShort: answer.short.sentence, cue: cueSentence(cue), cueShort: cueShortSentence(cue) },
+        { line, lineShort, cue: cueSentence(cue), cueShort: cueShortSentence(cue) },
+      ];
+    });
+    const note = rulesNote({
+      now: { rules: PAUSE_RULES, index: 665, pause: 73 },
+      previousIndex: 452,
+      prior: [{ ethos_index: 452, dimensions: { tier1: { pause: 26 } }, mode: "rep" }],
+    })!;
+    expect(note.kind).toBe("delta");
+    let checked = 0;
+    let none = 0;
+    for (const durationS of [20, 62, 90, 300]) {
+      const goals = starGoals(durationS);
+      for (const coined of [false, true]) {
+        for (const rules of [null, note.text]) {
+          for (const levelUp of ups) {
+            for (const said of lines) {
+              const fixed = ["Today's practice", coined ? "+1" : "", "665", "/1000", "▲ 213 since last time", "Every number", "Done for today", "Retake", rules ?? "", ...goals];
+              const budget = starsBudget(rulesBudget(GLANCE_WORDS, rules), goals);
+              const f = fitGlance({ fixed, ...said, earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) }, budget);
+              const totals = [said.line, said.lineShort].flatMap((line) =>
+                [said.cue, said.cueShort, ""].flatMap((cue) =>
+                  levelUp.forms.map((e) => countWords([...fixed, line, cue, e.text].join(" ")))
+                )
+              );
+              const fewest = Math.min(...totals);
+              const what = `${durationS}s ${coined ? "coin " : ""}${rules ? "note " : ""}${said.line} / ${f.earned} / ${f.cue}`;
+              if (fewest <= budget) expect(f.words, what).toBeLessThanOrEqual(budget);
+              else {
+                none += 1;
+                expect(f.words, what).toBe(fewest);
+              }
+              expect(levelUp.forms.map((x) => x.text)).toContain(f.earned);
+              checked += 1;
+            }
+          }
+        }
+      }
+    }
+    expect(checked).toBe(4 * 2 * 2 * 2 * kinds.length * 2);
+    /* Only a long line beside a coin leaves no room for a level-up's shortest form. */
+    expect(none).toBeLessThan(checked / 8);
   });
   it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
     /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again are 20 words. */

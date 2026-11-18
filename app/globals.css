@@ -1643,22 +1643,6 @@ body::after {
   animation: fill var(--duration-max) var(--ease-out) backwards;
 }
 
-/*
- * The same landing for a bar that grows UP rather than along: the
- * filler heatmap's columns stand on a baseline, so `scaleX` from the
- * left had nothing to say to them and they were the one set of bars in
- * the app that could not fill (#247).
- */
-@keyframes fill-y {
-  from {
-    transform: scaleY(0);
-  }
-}
-
-.fill-y {
-  transform-origin: center bottom;
-  animation: fill-y var(--duration-max) var(--ease-out) backwards;
-}
 .star-land {
   display: inline-block;
   animation: star-land var(--duration-max) var(--ease-out) backwards;
@@ -2019,7 +2003,7 @@ body::after {
   animation-name: fade-in;
   animation-delay: 0ms;
 }
-:root[data-motion="reduce"] :is(.fill, .fill-y, .rec-ring, .goal-land) {
+:root[data-motion="reduce"] :is(.fill, .rec-ring, .goal-land) {
   animation: none;
   transition: none;
   transform: none;
@@ -3901,69 +3885,154 @@ summary::-webkit-details-marker {
    (lib/today-colour.test.ts). */
 /* ========================== end of today (colour pass) ========================== */
 
-/* ============================ log (colour pass) ============================
- * The log's share of the colour pass (26 Sep, "pop with colour"). No new
- * hue: every trait-shaped thing on /history wears its lessons tone
- * (`[data-trait]` above), so blue is pausing here as on Today and
- * /lessons. The Index row and the score card stay sage (earned), the
- * change column keeps sage for better and rust for worse (#195), and the
- * Premium chips are untouched. Nothing here is a tap.
- * ============================================================================ */
-/* A metric's swatch: the key the recording tiles below are coloured by.
-   The Index's is sage, the colour of the card that carries it. */
-.log-swatch {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  margin-right: 4px;
-  border-radius: 2px;
-  background: var(--tone);
+/* ============================ the log (#506) ============================
+ * Timothy, 18 Nov: "what am I even looking at when I see the log? ...
+ * It's really, really tight". The Daily side is one picture and one
+ * list (app/history/page.tsx, components/log/LogStage.tsx, LogRow.tsx).
+ *
+ * The stage is the house sky (HeroStage) with three things on it: the
+ * Ethos number at the results' 72 (num-xl), one quiet pill in the
+ * stage's veil and ink ("▲ 51 since you started", a label and never a
+ * tap), and one line across its foot from a ring (where you started) to
+ * a dot (where you are). The words run the stage's width and the line
+ * takes the band under them. On a phone under 360 wide or 700 tall the
+ * number steps to 56 and the line gives up height before anything else,
+ * so the first recording's title stands over the tab bar at 320x568.
+ * ======================================================================== */
+.log-stage {
+  min-height: 252px;
 }
-/* The Index's swatch is stone since the cohesion pass: its colour was the
-   deep sage card's, and the card is the house stage now. */
-/* At 320 the label column is 2px short of "All fillers / min" with its
-   chevron on one line (E32): the swatch gives 2 of its air. */
-@media (max-width: 359px) {
-  .log-swatch {
-    margin-right: 2px;
+/* Nothing recorded yet: the stage takes the first screen's spare height,
+   less the header, the switch, the tap under it and the bar. */
+.log-stage-empty {
+  min-height: max(252px, calc(100svh - 330px));
+}
+/* One recording: the height its list head and one two-line row leave
+   (#506 review), so the first screen ends on the row, not on 200px of
+   ground. */
+.log-stage-lone {
+  min-height: max(252px, calc(100svh - 414px));
+}
+.log-number {
+  font-size: var(--text-num-xl);
+  line-height: 1;
+  letter-spacing: var(--text-num-xl--letter-spacing);
+}
+.log-change {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin-top: 10px;
+  padding: 0 12px 0 10px;
+  border-radius: 9999px;
+  background: var(--stage-veil);
+  color: var(--stage-ink);
+  white-space: nowrap;
+}
+/* The triangle at the floor's 11, so the number leads the pill. */
+.log-change-mark {
+  font-size: 0.6875rem;
+  line-height: 1;
+}
+/* The line's band: the stage's width less its padding, under the pill,
+   its top 16px under the pill's foot, so a ring on a history wider than
+   the 100-point floor never stands against the pill (#506 review: 2px at
+   320x568 on a 200-point fall). */
+.log-chart {
+  position: absolute;
+  left: 26px;
+  right: 30px;
+  bottom: 24px;
+  height: 60px;
+  z-index: 1;
+  pointer-events: none;
+  color: var(--stage-ink);
+}
+.log-path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Where you started: a ring in the stage's own colour, so the line runs
+   into it rather than through it. */
+.log-ring {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  border: 2.5px solid currentColor;
+  background: var(--tone);
+  transform: translate(-50%, -50%);
+}
+/* Where you are: the filled dot in a soft halo of the ink. */
+.log-dot {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow:
+    0 0 0 2.5px var(--tone),
+    0 0 0 9px color-mix(in srgb, currentColor 16%, transparent);
+  transform: translate(-50%, -50%);
+}
+/* On the read that lands (not on a return the visit held), the line
+   draws from the ring to the dot and the dot arrives after it: the
+   number counts up beside it, so the climb is seen happening once. */
+.log-chart[data-draw] .log-path {
+  stroke-dasharray: 1;
+  animation: log-draw 900ms var(--ease-out) 120ms backwards;
+}
+.log-chart[data-draw] .log-dot {
+  animation: log-dot 320ms var(--ease-out) 900ms backwards;
+}
+@keyframes log-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
   }
 }
-.log-metric[data-index] .log-swatch {
-  background: var(--color-stone-400);
+@keyframes log-dot {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
 }
-/* A row with no trait (Presence, Structure, the Premium teasers) keeps
-   the slot so the label column holds one left edge. */
-.log-swatch-blank {
-  background: transparent;
+:root[data-motion="reduce"] .log-chart[data-draw] :is(.log-path, .log-dot) {
+  animation: none;
 }
-/* A waiting row's number as a tile (#394, unchanged): the plain surface
-   and the ink, and the trait the lesson practises as a short bar in its
-   tone at the tile's foot, 12 by 3. A logged recording's date is a bare
-   column since D33 (app/history/page.tsx). */
-.log-date {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 44px;
-  border-radius: 10px;
-  line-height: 1;
-  background: var(--color-surface);
+@media (prefers-reduced-motion: reduce) {
+  .log-chart[data-draw] :is(.log-path, .log-dot) {
+    animation: none;
+  }
 }
-.log-date[data-trait]::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 4px;
-  width: 12px;
-  height: 3px;
-  margin-left: -6px;
-  border-radius: 1px;
-  background: var(--tone);
+@media (max-width: 359px), (max-height: 700px) {
+  .log-stage {
+    min-height: 204px;
+  }
+  .log-stage-empty {
+    min-height: max(204px, calc(100svh - 330px));
+  }
+  .log-stage-lone {
+    min-height: max(204px, calc(100svh - 414px));
+  }
+  .log-number {
+    font-size: var(--text-num-hero);
+    letter-spacing: var(--text-num-hero--letter-spacing);
+  }
+  .log-chart {
+    height: 34px;
+    bottom: 20px;
+  }
 }
-/* ========================== end of log (colour pass) ========================== */
+/* ========================== end of the log (#506) ========================== */
 
 /* ============================ you (colour pass) ============================
  * The profile's share of the colour pass (26 Sep, "pop with colour"),

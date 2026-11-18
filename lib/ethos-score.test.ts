@@ -34,7 +34,7 @@ describe("the Ethos number, one drawing (#493)", () => {
   });
 
   it("every screen that shows it draws it through EthosScore, with no label beside it", () => {
-    for (const file of ["components/RepResult.tsx", "components/ScoreCard.tsx", "app/rep/page.tsx"]) {
+    for (const file of ["components/RepResult.tsx", "components/log/LogStage.tsx", "app/rep/page.tsx"]) {
       const src = readFileSync(file, "utf8");
       expect(src, file).toMatch(/<EthosScore/);
       expect(src, file).not.toMatch(/>\s*\/ ?1000\s*</);
@@ -56,11 +56,14 @@ describe("a change, one way (#493)", () => {
   });
 
   it("the stage and the results write no sign after the arrow", () => {
-    for (const file of ["components/RepResult.tsx", "components/ScoreCard.tsx"]) {
-      const src = readFileSync(file, "utf8");
-      expect(src, file).not.toMatch(/delta > 0 \? "\+"/);
-      expect(src, file).toMatch(/<Trend /);
-    }
+    const results = readFileSync("components/RepResult.tsx", "utf8");
+    expect(results).not.toMatch(/delta > 0 \? "\+"/);
+    expect(results).toMatch(/<Trend /);
+    /* The Log's stage (#506) writes its one change as a pill: the mark,
+       then the size, never a sign. */
+    const stage = readFileSync("components/log/LogStage.tsx", "utf8");
+    expect(stage).not.toMatch(/delta > 0 \? "\+"/);
+    expect(stage).toMatch(/<TrendMark up=\{delta > 0\} \/>\s*<\/span>\s*\{Math\.abs\(delta\)\}/);
   });
 });
 

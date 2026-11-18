@@ -33,7 +33,7 @@ describe("every tab opens on the one stage", () => {
   const heroes: [string, string][] = [
     ["Lessons", "components/lessons/LessonCard.tsx"],
     ["Practice", "app/games/page.tsx"],
-    ["Log", "components/ScoreCard.tsx"],
+    ["Log", "components/log/LogStage.tsx"],
   ];
   for (const [tab, file] of heroes) {
     it(`${tab} draws its hero with HeroStage`, () => {
@@ -67,7 +67,7 @@ describe("every tab opens on the one stage", () => {
   });
 
   it("no hero keeps its old colour world", () => {
-    expect(src("components/ScoreCard.tsx")).not.toMatch(/card-score|sage-mist|sage-lit|text-cream/);
+    expect(src("components/log/LogStage.tsx")).not.toMatch(/card-score|sage-mist|sage-lit|text-cream/);
     expect(src("components/home/HomeHero.tsx")).not.toMatch(/topic-card|rec-amber|<HeroStage\b|practice-stage/);
     expect(src("app/you/page.tsx")).not.toMatch(/kind: "coin"/);
   });

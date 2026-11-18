@@ -5,21 +5,23 @@ import { ComparisonCard } from "@/components/ComparisonCard";
 import { LESSONS } from "@/content/lessons";
 import type { RepRow } from "./client-data";
 import { DRILLS } from "./drills";
+import { hostileRecord } from "./hostile";
 import {
-  movedRows,
-  presenceRow,
+  bestRecording,
+  dayWords,
+  ethosLine,
+  LINE_SPAN,
+  linePath,
+  logList,
   recordingName,
+  recordingTopic,
   recordingTrait,
-  rolling,
-  rowTrait,
   sinceDayOne,
-  skillRows,
 } from "./log";
 
 /*
- * The summary screen's one row grammar (#217): every metric prints
- * where it started, where it is, and the signed change, so nobody
- * subtracts. Pace prints its zone instead of a verdict.
+ * The Log's reads (#506): what a recording is called and what it was
+ * about, the stage's one line, the all-time best and a row's day.
  */
 /** Enough words to score (`measured`): the rows below are real takes. */
 const SAID =
@@ -55,132 +57,6 @@ function rep(over: Partial<RepRow>): RepRow {
     ...over,
   } as RepRow;
 }
-
-/** `n` pauses between sentences, the kind the Log counts (#495). */
-const held = (n: number, kind: "pre" | "mid" = "pre") =>
-  Array.from({ length: n }, () => ({ kind, t: 1, len: 1 })) as RepRow["pauses"];
-
-describe("movedRows", () => {
-  it("prints day one, now, and the signed change", () => {
-    const rows = movedRows([
-      rep({ ethos_index: 512, filler_count: 6, wpm: 171, pauses: held(1) }),
-      rep({ ethos_index: 643, filler_count: 3, wpm: 138, pauses: held(4) }),
-    ]);
-    const [index, fillers, pace, pauses] = rows;
-    expect(index).toMatchObject({ then: "512", now: "643", change: "▲ 131", direction: "up" });
-    expect(fillers).toMatchObject({ then: "6.0", now: "3.0", change: "▼ 3.0", direction: "up", invert: true });
-    expect(pace).toMatchObject({ then: "171", now: "138", change: "in 130 to 160", direction: "up" });
-    expect(pauses).toMatchObject({ then: "1", now: "4", change: "▲ 3", direction: "up" });
-  });
-
-  it("wears rust when the number moved the wrong way (#195)", () => {
-    const [index, fillers] = movedRows([
-      rep({ ethos_index: 600, filler_count: 2 }),
-      rep({ ethos_index: 550, filler_count: 9 }),
-    ]);
-    expect(index).toMatchObject({ change: "▼ 50", direction: "down" });
-    expect(fillers).toMatchObject({ change: "▲ 7.0", direction: "down" });
-  });
-
-  it("names the pace zone rather than a distance to a hidden target", () => {
-    expect(movedRows([rep({ wpm: 120 }), rep({ wpm: 175 })])[2]).toMatchObject({
-      change: "over 160",
-      direction: "down",
-    });
-    expect(movedRows([rep({ wpm: 150 }), rep({ wpm: 110 })])[2]).toMatchObject({
-      change: "under 130",
-      direction: "down",
-    });
-  });
-
-  it("has no change to print with one recording, and nothing at all with none", () => {
-    const [index] = movedRows([rep({ ethos_index: 512 })]);
-    expect(index).toMatchObject({ then: "512", now: "512", change: null, direction: "flat" });
-
-    for (const row of movedRows([])) {
-      expect(row.then).toBeNull();
-      expect(row.now).toBeNull();
-      expect(row.change).toBeNull();
-    }
-  });
-
-  it("skips unscored recordings in the Index series only", () => {
-    const [index, fillers] = movedRows([
-      rep({ ethos_index: null, filler_count: 8 }),
-      rep({ ethos_index: 590, filler_count: 2 }),
-    ]);
-    expect(index.series).toEqual([590]);
-    expect(fillers.series).toHaveLength(2);
-  });
-
-  /* #495, the morning tour: the row counted every pause of 0.8s or more,
-     so a take that stopped mid-sentence five more times read as better.
-     The stored pauses are read again on every open, so an old row reads
-     the same rule: a display of what is stored, not a rescore. */
-  it("counts pauses between sentences only, never one mid-sentence", () => {
-    const [, , , pauses] = movedRows([
-      rep({ pauses: [...held(2), ...held(1, "mid")] }),
-      rep({ pauses: [...held(2), ...held(6, "mid")] }),
-    ]);
-    expect(pauses).toMatchObject({ label: "Pauses between sentences", unit: "in a recording", then: "2", now: "2", change: null, direction: "flat" });
-  });
-
-  /* The review of #495: a take that only stopped mid-sentence has no
-     pause between sentences, so it reads 0, and down from one that had. */
-  it("reads 0 for a take whose every pause is mid-sentence", () => {
-    const [, , , pauses] = movedRows([rep({ pauses: held(1) }), rep({ pauses: held(5, "mid") })]);
-    expect(pauses).toMatchObject({ then: "1", now: "0", direction: "down" });
-  });
-
-  /* A one-word 8s take printed pace 128 to 7 and fillers 9.3 to 0.0. */
-  it("leaves a take too short to score out of the measurements", () => {
-    const short = rep({ transcript: "Hello.", ethos_index: null, duration_s: 8.3, wpm: 7, filler_count: 0 });
-    const [, fillers, pace, pauses] = movedRows([
-      rep({ wpm: 120, filler_count: 9, pauses: held(1) }),
-      rep({ wpm: 128, filler_count: 9, pauses: held(2) }),
-      short,
-    ]);
-    expect(pace).toMatchObject({ now: "128", change: "under 130" });
-    expect(pace.series).toEqual([120, 128]);
-    expect(fillers.now).toBe("9.0");
-    expect(pauses.now).toBe("2");
-  });
-});
-
-describe("presenceRow", () => {
-  it("is absent until a video recording exists, then reads only those", () => {
-    expect(presenceRow([rep({})])).toBeNull();
-    const row = presenceRow([
-      rep({ presence_score: 610 }),
-      rep({}),
-      rep({ presence_score: 680 }),
-    ]);
-    expect(row).toMatchObject({ then: "610", now: "680", change: "▲ 70" });
-  });
-});
-
-describe("skillRows", () => {
-  it("needs two carried readings before a skill gets a row", () => {
-    const withPause = (pause: number) =>
-      rep({
-        dimensions: {
-          tier1: { pause } as never,
-          anchors: {} as never,
-          tier2: null,
-        },
-      });
-    expect(skillRows([withPause(50)])).toEqual([]);
-    const rows = skillRows([withPause(50), withPause(80)]);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].label).toBe("Pausing");
-    // Out of 100, the scale the rows on the results speak (#471).
-    expect(rows[0].then).toBe("50");
-    expect(rows[0].now).toBe("80");
-    expect(rows[0].direction).toBe("up");
-    // A take too short to score made no Index, so its dimensions are no reading.
-    expect(skillRows([withPause(50), { ...withPause(10), transcript: "Hi there." }])).toEqual([]);
-  });
-});
 
 describe("recordingName", () => {
   it("names the lesson, or the boss, never the id", () => {
@@ -302,42 +178,205 @@ describe("recordingTrait", () => {
   });
 });
 
-describe("rowTrait", () => {
-  it("gives the three trait-shaped metrics their trait, and the Index none", () => {
-    expect(rowTrait("fillers")).toBe("fillers");
-    expect(rowTrait("wpm")).toBe("pace");
-    expect(rowTrait("held")).toBe("pause");
-    expect(rowTrait("index")).toBeNull();
-    expect(rowTrait("presence")).toBeNull();
-    expect(rowTrait("structure")).toBeNull();
+
+/*
+ * #506: a row is titled by what was talked about, and a tap lands on a
+ * page that names the same thing. Read from the stored id alone.
+ */
+describe("recordingTopic", () => {
+  it("names a lesson practice by the topic its pool was shown (#492)", () => {
+    // Pause between sentences: t6, t12, t4.
+    expect(recordingTopic({ lesson_id: "lesson:inside-or-after:3", mode: "daily" })).toBe("Whether being busy is a choice");
+    expect(recordingTopic({ lesson_id: "lesson:inside-or-after:1", mode: "daily" }, "work")).toBe(
+      "A time you were completely wrong in public"
+    );
+    // The closed mouth's third (t10) needs a job: school gets its stand-in,
+    // a grown-up the topic itself, and no pool means school.
+    expect(recordingTopic({ lesson_id: "lesson:closed-mouth:3", mode: "daily" }, "school")).toBe("A deadline you only just made");
+    expect(recordingTopic({ lesson_id: "lesson:closed-mouth:3", mode: "daily" }, "work")).toBe("The worst job you've ever done");
+    expect(recordingTopic({ lesson_id: "lesson:closed-mouth:3", mode: "daily" })).toBe("A deadline you only just made");
+  });
+
+  it("names Today's practice, a road lesson, the boss and a game by their topic", () => {
+    expect(recordingTopic({ lesson_id: "topic:t4", mode: "daily" })).toBe("Whether being busy is a choice");
+    // A road lesson's prompt says the topic, then how: the first sentence, no full stop.
+    expect(recordingTopic({ lesson_id: "h4", mode: "daily" })).toBe("Argue that one everyday habit is underrated");
+    expect(recordingTopic({ lesson_id: "f1", mode: "daily" })).toBe("Introduce yourself and what you're building");
+    expect(recordingTopic({ lesson_id: "t2", mode: "daily" })).toBe("What should more people be doing?");
+    // The two that open on how to speak name their topic outright.
+    expect(recordingTopic({ lesson_id: "h3", mode: "daily" })).toBe("A rule you live by");
+    expect(recordingTopic({ lesson_id: "t3", mode: "daily" })).toBe("The last object you touched");
+    expect(recordingTopic({ lesson_id: "boss:great-vowel-shift", mode: "boss" })).toBe("The Great Vowel Shift");
+    expect(recordingTopic({ lesson_id: "game:qa:qa2", mode: "daily" })).toBe("Would you rather be respected or liked?");
+  });
+
+  it("names Hostile Q&A by its claim, from the stored verdict", () => {
+    const verdict = {
+      held: { score: 72, citedMoment: "kept the claim", improve: "Name the cost." },
+      answered: { score: 64, citedMoment: "answered it", improve: "Shorter." },
+      composed: { score: 70, citedMoment: "steady", improve: "Slow down." },
+      coachLine: "You held it.",
+    };
+    const round = hostileRecord("zoos", verdict, []);
+    expect(recordingTopic({ lesson_id: "hostile-take", mode: "daily", round })).toBe("Zoos should exist");
+    expect(recordingTopic({ lesson_id: "hostile-take", mode: "daily", round: null })).toBe("Hostile Q&A");
+  });
+
+  it("falls back to the recording's name, never an empty or raw id", () => {
+    expect(recordingTopic({ lesson_id: "practice:trait-pause", mode: "daily" })).toBe("Pausing");
+    expect(recordingTopic({ lesson_id: "lesson:nope:1", mode: "daily" })).toBe("Recording");
+    expect(recordingTopic({ lesson_id: "topic:nope", mode: "daily" })).toBe("Recording");
+    expect(recordingTopic({ lesson_id: "game:qa:nope", mode: "daily" })).toBe("Q&A");
+    expect(recordingTopic({ lesson_id: null, mode: "boss" })).toBe("Weekly boss");
+  });
+
+  it("gives every road lesson a topic with no full stop and no instruction's opening", () => {
+    for (const id of ["f1", "f2", "f3", "f4", "p1", "p2", "p3", "p4", "h1", "h2", "h3", "h4", "s1", "s2", "s3", "s4", "s5", "c1", "c2", "c3", "c4", "c5", "t1", "t2", "t3", "t4", "t5"]) {
+      const t = recordingTopic({ lesson_id: id, mode: "daily" });
+      expect(t, id).not.toBe(recordingName({ lesson_id: id, mode: "daily" }));
+      expect(t, id).not.toMatch(/\.$/);
+      expect(t, id).not.toMatch(/^(No think time|Hold one full second)/);
+      expect(t.length, id).toBeGreaterThan(8);
+    }
   });
 });
 
 /*
- * log-23: the trend track draws a trailing mean, so a noisy series
- * reads as a direction. It never drops a point and never moves the
- * first one: the line still starts at the Day 1 value beside it.
+ * #506: the stage's one line. Its ends are the two numbers the stage's
+ * change subtracts, and it is drawn on at least 100 points of Ethos.
  */
-describe("rolling", () => {
-  it("averages each point with the ones before it, up to the window", () => {
-    expect(rolling([3, 6, 9, 12], 3)).toEqual([3, 4.5, 6, 9]);
+describe("ethosLine", () => {
+  /* The tour's account, oldest first: 611 to 662, its best 690. */
+  const TOUR = [611, 627, 643, 644, 660, 631, 632, 648, 664, 665, 636, 652, 653, 669, 685, 641, 657, 673, 674, 690, 661, 662];
+  const value = (pts: [number, number][], span: number, mid: number, i: number) => mid + (0.5 - pts[i][1]) * span;
+
+  it("is null under two scored recordings", () => {
+    expect(ethosLine([])).toBeNull();
+    expect(ethosLine([604])).toBeNull();
   });
 
-  it("keeps the length and the first value", () => {
-    const raw = [128, 135, 142, 149, 156, 133, 140];
-    const smooth = rolling(raw, 3);
-    expect(smooth).toHaveLength(raw.length);
-    expect(smooth[0]).toBe(raw[0]);
+  it("starts at the first Ethos and ends at today's, whatever the smoothing does between", () => {
+    const pts = ethosLine(TOUR)!;
+    expect(pts).toHaveLength(TOUR.length);
+    expect(pts[0][0]).toBe(0);
+    expect(pts[pts.length - 1][0]).toBe(1);
+    // The end is lower on the stage than the 674 to 690 run before it: the
+    // line ends where 662 is, not where a trailing mean would (672).
+    const smoothHi = Math.max(...pts.map((p) => 1 - p[1]));
+    expect(1 - pts[pts.length - 1][1]).toBeLessThan(smoothHi);
+    // The rise from the ring to the dot is 51 points on the line's scale.
+    const span = Math.max(LINE_SPAN, 0);
+    const rise = (pts[0][1] - pts[pts.length - 1][1]) * span;
+    expect(Math.round(rise)).toBe(51);
   });
 
-  it("flattens a sawtooth into its level", () => {
-    const saw = [1, 3, 1, 3, 1, 3, 1, 3];
-    const smooth = rolling(saw, 2);
-    expect(smooth.slice(1).every((v) => v === 2)).toBe(true);
+  it("draws on at least 100 points, so 51 is a climb and not a cliff", () => {
+    const pts = ethosLine([611, 662])!;
+    const rise = pts[0][1] - pts[1][1];
+    expect(rise).toBeCloseTo(0.51, 5);
+    // Centred on its own range.
+    expect(pts[0][1]).toBeCloseTo(0.755, 5);
+    expect(pts[1][1]).toBeCloseTo(0.245, 5);
+    // A flat history is a flat line through the middle.
+    expect(ethosLine([650, 650, 650])!.every(([, y]) => y === 0.5)).toBe(true);
+    // A small dip is small.
+    const dip = ethosLine([650, 640, 650])!;
+    expect(Math.max(...dip.map(([, y]) => y)) - Math.min(...dip.map(([, y]) => y))).toBeLessThanOrEqual(0.1);
   });
 
-  it("is the series itself for a window of one, and empty for none", () => {
-    expect(rolling([5, 1, 4], 1)).toEqual([5, 1, 4]);
-    expect(rolling([], 3)).toEqual([]);
+  it("fits a range wider than 100 to the box, end to end", () => {
+    const pts = ethosLine([500, 520, 560, 640, 700])!;
+    expect(Math.min(...pts.map(([, y]) => y))).toBeCloseTo(0, 5);
+    expect(Math.max(...pts.map(([, y]) => y))).toBeCloseTo(1, 5);
+    expect(value(pts, 200, 600, 0)).toBeCloseTo(500, 5);
+    expect(value(pts, 200, 600, 4)).toBeCloseTo(700, 5);
+  });
+
+  it("draws a fall as a fall", () => {
+    const pts = ethosLine([690, 684, 677, 681, 669, 662, 655, 648, 641])!;
+    expect(pts[0][1]).toBeLessThan(pts[pts.length - 1][1]);
+  });
+});
+
+describe("linePath", () => {
+  it("passes through every point and never overshoots between two", () => {
+    const pts: [number, number][] = [[0, 50], [10, 10], [20, 10], [30, 40]];
+    const d = linePath(pts);
+    expect(d.startsWith("M0.0 50.0")).toBe(true);
+    for (const [x, y] of pts.slice(1)) expect(d).toContain(` ${x.toFixed(1)} ${y.toFixed(1)}`);
+    // The flat stretch between 10 and 20 stays at 10: its handles are flat.
+    expect(d).toContain("C13.3 10.0 16.7 10.0 20.0 10.0");
+  });
+
+  it("is a move for one point and nothing for none", () => {
+    expect(linePath([[4, 5]])).toBe("M4.0 5.0");
+    expect(linePath([])).toBe("");
+  });
+});
+
+/* #506, the house's best grammar (#421) on the one row to beat. */
+describe("bestRecording", () => {
+  const at = (d: number, ethos_index: number | null) => ({ created_at: `2026-11-${String(d).padStart(2, "0")}T09:00:00Z`, ethos_index });
+
+  it("is the highest Ethos over every recording, the first to reach it", () => {
+    expect(bestRecording([at(1, 611), at(2, 690), at(3, 662)])?.created_at).toBe(at(2, 0).created_at);
+    expect(bestRecording([at(1, 690), at(2, null), at(3, 690)])?.created_at).toBe(at(1, 0).created_at);
+  });
+
+  it("is none under two scored recordings", () => {
+    expect(bestRecording([at(1, 604)])).toBeNull();
+    expect(bestRecording([at(1, 604), at(2, null)])).toBeNull();
+    expect(bestRecording([])).toBeNull();
+  });
+});
+
+describe("logList", () => {
+  const at = (n: number) => new Date(Date.UTC(2026, 8, 1) + n * 86_400_000).toISOString();
+  /* A hundred recordings, a day apart, oldest first, as the spine reads them. */
+  const spine = Array.from({ length: 100 }, (_, i) => ({ id: `r${i}`, created_at: at(i), lesson_id: "f1", ethos_index: 600 + i }));
+  /* The newest 90 whole reads, each with something the spine does not hold. */
+  const whole = spine.slice(10).map((r) => ({ ...r, round: { game: "qa", level: 2 } }));
+
+  it("lists every recording, past the newest 90 whole reads (#506 review)", () => {
+    const { rows, total, hidden } = logList(spine, whole);
+    expect(total).toBe(100);
+    expect(rows).toHaveLength(100);
+    expect(hidden).toBe(0);
+    expect(rows[0].id).toBe("r99");
+    expect(rows[rows.length - 1].id).toBe("r0");
+    // Every row is a door: one id each, none twice.
+    expect(new Set(rows.map((r) => r.id)).size).toBe(100);
+  });
+
+  it("draws a recording from its whole read where the newest 90 hold it", () => {
+    const { rows } = logList<{ id: string; created_at: string; round?: unknown }>(spine, whole);
+    expect(rows.find((r) => r.id === "r50")?.round).toEqual({ game: "qa", level: 2 });
+    expect(rows.find((r) => r.id === "r5")?.round).toBeUndefined();
+  });
+
+  it("holds back what the cutoff holds back, and counts it", () => {
+    const { rows, hidden, total } = logList(spine, whole, new Date(at(93)).getTime());
+    expect(rows.map((r) => r.id)).toEqual(["r99", "r98", "r97", "r96", "r95", "r94", "r93"]);
+    expect(hidden).toBe(93);
+    expect(total).toBe(100);
+  });
+
+  it("lists the whole reads when no spine has landed", () => {
+    expect(logList([], whole.slice(-3)).rows.map((r) => r.id)).toEqual(["r99", "r98", "r97"]);
+    expect(logList([], []).total).toBe(0);
+  });
+});
+
+describe("dayWords", () => {
+  const now = new Date(2026, 10, 18, 10, 0);
+  it("says Today and Yesterday, then the weekday and the date", () => {
+    expect(dayWords(new Date(2026, 10, 18, 8, 0).toISOString(), now)).toBe("Today");
+    expect(dayWords(new Date(2026, 10, 17, 23, 30).toISOString(), now)).toBe("Yesterday");
+    const older = dayWords(new Date(2026, 10, 15, 18, 0).toISOString(), now);
+    expect(older).toMatch(/Sun/);
+    expect(older).toMatch(/15/);
+    expect(older).not.toMatch(/2026/);
+    expect(older).not.toMatch(/,/);
+    expect(dayWords(new Date(2025, 10, 15, 18, 0).toISOString(), now)).toMatch(/2025/);
   });
 });

@@ -154,13 +154,16 @@ const lit = (page) => page.evaluate(() => document.querySelector('nav a[aria-cur
   // A number key is a tab too.
   await page.evaluate(() => window.scrollTo(0, 300));
   await sleep(250);
+  /* As far as this Log scrolls, if that is short of 300: the Log made
+     simple (#506) is a stage and a list, 283 deep on the fixtures. */
+  const keyed = (await at(page)).y;
   await page.keyboard.press("1");
   await page.waitForURL((u) => new URL(u).pathname === "/");
   await settle(page);
   await page.keyboard.press("4");
   await page.waitForURL((u) => new URL(u).pathname === "/history");
   await sleep(500);
-  ok("a tab opened by its key keeps its place too", Math.abs((await at(page)).y - 300) <= 2, String((await at(page)).y));
+  ok("a tab opened by its key keeps its place too", keyed > 100 && Math.abs((await at(page)).y - keyed) <= 2, `${keyed} then ${(await at(page)).y}`);
   await context.close();
 }
 

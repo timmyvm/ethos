@@ -9,7 +9,7 @@
  *      name starts with the word shown.
  *   3. A change is "Up 3" or "Down 3", never the triangle's own name.
  *   4. A swap says which half is which: "Instead of … say …".
- *   5. A Log row says every number it shows.
+ *   5. A Log row says what it shows: its topic, its day and its number.
  *   6. A badge says whether it is earned.
  *   7. Increase Contrast makes every hairline and caption firmer, in
  *      both themes.
@@ -167,18 +167,21 @@ const heard = (el) => {
   ok("the hero's change is heard as a word", change.some((c) => /^(Up|Down) \+?\d+/.test(c.heard)), JSON.stringify(change.map((c) => c.heard)));
 
   // ---- 5. a Log row says every number it shows --------------------------------
+  /* Since #506 a row shows what was talked about, its day and its Ethos
+     number (the stars and the caps heads went), and its name says all
+     three, the topic first, the words on it in the order they stand. */
   const row = await page.evaluate(() => {
     const a = document.querySelector('main a[href^="/rep/"]');
     if (!a) return null;
+    const title = a.querySelector(".line-clamp-2")?.textContent.trim() ?? "";
     const cells = [...a.querySelectorAll(".tabular-nums")].map((c) => c.textContent.trim());
-    return { label: a.getAttribute("aria-label"), cells };
+    const meta = a.querySelector(".line-clamp-2")?.nextElementSibling?.textContent.trim() ?? "";
+    return { label: a.getAttribute("aria-label"), title, meta, cells };
   });
   const says = (n) => new RegExp(`\\b${n}\\b`).test(row?.label ?? "");
   ok(
-    /* The row shows its Ethos number and stars since #495 (FILL, WPM and
-       HELD went: none read in two seconds), and its name says both. */
-    "a Log row's name carries its Ethos number and stars",
-    !!row && /Ethos \d+, \d of 3 stars$/.test(row.label) && row.cells.length >= 2 && row.cells.slice(1).every(says),
+    "a Log row's name starts with its topic and carries its day and Ethos number",
+    !!row && row.title.length > 0 && row.label.startsWith(`${row.title}, ${row.meta}, `) && /Ethos \d+(, your best)?$/.test(row.label) && row.cells.length >= 1 && row.cells.every(says),
     JSON.stringify(row)
   );
   await context.close();

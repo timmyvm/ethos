@@ -23,8 +23,10 @@ export const OUT_OF = "/1000";
 const SIZE = {
   /** The glance's 72, the results score step only. */
   xl: "text-num-xl",
-  /** The screen's one big number: the Log's stage, a stored recording. */
+  /** The screen's one big number: a stored recording. */
   hero: "text-num-hero",
+  /** The Log's stage (#506): the glance's 72, the hero's 56 on a short or narrow phone (.log-number). */
+  log: "log-number",
 } as const;
 
 export function EthosScore({

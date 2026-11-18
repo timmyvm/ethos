@@ -11,8 +11,10 @@
  *      on the paywall stair's faces, a price's superscript;
  *   2. no column head or tile label prints over its neighbour, or closer
  *      to it than 3px, and no page scrolls sideways;
- *   3. the Log, at five widths: its heads stand apart, a recording's
- *      name takes one line at 390 and two at most below it;
+ *   3. the Log, at five widths (#506): no column heads, every
+ *      recording's title (what was talked about) two lines at most
+ *      with its number and chevron on the row's middle, and a row a
+ *      thumb can hit;
  *   4. a recording's take line at 320 (the three tiles' place since
  *      #458): one line of words, on the column, at the floor or over;
  *   5. no heavy line of letters is tracked past -0.015em (#454): Outfit
@@ -196,46 +198,46 @@ for (const width of [390, 320]) {
   await context.close();
 }
 
-// ---- 3. the Log's two tables, at five widths ---------------------------------------
+// ---- 3. the Log's list, at five widths ------------------------------------------
+/* #506: the two tables (What moved and the recordings' DATE / LESSON /
+   ETHOS) went, and a row is what was talked about over its day, then its
+   number and chevron. Held here: no caps head is left on the Daily side,
+   every title clamps at two lines (a topic of 70 characters at 320 is
+   three), each row is 44px or taller, and its number sits on the row's
+   middle, not its first line. */
 for (const width of [320, 360, 375, 390, 430]) {
   const { context, page } = await open(width);
   await page.goto(`${BASE}/history`);
   await settle(page);
   const log = await page.evaluate(() => {
-    const ink = (el) => {
-      const r = document.createRange();
-      r.selectNodeContents(el);
-      return r.getBoundingClientRect();
-    };
-    const lines = (el) => {
-      const r = document.createRange();
-      r.selectNodeContents(el);
-      return new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size;
-    };
-    const heads = [...document.querySelectorAll("main .label-micro")].filter((h) => getComputedStyle(h).visibility !== "hidden" && h.getBoundingClientRect().width > 0);
-    const gaps = [];
-    for (let i = 1; i < heads.length; i++) {
-      const a = ink(heads[i - 1]);
-      const b = ink(heads[i]);
-      if (Math.abs(a.top - b.top) < 2 && b.left > a.left) gaps.push({ pair: `${heads[i - 1].textContent.trim()}|${heads[i].textContent.trim()}`, gap: Math.round((b.left - a.right) * 10) / 10 });
-    }
-    const sizes = [...new Set(heads.map((h) => parseFloat(getComputedStyle(h).fontSize)))];
-    const names = [...document.querySelectorAll('main a[href^="/rep/"] .line-clamp-2')].map((n) => ({ text: n.textContent.trim(), lines: lines(n) }));
-    return { gaps, sizes, names };
+    const heads = [...document.querySelectorAll("main .label-micro, main .label-data")].filter((h) => h.getBoundingClientRect().width > 0);
+    const rows = [...document.querySelectorAll('main a[href^="/rep/"]')].map((a) => {
+      const title = a.querySelector(".line-clamp-2");
+      const box = a.getBoundingClientRect();
+      const t = title.getBoundingClientRect();
+      const lh = parseFloat(getComputedStyle(title).lineHeight);
+      const num = a.querySelector(".tabular-nums").getBoundingClientRect();
+      return {
+        text: title.textContent.trim().slice(0, 30),
+        lines: Math.round(t.height / lh),
+        clamped: title.scrollHeight > title.clientHeight + 1,
+        height: Math.round(box.height),
+        off: Math.round(Math.abs(num.top + num.height / 2 - (box.top + box.height / 2))),
+      };
+    });
+    return { heads: heads.map((h) => h.textContent.trim()), rows };
   });
-  const tight = log.gaps.filter((g) => g.gap < 4);
-  /* Five pairs at least since #495: What moved's (three under 360, where
-     TREND steps out) and the recordings' DATE, LESSON, ETHOS. */
-  ok(`Log at ${width}: every head is 11px and 4px or more from the next`, log.gaps.length >= 5 && log.sizes.join() === "11" && tight.length === 0, tight.length ? JSON.stringify(tight) : `${log.gaps.length} pairs, closest ${Math.min(...log.gaps.map((g) => g.gap))}px`);
-  /* The longest name the fixture's Log holds. It was the road's
-     "Punctuate with silence" until #493 named a road take Today's
-     practice, so the check reads whichever name is longest now. */
-  const long = [...log.names].sort((a, b) => b.text.length - a.text.length)[0];
-  const most = Math.max(...log.names.map((n) => n.lines));
+  ok(`Log at ${width}: no column heads on the Daily side`, log.heads.length === 0, JSON.stringify(log.heads));
+  const most = Math.max(...log.rows.map((r) => r.lines));
   ok(
-    `Log at ${width}: a recording's name takes ${width >= 390 ? "one line" : "two lines at most"}`,
-    !!long && most <= 2 && (width < 390 || long.lines === 1),
-    `“${long?.text}” ${long?.lines} line${long?.lines === 1 ? "" : "s"}, most ${most}`
+    `Log at ${width}: every recording's title takes two lines at most`,
+    log.rows.length >= 3 && most <= 2,
+    `${log.rows.length} rows, most ${most} lines${log.rows.some((r) => r.clamped) ? `, clamped: ${log.rows.filter((r) => r.clamped).map((r) => r.text).join(" | ")}` : ""}`
+  );
+  ok(
+    `Log at ${width}: every row is 44px or taller, its number on the row's middle`,
+    log.rows.every((r) => r.height >= 44 && r.off <= 2),
+    JSON.stringify(log.rows.filter((r) => r.height < 44 || r.off > 2))
   );
   await context.close();
 }

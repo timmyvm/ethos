@@ -271,16 +271,24 @@ async function readPracticeTakes(): Promise<PracticeTakeRow[]> {
  * Every recording the account holds, a few columns each: what the
  * lifetime numbers are counted from (the streak and the longest run, the
  * freezes earned from it, the day counter, stars, the recording count,
- * Day 1). `fetchReps` reads the newest 90 whole rows, which is right for
- * the tables and wrong for anything that counts from the first day: past
- * 90 recordings the streak capped and Day 1 moved.
+ * Day 1, and the Log's list, #506). `fetchReps` reads the newest 90 whole
+ * rows, which is right for one screen's detail and wrong for anything
+ * that counts from the first day: past 90 recordings the streak capped
+ * and Day 1 moved, and the Log said "Recordings 100" over 90 rows.
  */
 export interface RepSpine {
+  /** The recording's own id: the Log lists every recording from the spine, each a door to /rep/[id] (#506). */
+  id: string;
   created_at: string;
   lesson_id: string | null;
   stars: number;
   ethos_index: number | null;
+  /** A boss take or a daily one, so a row past the newest 90 is named as its whole read would be. */
+  mode: RepRow["mode"];
 }
+
+/** The spine's columns: a few short ones per recording, read for every recording the account holds. */
+export const SPINE_COLUMNS = "id, created_at, lesson_id, stars, ethos_index, mode";
 
 /** PostgREST answers at most this many rows (max_rows), so whole reads page. */
 const PAGE = 1000;
@@ -314,7 +322,7 @@ export function fetchRepSpine(): Promise<RepSpine[]> {
 
 async function readRepSpine(): Promise<RepSpine[]> {
   const mark = heldMark();
-  return hold(SPINE_KEY, await readAll<RepSpine>("reps", "created_at, lesson_id, stars, ethos_index"), mark);
+  return hold(SPINE_KEY, await readAll<RepSpine>("reps", SPINE_COLUMNS), mark);
 }
 
 /** Every recording, whole, for the export: nothing capped, nothing guessed. */

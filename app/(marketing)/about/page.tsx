@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { DemosArt } from "@/components/DemosArt";
 import { MarketingBack, MarketingLink } from "@/components/MarketingBack";
 import { PauseBar } from "@/components/PauseBar";
-import { ScoreCard } from "@/components/ScoreCard";
+import { LogStage } from "@/components/log/LogStage";
 import type { Pause } from "@/lib/metrics";
 import type { PauseVerdict } from "@/lib/pause-quality";
 import { ACTION_CLASS } from "@/lib/ui";
@@ -128,16 +128,12 @@ export default function About() {
         </ol>
       </section>
 
-      {/* "Hard numbers", shown: the card the app draws, with numbers a
-          person three weeks in might have, and said to be a sample. */}
+      {/* "Hard numbers", shown: the stage the Log draws (#506), with
+          numbers a person three weeks in might have, and said to be a
+          sample. */}
       <div className="mt-12">
-        <ScoreCard
-          index={612}
-          delta={48}
-          recordings={21}
-          series={SAMPLE_SERIES}
-          foot="A sample, three weeks in."
-        />
+        <LogStage index={612} first={564} series={SAMPLE_SERIES} recordings={21} />
+        <p className="mt-2 text-caption text-stone-500">A sample, three weeks in.</p>
         <p className="mt-3 text-body font-semibold">
           If we can&apos;t point at a timestamp, we don&apos;t say it.
         </p>

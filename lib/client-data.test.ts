@@ -8,11 +8,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type Row = { id: string; created_at: string };
 let table: Row[] = [];
 let profileError: { message: string } | null = null;
+/** The columns the last read asked for. */
+let selected = "";
 
 function query(rows: Row[]) {
   let out = [...rows];
   const q = {
-    select: () => q,
+    select: (columns: string) => {
+      selected = columns;
+      return q;
+    },
     order: (col: keyof Row, { ascending }: { ascending: boolean }) => {
       out.sort((a, b) => (a[col] < b[col] ? -1 : a[col] > b[col] ? 1 : 0) * (ascending ? 1 : -1));
       return q;
@@ -101,6 +106,16 @@ describe("fetchRepSpine", () => {
   it("reads a short history in one page", async () => {
     table = Array.from({ length: 120 }, (_, i) => ({ id: `r${i}`, created_at: day(i) }));
     expect(await fetchRepSpine()).toHaveLength(120);
+  });
+
+  it("reads each recording's id and kind, so the Log can list and open every one (#506)", async () => {
+    table = [{ id: "r0", created_at: day(0) }];
+    await fetchRepSpine();
+    const columns = selected.split(",").map((c) => c.trim());
+    expect(columns).toEqual(expect.arrayContaining(["id", "created_at", "lesson_id", "stars", "ethos_index", "mode"]));
+    // A few short columns, never the transcript or the whole judged read.
+    expect(columns).not.toContain("transcript");
+    expect(columns).not.toContain("dimensions");
   });
 });
 

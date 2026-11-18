@@ -40,6 +40,7 @@ export function HeroStage({
   artGrow,
   artReserve = 130,
   center = false,
+  chart,
   ...rest
 }: {
   /** Sentence case, the stage's ink. A node, so a trait chip can lead it. */
@@ -102,6 +103,12 @@ export function HeroStage({
    * it arrives.
    */
   center?: boolean;
+  /**
+   * A drawing across the stage's whole width under the words (the Log's
+   * one line, #506), placed by its own class. The words then take the
+   * stage's width: the drawing is under them, not beside them.
+   */
+  chart?: ReactNode;
   "data-trait"?: string;
   "data-look"?: string;
 }) {
@@ -121,6 +128,7 @@ export function HeroStage({
       role={label ? "group" : undefined}
       aria-label={label}
       data-figure={figure || undefined}
+      data-wide={chart ? true : undefined}
       className={`intro-stage tone-sky practice-stage hero-stage elev-2 flex min-h-[160px] flex-col p-5 ${className}`}
       style={style}
     >
@@ -151,6 +159,7 @@ export function HeroStage({
           ))}
       </div>
       {corner && <div className="absolute right-3 top-3 z-[3] flex">{corner}</div>}
+      {chart}
       {art && figure && artGrow ? (
         /* The room is the stage's own box as a size container, so the
            figure can read the stage's height (100cqh). */

@@ -2,13 +2,15 @@ import { STAT_ICON_SRC, type StatKind } from "@/lib/stat-icons";
 
 /**
  * A stat's 3D icon (#487): the flame, the crowned flame, the freeze, the
- * XP bolt, a game's cup. A plain `<img>` at its own size, so it holds its
- * box before it loads (no shift) and is never `next/image`, whose URL
- * varies per device and could not be precached (#274).
+ * XP bolt, a game's cup; and since #503 the two modes' marks, Hostile
+ * Q&A's struck bubble and the weekly boss's mountain. A plain `<img>` at
+ * its own size, so it holds its box before it loads (no shift) and is
+ * never `next/image`, whose URL varies per device and could not be
+ * precached (#274).
  *
- * Decoration in the strict sense: `alt=""`, because the count beside it
- * carries its words (a chip's sr-only label, a column's label, a row's
- * aria-label). `lit={false}` is the unlit streak, the same file greyed
+ * Decoration in the strict sense: `alt=""`, because the count or the
+ * name beside it carries its words (a chip's sr-only label, a column's
+ * label, a row's aria-label, a tile's name). `lit={false}` is the unlit streak, the same file greyed
  * by `.stat-icon[data-lit="false"]` in app/globals.css (per theme, and
  * stronger under Increase Contrast), so lit and unlit are one shape.
  *

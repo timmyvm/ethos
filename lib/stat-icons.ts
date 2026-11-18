@@ -10,12 +10,21 @@
  *  - `freeze`: the snowflake, a streak freeze held or for sale.
  *  - `xp`: the purple bolt, XP.
  *  - `trophy`: the gold cup, a game's best at its level.
+ *  - `hostile`: a coral speech bubble struck by a yellow bolt, Hostile
+ *    Q&A, the claim you argue under fire (#503).
+ *  - `boss`: a sky mountain with a red pennant on its snow cap, the
+ *    weekly boss, the week's big climb (#503).
+ *
+ * The last two mark a mode, not a count: they live here because they are
+ * the same kind of file (a Higgsfield render in the same family, one cut,
+ * one precache, one plain img), and a second component would be this
+ * one again. They are never drawn unlit.
  *
  * Controls and the tab bar stay line icons (components/Icon.tsx), as
  * Duolingo's do: a thing you press is drawn, a thing you earned is an
  * object.
  */
-export const STAT_KINDS = ["streak", "best", "freeze", "xp", "trophy"] as const;
+export const STAT_KINDS = ["streak", "best", "freeze", "xp", "trophy", "hostile", "boss"] as const;
 export type StatKind = (typeof STAT_KINDS)[number];
 
 /** Where each kind's file is served from (public/). */
@@ -25,6 +34,8 @@ export const STAT_ICON_SRC: Record<StatKind, string> = {
   freeze: "/icons/3d/freeze.webp",
   xp: "/icons/3d/xp.webp",
   trophy: "/icons/3d/trophy.webp",
+  hostile: "/icons/3d/hostile.webp",
+  boss: "/icons/3d/boss.webp",
 };
 
 /**

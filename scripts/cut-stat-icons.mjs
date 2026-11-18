@@ -31,6 +31,12 @@
  *      disagrees with;
  *   4. centres it on a SIZE square and writes WebP with alpha.
  *
+ * Since #503 the set holds two modes' marks as well, Hostile Q&A's
+ * coral bubble struck by a bolt and the weekly boss's sky mountain with
+ * its pennant, rendered the same way (job ids in DECISIONS #503). Both
+ * fill more of their squares than the bolt, so the set's cMin, and with
+ * it every earlier file, is unchanged byte for byte.
+ *
  * SIZE is 3x the largest place an icon is drawn: 64pt, the streak
  * moment's flame (#480 swaps its drawn flame for this file at the merge).
  *
@@ -57,9 +63,9 @@ const MARGIN = 0.04;
  * The snowflake came back in a pale blue glow (8% of its frame at 10 to
  * 40), which drew a light ring on #121212, so its floor is higher.
  */
-const NOISE = { streak: 10, freeze: 48, xp: 10, best: 10, trophy: 10 };
+const NOISE = { streak: 10, freeze: 48, xp: 10, best: 10, trophy: 10, hostile: 10, boss: 10 };
 /** The eye's last word, per icon: a multiplier on the computed scale. */
-const OPTICAL = { streak: 1, freeze: 1, xp: 1, best: 1, trophy: 0.94 };
+const OPTICAL = { streak: 1, freeze: 1, xp: 1, best: 1, trophy: 0.94, hostile: 1, boss: 1 };
 const NAMES = Object.keys(OPTICAL);
 
 mkdirSync(OUT, { recursive: true });

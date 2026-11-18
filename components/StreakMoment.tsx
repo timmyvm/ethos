@@ -174,7 +174,7 @@ export function StreakMoment({
           200pt of bare ground stood over the flame and again over
           Continue). Four bands share the rest, each at most 64 with the
           shelf's own 16 under the last (`.streak-gap`), and whatever is
-          left goes to the flame, up to 340pt. The count grows with the
+          left goes to the flame, up to 380pt. The count grows with the
           screen too (`.streak-count`). */}
       <div data-arrive="" className="streak-stage flex flex-1 flex-col items-center text-center">
         <span aria-hidden className="streak-gap" data-gap="top" />
@@ -185,11 +185,11 @@ export function StreakMoment({
           <div className="streak-flame">
             {!calm && (
               <span data-flame="unlit">
-                <StatIcon kind="streak" lit={false} size={340} large />
+                <StatIcon kind="streak" lit={false} size={380} large />
               </span>
             )}
             <span data-flame="lit">
-              <StatIcon kind="streak" size={340} large />
+              <StatIcon kind="streak" size={380} large />
             </span>
           </div>
         </div>

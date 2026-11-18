@@ -37,7 +37,7 @@ export const STAT_ICON_MAX_BYTES = 14_000;
 
 /**
  * The one icon drawn large, the streak moment's flame (#480), which
- * takes the screen's free height up to 340pt since #496: its own cut at
+ * takes the screen's free height up to 380pt since #496: its own cut at
  * the render's own resolution (scripts/cut-stat-icons.mjs `LARGE`), so a
  * 3x phone never stretches the 192px file five times over.
  */

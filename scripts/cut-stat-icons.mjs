@@ -96,8 +96,8 @@ async function measure(name) {
 
 /**
  * The one icon drawn large: the streak moment's flame (#480), which
- * takes the screen's free height since #496, up to 340pt. 192px held it
- * at 160pt; at 340pt on a 3x phone it would be stretched five times, so
+ * takes the screen's free height since #496, up to 380pt. 192px held it
+ * at 160pt; at 380pt on a 3x phone it would be stretched six times, so
  * it has its own cut, at the source's own resolution (the flame fills
  * about 840px of the 1024px render: nothing finer exists to give).
  */

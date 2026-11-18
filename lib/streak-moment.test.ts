@@ -266,7 +266,7 @@ describe("the moment's room", () => {
     expect(px(slot, "min-height")).toBe(112);
     expect(slot).toMatch(/max-height: min\(380px, calc\(100vw - 16px\)\)/);
     expect(rule(".streak-flame")).toMatch(/aspect-ratio: 1 \/ 1/);
-    expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{340\} large \/>/g)?.length).toBe(2);
+    expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{380\} large \/>/g)?.length).toBe(2);
   });
 
   it("grows the count with the screen, from num-xl's 72 to 160", () => {

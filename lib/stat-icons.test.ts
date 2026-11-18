@@ -69,7 +69,7 @@ describe("the stat icon files (#487)", () => {
 
 /*
  * The streak moment's flame takes the screen's free height since #496,
- * up to 340pt: its own cut at the render's resolution, so a 3x phone
+ * up to 380pt: its own cut at the render's resolution, so a 3x phone
  * draws it from 840px rather than stretching 192px five times.
  */
 describe("the large flame (#496)", () => {
@@ -79,7 +79,11 @@ describe("the large flame (#496)", () => {
     expect(existsSync(file)).toBe(true);
     expect(statSync(file).size).toBeLessThanOrEqual(STAT_ICON_LARGE_MAX_BYTES);
     expect(webpSize(file)).toEqual({ w: STAT_ICON_LARGE_PX, h: STAT_ICON_LARGE_PX, hasAlpha: true });
-    expect(STAT_ICON_LARGE_PX).toBeGreaterThanOrEqual(2.4 * 340);
+    // Twice the slot's largest (380, app/globals.css .streak-flame-slot): sharp
+    // on a 2x phone at its biggest, and the render's own ceiling on a 3x one.
+    const slot = read("app/globals.css").match(/\.streak-flame-slot \{[^}]*max-height: min\((\d+)px/)?.[1];
+    expect(Number(slot)).toBe(380);
+    expect(STAT_ICON_LARGE_PX).toBeGreaterThanOrEqual(2 * Number(slot));
   });
 
   it("is cut by the same script, beside the small one", () => {
@@ -94,8 +98,8 @@ describe("the large flame (#496)", () => {
 
   it("is what StatIcon draws when asked for large, and the small file otherwise", () => {
     const html = (props: Parameters<typeof StatIcon>[0]) => renderToStaticMarkup(createElement(StatIcon, props));
-    expect(html({ kind: "streak", size: 340, large: true })).toContain('src="/icons/3d/streak-large.webp"');
-    expect(html({ kind: "streak", size: 340, large: true, lit: false })).toContain('data-lit="false"');
+    expect(html({ kind: "streak", size: 380, large: true })).toContain('src="/icons/3d/streak-large.webp"');
+    expect(html({ kind: "streak", size: 380, large: true, lit: false })).toContain('data-lit="false"');
     expect(html({ kind: "streak", size: 20 })).toContain('src="/icons/3d/streak.webp"');
     // A kind with no large cut keeps its own file.
     expect(html({ kind: "xp", size: 64, large: true })).toContain('src="/icons/3d/xp.webp"');

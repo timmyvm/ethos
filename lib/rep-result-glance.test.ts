@@ -286,9 +286,9 @@ describe("the sheet's body, in order", () => {
     expect(coached).not.toContain("data-no-index");
   });
 
-  it("a capped take says the read is back tomorrow and that it still counted", () => {
+  it("a capped take says its Ethos score and the read are back tomorrow, and that it still counted (#514)", () => {
     const html = renderToStaticMarkup(createElement(RepResult, { result, section: "detail", sheet: { sections: ["capped"] } }));
-    expect(visible(html)).toBe("Demos's full read is back tomorrow. It still counted toward your streak.");
+    expect(visible(html)).toBe("Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak.");
   });
 });
 

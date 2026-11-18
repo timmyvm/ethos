@@ -4,6 +4,7 @@ import {
   CAPPED_DOOR,
   CAPPED_LINE,
   CAPPED_REASON,
+  CAPPED_SHEET,
   FREE_ALLOWANCE,
   PRO_MOMENT_LINE,
   SCORED_BENEFIT,
@@ -21,13 +22,16 @@ describe("the free allowance in words (#514)", () => {
     expect(DAILY_GRANT).toBe(3);
     expect(FREE_ALLOWANCE).toBe("(free: 3 a day)");
     expect(CAPPED_REASON).toBe("3 scored recordings a day free");
-    expect(PRO_MOMENT_LINE).toBe("Free shows the last 7 days and scores 3 recordings a day. Premium opens all of it.");
+    expect(PRO_MOMENT_LINE.replace(/\u00a0/g, " ")).toBe("Free shows the last 7 days and scores 3 recordings a day. Premium opens all of it.");
+    // "a day" never breaks at "a" (the 390 shot ended a line on it).
+    expect(PRO_MOMENT_LINE).toContain("a\u00a0day.");
     expect(`${SCORED_BENEFIT} ${FREE_ALLOWANCE}`).toBe("Every recording scored (free: 3 a day)");
   });
 
   it("says the score is back tomorrow, which the meter keeps: any new day tops a spent day back up to 3", () => {
     expect(CAPPED_LINE).toBe("Ethos score back tomorrow");
     expect(CAPPED_DOOR).toBe("Ethos score back tomorrow, or go Premium");
+    expect(CAPPED_SHEET).toBe("Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak.");
     const spent: MeterState = { balance: 0, accruedOn: "2026-11-19", usedAt: "2026-11-19T10:00:00.000Z" };
     expect(meter({ state: spent, now: new Date(2026, 10, 19, 23, 30), premium: false }).allowed).toBe(false);
     expect(meterStatus({ state: spent, now: new Date(2026, 10, 20, 0, 5), premium: false }).available).toBe(DAILY_GRANT);
@@ -44,7 +48,7 @@ describe("the free allowance in words (#514)", () => {
   });
 
   it("follows the copy rules: no dash, no rep, no full stop on a door", () => {
-    for (const s of [FREE_ALLOWANCE, SCORED_BENEFIT, CAPPED_REASON, CAPPED_LINE, CAPPED_DOOR, PRO_MOMENT_LINE]) {
+    for (const s of [FREE_ALLOWANCE, SCORED_BENEFIT, CAPPED_REASON, CAPPED_LINE, CAPPED_DOOR, CAPPED_SHEET, PRO_MOMENT_LINE]) {
       expect(s).not.toMatch(/[—–]/);
       expect(s).not.toMatch(/\breps?\b/i);
       expect(s).not.toMatch(/\b(judged|analys[ie]s)\b/i);

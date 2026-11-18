@@ -7,6 +7,7 @@ import { AccuracyCard } from "@/components/AccuracyCard";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
+import { CAPPED_SHEET } from "@/lib/allowance-copy";
 import { DURATION } from "@/lib/motion";
 import { glanceCues, PAYOUT_LEAD_MS, type GlanceWin } from "@/lib/sound-recipes";
 import { useSoundCues } from "@/lib/use-sound-cues";
@@ -559,9 +560,7 @@ export function RepResult({
           /* A measured fact, both halves (the review: the streak line was
              gone everywhere on a capped take). */
           return (
-            <p className="text-body text-stone-500">
-              Demos&apos;s full read is back tomorrow. It still counted toward your streak.
-            </p>
+            <p className="text-body text-stone-500">{CAPPED_SHEET}</p>
           );
         case "dimensions":
           return (

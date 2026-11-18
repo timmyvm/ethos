@@ -28,5 +28,14 @@ export const CAPPED_LINE = "Ethos score back tomorrow";
 /** The same, as the plum door from day 3 on: when, and the way to have it now. */
 export const CAPPED_DOOR = "Ethos score back tomorrow, or go Premium";
 
-/** Since day one's line over Keep every number. */
-export const PRO_MOMENT_LINE = `Free shows the last 7 days and scores ${DAILY_GRANT} recordings a day. Premium opens all of it.`;
+/**
+ * The capped take's own section in Every number: what is back tomorrow,
+ * and that the take still counted.
+ */
+export const CAPPED_SHEET = "Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak.";
+
+/**
+ * Since day one's line over Keep every number. "a day" is held together
+ * (a no-break space), so a 390 phone never ends a line on "a".
+ */
+export const PRO_MOMENT_LINE = `Free shows the last 7 days and scores ${DAILY_GRANT} recordings a\u00a0day. Premium opens all of it.`;

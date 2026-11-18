@@ -79,7 +79,7 @@ const SHELL = [
   /* The stat icons (#487): Today's streak chip is on the first screen
      a returning phone opens, so the flame is shell, and its four
      siblings with it (a few KB each). Hostile Q&A's and the weekly
-     boss's marks (#503) stand on Today's two tiles, so they are too. */
+     boss's marks (#503) lead Today's two games' rows, so they are too. */
   "/icons/3d/streak.webp",
   "/icons/3d/best.webp",
   "/icons/3d/freeze.webp",

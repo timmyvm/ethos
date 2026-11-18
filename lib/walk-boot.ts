@@ -37,6 +37,7 @@
  */
 
 import { WELCOMED_KEY } from "./onboarding";
+import { SPLASH_FLOOR_MS } from "./splash-timing";
 
 /** The walk's own key (lib/answers.ts `KEY`). */
 export const ONBOARDING_KEY = "ethos.onboarding";
@@ -49,5 +50,38 @@ export const firstRunBootScript = `
   if (keys.indexOf(${JSON.stringify(WELCOMED_KEY)}) >= 0) return;
   for (var j = 0; j < keys.length; j++) if (/^sb-.+-auth-token$/.test(keys[j] || '')) return;
   location.replace('/welcome' + (/[?&]splash\\b/.test(location.search) ? '?splash' : ''));
+}catch(e){}})();
+`;
+
+export const walkBootScript = `
+(function(){try{
+  if (location.pathname !== '/welcome') return;
+  var root = document.documentElement;
+  var due = !/[?&]step=/.test(location.search);
+  if (due) {
+    var raw = localStorage.getItem(${JSON.stringify(ONBOARDING_KEY)});
+    if (raw) {
+      var w = JSON.parse(raw);
+      due = !!w && typeof w === 'object' && w.done !== true && (w.step === undefined || w.step === 0);
+    }
+  }
+  root.setAttribute('data-walk', due ? 'room' : 'resume');
+  if (!due) return;
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i) || '';
+    if (!/^sb-.+-auth-token$/.test(k)) continue;
+    try {
+      var s = JSON.parse(localStorage.getItem(k) || 'null');
+      if (s && typeof s.access_token === 'string' && s.user && s.user.is_anonymous !== true) root.setAttribute('data-room-account', '');
+    } catch (e) {}
+  }
+  if (root.getAttribute('data-splash') !== 'on') return;
+  var floor = new Promise(function (r) { setTimeout(r, Math.max(0, ${SPLASH_FLOOR_MS} - performance.now())); });
+  var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+  Promise.all([floor, fonts]).then(function () {
+    if (root.getAttribute('data-splash') !== 'on') return;
+    root.setAttribute('data-splash', 'out');
+    setTimeout(function () { root.removeAttribute('data-splash'); }, 360);
+  });
 }catch(e){}})();
 `;

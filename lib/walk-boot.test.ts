@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
-import { firstRunBootScript, ONBOARDING_KEY } from "./walk-boot";
-import { isFirstRun, WELCOMED_KEY } from "./onboarding";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { firstRunBootScript, walkBootScript, ONBOARDING_KEY } from "./walk-boot";
+import { readOnboarding } from "./answers";
+import { isFirstRun, roomDue, WELCOMED_KEY } from "./onboarding";
 
 /*
  * The first minute before any JavaScript (#508): the home-screen icon
@@ -90,13 +91,122 @@ describe("the home-screen icon on a first run (fix 14)", () => {
   });
 });
 
+describe("the room's door before React (fix 13)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("is shown to a first run", () => {
+    const p = page("/welcome");
+    p.run(walkBootScript);
+    expect(p.attrs.get("data-walk")).toBe("room");
+  });
+
+  it("is hidden from a deep link, a walk part way through and a finished one", () => {
+    for (const p of [
+      page("/welcome", "?step=plan"),
+      page("/welcome", "?step=ageBand"),
+      page("/welcome", "", { [ONBOARDING_KEY]: JSON.stringify({ step: 2, done: false }) }),
+      page("/welcome", "", { [ONBOARDING_KEY]: JSON.stringify({ step: 0, done: true }) }),
+    ]) {
+      p.run(walkBootScript);
+      expect(p.attrs.get("data-walk")).toBe("resume");
+    }
+  });
+
+  it("never shows the door to a walk the room is not for (no flash, #497)", () => {
+    const walks: unknown[] = [
+      null,
+      {},
+      { step: 0 },
+      { step: 0, done: false, walk: 3 },
+      { step: 0, done: false, walk: 2 },
+      { step: 1, walk: 2 },
+      { step: 2, walk: 1 },
+      { step: 3 },
+      { step: 0, done: true },
+      { step: -1 },
+      { step: "0" },
+      { step: 1.5 },
+      { done: "yes" },
+      [],
+      "x",
+      7,
+    ];
+    for (const w of walks) {
+      for (const search of ["", "?step=plan"]) {
+        const store = w === null ? {} : { [ONBOARDING_KEY]: JSON.stringify(w) };
+        const p = page("/welcome", search, store);
+        p.run(walkBootScript);
+        if (p.attrs.get("data-walk") !== "room") continue;
+        // Shown: the walk itself must open on the room.
+        vi.stubGlobal("localStorage", { getItem: (k: string) => (store as Record<string, string>)[k] ?? null });
+        try {
+          const saved = readOnboarding();
+          expect(roomDue({ asked: search ? "plan" : null, done: saved.done, step: saved.step }), JSON.stringify(w)).toBe(true);
+        } finally {
+          vi.unstubAllGlobals();
+        }
+      }
+    }
+  });
+
+  it("hides Sign in and Tester code from an account's door, never a guest's", () => {
+    const a = page("/welcome", "", { [SESSION]: account });
+    a.run(walkBootScript);
+    expect(a.attrs.has("data-room-account")).toBe(true);
+    const g = page("/welcome", "", { [SESSION]: guest });
+    g.run(walkBootScript);
+    expect(g.attrs.has("data-room-account")).toBe(false);
+  });
+
+  it("lifts the splash off a door it drew, the way SplashLift does", async () => {
+    vi.useFakeTimers();
+    const p = page("/welcome", "", {}, "on");
+    p.run(walkBootScript);
+    await vi.advanceTimersByTimeAsync(599);
+    expect(p.attrs.get("data-splash")).toBe("on");
+    await vi.advanceTimersByTimeAsync(2);
+    expect(p.attrs.get("data-splash")).toBe("out");
+    await vi.advanceTimersByTimeAsync(360);
+    expect(p.attrs.has("data-splash")).toBe(false);
+  });
+
+  it("leaves the splash to React on a walk that resumes", async () => {
+    vi.useFakeTimers();
+    const p = page("/welcome", "?step=plan", {}, "on");
+    p.run(walkBootScript);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(p.attrs.get("data-splash")).toBe("on");
+  });
+
+  it("does nothing off /welcome", () => {
+    const p = page("/");
+    p.run(walkBootScript);
+    expect(p.attrs.size).toBe(0);
+  });
+});
+
 describe("the page", () => {
+  const css = readFileSync(path.join(root, "app/globals.css"), "utf8");
+  const walk = readFileSync(path.join(root, "app/welcome/page.tsx"), "utf8");
   const layout = readFileSync(path.join(root, "app/layout.tsx"), "utf8");
 
-  it("runs the first-run script before the splash's", () => {
+  it("draws the door in the server's frame, with no search-param hook to keep it out", () => {
+    expect(walk).toMatch(/if \(!ready\) return <Room signedIn=\{false\} onDone=\{notYet\} onSkip=\{notYet\} \/>;/);
+    expect(walk).not.toMatch(/useSearchParams\(/);
+    expect(walk).toMatch(/useLayoutEffect\(\(\) => \{\s*const asked = new URLSearchParams\(window\.location\.search\)\.get\("step"\);/);
+  });
+
+  it("hides the door from a resuming walk and an account's links from its door", () => {
+    expect(css).toMatch(/:root\[data-walk="resume"\] main\.room \{\s*visibility: hidden;/);
+    expect(css).toMatch(/:root\[data-room-account\] \.room-door-layer \.room-top > \.room-link \{\s*display: none;/);
+  });
+
+  it("runs the first-run script before the splash's and the walk's after it", () => {
     const a = layout.indexOf("__html: firstRunBootScript");
     const b = layout.indexOf("__html: splashBootScript");
+    const c = layout.indexOf("__html: walkBootScript");
     expect(a).toBeGreaterThan(0);
     expect(a).toBeLessThan(b);
+    expect(b).toBeLessThan(c);
   });
 });

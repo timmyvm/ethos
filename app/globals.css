@@ -7665,6 +7665,16 @@ html[data-test-tile] .test-tile-slot {
   -webkit-user-select: none;
   user-select: none;
 }
+/* The door is drawn by the server (#508). A walk the head script found
+   resuming elsewhere (lib/walk-boot.ts) never sees it, not for a frame
+   (#497): the ground stays plain until the walk draws its screen. And an
+   account's door never shows Sign in or Tester code, before React as after. */
+:root[data-walk="resume"] main.room {
+  visibility: hidden;
+}
+:root[data-room-account] .room-door-layer .room-top > .room-link {
+  display: none;
+}
 .room button {
   -webkit-tap-highlight-color: transparent;
 }

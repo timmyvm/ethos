@@ -17,7 +17,7 @@ import { googleTakenBootScript } from "@/lib/google-taken";
 import { GoogleTakenSwitch } from "@/components/GoogleTakenSwitch";
 import { Splash, splashBootScript } from "@/components/Splash";
 import { testerBootScript } from "@/lib/tester-boot";
-import { firstRunBootScript } from "@/lib/walk-boot";
+import { firstRunBootScript, walkBootScript } from "@/lib/walk-boot";
 import { SplashLift } from "@/components/SplashLift";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -119,7 +119,9 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: firstRunBootScript }} />
         {/* Also before paint: whether this open gets the splash. */}
         <script dangerouslySetInnerHTML={{ __html: splashBootScript }} />
-
+        {/* And on /welcome, whether the server's door is this walk's
+            first frame or stays hidden for one that resumes (#508). */}
+        <script dangerouslySetInnerHTML={{ __html: walkBootScript }} />
         {/* And whether Today holds the test tile's place from its first
             paint: a tester's device, during the test (#402). */}
         <script dangerouslySetInnerHTML={{ __html: testerBootScript }} />

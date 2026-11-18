@@ -191,7 +191,8 @@ describe("the tester door", () => {
     expect(settings).toMatch(/\{door && <LinkRow href="\/tester\?from=settings"/);
     expect(settings).not.toMatch(/DOOR_COPY\.settingsCode/);
     const room = readFileSync("components/room/Room.tsx", "utf8");
-    expect(room).toMatch(/const \[testerDoor\] = useState\(\(\) => !testOver\(\)\)/);
+    // Read from the phone's clock, after the server's frame (#508: the door is hydrated).
+    expect(room).toMatch(/const testerDoor = useSyncExternalStore\(unchanging, \(\) => !testOver\(\), \(\) => false\);/);
     expect(room).toMatch(/\{testerDoor && \(\s*<Link href="\/tester\?from=welcome"/);
   });
 });

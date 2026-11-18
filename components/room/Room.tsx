@@ -493,6 +493,9 @@ function HoldToStep({ label, onComplete }: { label: string; onComplete: (keys: b
 /* The room.                                                           */
 /* ------------------------------------------------------------------ */
 
+/** A store that never changes: read once per render, from the phone after hydration. */
+const unchanging = () => () => {};
+
 export function Room({
   script = INTERVIEW,
   signedIn = false,
@@ -508,16 +511,21 @@ export function Room({
   onSkip: () => void;
 }) {
   const host = useRef<HTMLElement>(null);
-  const [reduced] = useState(
-    () => typeof document !== "undefined" && document.documentElement.dataset.motion === "reduce"
+  /* Read from the phone, never in the server's frame: the door is drawn
+     by the server and hydrated (#508), so both start from the server's
+     answer and the phone's follows in the next render. */
+  const reduced = useSyncExternalStore(
+    unchanging,
+    () => document.documentElement.dataset.motion === "reduce",
+    () => false
   );
   const [store] = useState(createTiltStore);
   const recentre = useRoomTilt(store, host, reduced);
   /* The tester's door, for as long as the test can be joined: a code
-     for a test that is over opens on nothing (#496). The room is drawn
-     only on the phone (app/welcome decides it in an effect), so the
-     phone's clock is the one read. */
-  const [testerDoor] = useState(() => !testOver());
+     for a test that is over opens on nothing (#496). The phone's clock is
+     the one read; the server's frame draws none, and a live test's door
+     joins it in the render after hydration (#508). */
+  const testerDoor = useSyncExternalStore(unchanging, () => !testOver(), () => false);
 
   const [stage, setStage] = useState<Stage>("door");
   const [doorFading, setDoorFading] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import { playTalk } from "@/lib/intro-sound";
 import { planTalk, type TalkPlan } from "@/lib/talk";
 
@@ -32,9 +32,15 @@ export function motionReduced(): boolean {
  * component that holds it a `key` per thing said, and a new thing said
  * starts from its first word.
  */
+/** Never changes: the motion setting is read from the page, the server's frame reading none. */
+const unchanging = () => () => {};
+
 export function useTalk(lines: readonly string[], lead: number, sound = true, instant = false) {
   const key = lines.join("\n");
-  const [reduced] = useState(motionReduced);
+  /* The room's door is drawn by the server and hydrated (#508): its line
+     starts from the server's answer (not reduced) and takes the phone's in
+     the render after, so the two never disagree. */
+  const reduced = useSyncExternalStore(unchanging, motionReduced, () => false);
   /* Read once, as the line mounts: a typed line that settles keeps what
      it showed and never replays its words or their blips (#501 review). */
   const [whole] = useState(instant);

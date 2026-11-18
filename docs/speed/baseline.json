@@ -2,8 +2,8 @@
  "meta": {
   "label": "baseline",
   "base": "http://localhost:3951",
-  "when": "2026-11-18T01:57:38.349Z",
-  "commit": "e54d764",
+  "when": "2026-11-18T02:18:50.975Z",
+  "commit": "4847662",
   "profile": {
    "name": "phone",
    "cpu": 4,
@@ -18,7 +18,11 @@
   "runs": 3,
   "chromium": "153.0.8010.12",
   "viewport": "390x844 @3x",
-  "notes": "Times in ms from navigation start (tabs: from the tap). ready = first frame with the screen's own data drawn. Bytes are on the wire (gzip as next start sends it). Cold = empty cache, no service worker; warm = same screen opened again, worker installed."
+  "notes": "Times in ms from navigation start (tabs: from the tap). ready = first frame with the screen's own data drawn. Bytes are on the wire (gzip as next start sends it). Cold = empty cache, no service worker; warm = same screen opened again, worker installed.",
+  "merged": [
+   "2026-11-18T01:57:38.349Z",
+   "2026-11-18T02:18:50.975Z"
+  ]
  },
  "bundle": {
   "layout": {
@@ -29108,138 +29112,168 @@
  "doors": {
   "median": [
    {
+    "door": "Today > Start",
+    "href": "/rep?topic=t337&item=pause-1-151&trait=pause&ready=1",
+    "tapToReady": 540
+   },
+   {
     "door": "Today > trait",
     "href": "/practice/pause",
-    "tapToReady": 449
+    "tapToReady": 470
    },
    {
     "door": "Lessons > lesson",
     "href": "/lessons/the-landing",
-    "tapToReady": 420
+    "tapToReady": 461
    },
    {
     "door": "Log > recording",
     "href": "/rep/rep-22",
-    "tapToReady": 942
+    "tapToReady": 1096
    }
   ],
   "runs": [
    [
     {
+     "door": "Today > Start",
+     "href": "/rep?topic=t337&item=pause-1-151&trait=pause&ready=1",
+     "tapToReady": 386,
+     "beforeReady": [
+      "rsc GET /rep?topic=t337&item=pause-1-151&trait=pause&ready=1&_rsc=ZmCQ44b92m4mXe_R 122-279ms 5264B"
+     ]
+    },
+    {
      "door": "Today > trait",
      "href": "/practice/pause",
-     "tapToReady": 449,
+     "tapToReady": 472,
      "beforeReady": [
-      "rsc GET /practice/pause?_rsc=KH1xymbRKK43me6O 54-214ms 1635B",
-      "js GET /_next/static/chunks/4945-294537e969704e0b.js 227-382ms 3699B",
-      "js GET /_next/static/chunks/app/practice/%5Btrait%5D/page-f426fe4e5b50bddc.js 227-382ms 9616B"
+      "rsc GET /practice/pause?_rsc=KH1xymbRKK43me6O 33-193ms 1637B",
+      "js GET /_next/static/chunks/4945-294537e969704e0b.js 212-367ms 3699B",
+      "js GET /_next/static/chunks/app/practice/%5Btrait%5D/page-f426fe4e5b50bddc.js 213-367ms 9616B"
      ]
     },
     {
      "door": "Lessons > lesson",
      "href": "/lessons/the-landing",
+     "tapToReady": 456,
+     "beforeReady": [
+      "rsc GET /lessons/the-landing?_rsc=Jiz4hzgTdOfWeeEB 24-182ms 1635B",
+      "js GET /_next/static/chunks/8410-871526ae4e348260.js 197-353ms 5874B",
+      "js GET /_next/static/chunks/app/lessons/%5Bid%5D/page-e133d3577e57b495.js 198-353ms 4742B"
+     ]
+    },
+    {
+     "door": "Log > recording",
+     "href": "/rep/rep-22",
+     "tapToReady": 1005,
+     "beforeReady": [
+      "rsc GET /rep/rep-22?_rsc=1sGiS0BEWxZ8A4Qf 18-176ms 1763B",
+      "js GET /_next/static/chunks/app/rep/%5Bid%5D/page-68de5148bbf4874a.js 192-346ms 12834B",
+      "preflight OPTIONS http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 481-674ms 0B",
+      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 485-675ms 0B",
+      "preflight OPTIONS http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 486-677ms 0B",
+      "data GET http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 676-870ms 2198B",
+      "data GET http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 678-870ms 97B",
+      "data GET http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 678-870ms 2B",
+      "js GET /sw.js 765-916ms 0B",
+      "img GET /demos-512/demos-onboard-speaking.webp 941-1159ms 39066B"
+     ]
+    }
+   ],
+   [
+    {
+     "door": "Today > Start",
+     "href": "/rep?topic=t337&item=pause-1-151&trait=pause&ready=1",
+     "tapToReady": 594,
+     "beforeReady": [
+      "rsc GET /rep?topic=t337&item=pause-1-151&trait=pause&ready=1&_rsc=ZmCQ44b92m4mXe_R 89-245ms 5264B",
+      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 564-756ms 0B"
+     ]
+    },
+    {
+     "door": "Today > trait",
+     "href": "/practice/pause",
      "tapToReady": 450,
      "beforeReady": [
-      "rsc GET /lessons/the-landing?_rsc=Jiz4hzgTdOfWeeEB 19-177ms 1636B",
-      "js GET /_next/static/chunks/8410-871526ae4e348260.js 185-338ms 5874B",
-      "js GET /_next/static/chunks/app/lessons/%5Bid%5D/page-e133d3577e57b495.js 185-338ms 4742B",
-      "js GET /sw.js 299-452ms 0B"
-     ]
-    },
-    {
-     "door": "Log > recording",
-     "href": "/rep/rep-22",
-     "tapToReady": 930,
-     "beforeReady": [
-      "rsc GET /rep/rep-22?_rsc=1sGiS0BEWxZ8A4Qf 18-174ms 1763B",
-      "js GET /_next/static/chunks/app/rep/%5Bid%5D/page-68de5148bbf4874a.js 186-341ms 12834B",
-      "preflight OPTIONS http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 435-627ms 0B",
-      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 436-627ms 0B",
-      "preflight OPTIONS http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 437-627ms 0B",
-      "js GET /sw.js 603-756ms 0B",
-      "data GET http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 630-828ms 2198B",
-      "data GET http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 632-828ms 2B",
-      "data GET http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 632-828ms 97B",
-      "img GET /demos-512/demos-onboard-speaking.webp 890-1110ms 39066B"
-     ]
-    }
-   ],
-   [
-    {
-     "door": "Today > trait",
-     "href": "/practice/pause",
-     "tapToReady": 422,
-     "beforeReady": [
-      "rsc GET /practice/pause?_rsc=KH1xymbRKK43me6O 26-187ms 1634B",
-      "js GET /_next/static/chunks/4945-294537e969704e0b.js 198-356ms 3699B",
-      "js GET /_next/static/chunks/app/practice/%5Btrait%5D/page-f426fe4e5b50bddc.js 198-359ms 9616B"
+      "rsc GET /practice/pause?_rsc=KH1xymbRKK43me6O 23-220ms 1634B",
+      "js GET /_next/static/chunks/4945-294537e969704e0b.js 233-395ms 3699B",
+      "js GET /_next/static/chunks/app/practice/%5Btrait%5D/page-f426fe4e5b50bddc.js 234-403ms 9616B"
      ]
     },
     {
      "door": "Lessons > lesson",
      "href": "/lessons/the-landing",
-     "tapToReady": 420,
+     "tapToReady": 601,
      "beforeReady": [
-      "rsc GET /lessons/the-landing?_rsc=Jiz4hzgTdOfWeeEB 22-179ms 1638B",
-      "js GET /_next/static/chunks/8410-871526ae4e348260.js 202-360ms 5874B",
-      "js GET /_next/static/chunks/app/lessons/%5Bid%5D/page-e133d3577e57b495.js 202-360ms 4742B",
-      "js GET /sw.js 311-466ms 0B"
+      "rsc GET /lessons/the-landing?_rsc=Jiz4hzgTdOfWeeEB 23-180ms 1637B",
+      "js GET /_next/static/chunks/8410-871526ae4e348260.js 197-351ms 5874B",
+      "js GET /_next/static/chunks/app/lessons/%5Bid%5D/page-e133d3577e57b495.js 202-355ms 4742B",
+      "js GET /sw.js 517-753ms 0B"
      ]
     },
     {
      "door": "Log > recording",
      "href": "/rep/rep-22",
-     "tapToReady": 942,
+     "tapToReady": 1096,
      "beforeReady": [
-      "rsc GET /rep/rep-22?_rsc=1sGiS0BEWxZ8A4Qf 19-178ms 1766B",
-      "js GET /_next/static/chunks/app/rep/%5Bid%5D/page-68de5148bbf4874a.js 188-348ms 12834B",
-      "preflight OPTIONS http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 406-597ms 0B",
-      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 407-597ms 0B",
-      "preflight OPTIONS http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 410-600ms 0B",
-      "data GET http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 604-813ms 2198B",
-      "data GET http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 606-813ms 2B",
-      "data GET http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 607-813ms 97B",
-      "img GET /demos-512/demos-onboard-speaking.webp 885-1101ms 39066B"
+      "rsc GET /rep/rep-22?_rsc=1sGiS0BEWxZ8A4Qf 22-178ms 1766B",
+      "js GET /_next/static/chunks/app/rep/%5Bid%5D/page-68de5148bbf4874a.js 198-351ms 12834B",
+      "preflight OPTIONS http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 429-620ms 0B",
+      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 429-620ms 0B",
+      "preflight OPTIONS http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 430-621ms 0B",
+      "js GET /sw.js 532-688ms 0B",
+      "data GET http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 626-818ms 2198B",
+      "data GET http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 626-819ms 97B",
+      "data GET http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 626-819ms 2B",
+      "img GET /demos-512/demos-onboard-speaking.webp 1083-1311ms 39066B"
      ]
     }
    ],
    [
     {
+     "door": "Today > Start",
+     "href": "/rep?topic=t337&item=pause-1-151&trait=pause&ready=1",
+     "tapToReady": 540,
+     "beforeReady": [
+      "rsc GET /rep?topic=t337&item=pause-1-151&trait=pause&ready=1&_rsc=ZmCQ44b92m4mXe_R 119-274ms 5264B",
+      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 534-725ms 0B"
+     ]
+    },
+    {
      "door": "Today > trait",
      "href": "/practice/pause",
-     "tapToReady": 485,
+     "tapToReady": 470,
      "beforeReady": [
-      "rsc GET /practice/pause?_rsc=KH1xymbRKK43me6O 89-248ms 1636B",
-      "js GET /_next/static/chunks/4945-294537e969704e0b.js 263-417ms 3699B",
-      "js GET /_next/static/chunks/app/practice/%5Btrait%5D/page-f426fe4e5b50bddc.js 265-421ms 9616B"
+      "rsc GET /practice/pause?_rsc=KH1xymbRKK43me6O 54-213ms 1633B",
+      "js GET /_next/static/chunks/4945-294537e969704e0b.js 224-384ms 3699B",
+      "js GET /_next/static/chunks/app/practice/%5Btrait%5D/page-f426fe4e5b50bddc.js 228-390ms 9616B"
      ]
     },
     {
      "door": "Lessons > lesson",
      "href": "/lessons/the-landing",
-     "tapToReady": 418,
+     "tapToReady": 461,
      "beforeReady": [
-      "rsc GET /lessons/the-landing?_rsc=Jiz4hzgTdOfWeeEB 25-186ms 1637B",
-      "js GET /_next/static/chunks/8410-871526ae4e348260.js 203-358ms 5874B",
-      "js GET /_next/static/chunks/app/lessons/%5Bid%5D/page-e133d3577e57b495.js 203-358ms 4742B",
-      "js GET /sw.js 298-449ms 0B"
+      "rsc GET /lessons/the-landing?_rsc=Jiz4hzgTdOfWeeEB 20-177ms 1635B",
+      "js GET /_next/static/chunks/8410-871526ae4e348260.js 192-348ms 5874B",
+      "js GET /_next/static/chunks/app/lessons/%5Bid%5D/page-e133d3577e57b495.js 193-348ms 4742B"
      ]
     },
     {
      "door": "Log > recording",
      "href": "/rep/rep-22",
-     "tapToReady": 1255,
+     "tapToReady": 1190,
      "beforeReady": [
-      "rsc GET /rep/rep-22?_rsc=1sGiS0BEWxZ8A4Qf 33-196ms 1762B",
-      "js GET /_next/static/chunks/app/rep/%5Bid%5D/page-68de5148bbf4874a.js 410-569ms 12834B",
-      "preflight OPTIONS http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 678-871ms 0B",
-      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 679-871ms 0B",
-      "preflight OPTIONS http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 679-871ms 0B",
-      "data GET http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 912-1103ms 2198B",
-      "data GET http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 912-1103ms 2B",
-      "data GET http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 912-1103ms 97B",
-      "js GET /sw.js 998-1151ms 0B",
-      "img GET /demos-512/demos-onboard-speaking.webp 1211-1429ms 39066B"
+      "rsc GET /rep/rep-22?_rsc=1sGiS0BEWxZ8A4Qf 21-181ms 1763B",
+      "js GET /_next/static/chunks/app/rep/%5Bid%5D/page-68de5148bbf4874a.js 211-372ms 12834B",
+      "preflight OPTIONS http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 557-760ms 0B",
+      "preflight OPTIONS http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 560-760ms 0B",
+      "preflight OPTIONS http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 561-760ms 0B",
+      "js GET /sw.js 595-760ms 0B",
+      "data GET http://supabase.local/rest/v1/reps?select=id%2Clesson_id%2Ccreated_at%2Cduration_s%2Ctranscript%2Cwpm%2Cfiller_count%2Cfillers%2Cpauses%2Cst… 764-959ms 2198B",
+      "data GET http://supabase.local/rest/v1/profiles?select=display_name%2Cpremium%2Cpremium_until%2Cequipped_pose 764-959ms 97B",
+      "data GET http://supabase.local/rest/v1/testers?select=consent_version%2Cconsented_at%2Ccreated_at%2Cstopped_at&user_id=eq.u1 764-961ms 2B",
+      "img GET /demos-512/demos-onboard-speaking.webp 1146-1364ms 39066B"
      ]
     }
    ]

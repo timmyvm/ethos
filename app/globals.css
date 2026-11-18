@@ -3758,6 +3758,11 @@ summary::-webkit-details-marker {
 .log-stage {
   min-height: 252px;
 }
+/* Nothing recorded yet: the stage takes the first screen's spare height,
+   less the header, the switch, the tap under it and the bar. */
+.log-stage-empty {
+  min-height: max(252px, calc(100svh - 330px));
+}
 .log-number {
   font-size: var(--text-num-xl);
   line-height: 1;
@@ -3858,6 +3863,9 @@ summary::-webkit-details-marker {
 @media (max-width: 359px), (max-height: 700px) {
   .log-stage {
     min-height: 204px;
+  }
+  .log-stage-empty {
+    min-height: max(204px, calc(100svh - 330px));
   }
   .log-number {
     font-size: var(--text-num-hero);

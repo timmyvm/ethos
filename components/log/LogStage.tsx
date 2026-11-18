@@ -56,7 +56,10 @@ export function LogStage({
   return (
     <HeroStage
       eyebrow="Your Ethos"
-      className="log-stage"
+      /* With nothing recorded the stage takes the screen's spare height
+         (the empty state's one moment, Demos on its floor), so no band
+         of bare ground is left under its one tap (DESIGN 7). */
+      className={`log-stage ${empty ? "log-stage-empty" : ""}`}
       data-look="log-stage"
       art={
         empty ? <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} /> : undefined

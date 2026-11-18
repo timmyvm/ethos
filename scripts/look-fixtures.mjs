@@ -758,14 +758,22 @@ const LIVE_FILLERS = (() => {
   }
   return out;
 })();
+/*
+ * LOOK_BEST's take is the cleaner one (#504 review): its three stars ask
+ * for under 4 slips in 62 seconds (lib/metrics.ts starsFor), so it counts
+ * the two ums and no restart, and the goals drawn under the stars agree
+ * with the line Demos says. It counted 4 fillers and a restart with the
+ * third star lit, which no take can earn.
+ */
+const LIVE_COUNTED = BEST ? LIVE_FILLERS.filter((f) => f.word === "um") : LIVE_FILLERS;
 const analyze = {
   transcript: LIVE_TRANSCRIPT,
   words: LIVE_WORDS,
   metrics: {
-    durationS: 62, wordCount: LIVE_WORDS.length, wpm: 145, fillerCount: LIVE_FILLERS.length, fillersPerMin: 3.9,
-    fillers: LIVE_FILLERS,
-    fillerCounts: { um: 2, like: 1, "you know": 1 }, topFiller: "um",
-    repairCount: 1, repairsPerMin: 1, unvoicedHesitations: 1, disfluenciesPerMin: 4.8,
+    durationS: 62, wordCount: LIVE_WORDS.length, wpm: 145, fillerCount: LIVE_COUNTED.length, fillersPerMin: BEST ? 1.9 : 3.9,
+    fillers: LIVE_COUNTED,
+    fillerCounts: BEST ? { um: 2 } : { um: 2, like: 1, "you know": 1 }, topFiller: "um",
+    repairCount: BEST ? 0 : 1, repairsPerMin: BEST ? 0 : 1, unvoicedHesitations: 1, disfluenciesPerMin: BEST ? 1.9 : 4.8,
     pauses: [{ t: 2.1, len: 1.2, kind: "pre", verdict: "opening" }, { t: 20, len: 0.9, kind: "mid" }, { t: 41, len: 1.5, kind: "pre", verdict: "landing" }, { t: 58, len: 1.1, kind: "pre" }],
     heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: BEST ? 3 : 2,
     substance: { wordCount: LIVE_WORDS.length, distinctRatio: 0.62, repeatShare: 0.05 },
@@ -773,12 +781,12 @@ const analyze = {
   /* Pace and Variety a few points over the fixture's last recording, so
      the live Index (the sum of these, log-14) lands three above it. */
   tier1: LIVE_TIER1,
-  anchors: { hedgeCount: 2, restartCount: 1 },
+  anchors: { hedgeCount: 2, restartCount: BEST ? 0 : 1 },
   coach: {
-    focus: "Kill \u2018um\u2019. 2 of your 4 fillers.",
+    focus: BEST ? "Kill \u2018um\u2019. Both your fillers were it." : "Kill \u2018um\u2019. 2 of your 4 fillers.",
     strength: "Held the pause before \u2018the mistake people make\u2019.",
     supply: { original: "a week nobody could really do", upgrade: "an impossible week", note: "It says the same in fewer words." },
-    coachLine: "4 fillers in 62s. Tomorrow: kill \u2018um\u2019.",
+    coachLine: BEST ? "2 fillers in 62s. Tomorrow: kill \u2018um\u2019." : "4 fillers in 62s. Tomorrow: kill \u2018um\u2019.",
     dimensions: LIVE_TIER2,
   },
   ethosIndex: indexOf(LIVE_TIER1, LIVE_TIER2), previousIndex: reps[reps.length - 1].ethos_index, repId: "rep-live", scorable: true,

@@ -37,7 +37,10 @@
  * count beside them. LOOK_STRIP=1 adds the sheet's rise as a strip (0,
  * 80, 160, 240, 400ms); LOOK_LAND=1 shoots the glance's top as the stars
  * land over their goals (#504); LOOK_BLUR=7 blurs the glance for the
- * squint test.
+ * squint test. Every lit goal must be one the served take meets and
+ * every open one one it misses (#504 review). LOOK_SOUND=1 logs the
+ * notes the glance starts (#505); LOOK_SOUND=off does it with Settings'
+ * Sound off and fails on any note; both fail a note before the Record tap.
  */
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -70,7 +73,11 @@ const LAND = process.env.LOOK_LAND === "1";
    after the glance the sounds it played are printed as clusters (when,
    after the glance's first frame, and the notes' fundamentals), so the
    stars' dings, the payout and the moment can be checked on the clock. */
-const SOUND = process.env.LOOK_SOUND === "1";
+const SOUND = process.env.LOOK_SOUND === "1" || process.env.LOOK_SOUND === "off";
+/* LOOK_SOUND=off (#505 review): the same log with Settings' Sound off,
+   which must start no note at all; either way no note may start before
+   the Record tap, the first gesture the page is given. */
+const SOUND_OFF = process.env.LOOK_SOUND === "off";
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const failures = [];
@@ -300,6 +307,14 @@ for (const size of SIZES) {
     css.textContent = "nextjs-portal{display:none!important}";
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
   });
+  if (SOUND_OFF) {
+    await context.addInitScript(() => {
+      try {
+        const p = JSON.parse(localStorage.getItem("ethos.prefs") ?? "{}");
+        localStorage.setItem("ethos.prefs", JSON.stringify({ ...p, sound: false }));
+      } catch {}
+    });
+  }
   if (SOUND) {
     await context.addInitScript(() => {
       const log = (window.__sounds = []);
@@ -413,6 +428,23 @@ for (const size of SIZES) {
       const goalWords = await page.evaluate(STAR_GOAL_WORDS);
       ceiling += Math.min(8, goalWords);
       if (TAG !== "before" && goalWords === 0) fail(`${at} ${name}: no goal under the stars (#504)`);
+      /* Each lit goal is one the served take meets, and each open one it
+         does not (#504 review): a fixture's stars once lit "Under 4 slips"
+         on a take with 5. Slips are its fillers and restarts. */
+      if (TAG !== "before" && goalWords > 0) {
+        const goals = await page.$$eval("main [data-star-goal]", (els) =>
+          els.map((e) => ({ met: e.dataset.starGoal === "met", text: (e.firstChild?.nodeValue ?? "").trim() }))
+        );
+        const served = bodies[VARIANT]().metrics;
+        const slips = served.fillerCount + served.repairCount;
+        const real = goals[0]?.met === true;
+        for (const g of goals.slice(1)) {
+          const n = g.text === "No slips" ? 1 : Number(/^Under (\d+) slips$/.exec(g.text)?.[1] ?? NaN);
+          const should = real && slips < n;
+          if (!Number.isFinite(n) || g.met !== should)
+            fail(`${at} ${name}: "${g.text}" is ${g.met ? "lit" : "open"} on a take with ${slips} slips`);
+        }
+      }
       if (VARIANT === "rules" && TAG !== "before" && noteWords === 0) fail(`${at} ${name}: no note under the delta on the first take under #476`);
       const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
@@ -447,6 +479,10 @@ for (const size of SIZES) {
   }
   await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(900);
+  if (SOUND) {
+    const before = await page.evaluate(() => window.__sounds.length);
+    if (before > 0) fail(`${at}: ${before} note(s) started before the Record tap`);
+  }
   await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
   /* Five seconds of the fake mic, so the glance's first moment (0:01.7
@@ -498,6 +534,7 @@ for (const size of SIZES) {
     entry.sounds = clusters.map((c) => ({ atMs: c.t, hz: [...c.f].sort((a, b) => a - b) }));
     entry.starsMet = met;
     console.log(`${at} sound: ${met} star(s) met; ${clusters.length} note cluster(s) after the glance's first frame`);
+    if (SOUND_OFF && clusters.length > 0) fail(`${at}: Sound is off and the glance started ${clusters.length} note cluster(s)`);
     for (const c of clusters.slice(0, 40)) console.log(`  ${String(c.t).padStart(5)}ms  ${[...c.f].sort((a, b) => a - b).slice(0, 6).join(" ")}${c.f.size > 6 ? " …" : ""}`);
   }
 
@@ -677,6 +714,10 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
   await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
   await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(900);
+  if (SOUND) {
+    const before = await page.evaluate(() => window.__sounds.length);
+    if (before > 0) fail(`${at}: ${before} note(s) started before the Record tap`);
+  }
   await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]');
   await sleep(2600);

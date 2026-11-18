@@ -38,10 +38,11 @@
  * BUILD_DIR (.next-build: the first-load JS table is read from it),
  * STOP_BASE (a stubbed server for the stop scene, skipped without one).
  *
- * "ready" is the first frame in which the screen's own data is drawn: no
- * skeleton in the viewport and the screen's mark of its data present
- * (READY below). It is what a person waits for; FCP and LCP are the
- * browser's own and stand beside it.
+ * "ready" is the first frame in which the screen's own data is drawn and
+ * React has taken the page over: no skeleton (in the viewport on Today,
+ * You and a recording; anywhere in <main> elsewhere) and the screen's
+ * mark of its data present (READY below). It is what a person waits for;
+ * FCP and LCP are the browser's own and stand beside it.
  */
 import http from "node:http";
 import { execSync } from "node:child_process";
@@ -54,6 +55,8 @@ import { supabaseRoute, session, seed } from "./look-fixtures.mjs";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const LABEL = process.argv[2] ?? "run";
+/** An earlier run of this label, read once for MERGE=1 (writeOut). */
+let priorRead;
 const BASE = (process.env.LOOK_BASE ?? "http://localhost:3951").replace(/\/$/, "");
 const RUNS = Math.max(1, Number(process.env.RUNS ?? 3) || 3);
 const SUPA_MS = Number(process.env.SUPA_MS ?? 40);
@@ -319,17 +322,23 @@ function pageProbe() {
     return b.width > 0 && b.height > 0 && b.bottom > 0 && b.top < innerHeight;
   };
   const skel = () => [...document.querySelectorAll('.skeleton, [aria-busy="true"]')].some(inView);
+  const skelAnywhere = () => !!document.querySelector('main .skeleton, main [aria-busy="true"]');
+  // React has taken the server's markup over: a tap would now do something.
+  const hydrated = () => {
+    const m = document.querySelector("main");
+    return !!m && Object.keys(m).some((k) => k.startsWith("__reactFiber") || k.startsWith("__reactProps"));
+  };
   const main = () => document.querySelector("main");
   const text = () => (main()?.textContent ?? "").replace(/\s+/g, " ");
   const h1 = () => (document.querySelector("main h1, h1")?.textContent ?? "").trim();
   const READY = [
     [/^\/$/, () => h1().length > 1 && !skel() && !!document.querySelector('main a[href^="/rep"]')],
-    [/^\/rep$/, () => h1().length > 3 && [...document.querySelectorAll("main button")].some((b) => /^Record/.test((b.getAttribute("aria-label") || b.textContent || "").trim()) && inView(b))],
+    [/^\/rep$/, () => hydrated() && h1().length > 3 && [...document.querySelectorAll("main button")].some((b) => /^Record/.test((b.getAttribute("aria-label") || b.textContent || "").trim()) && inView(b))],
     [/^\/rep\/[^/]+$/, () => !skel() && /\/\s?1000/.test(text())],
     [/^\/you$/, () => !skel() && /Level \d/.test(text())],
     [/^\/welcome$/, () => /Hold to step in/.test(text())],
-    [/^\/(signin|signup)$/, () => !!document.querySelector('main input[type="email"]')],
-    [/.*/, () => !skel() && h1().length > 1 && text().length > 80],
+    [/^\/(signin|signup)$/, () => hydrated() && !!document.querySelector('main input[type="email"]')],
+    [/.*/, () => hydrated() && !skelAnywhere() && h1().length > 1 && text().length > 80],
   ];
   const ready = () => {
     if (S.target && location.pathname !== S.target) return false;
@@ -964,7 +973,6 @@ if (want("stop") && process.env.STOP_BASE) {
 
 /* MERGE=1 keeps what an earlier run of the same label measured and
    replaces only what this run measured (a scene, or a route by name). */
-let priorRead;
 function priorRun() {
   if (priorRead !== undefined) return priorRead;
   priorRead = null;

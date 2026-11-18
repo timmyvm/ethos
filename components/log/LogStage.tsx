@@ -22,9 +22,10 @@ import { DURATION } from "@/lib/motion";
  * 51-point rise climbs and a small dip stays small.
  *
  * States: no recording (a dash, "Your first recording starts the line."
- * and Demos, the empty state's one moment); one scored recording (the
- * number, "Your next recording starts the line."); two or more (number,
- * pill, line). A fall says ▼ in the same stage ink: a fact, not an
+ * and Demos, the empty state's one moment, the stage taking the spare
+ * height); recordings with none scored (a dash, "Your next scored
+ * recording starts the line."); one scored recording (the number, "Your
+ * next recording starts the line."); two or more (number, pill, line). A fall says ▼ in the same stage ink: a fact, not an
  * alarm, and never rust.
  */
 export function LogStage({
@@ -104,7 +105,11 @@ export function LogStage({
         </p>
       ) : (
         <p className="stage-ink font-display mt-auto pt-3 text-link font-bold">
-          {empty || index === null ? "Your first recording starts the line." : "Your next recording starts the line."}
+          {empty
+            ? "Your first recording starts the line."
+            : index === null
+              ? /* Recordings, none long enough to score. */ "Your next scored recording starts the line."
+              : "Your next recording starts the line."}
         </p>
       )}
     </HeroStage>

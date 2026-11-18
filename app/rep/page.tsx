@@ -132,6 +132,7 @@ import { celebrates, type RewardMoment } from "@/lib/rewards";
 import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
 import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
 import { proofIn, proofWords, type Swap, type SwapStates } from "@/lib/say";
+import { readProofVariant } from "@/lib/proof-variant";
 import { fetchSwapsForProof, markHeard } from "@/lib/say-store";
 import {
   backLabel,
@@ -166,7 +167,10 @@ import {
   cueLead,
   earnedLine,
   fittedEarned,
+  fitGlance,
   fitGlanceProof,
+  fitGlanceProofEarned,
+  proofGlance,
   windowAt,
   askBudget,
   rulesBudget,
@@ -3360,6 +3364,31 @@ function Results({
   const scorable = result.scorable !== false;
   const capped = result.judged.capped && result.ethosIndex === null && scorable;
   const trait = glanceTrait(config);
+  /* TEMPORARY (lib/proof-variant.ts): which proof design the glance
+     draws. Only the camera sets it; unset, the live #507 line. */
+  const [proofVariant] = useState(readProofVariant);
+  /*
+   * Say it better's proof line (#507): this take said a saved swap's
+   * better phrase, found in Whisper's text as the count reads it and in
+   * its timed words for the moment. Only a stored take with its number
+   * proves anything (the count reads stored recordings, and the line
+   * marks the swap heard). Worked out once, from the swaps as they were
+   * when the take began; said once a swap (markHeard). It rides on the
+   * same ceiling, its struck phrase the first thing to go
+   * (lib/glance.ts fitGlanceProof).
+   */
+  const proof = useMemo(
+    () =>
+      scorable && result.ethosIndex !== null && say
+        ? proofIn(say.swaps, say.states, {
+            id: result.repId,
+            transcript: result.transcript,
+            words: result.words,
+            startedAt: new Date(startedAt),
+          })
+        : null,
+    [scorable, result.ethosIndex, result.repId, result.transcript, say, result.words, startedAt]
+  );
   /* The lesson's ending (the #427 review): its three practices' own
      counts in the earned slot, read off the newest take of each and this
      one off the screen. */
@@ -3417,7 +3446,12 @@ function Results({
   const cueSaid = cueStep
     ? cueGlance(cueStep, { metrics: result.metrics, tier1: result.tier1, transcript: result.transcript, words: result.words })
     : null;
-  const cueNext = cueStep?.next ?? null;
+  /* Variant C (TEMPORARY): on a take whose glance ends on the carried
+     cue, a proof takes that place in Demos's bubble, and the cue for
+     tomorrow waits a day: nothing is answered or set today, so the cue
+     carried in is still the one tomorrow's first take answers. */
+  const proofSays = proofVariant === "c" && !!proof && !!cueStep;
+  const cueNext = proofSays ? null : (cueStep?.next ?? null);
   useEffect(() => {
     if (cueNext) onCue(cueNext);
     // Once per take: the step is fixed when the take lands.
@@ -3428,7 +3462,9 @@ function Results({
   const said =
     gameRound && reveal && scorable
       ? roundGlance({ round: gameRound, reveal, cue: ladder ? ladderCue(ladder.line) : null })
-      : cueSaid
+      : proofSays && proof
+        ? proofGlance(proof)
+        : cueSaid
         ? { ...cueSaid.line, cue: cueSaid.cue }
         : glanceLine({
           trait,
@@ -3498,7 +3534,7 @@ function Results({
     result.ethosIndex !== null && result.previousIndex !== null ? result.ethosIndex - result.previousIndex : null;
   const baseline = repCountBefore === 0;
   /* A moment: Demos takes his share of the glance's height first. */
-  const bigMoment = earned || baseline || !!lessonLine || !!ladder?.moment;
+  const bigMoment = earned || baseline || !!lessonLine || !!ladder?.moment || proofSays;
   /* What the take won beyond its stars, for its sounds (#505): a lesson
      done, a level (a game's rung, or a trait's #498 level-up, which
      lands after the stored row and swaps into the waiting top slot), a
@@ -3527,29 +3563,20 @@ function Results({
   /* The goal under each star (#504), counted, and riding on the ceiling. */
   const goals = starGoals(result.metrics.durationS);
   const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
-  /*
-   * Say it better's proof line (#507): this take said a saved swap's
-   * better phrase, found in Whisper's text as the count reads it and in
-   * its timed words for the moment. Only a stored take with its number
-   * proves anything (the count reads stored recordings, and the line
-   * marks the swap heard). Worked out once, from the swaps as they were
-   * when the take began; said once a swap (markHeard). It rides on the
-   * same ceiling, its struck phrase the first thing to go
-   * (lib/glance.ts fitGlanceProof).
-   */
-  const proof = useMemo(
-    () =>
-      scorable && result.ethosIndex !== null && say
-        ? proofIn(say.swaps, say.states, {
-            id: result.repId,
-            transcript: result.transcript,
-            words: result.words,
-            startedAt: new Date(startedAt),
-          })
-        : null,
-    [scorable, result.ethosIndex, result.repId, result.transcript, say, result.words, startedAt]
-  );
-  const fit = fitGlanceProof(
+  /* TEMPORARY (lib/proof-variant.ts): variant B's piece stands outside
+     the words and variant C's proof is Demos's line itself, so neither
+     rides on the ceiling as a line; variant A's has its own allowance. */
+  const fitProof = (
+    p: Parameters<typeof fitGlance>[0],
+    budget: number,
+    words: { full: string; short: string } | null
+  ): ReturnType<typeof fitGlanceProof> =>
+    proofVariant === "b" || proofSays
+      ? { ...fitGlance(p, budget), proof: words ? "full" : null }
+      : proofVariant === "a"
+        ? fitGlanceProofEarned(p, budget, words)
+        : fitGlanceProof(p, budget, words);
+  const fit = fitProof(
     {
       fixed: [
         practised,
@@ -3570,8 +3597,8 @@ function Results({
       earned: earnedNow,
       /* The carried cue's shorter forms (#477): the line's number without
          its chip, the cue without "Tomorrow:", tried before the cue goes. */
-      lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
-      cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
+      lineShort: cueSaid && !proofSays ? cueSaid.lineShort.sentence : null,
+      cueShort: cueSaid && !reminder.node && !proofSays ? cueSaid.cueShort : null,
     },
     starsBudget(
       rulesBudget(
@@ -3599,21 +3626,40 @@ function Results({
     // Once per take: the proof is fixed when the take lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proofShown?.key]);
-  const shown = fit.short && cueSaid ? cueSaid.lineShort : said;
+  const shown = fit.short && cueSaid && !proofSays ? cueSaid.lineShort : said;
   const glance: GlanceView = {
     parts: shown.parts,
     moment: shown.moment,
     cue: fit.cue,
     earned: fittedEarned(earnedNow, fit.earned),
-    held: cueSaid?.held ?? false,
+    held: !proofSays && (cueSaid?.held ?? false),
     rulesNote: rulesNoteText,
-    proof: proofShown
-      ? {
-          said: fit.proof === "full" ? proofShown.said : null,
-          better: proofShown.better,
-          moment: windowAt(proofShown.at, 1, proofShown.end + 1.5, "%, play where you said it"),
-        }
-      : null,
+    proof:
+      proofShown && proofVariant !== "b" && !proofSays
+        ? {
+            said: fit.proof === "full" ? proofShown.said : null,
+            better: proofShown.better,
+            moment: windowAt(proofShown.at, 1, proofShown.end + 1.5, "%, play where you said it"),
+          }
+        : null,
+    /* Variant B (TEMPORARY): the piece under the score, a door to the
+       swap's sheet in Say it better; back from there is this recording. */
+    proofPiece:
+      proofShown && proofVariant === "b"
+        ? {
+            said: proofShown.said,
+            better: proofShown.better,
+            moment: windowAt(proofShown.at, 1, proofShown.end + 1.5, "%, play where you said it"),
+            open: () =>
+              exit(
+                `/say?swap=${encodeURIComponent(proofShown.key)}${result.repId ? `&from=${encodeURIComponent(`/rep/${result.repId}`)}` : ""}`,
+                { leaves: true }
+              ),
+          }
+        : null,
+    /* The variants' haptic (TEMPORARY): where a phone can be asked, one
+       short pulse as the proof's moment lands with the stars. */
+    proofHaptic: proofVariant !== "live" && !!proofShown,
   };
   const upgradeRead = () =>
     onUpgrade({
@@ -3924,10 +3970,10 @@ function Results({
                 baseline={baseline}
                 live
                 /* A lesson's ending is a moment too: he celebrates it. */
-                celebrate={earned || !!lessonLine}
+                celebrate={earned || !!lessonLine || proofSays}
                 moment={bigMoment}
                 take={take}
-                sounds={sounds}
+                sounds={{ ...sounds, proof: proofVariant !== "live" && !!proofShown, proofFirst: proofSays }}
               />
             </div>
           )}

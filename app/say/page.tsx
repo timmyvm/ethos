@@ -59,8 +59,12 @@ const ROW = "flex min-h-14 w-full items-center gap-3 py-3 text-left text-detail 
  * list here (lib/say.ts mergeSwaps). Free: every swap is earned by
  * speaking, so nothing here is capped (#31's three-entry cap is gone).
  */
-export default function SayItBetter({ searchParams }: { searchParams: Promise<{ from?: string | string[] }> }) {
-  const { from } = use(searchParams);
+export default function SayItBetter({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string | string[]; swap?: string | string[] }>;
+}) {
+  const { from, swap: swapAsked } = use(searchParams);
   const back = backOf(from);
   const warm = useWarm();
   const [read, setRead] = useState<SayRead | null>(() => (warm ? heldSay() : null));
@@ -141,6 +145,16 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
       setSaid("");
     }
   };
+
+  /* TEMPORARY (lib/proof-variant.ts, variant B): the glance's proof piece
+     opens its swap's sheet here, once the list has it. */
+  const askedOpen = useRef(false);
+  useEffect(() => {
+    if (askedOpen.current || typeof swapAsked !== "string" || !read) return;
+    askedOpen.current = true;
+    const item = read.items.find((i) => i.swap.key === swapAsked && !i.state.hidden);
+    if (item) setOpen(item);
+  }, [read, swapAsked]);
 
   const items = read?.items ?? [];
   const lists = sayLists(items, today);

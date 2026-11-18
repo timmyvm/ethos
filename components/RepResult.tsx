@@ -8,7 +8,7 @@ import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
 import { DURATION } from "@/lib/motion";
-import { glanceCues, type GlanceWin } from "@/lib/sound-recipes";
+import { glanceCues, PAYOUT_LEAD_MS, type GlanceWin } from "@/lib/sound-recipes";
 import { useSoundCues } from "@/lib/use-sound-cues";
 import { MomentChip } from "@/components/rep/MomentChip";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
@@ -26,6 +26,9 @@ import type { LevelUpPiece } from "@/lib/traits";
 import { isTraitKey } from "@/lib/dimension-rows";
 import { starGoals, type FillerHit, type RepMetrics, type Word } from "@/lib/metrics";
 import { scoreLine, splitTomorrow } from "@/lib/coach-line";
+import { buzz } from "@/lib/prefs";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { TapTick } from "@/components/ui/TapTick";
 
 /**
  * The label over the coach's `strength`, what the take measurably did
@@ -129,6 +132,14 @@ export interface GlanceView {
    * phrase (lib/glance.ts fitGlanceProof).
    */
   proof?: { said: string | null; better: string; moment: GlanceMoment } | null;
+  /**
+   * TEMPORARY (lib/proof-variant.ts), variant B: the proof as a piece
+   * under the score, outside the words, the whole piece a door to the
+   * swap's sheet in Say it better and its chip playing the moment.
+   */
+  proofPiece?: { said: string; better: string; moment: GlanceMoment; open: () => void } | null;
+  /** TEMPORARY: the variants' one pulse as the proof's moment lands (a phone with a Vibration API). */
+  proofHaptic?: boolean;
 }
 
 /** The sheet's body (section "detail"): its sections in order, and those Results draws. */
@@ -374,6 +385,16 @@ export function RepResult({
       ? glanceCues({ ...sounds, stars: m.stars }, { landAfter, starStep: STAR_STEP_MS, starMs: STAR_MS, reduced })
       : null
   );
+  /* When the take's own moment sounds (lib/sound-recipes.ts glanceCues):
+     the stars done, after the payout on three. The proof variants' piece
+     lands and their pulse comes on it (TEMPORARY, lib/proof-variant.ts). */
+  const momentAt = reduced ? 0 : starsDone + (m.stars === 3 ? PAYOUT_LEAD_MS : 0);
+  const proofHaptic = glancing && timed && !waiting && !!glance?.proofHaptic;
+  useEffect(() => {
+    if (!proofHaptic) return;
+    const t = setTimeout(() => buzz(20), momentAt);
+    return () => clearTimeout(t);
+  }, [proofHaptic, momentAt]);
   const bubbleAt = timed && !reduced ? starsDone + (celebrate ? 240 : 0) : 0;
   const [celebrating, setCelebrating] = useState(false);
   useEffect(() => {
@@ -450,6 +471,7 @@ export function RepResult({
         short={shortRoom}
         tall={tallRoom}
         moment={moment}
+        landed={momentAt}
       />
     );
   }
@@ -1218,6 +1240,7 @@ function Glance({
   short,
   tall,
   moment,
+  landed = 0,
 }: {
   view: GlanceView;
   metrics: RepMetrics;
@@ -1246,6 +1269,8 @@ function Glance({
   tall: boolean;
   /** A moment (a best, the first recording, a lesson's ending, a rung): Demos takes his share first. */
   moment: boolean;
+  /** When the take's own moment sounds, in ms from the glance's first frame (TEMPORARY: the proof piece lands on it). */
+  landed?: number;
 }) {
   const chip = view.moment ? (
     take?.playable ? (
@@ -1266,11 +1291,24 @@ function Glance({
     if (p.kind === "moment") return;
     const next = view.parts[i + 1];
     if (p.earned) {
-      /* The count of a carried cue that held (#477): earned, so sage. */
-      parts.push(
-        <span key={i} data-glance-held className="font-semibold text-sage-700">
+      /* The count of a carried cue that held (#477): earned, so sage.
+         Followed by the chip (variant C's better phrase, TEMPORARY), the
+         two never wrap apart: the chip plays the words it follows. */
+      const sage = (
+        <span key={i} data-glance-held={view.held ? "" : undefined} className="font-semibold text-sage-700">
           {p.text}
         </span>
+      );
+      parts.push(
+        next?.kind === "moment" ? (
+          <span key={i} className="whitespace-nowrap">
+            {sage}
+            {"\u00a0"}
+            {chip}
+          </span>
+        ) : (
+          sage
+        )
       );
       return;
     }
@@ -1436,6 +1474,50 @@ function Glance({
               )}
             </span>
           </p>
+        )}
+        {/* Variant B (TEMPORARY, lib/proof-variant.ts): the proof as a
+            piece, not a sentence. The better phrase over the struck one
+            beside a sage check, the moment's chip, the door's chevron.
+            It lands with the take's moment, the whole piece opening the
+            swap's sheet in Say it better; the chip sits over the door
+            and plays where it was said. */}
+        {view.proofPiece && ethosIndex !== null && (
+          <div className={`mt-3 max-w-full [@media(max-height:700px)]:mt-2 ${counting ? "" : "invisible"}`}>
+            <span className="star-land max-w-full" style={{ "--land-after": `${landed}ms` } as CSSProperties}>
+              <span
+                data-say-piece
+                className="relative flex max-w-full items-center gap-2 rounded-[16px] border border-sage-200 bg-sage-50 py-1.5 pr-2.5 pl-2 text-left"
+              >
+                <button
+                  type="button"
+                  onClick={view.proofPiece.open}
+                  aria-label={`${view.proofPiece.better}, instead of ${view.proofPiece.said}. Open it in Say it better`}
+                  className="press absolute inset-0 rounded-[16px]"
+                >
+                  <TapTick />
+                </button>
+                <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-sage-600 text-ground">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m3 7.4 2.6 2.6L11 4.4" />
+                  </svg>
+                </span>
+                <span aria-hidden className="flex min-w-0 flex-col">
+                  <span className="font-display text-detail leading-[1.15] font-bold text-sage-800 [@media(max-height:600px)]:text-body">
+                    {view.proofPiece.better}
+                  </span>
+                  <span className="text-caption leading-[1.15] font-normal text-stone-500 line-through">{view.proofPiece.said}</span>
+                </span>
+                <span className="relative ml-1 shrink-0 text-caption">
+                  {take?.playable ? (
+                    <MomentChip moment={view.proofPiece.moment} take={take} marker="say" />
+                  ) : (
+                    <span className="tabular-nums">{view.proofPiece.moment.clock}</span>
+                  )}
+                </span>
+                <Disclosure />
+              </span>
+            </span>
+          </div>
         )}
         {/* The first take under #476 (#491): the jump is partly the
             rule's, said once, plain, under what it qualifies, with the

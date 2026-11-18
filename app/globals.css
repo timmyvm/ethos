@@ -1898,6 +1898,10 @@ body::after {
   opacity: 0;
   animation: none;
   transform-origin: 50% 80%;
+  /* A word longer than the bubble (a long name at 320) breaks inside its
+     box instead of running out past the bubble's edge (#501 review). */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .says-word.talk-word[data-on] {
   opacity: 1;

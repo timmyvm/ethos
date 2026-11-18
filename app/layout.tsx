@@ -17,6 +17,7 @@ import { googleTakenBootScript } from "@/lib/google-taken";
 import { GoogleTakenSwitch } from "@/components/GoogleTakenSwitch";
 import { Splash, splashBootScript } from "@/components/Splash";
 import { testerBootScript } from "@/lib/tester-boot";
+import { firstRunBootScript } from "@/lib/walk-boot";
 import { SplashLift } from "@/components/SplashLift";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -112,8 +113,13 @@ export default function RootLayout({
         {/* And whether this open is Google saying the account already
             has Ethos (#414), before a redirect drops the fragment. */}
         <script dangerouslySetInnerHTML={{ __html: googleTakenBootScript }} />
+        {/* A phone that has never opened Ethos goes to the room before
+            Today's code loads (#508); before the splash's script, so the
+            splash plays on the room, not on the way to it. */}
+        <script dangerouslySetInnerHTML={{ __html: firstRunBootScript }} />
         {/* Also before paint: whether this open gets the splash. */}
         <script dangerouslySetInnerHTML={{ __html: splashBootScript }} />
+
         {/* And whether Today holds the test tile's place from its first
             paint: a tester's device, during the test (#402). */}
         <script dangerouslySetInnerHTML={{ __html: testerBootScript }} />

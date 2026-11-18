@@ -5,8 +5,8 @@ import type { Metadata } from "next";
  * profile in #317, so the description no longer names them. */
 export const metadata: Metadata = {
   title: "You · Ethos",
-  description: "Your level, streaks, traits and lexicon.",
-  openGraph: { title: "You · Ethos", description: "Your level, streaks, traits and lexicon." },
+  description: "Say it better, your level, streaks and traits.",
+  openGraph: { title: "You · Ethos", description: "Say it better, your level, streaks and traits." },
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

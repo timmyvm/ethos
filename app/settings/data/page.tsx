@@ -9,6 +9,8 @@ import { ErrorLine } from "@/components/ui/ErrorState";
 import { ActionRow, LinkRow, PAGE_CLASS, Section } from "@/components/settings/Rows";
 import { deleteAccount } from "@/lib/auth";
 import { fetchAllLexicon, fetchAllReps } from "@/lib/client-data";
+import { fetchSavedWords } from "@/lib/saved-words";
+import { fetchStates } from "@/lib/say-store";
 import { avatarForExport } from "@/lib/avatar-client";
 import { readable } from "@/lib/load";
 import { prefersReducedMotion } from "@/lib/prefs";
@@ -70,13 +72,19 @@ export default function DataPage() {
     setExportFailed(false);
     try {
       // The profile photo too (#485), the picture itself, not a link.
-      const read = await readable(() => Promise.all([fetchAllReps(), fetchAllLexicon(), avatarForExport()]), 30_000);
+      /* Say it better (#507) whole: the coach's pairs, the phrases saved
+         from a transcript, and where each stands in the test. */
+      const read = await readable(
+        () => Promise.all([fetchAllReps(), fetchAllLexicon(), fetchSavedWords(), fetchStates(), avatarForExport()]),
+        30_000
+      );
       if (!read.ok) {
         setExportFailed(true);
         return;
       }
-      const [reps, lexicon, photo] = read.data;
-      const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), reps, lexicon, photo }, null, 2)], {
+      const [reps, fromTheCoach, savedFromTranscripts, test, photo] = read.data;
+      const sayItBetter = { fromTheCoach, savedFromTranscripts, test };
+      const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), reps, sayItBetter, photo }, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
@@ -184,7 +192,7 @@ export default function DataPage() {
         <LinkRow href="/privacy?from=settings-data" label="Privacy policy" />
       </Section>
 
-      <Section title="Your data" footer="Every recording, transcript, score and lexicon entry, as one file.">
+      <Section title="Your data" footer="Every recording, transcript, score and saved phrase, as one file.">
         <ActionRow
           label={exporting ? "Building your file…" : "Download your data"}
           onClick={() => void exportData()}

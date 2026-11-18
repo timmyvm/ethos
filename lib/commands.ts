@@ -55,7 +55,7 @@ export const COMMANDS: readonly Command[] = [
   { id: "go:notifications", title: "Notifications", group: "Go to", href: "/settings/notifications", also: "reminder quiet hours" },
   { id: "go:account", title: "Account", group: "Go to", href: "/settings/account", also: "email password google sign out" },
   { id: "go:shop", title: "Shop", group: "Go to", href: "/shop", also: "coins poses freeze" },
-  { id: "go:words", title: "Your words", group: "Go to", href: "/words", also: "saved swaps thesaurus" },
+  { id: "go:say", title: "Say it better", group: "Go to", href: "/say", also: "your words saved swaps better phrases test" },
   ...LESSONS.map(
     (l): Command => ({
       id: `lesson:${l.id}`,
@@ -143,6 +143,8 @@ export function groupCommands(found: readonly Command[]): { group: CommandGroup;
  */
 const HELD_SCREENS = [
   "/rep",
+  /* Say it better's test (#507): a line is being recorded. */
+  "/say/test",
   "/lesson",
   "/practice",
   "/workbench",

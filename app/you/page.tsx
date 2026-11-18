@@ -1,6 +1,5 @@
 "use client";
 
-import { SwapFrom, SwapTo } from "@/components/ui/TrendMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
@@ -16,25 +15,21 @@ import { CountUp } from "@/components/CountUp";
 import { ErrorLine, ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Paywall, type PaywallAsk } from "@/components/Paywall";
-import { LexiconFlash } from "@/components/LexiconFlash";
+import { SayCard } from "@/components/say/SayCard";
 import { ManageSheet } from "@/components/premium/ManageSheet";
 import { CheckoutReturn, PriceDropSheet } from "@/components/premium/Moments";
 import { PlanCard, PlanCardSkeleton } from "@/components/premium/PlanCard";
 import { achievements } from "@/lib/achievements";
 import { syncCoins } from "@/lib/coin-sync";
-import { limit } from "@/lib/entitlement";
 import { DURATION } from "@/lib/motion";
 import {
-  fetchLexicon,
   fetchProfile,
   fetchRepSpine,
   fetchReps,
   fetchXp,
   updateDisplayName,
-  type LexiconRow,
   type RepRow,
   type RepSpine,
-  heldLexicon,
   heldPremium,
   heldProfile,
   heldReps,
@@ -78,14 +73,6 @@ import { usePaywallReturn } from "@/lib/use-paywall-return";
 import { asTitle } from "@/lib/title";
 import { dayKey } from "@/lib/streak-moment";
 import { claimXpTicks, tickClimb } from "@/lib/use-sound-cues";
-
-// Free tier gets today's swap, not the archive, when the paywall is on.
-const FREE_LEXICON = 3;
-/** Upgrades the test needs before it has three to ask (LexiconFlash). */
-const TEST_FROM = 3;
-/** The tap's shape on the surface: Test yourself while the account gate holds the page's one tap. */
-const QUIET_TAP =
-  "press font-display block min-h-12 w-full rounded-tap bg-surface px-6 py-3.5 text-center text-body leading-5 font-bold";
 
 /** The nine rows the Traits list always draws (lib/traits.ts TRAITS). */
 const TRAIT_ROWS_FREE = 5;
@@ -160,15 +147,6 @@ export default function YouPage() {
   const [failed, setFailed] = useState(false);
   const [allBadges, setAllBadges] = useState(false);
   /**
-   * `null` until the read lands, like `reps` and `xp`. Starting at `[]`
-   * printed the empty example to someone with forty upgrades for as
-   * long as the fetch took. A failed read is its own state, with a
-   * retry, never drawn as an empty lexicon (PRINCIPLES 8).
-   */
-  const [lexicon, setLexicon] = useState<LexiconRow[] | null>(() => (warm ? heldLexicon() : null));
-  const lexiconDrawn = useRef(lexicon !== null);
-  const [lexiconFailed, setLexiconFailed] = useState(false);
-  /**
    * `null` until the XP read lands, for the same reason `reps` is: the
    * level and "XP this week" are derived from it, and a zero that has
    * not arrived yet would COUNT UP to the truth a moment later. A failed
@@ -190,7 +168,6 @@ export default function YouPage() {
     if (!all) return EMPTY_STREAK;
     return heldFreezes()?.streak ?? computeStreak(all.map((r) => new Date(r.created_at)));
   });
-  const [flashing, setFlashing] = useState(false);
   /** `undefined` pending, `null` failed: the same split as `coins`. */
   const [, setFreezes] = useState<{
     equipped: number;
@@ -201,7 +178,7 @@ export default function YouPage() {
   const [name, setName] = useState<string | null>(heldAccount?.display_name ?? null);
   const [nameKnown, setNameKnown] = useState(heldAccount !== undefined);
   /** The plan: null until the profile answers, and on a failed read.
-   *  Unknown is never free (#353): the lexicon is not cut until it says so. */
+   *  Unknown is never free (#353). */
   const [premium, setPremium] = useState<boolean | null>(() => (warm ? heldPremium() : null));
   /** The introduction's answers (#232): undefined until the device has been read. */
   const [onboarding, setOnboarding] = useState<OnboardingState | undefined>(undefined);
@@ -309,19 +286,9 @@ export default function YouPage() {
     void loadCoins(rows.map((r) => new Date(r.created_at)));
   }, [loadCoins, loadFreezes]);
 
-  /* Both under the page-level ceiling (readable): a read that fails or
-     never answers ends in the ErrorLine and its retry, never Level 1 or
-     an empty lexicon, and never a skeleton for good (#147). */
-  const loadLexicon = useCallback(async () => {
-    setLexiconFailed(false);
-    if (!lexiconDrawn.current) setLexicon(null);
-    const read = await readable(() => fetchLexicon());
-    if (read.ok) {
-      lexiconDrawn.current = true;
-      setLexicon(read.data);
-    } else if (!lexiconDrawn.current) setLexiconFailed(true);
-  }, []);
-
+  /* Under the page-level ceiling (readable): a read that fails or never
+     answers ends in the ErrorLine and its retry, never Level 1, and never
+     a skeleton for good (#147). Say it better reads its own (SayCard). */
   const loadXp = useCallback(async () => {
     setXpFailed(false);
     if (!xpDrawn.current) setXp(null);
@@ -334,13 +301,11 @@ export default function YouPage() {
   // Looked at again after a while, or back on the network: read again, quietly.
   useRevalidate(() => {
     void load();
-    void loadLexicon();
     void loadXp();
   });
 
   useEffect(() => {
     void load();
-    void loadLexicon();
     void loadXp();
     setOnboarding(readOnboarding());
     // The profile decides code or free for the plan, so it takes the
@@ -371,7 +336,7 @@ export default function YouPage() {
       })
       // A failed ask leaves what the visit already knew.
       .catch(() => {});
-  }, [load, loadLexicon, loadXp]);
+  }, [load, loadXp]);
 
   /** The plan's read failed: read it again, and the profile with it if that was the one. */
   const retryPlan = () => {
@@ -460,8 +425,6 @@ export default function YouPage() {
   /** The level waits on the XP read; the streak columns on the reps. */
   const xpPending = xp === null && !xpFailed;
   const history = reps ?? [];
-  /* The free cap on the lexicon, only once the plan says free. */
-  const lexiconCap = premium === false ? limit(FREE_LEXICON, false) : null;
   /* Lifetime counts read every recording, not the newest 90. */
   const lifetime = reps === null ? [] : spine;
   const standing = xpStanding(xp?.total ?? 0);
@@ -484,7 +447,7 @@ export default function YouPage() {
   const showGate = anon === true && lifetime.length >= 1;
 
   /* The gear sits on the large title's row (Imprint's Me, Wellspoken's
-     lexicon s1) and its twin joins the bar once the title has handed
+     s1) and its twin joins the bar once the title has handed
      over. The twin is mounted only from the first hand-over on, so at
      rest the page has one Settings link and the bar is empty. */
   const header = (
@@ -535,7 +498,17 @@ export default function YouPage() {
           on You only at the moments (the price drop, the checkout's
           return). Every async line holds its exact height while it is in
           flight (`Line`), so nothing changes size when the numbers land. */}
-      <section aria-label="Your profile" data-look="you-card" className="card mt-5 p-5">
+      {/*
+       * Say it better, the first card (#507, Timothy 18 Nov: "make it a
+       * focus ... that's how you actually improve"). Above the identity
+       * card, breaking #485's order on purpose: what improves speech
+       * leads (#458's rule, taken one step further). The screen's one
+       * lifted thing, holding its one tap (the day's test); while the
+       * account gate holds the filled tap, its tap is the surface pill.
+       */}
+      <SayCard quiet={showGate} />
+
+      <section aria-label="Your profile" data-look="you-card" className="card mt-3 p-5">
         <div className="flex items-center gap-4">
           {avatar.coin}
           <div className="min-w-0 flex-1">
@@ -717,125 +690,6 @@ export default function YouPage() {
         </section>
       )}
 
-      {/*
-       * Your lexicon, the first thing under the numbers (Timothy, 12 Nov:
-       * "Your words, test yourself. GREAT FEATURES ... truly great for
-       * improving speech which is what the app is for"; #458). It sat
-       * under Trait levels with its test behind a text link; Day 1 vs
-       * now and its Make the card held this place and the page's one
-       * tap, and went the same day ("not a great feature"). So the
-       * words a recording earned are what You opens on, and the tap is
-       * the test of them.
-       *
-       * The supply layer's archive (DECISIONS #12): a section with its
-       * count, the swaps at reading size, an example when empty (#317).
-       * A word you have now is a neutral label in ink (the cohesion
-       * pass).
-       */}
-      <section className="mt-7">
-        <h2 className="section-head">
-          Your lexicon
-          {lexicon !== null && <span className="section-head-count">{lexicon.length}</span>}
-        </h2>
-        {lexiconFailed ? (
-          <ErrorLine className="mt-3" onRetry={() => void loadLexicon()}>
-            Your lexicon didn&apos;t load.
-          </ErrorLine>
-        ) : lexicon === null || profileRead === "loading" ? (
-          /* Three rows, the free tier's share, at the height of the real
-             ones so nothing under them moves when they land. Held until
-             the plan is read too, so a free list never lands long and
-             then shrinks to its three (a failed plan read shows all). */
-          <div aria-busy="true">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className={SWAP_ROW}>
-                <Skeleton className="h-6 w-48" />
-              </div>
-            ))}
-          </div>
-        ) : lexicon.length === 0 ? (
-          /* The example card (#317): one swap, drawn the way a real one
-             will be, so the empty section shows what arrives here. */
-          <div className="card mt-3 px-5 py-4">
-            <div aria-hidden className={SWAP_ROW}>
-              <Swap original="the thing is" upgrade="the point is" />
-            </div>
-            <p className="text-caption text-stone-500">
-              Upgrades from your own recordings collect here.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* The archive is a list, so it assembles itself (#245): one
-                row every 40ms, capped at the eighth. Nothing above it
-                carries an `.arrive`, so this is the block's one
-                entrance. */}
-            {/* No margin: the rows' own 12px top padding is the head's
-                mt-3 (system-7), so a word sits 12px under "Your lexicon"
-                like every section's content. */}
-            <ul className="stagger">
-              {lexicon.slice(0, lexiconCap ?? lexicon.length).map((l) => (
-                <li key={l.id} className={SWAP_ROW}>
-                  <Swap original={l.original} upgrade={l.upgrade} />
-                </li>
-              ))}
-            </ul>
-
-            {lexiconCap !== null && lexicon.length > FREE_LEXICON && (
-              <button
-                type="button"
-                onClick={() =>
-                  setPaywall({
-                    reason: "Full lexicon",
-                    headline: "Every word you've earned, kept",
-                  })
-                }
-                className="press mt-1 flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-row font-semibold text-stone-500"
-              >
-                <span>
-                  {lexicon.length - FREE_LEXICON} more upgrade
-                  {lexicon.length - FREE_LEXICON === 1 ? "" : "s"} in your
-                  archive
-                </span>
-                <span className="flex shrink-0 items-center gap-3">
-                  <PremiumMark variant="chip" />
-                  <Disclosure />
-                </span>
-              </button>
-            )}
-
-            {/* The test: three of your own upgrades, recalled cold
-                (components/LexiconFlash.tsx). The page's one tap, and
-                its card takes the tap's place when pressed. While the
-                account gate above is showing, that gate keeps the
-                screen's one tap and this steps down to a door. */}
-            {flashing ? (
-              <div className="mt-4">
-                <LexiconFlash lexicon={lexicon} onDone={() => setFlashing(false)} />
-              </div>
-            ) : lexicon.length >= TEST_FROM ? (
-              <button
-                type="button"
-                onClick={() => setFlashing(true)}
-                className={showGate ? `${QUIET_TAP} mt-4` : `${ACTION_CLASS} mt-4`}
-              >
-                Test yourself
-              </button>
-            ) : (
-              <p className="mt-3 text-caption text-stone-500">
-                Test yourself opens at {TEST_FROM} upgrades.
-              </p>
-            )}
-          </>
-        )}
-        {/* The swaps you saved yourself, from any word of a recording's
-            transcript (#411): the lexicon's twin, one door away. */}
-        <Link href="/words" className={`${DOOR_CLASS} mt-3`}>
-          <span>Your words</span>
-          <Disclosure />
-        </Link>
-      </section>
-
       {/* The road (#232, D36): its headline and the unit for what was
           noticed, as its own card door, because an answer is allowed to
           change. "Plan" is left to Premium. Its three lines are reserved
@@ -933,7 +787,7 @@ export default function YouPage() {
                     </div>
                   ) : (
                     folded > 0 && (
-                      /* The lexicon's fold grammar: the count in words,
+                      /* The fold's grammar: the count in words,
                          the mark, the chevron, a door to the sheet. The
                          mark names the tier, so the words do not. */
                       <button
@@ -979,8 +833,7 @@ export default function YouPage() {
             </span>
           )}
         </h2>
-        {/* An open list on the ground (E11), Trait levels' and the
-            lexicon's grammar: no card, no tile inside it, and since #454
+        {/* An open list on the ground (E11), Trait levels' grammar: no card, no tile inside it, and since #454
             no rule between rows. A badge part earned draws its progress
             along the row's foot, and a hairline under that was two lines
             for one row; the mark, the two lines of words and 56px a row
@@ -1285,49 +1138,7 @@ function Stat({
   );
 }
 
-/** A lexicon row's box: one height for the real rows, the skeleton and the example. */
-const SWAP_ROW = "flex min-h-14 flex-wrap items-center gap-x-2.5 gap-y-1 py-3 text-detail font-normal";
-
-/**
- * One swap: what you said, struck through, an arrow, and the word you
- * have now as a neutral label (`.you-word`): ink on the surface, so it
- * is neither a tap nor a badge (the cohesion pass; it wore Variety's
- * wash). The arrow and the upgrade are one unit (#496): where the row
- * wraps at 320, both go to the next line together, never the arrow
- * left behind at the end of the first.
- */
-function Swap({ original, upgrade }: { original: string; upgrade: string }) {
-  return (
-    <>
-      <span className="text-stone-400 line-through">
-        <SwapFrom />
-        {original}
-      </span>
-      <span data-swap-to="" className="flex min-w-0 max-w-full items-center gap-2.5">
-        <svg
-          aria-hidden
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-stone-400"
-        >
-          <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
-        </svg>
-        <span className="you-word min-w-0">
-          <SwapTo />
-          {upgrade}
-        </span>
-      </span>
-    </>
-  );
-}
-
-/** The road's card: its own door, under the lexicon since #458 (D36). */
+/** The road's card: its own door (D36). */
 const ROAD_CARD = "card press mt-7 flex min-h-11 items-center gap-3 p-4 text-left";
 
 /**
@@ -1400,7 +1211,7 @@ const WHAT: Record<string, string> = {
  * at the moment somebody reaches for it, never printed on the page.
  *
  * It closes with Done at the top right, as every information sheet does
- * (D15). Its "Practise" covers You's "Test yourself", so each visible
+ * (D15). Its "Practise" covers You's own tap (Say it better's test), so each visible
  * layer still has one tap.
  */
 function TraitSheet({

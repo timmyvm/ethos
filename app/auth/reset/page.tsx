@@ -130,8 +130,8 @@ function ResetScreen() {
         <div className="arrive flex flex-1 flex-col">
           <p className="mt-3 text-read text-stone-800 text-pretty">
             {first
-              ? "Account live, password saved. Your recordings, your streak and your lexicon are attached on this device and any other you sign in on."
-              : "Your recordings, your streak and your lexicon are exactly where you left them."}
+              ? "Account live, password saved. Your recordings and your streak are attached on this device and any other you sign in on."
+              : "Your recordings and your streak are exactly where you left them."}
           </p>
           {/* Nothing to type: the tap sits at the bottom (auth-11). It
               goes on to the page that asked for the account, the

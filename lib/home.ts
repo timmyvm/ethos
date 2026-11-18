@@ -76,8 +76,8 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
 
 /*
  * The trait tiles stood each trait's emblem (`TRAIT_OBJECT`, D22) until
- * #478 took every glass object off them: only the card stands one now,
- * and a tile's mark is its flat glyph (components/TraitGlyph.tsx).
+ * #478 took every glass object off them, and #500 took the tiles off
+ * Today: only the card stands a lesson's object now.
  */
 
 /**

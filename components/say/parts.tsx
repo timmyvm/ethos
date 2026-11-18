@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { SwapFrom, SwapTo } from "@/components/ui/TrendMark";
 import { SegmentBar } from "@/components/ui/SegmentBar";
 import { markIn, saidBetter } from "@/lib/say";
@@ -35,30 +36,50 @@ export function SayArt({ className = "" }: { className?: string }) {
 export function SwapPair({
   said,
   better,
-  stacked = false,
+  aside,
   className = "",
 }: {
   said: string;
   better: string;
-  /** In a list: what you said above, the better one under it, every row the same shape however long the phrases. */
-  stacked?: boolean;
+  /**
+   * In a list: the row's value (its count, the day it comes back, the
+   * check). The pair then stacks, what you said on the first line with
+   * the value at its right, the better one under it with the row's whole
+   * width, so every row has one shape however long the phrases.
+   */
+  aside?: ReactNode;
   className?: string;
 }) {
+  const from = (
+    <span className="min-w-0 text-stone-400 line-through">
+      <SwapFrom />
+      {said}
+    </span>
+  );
+  const to = (
+    <span className="flex min-w-0 max-w-full items-center gap-2.5">
+      <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-stone-400">
+        <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
+      </svg>
+      <span className="you-word min-w-0 break-words">
+        <SwapTo />
+        {better}
+      </span>
+    </span>
+  );
+  if (aside !== undefined) {
+    return (
+      <span className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 ${className}`}>
+        {from}
+        <span className="justify-self-end">{aside}</span>
+        <span className="col-span-2 flex min-w-0">{to}</span>
+      </span>
+    );
+  }
   return (
-    <span className={`flex min-w-0 ${stacked ? "flex-col items-start gap-1" : "flex-wrap items-center gap-x-2.5 gap-y-1"} ${className}`}>
-      <span className="text-stone-400 line-through">
-        <SwapFrom />
-        {said}
-      </span>
-      <span className="flex min-w-0 max-w-full items-center gap-2.5">
-        <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-stone-400">
-          <path d="M2.5 8h10.5M9.5 4.5 13 8l-3.5 3.5" />
-        </svg>
-        <span className="you-word min-w-0 break-words">
-          <SwapTo />
-          {better}
-        </span>
-      </span>
+    <span className={`flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 ${className}`}>
+      {from}
+      {to}
     </span>
   );
 }

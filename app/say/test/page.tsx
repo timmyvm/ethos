@@ -242,34 +242,43 @@ export default function SayTest() {
         <div className="pt-[env(safe-area-inset-top)]">
           <BackLink href="/say" label="Say it better" />
         </div>
-        <div className="flex min-h-[156px] flex-1 flex-col items-center justify-end">
+        {/* Demos takes what height is left, down to a small 88 on the
+            shortest phone (the house .demos-fit floor of 150 would push
+            the pairs under the shelf at 568). */}
+        <div className="flex flex-1 flex-col items-center justify-end">
           <SpeechBubble tail="down" className="text-center">
             {endLine(said, queue.length)}
           </SpeechBubble>
-          <div className="demos-fit relative mt-2 w-full flex-1">
+          <div className="relative mt-2 max-h-[324px] min-h-[88px] w-full flex-1">
             <div className="demos-fit-room">
               <DemosArt pose={said > 0 ? "celebrate" : "speaking"} size={300} fit grounded />
             </div>
           </div>
         </div>
-        {/* Each pair in the page's list shape (what you said, the better
-            one under it), the check or the day it comes back at its right. */}
-        <ul className="mt-4" data-say-end-list>
+        {/* Each pair in the page's list shape: what you said with the
+            check or the day it comes back at its right, the better one
+            under it with the row's whole width. */}
+        <ul className="mt-3" data-say-end-list>
           {queue.map((q) => {
             const r = results[q.swap.key];
             return (
-              <li key={q.swap.key} className="flex min-h-12 items-center gap-3 py-2 text-detail font-normal">
-                <SwapPair said={q.swap.said} better={q.swap.better} stacked className="flex-1" />
-                {r === "said" ? (
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sage-600 text-white">
-                    <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 7.4l2.6 2.6L11 4.4" />
-                    </svg>
-                    <span className="sr-only">Said out loud</span>
-                  </span>
-                ) : (
-                  <span className="font-display shrink-0 text-row font-semibold text-stone-500">{r ? "Back tomorrow" : "Not yet"}</span>
-                )}
+              <li key={q.swap.key} className="py-1.5 text-detail font-normal">
+                <SwapPair
+                  said={q.swap.said}
+                  better={q.swap.better}
+                  aside={
+                    r === "said" ? (
+                      <span className="flex size-6 items-center justify-center rounded-full bg-sage-600 text-white">
+                        <svg aria-hidden width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 7.4l2.6 2.6L11 4.4" />
+                        </svg>
+                        <span className="sr-only">Said out loud</span>
+                      </span>
+                    ) : (
+                      <span className="font-display text-row font-semibold text-stone-500">{r ? "Back tomorrow" : "Not yet"}</span>
+                    )
+                  }
+                />
               </li>
             );
           })}
@@ -278,14 +287,10 @@ export default function SayTest() {
             hides it under the shelf. */}
         <FooterShelf hairline={false}>
           <p className="mb-3 text-center text-body text-stone-500">Next, say one in today&apos;s practice.</p>
+          {/* One tap. The way back to the list is the back row above. */}
           <Link href={practice()} className={ACTION_CLASS}>
             Today&apos;s practice
           </Link>
-          <div className="mt-1 flex justify-center">
-            <Link href="/say" className="press flex min-h-11 items-center rounded-tap px-4 text-link text-stone-500">
-              Done
-            </Link>
-          </div>
         </FooterShelf>
       </main>
     );

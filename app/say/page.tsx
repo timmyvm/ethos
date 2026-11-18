@@ -284,8 +284,12 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
                         onClick={() => setOpen(v)}
                         className={`press-row ${ROW}`}
                       >
-                        <SwapPair said={v.swap.said} better={v.swap.better} stacked className="flex-1" />
-                        <span className="font-display shrink-0 text-row font-semibold tabular-nums text-sage-700">{count}</span>
+                        <SwapPair
+                          said={v.swap.said}
+                          better={v.swap.better}
+                          aside={<span className="font-display text-row font-semibold tabular-nums text-sage-700">{count}</span>}
+                          className="flex-1"
+                        />
                       </button>
                     </li>
                   );
@@ -312,8 +316,12 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
                         onClick={() => setOpen(v)}
                         className={`press-row ${ROW}`}
                       >
-                        <SwapPair said={v.swap.said} better={v.swap.better} stacked className="flex-1" />
-                        <span className="font-display shrink-0 text-row font-semibold text-stone-500">{when}</span>
+                        <SwapPair
+                          said={v.swap.said}
+                          better={v.swap.better}
+                          aside={<span className="font-display text-row font-semibold text-stone-500">{when}</span>}
+                          className="flex-1"
+                        />
                       </button>
                     </li>
                   );

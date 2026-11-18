@@ -10,6 +10,10 @@ import { CountUp } from "@/components/CountUp";
  * recording), never a label beside it. Its change goes under it, through
  * `Trend` (components/ui/TrendMark.tsx).
  *
+ * Presence, the app's other number out of 1000, is drawn by the same
+ * line under its own "Your Presence" eyebrow (the #493 review), and so
+ * is Today's This week tile.
+ *
  * `value` null is unknown, a dash, never zero (E33). `count` rolls it up
  * on arrival (#245); `still` draws the number as it is, for a glance
  * holding its place before it counts.

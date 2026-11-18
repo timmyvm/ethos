@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { CountUp } from "@/components/CountUp";
+import { Fragment, type CSSProperties } from "react";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { signed, type WeekView } from "@/lib/home";
+import type { WeekView } from "@/lib/home";
+import { EthosScore } from "@/components/ui/EthosScore";
+import { Trend } from "@/components/ui/TrendMark";
 import { DURATION } from "@/lib/motion";
 
 /**
@@ -26,16 +27,14 @@ export function WeekTiles({ week }: { week: WeekView }) {
   /* Six weekly slots, this week last; a week before day one has no
      column at all, never a zero. */
   const slots: (number | null)[] = [...Array(Math.max(0, 6 - week.weeks.length)).fill(null), ...week.weeks];
-  const moved = index
-    ? [
-        index.week !== null ? `${signed(index.week)} this week` : null,
-        index.since !== null ? `${signed(index.since)} since day one` : null,
-      ]
-        .filter(Boolean)
-        .join(", ")
-    : "";
-  /* Up is earned (sage); a drop is said in stone, never in red. */
-  const up = index !== null && (index.week ?? index.since ?? 0) >= 0;
+  /* Each change the one way every screen writes it (#493 review): the
+     triangle and the size, no sign ("−28 this week, +51 since day one"
+     was a fifth spelling). A change of nothing is not said, as the Log's
+     stage and the results leave a zero out. Up is earned (sage); a drop
+     is said in stone, never in red, each in its own colour. */
+  const moved: [number, string][] = [];
+  if (index?.week) moved.push([index.week, "this week"]);
+  if (index?.since) moved.push([index.since, "since day one"]);
 
   return (
     <div className="arrive mt-3 grid grid-cols-2 gap-3">
@@ -49,23 +48,24 @@ export function WeekTiles({ week }: { week: WeekView }) {
         className="home-tile press col-span-2"
       >
         {index && index.series.length > 1 && <Hill values={index.series} />}
-        <h3 className="eyebrow text-ink">Ethos Index</h3>
-        <p className="font-display mt-3 flex items-baseline text-num-hero tabular-nums">
+        {/* The Ethos number as the Log's stage, the results and a stored
+            recording draw it (#493 review): "Your Ethos" over the score
+            line. It was "Ethos Index" over "662" and a smaller "/1000". */}
+        <h3 className="eyebrow text-ink">Your Ethos</h3>
+        <EthosScore value={index ? index.now : null} size="hero" count durationMs={DURATION.max} className="mt-3" />
+        <p className="font-display mt-1 min-h-[18px] text-caption font-bold tabular-nums">
           {index ? (
-            <>
-              <CountUp value={index.now} durationMs={DURATION.max} />
-              <span className="home-unit">/1000</span>
-            </>
+            moved.map(([delta, against], i) => (
+              <Fragment key={against}>
+                {i > 0 && <span className="text-stone-500">, </span>}
+                <span className={delta > 0 ? "text-sage-700" : "text-stone-500"}>
+                  <Trend delta={delta} against={against} />
+                </span>
+              </Fragment>
+            ))
           ) : (
-            <span className="text-stone-400">&ndash;</span>
+            <span className="font-normal text-stone-500">Your first recording sets it.</span>
           )}
-        </p>
-        <p
-          className={`font-display mt-1 min-h-[18px] text-caption font-bold ${
-            up ? "text-sage-700" : "text-stone-500"
-          }`}
-        >
-          {index ? moved : <span className="font-normal text-stone-500">Your first recording sets it.</span>}
         </p>
       </Link>
 

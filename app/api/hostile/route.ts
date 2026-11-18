@@ -52,6 +52,7 @@ import {
   clientIp,
   consumeRateLimit,
   limitMessage,
+  noteGuestFull,
   refundRateLimit,
   type LimitTier,
 } from "@/lib/rate-limit";
@@ -256,6 +257,7 @@ async function handle(req: NextRequest, spend: Spend) {
   if (!auth || auth.anonymous) {
     const all = await consumeRateLimit(GUEST_CEILING, "guestall");
     if (!all.allowed) {
+      noteGuestFull("hostile", all);
       return NextResponse.json(
         { error: GUEST_FULL_COPY, guestFull: true, retryAfterS: all.retryAfterS },
         { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }

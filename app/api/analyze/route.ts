@@ -32,7 +32,7 @@ import {
   type AnalyzeLine,
 } from "@/lib/analyze-stream";
 import { coachRep, tier2Scores, type CoachOutput } from "@/lib/coach";
-import { StageClock, stageLine } from "@/lib/analyze-timing";
+import { StageClock, providerError, stageLine } from "@/lib/analyze-timing";
 import { tokenSubject } from "@/lib/token-subject";
 import { COLD_TOPICS } from "@/lib/cold-topics";
 import { bossXpMultiplier, lastBossWeek, parseBossWeek } from "@/lib/boss";
@@ -58,6 +58,7 @@ import {
   clientIp,
   consumeRateLimit,
   limitMessage,
+  noteGuestFull,
   refundRateLimit,
   analyzeTier,
 } from "@/lib/rate-limit";
@@ -492,6 +493,7 @@ async function handleTake(
     );
   }
   if (all && !all.allowed) {
+    noteGuestFull("analyze", all);
     return NextResponse.json(
       { error: GUEST_FULL_COPY, rateLimited: true, guestFull: true, retryAfterS: all.retryAfterS },
       { status: 429, headers: { "Retry-After": String(all.retryAfterS) } }
@@ -741,15 +743,31 @@ async function handleTake(
   if (scorable && judgedAllowed) {
     clock.mark("coachStart");
     const [coachResult, accuracyResult] = await Promise.allSettled([
-      coachRep(transcription.text, metrics, tier1, anchors, startedAt + COACH_BUDGET_MS, (n) => {
-        clock.coachAttempts = n;
-      }),
+      coachRep(
+        transcription.text,
+        metrics,
+        tier1,
+        anchors,
+        startedAt + COACH_BUDGET_MS,
+        (n) => {
+          clock.coachAttempts = n;
+        },
+        (u) => clock.addUsage(u)
+      ),
       bossTopic
         ? judgeAccuracy(transcription.text, bossTopic, startedAt + COACH_BUDGET_MS)
         : Promise.resolve(null),
     ]);
     clock.mark("coachEnd");
     coach = coachResult.status === "fulfilled" ? coachResult.value : null;
+    /* A coach that threw used to vanish into allSettled: a spend cap or an
+       outage at Anthropic read in the logs as nothing at all (docs/scale/
+       audit.md M2, M9). Its status and error type go on the take's line;
+       the take is stored measured, the read not spent, as before. */
+    if (coachResult.status === "rejected") {
+      clock.coachError = providerError(coachResult.reason);
+      console.error("analyze coach failed", clock.coachError);
+    }
     accuracy =
       accuracyResult.status === "fulfilled" ? accuracyResult.value : null;
   }

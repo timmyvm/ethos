@@ -29,7 +29,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAuthHeader } from "@/lib/db";
-import { GUEST_CEILING, clientIp, consumeRateLimit } from "@/lib/rate-limit";
+import { GUEST_CEILING, clientIp, consumeRateLimit, noteGuestFull } from "@/lib/rate-limit";
 import { SAY_AUDIO_BYTES, SAY_LIMITED, checkLine, cleanPhrase } from "@/lib/say";
 import { transcribe } from "@/lib/transcribe";
 
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
   const shared =
     own.allowed && auth.user.anonymous ? await consumeRateLimit(`say:guest:ip:${clientIp(req.headers)}`, "say") : own;
   const verdict = shared.allowed && auth.user.anonymous ? await consumeRateLimit(GUEST_CEILING, "guestall") : shared;
+  if (!verdict.allowed && verdict !== shared) noteGuestFull("say", verdict);
   if (!verdict.allowed) {
     return json(
       { error: SAY_LIMITED, retryAfterS: verdict.retryAfterS },

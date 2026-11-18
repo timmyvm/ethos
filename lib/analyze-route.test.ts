@@ -783,6 +783,8 @@ describe("guests on one address share a ceiling (#416)", () => {
   });
 
   it("turns a guest away at the ceiling before Whisper, says how to go on, and gives its own slots back", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    onTestFinished(() => warn.mockRestore());
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "anon-3", anonymous: true });
     vi.mocked(consumeRateLimit).mockImplementation(async (subject: string) =>
@@ -801,6 +803,8 @@ describe("guests on one address share a ceiling (#416)", () => {
     expect(refundRateLimit).toHaveBeenCalledWith("u:anon-3");
     expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => /^guest:ip:/.test(s))).toBe(true);
     expect(vi.mocked(refundRateLimit).mock.calls.some(([s]) => s === "guest:all")).toBe(false);
+    // The day the ceiling fills is said in the log (scale audit M3).
+    expect(warn.mock.calls.map((c) => String(c[0])).some((l) => l.includes('"evt":"limit.guestall"') && l.includes('"route":"analyze"'))).toBe(true);
     vi.mocked(consumeRateLimit).mockImplementation(async () => ({ allowed: true, window: null, retryAfterS: 0 }));
   });
 
@@ -1865,6 +1869,26 @@ describe("the stage log", () => {
     onTestFinished(() => spy.mockRestore());
     await post(audioForm());
     expect(stageLines(spy)[0].coach_attempts).toBe(2);
+  });
+
+  it("adds the coach's billed tokens, and names a coach that failed (scale audit M9)", async () => {
+    coachedFixture();
+    vi.mocked(coachRep).mockImplementation(async (...args: Parameters<typeof coachRep>) => {
+      args[5]?.(1);
+      args[6]?.({ input_tokens: 800, cache_read_input_tokens: 2_300, cache_creation_input_tokens: 0, output_tokens: 900 } as never);
+      throw Object.assign(new Error("usage limits"), { status: 429, error: { type: "error", error: { type: "rate_limit_error" } } });
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    onTestFinished(() => {
+      info.mockRestore();
+      error.mockRestore();
+    });
+    const res = await post(audioForm());
+    expect(res.status).toBe(200);
+    const [line] = stageLines(info);
+    expect(line).toMatchObject({ coach_in_tok: 800, coach_cache_read_tok: 2_300, coach_out_tok: 900, coach_error: "429 rate_limit_error" });
+    expect(error).toHaveBeenCalledWith("analyze coach failed", "429 rate_limit_error");
   });
 
   it("writes one line for a turned-away take too, with no Whisper time", async () => {

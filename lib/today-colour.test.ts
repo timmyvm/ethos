@@ -205,94 +205,56 @@ describe("Today's card holds white type in every family", () => {
 });
 
 describe("Today's materials", () => {
-  const tiles = src("components/home/HomeTiles.tsx");
-  const week = src("components/home/WeekTiles.tsx");
+  const rows = src("components/home/ModeRows.tsx");
+  const foot = src("components/home/TodayFoot.tsx");
   const hero = src("components/home/HomeHero.tsx");
 
-  /* #495: one number and one line a tile. The percentile bar and its
-     ordinal left the tiles; the trait's colour is its glyph alone. */
-  it("the traits are tiles on the surface: the trait's glyph, its name in ink, its unit in words in stone", () => {
-    expect(tiles).toMatch(/className="home-tile today-trait press/);
-    expect(tiles).not.toMatch(/tone-wash|tone-ink|tone-fill|className=\{`card|className="card/);
-    expect(tiles).toContain('<span className="home-trait-glyph">');
-    expect(tiles).toContain("<TraitGlyph id={id} size={18} />");
-    expect(block(".home-trait-glyph")).toContain("color: var(--tone);");
-    expect(tiles).not.toMatch(/home-bar|ordinal\(/);
-    expect(tiles).toContain('className="home-unit-line text-caption text-pretty text-stone-500"');
+  /* #500, Timothy 18 Nov: "I don't fuck with all the cards on the
+     homepage", and of the two tinted tiles, "it doesn't look that
+     good". The games are rows on the ground, each led by its 3D mark,
+     its name in its picture tone: the colour is in the mark and the
+     name, never in a ground. */
+  it("the games are rows on the ground: no fill, each led by its 3D mark, its name in its tone", () => {
+    expect(rows).toContain("<StatIcon kind={t.id} size={72} />");
+    expect(rows).toMatch(/tone-coral/);
+    expect(rows).toMatch(/tone-sky/);
+    expect(rows).not.toMatch(/elev-|className="card|home-tile/);
+    expect(block("\n.home-mode")).not.toMatch(/background|box-shadow|filter/);
+    expect(block(".home-mode-name")).toContain("color: var(--tone-ink);");
+    // Their press is a wash that lights the row, never a fill at rest.
+    expect(block(".home-mode::before")).toContain("opacity: 0;");
+    expect(block(".home-mode:active::before")).toContain("opacity: 1;");
   });
 
-  /* #478, Timothy 16 Nov: "the glow in today traits is bad so lets remove
-     that. fucks w visual hierarchy". Only the card stands an object. */
-  it("the tiles stand no object and no light: only the card glows", () => {
-    expect(tiles).not.toMatch(/<img|objectSrc|tileObject|artBox|home-tile-glow|home-tile-art/);
-    const rules = home.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(rules).not.toMatch(/\.home-tile-glow|\.home-tile-art/);
-    expect(rules).not.toMatch(/\.home-tile[^{}]*\{[^}]*(?:drop-shadow|radial-gradient)/);
-    expect(block("\n.home-tile")).not.toMatch(/--tone/);
-    // And the two beside the card are flat too: no shadow, no gradient, no object.
-    const modes = src("components/home/ModeTiles.tsx");
-    expect(modes).not.toMatch(/<img|elev-|shadow|glow/);
-    expect(block(".home-mode")).not.toMatch(/shadow|gradient|filter/);
-  });
-
-  /* The glyph is a graphic beside its name: 3:1 on the tile it stands on,
-     the surface step in light and the dark tile's lit top (#212121). */
-  it("each trait's glyph holds 3:1 on its tile in both themes", () => {
-    const tile = { light: token(css, "surface"), dark: "#212121" };
-    for (const [trait, t] of Object.entries(tones(false))) {
-      expect(ratio(t.tone, tile.light), `${trait} light`).toBeGreaterThanOrEqual(3);
-    }
-    for (const [trait, t] of Object.entries(tones(true))) {
-      expect(ratio(t.tone, tile.dark), `${trait} dark`).toBeGreaterThanOrEqual(3);
-    }
-  });
-
-  /*
-   * #478 review: Hostile Q&A's and the boss's tiles are coloured by a
-   * pale ground, and check-colour's band under the card passes them only
-   * while that ground stays under its chroma line (24 of 255). Held here
-   * on purpose, so the pass is the rule and not the mix's luck: a
-   * stronger ground has to raise the pin knowingly. The glyph's ink is a
-   * graphic beside its name, 3:1 on that ground in both themes.
-   */
-  it("Hostile's and the boss's grounds stay a tint under the colour pin's line, their glyphs 3:1 on them", () => {
+  /* The tone's name is text on the page's ground: 4.5:1 in both themes. */
+  it("each game's name in its tone's ink holds 4.5:1 on the ground in both themes", () => {
     const pop = (name: string) => {
       const all = [...css.matchAll(new RegExp(`--pop-${name}:\\s*(#[0-9a-f]{6})`, "gi"))].map((m) => m[1]);
       expect(all.length, name).toBe(2);
       return { light: all[0], dark: all[1] };
     };
-    const pct = (sel: string) => {
-      const m = block(sel).match(/color-mix\(in srgb, var\(--tone-wash\) (\d+)%, var\(--color-surface\)\)/);
-      expect(m, sel).not.toBeNull();
-      return Number(m![1]) / 100;
-    };
-    const p = { light: pct("\n.home-mode"), dark: pct(':root[data-theme="dark"] .home-mode') };
-    const surface = { light: token(css, "surface"), dark: token(darkRoot, "surface") };
     for (const tone of ["coral", "sky"]) {
-      const wash = pop(`${tone}-wash`);
       const ink = pop(`${tone}-ink`);
-      for (const theme of ["light", "dark"] as const) {
-        const ground = mix(wash[theme], surface[theme], p[theme]);
-        const ch = rgb(ground);
-        expect(Math.max(...ch) - Math.min(...ch), `${tone} ${theme} ground ${ground}`).toBeLessThanOrEqual(24);
-        expect(ratio(ink[theme], ground), `${tone} ${theme} glyph`).toBeGreaterThanOrEqual(3);
-      }
+      expect(ratio(ink.light, light.ground), `${tone} light`).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(ink.dark, dark.ground), `${tone} dark`).toBeGreaterThanOrEqual(4.5);
     }
   });
 
-  it("what is earned is sage: the cleared line's check, the run's wave at 3:1 on the tile, the week's days", () => {
-    // Clearing today's line is the sage check; the no-filler run wears
-    // the wave Earned draws, in sage, never Fillers' tone (#495).
-    expect(block(".home-check")).toContain("var(--color-sage-600)");
-    expect(tiles).toContain('<span className="home-run-glyph">');
-    expect(block(".home-run-glyph")).toContain("var(--color-sage-600)");
-    expect(block(':root[data-theme="dark"] .home-run-glyph')).toContain("var(--color-sage-700)");
-    expect(ratio(token(css, "sage-600"), light.surface)).toBeGreaterThanOrEqual(3);
-    expect(ratio(token(darkRoot, "sage-700"), dark.surface)).toBeGreaterThanOrEqual(3);
+  it("the foot is type on the ground: no tile, no object, the numbers in ink", () => {
+    expect(foot).not.toMatch(/<img|StatIcon|objectSrc|elev-|className="card|home-tile/);
+    expect(block("\n.home-foot")).not.toMatch(/background|box-shadow|border/);
+    expect(block(".home-fig-value")).toContain("font-weight: 800;");
+    expect(block(".home-fig-value")).toContain("font-size: 1.5rem;");
+    expect(block(".home-fig-label")).toContain("color: var(--color-stone-600);");
+  });
+
+  it("what is earned is sage: the cleared line's check, the run's wave, the Cold Topic done this week", () => {
+    expect(block('.home-fig-mark[data-mark="check"],\n.home-fig-mark[data-mark="wave"]')).toContain("var(--color-sage-600)");
+    expect(css).toContain(':root[data-theme="dark"] .home-fig-mark[data-mark="wave"] {\n  color: var(--color-sage-700);');
+    expect(block(".home-mode-line[data-done]")).toContain("var(--color-sage-700)");
+    expect(ratio(token(css, "sage-600"), light.ground)).toBeGreaterThanOrEqual(3);
+    expect(ratio(token(darkRoot, "sage-700"), dark.ground)).toBeGreaterThanOrEqual(3);
     expect(block(".home-day[data-on]")).toContain("var(--color-sage-600)");
-    expect(week).toContain("bg-sage-600");
-    expect(ratio(token(css, "sage-600"), light.sand)).toBeGreaterThanOrEqual(3);
-    expect(ratio(token(darkRoot, "sage-600"), dark.sand)).toBeGreaterThanOrEqual(3);
   });
 
   it("the card holds the one tap, 48px, and spin and difficulty as 48px glyphs", () => {
@@ -305,7 +267,7 @@ describe("Today's materials", () => {
     expect(block(".home-glyph")).toMatch(/width: 48px;\s*height: 48px;/);
     expect(hero).toContain('aria-label="Spin a new topic"');
     // Nothing else on Today is terracotta-filled.
-    for (const file of [tiles, week, src("app/page.tsx")]) {
+    for (const file of [rows, foot, src("app/page.tsx")]) {
       expect(file).not.toMatch(/bg-terracotta-500|ACTION_CLASS/);
     }
   });
@@ -404,7 +366,7 @@ describe("Start stands on the card's foot", () => {
  */
 describe("a trait's tone is only ever one of its forms", () => {
   const FORMS = {
-    mark: "an 8px square or dot beside a trait's name, a trait's flat glyph before its name on Today's tiles (#478), a 3px tick on a track, or the underline under a word the transcript counted",
+    mark: "an 8px square or dot beside a trait's name, a 3px tick on a track, or the underline under a word the transcript counted",
     measure: "a ring's arc, a bar on sand, the live waveform's stroke, or the closing note's number (#423)",
     sparkline: "a sparkline",
     chip: "TraitChip",
@@ -427,7 +389,8 @@ describe("a trait's tone is only ever one of its forms", () => {
     // A waiting row's tile keeps its 3px trait tick (#394); a logged
     // recording's date is a bare column and the insight has no rule (D33).
     ".log-date[data-trait]::after": "mark",
-    ".home-trait-glyph": "mark",
+    // The ground a game's 3D mark stands on (#500): its pop tone, a pool.
+    ".home-mode-art::before": "pop",
     // The recording screen's live waveform (S08, D51).
     ".rec-wave": "measure",
     ':root[data-theme="dark"] .rec-wave': "measure",
@@ -556,7 +519,7 @@ describe("the tokens the colour round moved", () => {
     const users = [...css.matchAll(/([^{}]+)\{[^{}]*var\(--color-trough\)[^{}]*\}/g)].map((m) =>
       m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim()
     );
-    expect(users.sort()).toEqual([".home-seg.segmented", ".segmented"]);
+    expect(users.sort()).toEqual([".segmented"]);
   });
   it("a light card's shadow is one tight layer beside its edge", () => {
     const shadow = css.match(/:root \{[^}]*--shadow-1:\s*([^;]+);/);

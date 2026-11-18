@@ -226,6 +226,20 @@ describe("where the line glyphs went", () => {
     }
   });
 
+  /* #500: Hostile Q&A and the Cold Topic lead their rows on Today with
+     their 3D marks (#503), 72px (56 under 360), where the shield and the
+     stopwatch stood on two tinted tiles. Never unlit: the done state is
+     the line's words. */
+  it("Today's two rows wear the modes' 3D marks, lit, at 72 and 56 under 360", () => {
+    const rows = read("components/home/ModeRows.tsx");
+    expect(rows).not.toMatch(/\bIcon(Boss|Stopwatch)\b/);
+    expect(rows).toContain("<StatIcon kind={t.id} size={72} />");
+    expect(rows).not.toMatch(/lit=\{/);
+    const css = read("app/globals.css");
+    expect(css).toMatch(/\.home-mode \{\n  --mark: 72px;/);
+    expect(css).toMatch(/@media \(max-width: 359px\) \{\n  \.home-mode \{\n    --mark: 56px;/);
+  });
+
   it("the line cup is gone from the set; nothing draws it", () => {
     expect(read("components/Icon.tsx")).not.toMatch(/export function IconTrophy/);
   });

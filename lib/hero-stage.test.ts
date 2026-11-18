@@ -91,7 +91,7 @@ describe("Today opens on the object", () => {
 
   it("the page draws the card once, with no Demos anywhere on it", () => {
     expect(page.match(/<HomeHero\b/g)?.length).toBe(1);
-    for (const file of [page, hero, src("components/home/HomeTiles.tsx"), src("components/home/WeekTiles.tsx")]) {
+    for (const file of [page, hero, src("components/home/ModeRows.tsx"), src("components/home/TodayFoot.tsx")]) {
       expect(file).not.toMatch(/DemosArt|DemosClip|demos-/);
     }
   });
@@ -118,16 +118,20 @@ describe("Today opens on the object", () => {
     }
   });
 
-  it("the card is the one lifted thing: no elev-2 under it", () => {
-    for (const file of ["app/page.tsx", "components/home/HomeTiles.tsx", "components/home/WeekTiles.tsx"]) {
-      expect(src(file)).not.toMatch(/\belev-2\b/);
+  /* #500 (Timothy, 18 Nov: "I don't fuck with all the cards on the
+     homepage"): the card is the one box. The games' rows, the foot and
+     the tester's tile stand on the ground: no fill, no edge, no shadow. */
+  it("the card is the one lifted thing and the one box: nothing under it has a fill, an edge or a shadow", () => {
+    for (const file of ["app/page.tsx", "components/home/ModeRows.tsx", "components/home/TodayFoot.tsx"]) {
+      expect(src(file)).not.toMatch(/\belev-\d\b|className="[^"]*\bcard\b/);
     }
-    const tile = home.match(/\n\.home-tile \{([^}]*)\}/)?.[1] ?? "";
-    expect(tile).toContain("background: var(--color-surface);");
-    expect(tile).not.toContain("box-shadow");
-    // In dark the tile takes a hairline inside its edge, never a lift.
-    const dark = home.match(/:root\[data-theme="dark"\] \.home-tile \{([^}]*)\}/)?.[1] ?? "";
-    expect(dark).toMatch(/box-shadow: inset 0 0 0 1px/);
+    const rule = (sel: string) =>
+      [...home.matchAll(new RegExp(`(?:^|\\n)${sel.replace(/[.[\]()]/g, "\\$&")} \\{([^}]*)\\}`, "g"))].map((m) => m[1]).join("\n");
+    for (const sel of [".home-modes", ".home-mode", ".home-mode-words", ".home-foot", ".home-fig", ".home-tile", ".home-freeze"]) {
+      const body = rule(sel);
+      expect(body, sel).not.toMatch(/background|box-shadow|border:|filter/);
+    }
+    expect(home).not.toMatch(/:root\[data-theme="dark"\] \.home-tile \{/);
   });
 });
 
@@ -135,8 +139,8 @@ describe("under the hero, colour is an accent", () => {
   const tabs = [
     "app/page.tsx",
     "components/home/HomeHero.tsx",
-    "components/home/HomeTiles.tsx",
-    "components/home/WeekTiles.tsx",
+    "components/home/ModeRows.tsx",
+    "components/home/TodayFoot.tsx",
     "components/home/AvatarCoin.tsx",
     "app/lessons/page.tsx",
     "components/lessons/LessonCard.tsx",

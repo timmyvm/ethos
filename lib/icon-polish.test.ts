@@ -36,8 +36,9 @@ describe("an icon beside words draws their stem (#474)", () => {
     // selector, the words, icon px, words px, stem per em
     [".screen-bar-back > svg", "the back's word, Figtree 600 at 16", 22, 16, STEM.figtree600],
     ["  .tap-arrow-disc > svg", "the tap's word, Outfit 700 at 15", 16, 15, STEM.outfit700],
-    [".home-flag > svg", "Today's line, Outfit 600 at 13", 12, 13, STEM.outfit600],
-    [".home-check > svg", "Today's line, Outfit 600 at 13", 13, 13, STEM.outfit600],
+    // The foot's marks (#500): the flag and the check at 13, the wave at 14, beside Outfit 600 at 13.
+    [".home-fig-mark > svg", "the foot's line, Outfit 600 at 13", 13, 13, STEM.outfit600],
+    ['.home-fig-mark[data-mark="wave"] > svg', "the foot's line, Outfit 600 at 13", 14, 13, STEM.outfit600],
   ];
   for (const [selector, words, size, px, stem] of cases) {
     it(`${selector.trim()} within 5% of ${words}`, () => {
@@ -51,10 +52,14 @@ describe("an icon beside words draws their stem (#474)", () => {
      and wrong on the screen (#474 review). */
   it("measures the icons and words the screens draw", () => {
     expect(read("components/ui/TapArrow.tsx")).toContain("<IconOnward size={16} />");
-    const tiles = read("components/home/HomeTiles.tsx");
-    expect(tiles).toMatch(/<span className="home-flag">\s*<IconFlag size=\{12\} \/>/);
-    expect(tiles).toMatch(/<span className="home-check">\s*<IconCheck size=\{13\} \/>/);
-    expect(tiles).toContain('<span className="eyebrow">Today&apos;s line</span>');
+    const foot = read("components/home/TodayFoot.tsx");
+    expect(foot).toContain("<IconFlag size={13} />");
+    expect(foot).toContain("<IconCheck size={13} />");
+    expect(foot).toContain("<IconWave size={14} />");
+    const label = block(".home-fig-label");
+    expect(label).toContain("font-size: 0.8125rem;");
+    expect(label).toContain("font-weight: 600;");
+    expect(foot).toContain('className="home-fig-label font-display"');
 
     const back = block(".screen-bar-back");
     expect(back).toContain("font-size: 16px;");

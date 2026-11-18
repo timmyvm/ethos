@@ -50,8 +50,8 @@ describe("continuous corners", () => {
   });
 
   it("leave pills, circles and square edges round", () => {
-    const round = block.slice(block.lastIndexOf(".home-seg,"));
-    expect(round).toMatch(/\.home-seg \.segmented-thumb,\s*\.rounded-tap,\s*\.rounded-full,\s*\.rounded-none \{\s*corner-shape: round;/);
+    const round = block.slice(block.lastIndexOf(".rounded-tap,"));
+    expect(round).toMatch(/\.rounded-tap,\s*\.rounded-full,\s*\.rounded-none \{\s*corner-shape: round;/);
   });
 
   it("hand the corner to layers that borrow their surface's radius", () => {

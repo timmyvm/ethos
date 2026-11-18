@@ -322,6 +322,7 @@ describe("dayWords", () => {
     expect(older).toMatch(/Sun/);
     expect(older).toMatch(/15/);
     expect(older).not.toMatch(/2026/);
+    expect(older).not.toMatch(/,/);
     expect(dayWords(new Date(2025, 10, 15, 18, 0).toISOString(), now)).toMatch(/2025/);
   });
 });

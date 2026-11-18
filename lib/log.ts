@@ -305,10 +305,13 @@ export function dayWords(iso: string, now: Date = new Date()): string {
   const back = Math.round((day(now) - day(d)) / 86_400_000);
   if (back === 0) return "Today";
   if (back === 1) return "Yesterday";
-  return d.toLocaleDateString(undefined, {
-    weekday: "short",
+  /* Two reads joined by a space, so no locale puts a comma after the
+     weekday ("Mon, 16 Nov" in en-AU). */
+  const weekday = d.toLocaleDateString(undefined, { weekday: "short" });
+  const date = d.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     ...(d.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
   });
+  return `${weekday} ${date}`;
 }

@@ -130,8 +130,9 @@ async function shoot(theme, [width, height], scenes) {
     }
   };
 
+  /* Daily by address: a side chosen earlier in this context is kept on the phone (lib/log-view.ts). */
   await scene("daily", async () => {
-    await go("/history");
+    await go("/history?view=daily");
     await snap("daily");
     await rows("daily");
     /* Scrolled: the list under the stage, as a thumb takes it. */
@@ -154,25 +155,25 @@ async function shoot(theme, [width, height], scenes) {
   });
   await scene("falling", async () => {
     repsMode.rows = FALLING;
-    await go("/history");
+    await go("/history?view=daily");
     await snap("falling");
     repsMode.rows = null;
   });
   await scene("single", async () => {
     repsMode.rows = SINGLE;
-    await go("/history");
+    await go("/history?view=daily");
     await snap("single");
     repsMode.rows = null;
   });
   await scene("empty", async () => {
     repsMode.rows = [];
-    await go("/history");
+    await go("/history?view=daily");
     await snap("empty");
     repsMode.rows = null;
   });
   await scene("loading", async () => {
     slow = 4000;
-    await page.goto(`${BASE}/history`);
+    await page.goto(`${BASE}/history?view=daily`);
     await page.waitForSelector("main .skeleton", { timeout: 15000 }).catch(() => {});
     await sleep(900);
     await snap("loading");

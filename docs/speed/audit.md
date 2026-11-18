@@ -1,8 +1,78 @@
-# Speed audit: the baseline (18 Nov 2026)
+# Speed audit: the baseline and the fixes (18 Nov 2026)
 
-Timothy, 18 Nov: "I wanna really optimise for speed like really well." This is the measure before anything changes: what a phone on mobile data waits for, where each second goes, and the fixes ranked by what a person on an iPhone feels. No app code changed to make it. The numbers are in `docs/speed/baseline.json`; `scripts/measure-speed.mjs` makes them again against any build.
+Timothy, 18 Nov: "I wanna really optimise for speed like really well." This began as the measure before anything changed, and the fixes that followed (#508) are measured in the next section; the rest of the page is that baseline: what a phone on mobile data waits for, where each second goes, and the fixes ranked by what a person on an iPhone feels. No app code changed to make it. The numbers are in `docs/speed/baseline.json`; `scripts/measure-speed.mjs` makes them again against any build.
 
-## The waits
+## After the fixes (18 Nov 2026, #508)
+
+Thirteen of the ranked fixes are in (1, 2, 3, 5, 6, 8, 11, 12, 13, 14, 17, 18 and 21), with a stage log on `/api/analyze`, each its own commit on `wt-speedfix`. They were measured by the same script, link and CPU as the baseline, against a production build. `docs/speed/pre-fixes.json` is the tree before the first fix (`99de507`, which already held everything merged since the baseline: Today's one card, the room's art, the stars). `docs/speed/post-fixes.json` is the tree after the last fix. Both runs are medians of 3. The baseline column (`54204ca`, `baseline.json`) is there for scale.
+
+| The wait | Baseline | Before the fixes | After | What moved it |
+|---|---|---|---|---|
+| **The wait after Stop** (a 60 s take, the server hears it) | 10.3 s | 10.3 s | **2.3 s** | 1: the take is 174 KB, not 916 KB |
+| **The room's first frame**, a new phone on `/welcome` | 3.7 s | 3.7 s | **1.1 s** | 13: the door is in the server's HTML |
+| **The room from the home-screen icon** (`/`) | 4.7 s | 4.5 s | **1.5 s** | 14: sent on by a head script before Today's code; 13 |
+| **Today, a first open in a tab** (drawn) | 5.5 s | 5.2 s | **4.7 s** | 2, 18: 69 KB less JS on the wire; 3: the worker waits; 6b |
+| Today's LCP, first open | 6.4 s | 6.3 s | **5.2 s** | the same |
+| **The installed app's first open**: splash gone, Today drawn | 4.3 s, 5.5 s | 4.3 s, 5.4 s | **3.7 s, 4.8 s** | 2, 3, 18; 6: the splash lands on the drawn Today |
+| The installed app's later open: splash gone, Today drawn | 2.1 s, 2.5 s | 2.0 s, 2.3 s | **2.8 s, 2.4 s** | 6: the splash waits for the numbers, so it lands on them, never on a skeleton |
+| Today, the day after (a day's first open, cold) | 6.2 s | 6.1 s | **4.6 s** | as Today |
+| **You, first open from Today** | 649 ms | 642 ms | **165 ms** | 12: Today reads You's XP and lexicon once drawn; the guest flag from the stored session |
+| You, a first open in a tab | 5.5 s | 5.2 s | **4.1 s** | 2, 18, 12 |
+| The recorder, first open | 4.2 s | 4.2 s | **3.4 s** | 2, 18: its JS is 102 KB gz lighter |
+| A stored recording | 4.7 s | 4.7 s | **3.9 s** | 2, 18 |
+| The Log | 4.9 s | 4.8 s | **3.9 s** | 2, 18 |
+| Practice | 3.9 s | 4.4 s | **3.7 s** | 18; 11: Demos's clip waits for the screen |
+| The boss, Hostile | 3.4 s, 3.9 s | 3.7 s, 3.9 s | **3.0 s, 3.2 s** | 2, 18, 21 |
+| Today to the recorder (Start) | 540 ms | 297 ms | **318 ms** | unchanged (a regression from 21 caught and fixed, `aa7e3e8`) |
+| JS every page carries (the layout, gz) | 225.7 KB | 226.4 KB | **201.7 KB** | 18: the command menu's keys without its list |
+| JS, Today's route (gz, with the layout) | 425.4 KB | 419.1 KB | **309.7 KB** | 2, 18 |
+| The worker's install | 1.33 MB, 61 files, at `load` | 1.35 MB, 64 files, at `load` | **674 KB, 47 files, after the first screen** | 3 |
+| Calls before Whisper | 3 in a row | 3 in a row | **2 round trips** | 17 |
+
+Notes on the table. "Before the fixes" for the worker comes from a run of that build with its own shell (`pre-fixes.json` filtered the install against the fixed `SHELL`, which hid the icons and the large lesson cuts). The Today-to-trait door is gone from the table: Today has no trait link since #500, so that scene times nothing in either run. The warm open's splash is up 0.75 s longer than before, by design. It used to lift onto Today's skeleton at 2.0 s, and the numbers drew at 2.3 s. Now it lifts once they are drawn.
+
+### Done
+
+| # | What | Commit | Measured |
+|---|---|---|---|
+| 1 | A take is recorded as speech, 32 kbps Opus (`lib/speech-recorder.ts`, the recorder and Hostile) | `7e12772` | 916 KB a minute to 174 KB; the server hears a 60 s take at 2.3 s, not 10.3 s |
+| 2 | zod out of the browser: the Hostile types as interfaces with hand-written guards, the schemas in `lib/hostile-server.ts` | `0b73d3d` | with 18: Today's route 419 to 310 KB gz; every route that read a Hostile record lost about 90 KB |
+| 3 | The worker registers once the first screen is drawn (at the latest 10 s), and pre-caches no app icons or large lesson cuts (`ethos-v21`) | `4c3296b` | 1.35 MB in 64 requests at `load` to 674 KB in 47, after the screen |
+| 5 | Today's spine, profile and freezes kept on the phone between opens (`lib/held.ts` rule 4, per account, never a transcript) | `f422bf9` | the streak, name, plan and rows draw at hydration; the card still waits for its 90-row read (see fix 10) |
+| 6 | The splash lands on a drawn Today, its streak settled (capped at 2.5 s, floor 600 ms), and Demos's face is fetched only on an open that shows the splash | `fa83e66`, `fcb8f85`, `27a8506` | first open: splash gone 4.3 to 3.7 s, Today drawn 5.4 to 4.8 s; 38 KB off every other cold page |
+| 8 | The freeze sync's three reads go together | `31daa63` | two round trips off the streak settling |
+| 11 | What can wait, waits for the first screen: in-card prefetch off but Start, the tab neighbours, Demos's idle clip, the paywall's code | `484fdfd` | Practice cold 4.4 to 3.7 s (with 18) |
+| 12 | You's first open without the waits: the guest flag from the stored session, You's XP and lexicon read by Today once drawn | `3b4fe3e` | You from Today, first time: 642 ms to 165 ms |
+| 13 | The room's door is drawn by the server; a head script hides it from a walk that resumes (#497) and an account's links | `73059c6` | the door at 1.1 s, not 3.7 s |
+| 14 | The home-screen icon goes straight to the room for a first run, from a head script before Today's code | `ff90900`, `41ea218` | `/` to the door 4.5 s to 1.5 s |
+| 17 | The sign-in check and the resend lookup together (the lookup by the token's named account, kept only when the check proves it), the rate limit's slots claimed together | `70151c7` | three calls in a row to two round trips; tens of ms beside the database |
+| 18 | The layout lighter (the command menu's keys without the 365 topics, the sign-in note after the page) and the paywall loaded when asked for, on six screens | `eb95b34` | 24.7 KB gz off every page; with 2, 87 to 112 KB gz off each route that read a Hostile record |
+| 21 | Images at what a 3x phone draws: 768 cuts of the Demos poses, a 720 cut for Today's object | `869119e`, `aa7e3e8` | 39 to 52 KB off each pose (the 768 cut against the 1024); Today's object sharp at 3x |
+| log | One structured line a take from `/api/analyze`: upload, gate, Whisper, coach and its attempts, save, total, size, length, region; nothing personal | `d3882b9` | read a week of it before 15, 16 and 20 |
+
+Two regressions the look loop and the gates caught on the way, both fixed. First, Today's 720 cut made Start's move into the recorder wait on a fetch (297 to 515 ms). The recorder's card now asks for the same file (`aa7e3e8`). Second, the first-run redirect left the graphics boot's alive mark behind, so every new phone's room read a crash: lite graphics for good, no tilt, lines landing whole, and a false crash report (`41ea218`). Two gates were stale and are fixed: check-held still expected You's first visit to wait, and check-room expected a tester code after the test had ended. check-motion-layer's two stagger checks fail the same on the base build.
+
+### Deferred, and why
+
+- **4, static pages from the worker.** Medium risk: a deploy would show on the second open, not the first. It also changes how every navigation is served. It wants its own change, with a version handshake, after a week of field numbers.
+- **7, the tabs' reads without preflights.** It depends on Supabase's `Access-Control-Max-Age`, which is not in the repo (needs Claude). A same-origin rewrite touches sign-in and the Google return paths.
+- **9, a longer access token.** A security trade (a stolen token lives longer, revocation waits for expiry). It is Timothy's call in the Supabase dashboard, not code.
+- **10, Today's 90 rows without the transcripts.** It needs a migration and a backfill (below).
+- **15, the result at `measured`; 16, the coach faster; 20, the take sent while it is spoken.** Each waits on the stage log's week of real Whisper and coach times. 15 and 20 are medium to high risk: the glance is one answer (#427), and the outbox and its resend key.
+- **19, static where nothing is dynamic.** The four pages read their parameters with client hooks (`useSearchParams`, `useParams`, `notFound`). Each would need a server wrapper with `generateStaticParams` and a Suspense boundary, and `/rep/[id]` cannot be listed ahead. That is medium risk for part of the doors' 0.4 to 0.9 s (a lesson, a recording). Not low enough to take here.
+- **18's Supabase split** (`@supabase/auth-js` and `postgrest-js` without realtime and storage): medium risk to sign-in, about 25 KB gz. Left for its own change.
+
+### Fix 10, costed
+
+Today reads its newest 90 recordings whole to judge each one's substance (`measured` in `lib/trait-readings.ts`) and draw the card. For the look loop's account (22 takes), that read is 50 KB and on the critical path: it lands at 5.16 s of a 5.23 s open in `pre-fixes.json`. The transcripts are a third of those bytes (16 KB), the dimensions 28 % (14 KB), the fillers, pauses and the read's text most of the rest. At 90 takes it is about 200 KB, a second on this link.
+
+The proposal: a migration adds `scorable boolean` and `word_count int` to `reps`, written by `/api/analyze` from the same `substance` it already computes, and backfilled once by a script running `substance` over the stored transcripts (no score moves). Today then selects those two instead of `transcript`, and drops the columns it never draws once a reader audit confirms them (the coach's text: `strength`, `supply`, `focus`). On this account that is 50 KB down to about 25 KB, and about 100 KB at 90 takes. The larger step is a per-trait summary from an RPC (a few hundred bytes). It moves the reading rule into SQL, so it is a separate decision.
+
+### Where the server runs
+
+`vercel.json` (`ef98901`) pins every function to `icn1` (Seoul), beside the Supabase project in `ap-northeast-2`. At the baseline the functions ran in `iad1` (Washington), so each of `/api/analyze`'s eight or nine database calls crossed the Pacific. The stage log's `region` field shows where each take ran. The stubs here sit beside the server, so the move does not show in this lab. It shows in the stage log's `gate_ms` and `save_ms`.
+
+## The waits (the baseline)
 
 | The wait | Now, phone on mobile data | Where it goes | First fix |
 |---|---|---|---|
@@ -313,6 +383,6 @@ Ranked by what a person on an iPhone feels: the seconds, times how often they ar
 - **The regions.** No `vercel.json` and no `preferredRegion`, so the functions run where the Vercel project says (default `iad1`); the Supabase project's region is not in the repo. Read both in the dashboards. If they differ, or if both are far from Melbourne, that is the first fix for the wait after Stop (fix 17's round trips multiply) and for every server read.
 - **Real Whisper and Claude times.** Log per stage in `/api/analyze` (upload end, Whisper ms, coach ms and attempts, save ms) and read a week of them before choosing between fixes 15, 16 and 20. The stubs here time everything else exactly.
 - **Supabase's preflight.** `curl -i -X OPTIONS` against the project's `/rest/v1/reps` with the browser's headers: is there an `Access-Control-Max-Age`? It decides how much fix 7 is worth.
-- **32 kbps on real takes.** Before fix 1 ships: three stored takes re-encoded at 32 kbps through Whisper with the same prompt, filler counts compared; and Safari on an iPhone honouring `audioBitsPerSecond` (iOS 18.4 and later records WebM here, STATE.md).
+- **32 kbps on real takes.** Fix 1 is in (`7e12772`). Before it reaches the testers: three stored takes re-encoded at 32 kbps through Whisper with the same prompt, filler counts compared; and Safari on an iPhone honouring `audioBitsPerSecond` (iOS 18.4 and later records WebM here, STATE.md). If Whisper loses fillers, `SPEECH_BITS_PER_SECOND` in `lib/speech-recorder.ts` is the one number to raise (48 kbps is about 350 KB a minute, about 4 s on this uplink).
 - **The field numbers.** Vercel Speed Insights (#285) has the real p75 FCP, LCP and INP from the testers' iPhones; this lab's CPU and link are a model of them. Compare before and after each fix ships.
 - **The cohort's 76 s.** DECISIONS #472's median from Stop to saved; check how much of it was resends (the outbox) and coach retries once the stage log exists.

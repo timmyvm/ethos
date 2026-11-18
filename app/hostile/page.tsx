@@ -522,8 +522,12 @@ export default function HostilePage() {
     if (prefersReducedMotion()) {
       setStill(true);
       setLanded(4);
-      if (won) playSound("round");
-      return;
+      /* On a timer the cleanup clears, as the moving path's is: an effect
+         run twice (React's development double run) still sounds once. */
+      const ring = won ? setTimeout(() => playSound("round"), 0) : null;
+      return () => {
+        if (ring) clearTimeout(ring);
+      };
     }
     setLanded(0);
     const timers = [1, 2, 3, 4].map((n) =>

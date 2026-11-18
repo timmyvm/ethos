@@ -1,0 +1,354 @@
+{
+  "lessons 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "0.8 sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 390x844-light": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 390x844-light": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 390x844-light": {
+    "text": [
+      "3 sentence restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "No sentence restarts in 65 seconds. 0 sentence restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 390x844-light": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts"
+    ]
+  },
+  "you-sheet 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Fewer sentence restarts than 93 in 100 speakers",
+      "Each recording adds its Sentence restarts score as XP."
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts",
+      "Sentence restarts",
+      "Sentence restarts"
+    ]
+  },
+  "command 390x844-light": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": []
+  },
+  "command-old 390x844-light": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": []
+  },
+  "lessons 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "0.8 sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 390x844-dark": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 390x844-dark": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 390x844-dark": {
+    "text": [
+      "3 sentence restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "No sentence restarts in 65 seconds. 0 sentence restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 390x844-dark": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts"
+    ]
+  },
+  "you-sheet 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Fewer sentence restarts than 93 in 100 speakers",
+      "Each recording adds its Sentence restarts score as XP."
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts",
+      "Sentence restarts",
+      "Sentence restarts"
+    ]
+  },
+  "command 390x844-dark": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": []
+  },
+  "command-old 390x844-dark": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": []
+  },
+  "lessons 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "0.8 sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 320x568-light": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 320x568-light": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 320x568-light": {
+    "text": [
+      "3 sentence restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "No sentence restarts in 65 seconds. 0 sentence restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 320x568-light": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts"
+    ]
+  },
+  "you-sheet 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Fewer sentence restarts than 93 in 100 speakers",
+      "Each recording adds its Sentence restarts score as XP."
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts",
+      "Sentence restarts",
+      "Sentence restarts"
+    ]
+  },
+  "lessons 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "0.8 sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 320x568-dark": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 320x568-dark": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 320x568-dark": {
+    "text": [
+      "3 sentence restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "3 sentence restarts in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "No sentence restarts in 65 seconds. 0 sentence restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 320x568-dark": {
+    "text": [
+      "Sentence restarts"
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts"
+    ]
+  },
+  "you-sheet 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Fewer sentence restarts than 93 in 100 speakers",
+      "Each recording adds its Sentence restarts score as XP."
+    ],
+    "labels": [
+      "Sentence restarts, Level 5, 95% of the way to level 6",
+      "Sentence restarts",
+      "Sentence restarts",
+      "Sentence restarts"
+    ]
+  }
+}

@@ -170,7 +170,11 @@ export function DimensionList({
           : `${plural(repairs, "sentence restart")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
               brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute.`
             }`
-      }${brief ? "" : " 0 sentence restarts a minute scores 100; 3 scores 0."}`,
+      }${
+        /* No-break spaces keep each number on its words' line: at 320 the
+           rule broke after "0" (#502's look loop). */
+        brief ? "" : " 0\u00a0sentence restarts a minute scores 100; 3\u00a0scores 0."
+      }`,
       improve:
         repairs > 0
           ? "Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."

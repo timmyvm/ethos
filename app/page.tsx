@@ -154,6 +154,8 @@ export default function Home() {
   const [spineKept, setSpineKept] = useState(false);
   /** A reconciled streak is on screen: the read's bare count never stands in for it. */
   const streakKept = useRef(false);
+  /** The freezes have answered (or failed): the streak on screen is the one that stays. */
+  const [streakSettled, setStreakSettled] = useState(false);
   useLayoutEffect(() => {
     // Today announces when its numbers are drawn (the splash lands on them, #508).
     expectDraw();
@@ -350,8 +352,12 @@ export default function Home() {
     // never dips to the bare count and back.
     if (!quiet && !streakKept.current) setStreak(computeStreak(dates));
     const sync = await readable(() => syncFreezes(dates));
-    if (!sync.ok) return;
+    if (!sync.ok) {
+      setStreakSettled(true);
+      return;
+    }
     setStreak(sync.data.streak);
+    setStreakSettled(true);
     // A rescue is said by the load that made it; a quiet read never unsays it.
     if (!again || sync.data.rescued.length > 0) setRescued(sync.data.rescued.length);
     // Armed once a visit, and at a day's turn, as before: a return to the
@@ -458,15 +464,18 @@ export default function Home() {
   }, [load]);
 
   /* Today's numbers, or the failure that stands in for them, are on
-     screen: the splash may lift onto them, and what waited may go (#508). */
+     screen: the splash may lift onto them, and what waited may go (#508).
+     The streak is one of them: the read's bare count stands until the
+     freezes answer, so the splash waits for the count that stays and
+     never lands on one that then ticks (its cap still bounds the wait). */
   useEffect(() => {
-    if (reps === null && !failed) return;
+    if (!failed && (reps === null || !streakSettled)) return;
     markDrawn();
     if (reps === null) return;
     // You's own reads, once Today is drawn and the phone is idle, so its
     // first open draws from them (lib/warm-you.ts).
     return whenIdle(warmYou, 4000);
-  }, [reps, failed]);
+  }, [reps, failed, streakSettled]);
 
   const history = reps ?? [];
   /* Lifetime numbers count every recording, not the newest 90. */

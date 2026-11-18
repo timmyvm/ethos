@@ -61,10 +61,12 @@ describe("the splash lands on a drawn Today", () => {
     expect(SPLASH_WAIT_CAP_MS).toBeLessThan(Number(fallback![1]) * 1000);
   });
 
-  it("Today says when it is drawn: when its read lands or fails, and when it hands a first run to the room", () => {
+  it("Today says when it is drawn: when its read lands and its streak settles, or the read fails, and when it hands a first run to the room", () => {
     const today = src("app/page.tsx");
     expect(today).toMatch(/useLayoutEffect\(\(\) => \{\s*\/\/[^\n]*\n\s*expectDraw\(\);/);
-    expect(today).toMatch(/if \(reps === null && !failed\) return;\s*markDrawn\(\);/);
+    // Drawn once the read has landed and the freezes have settled the streak (or the read failed).
+    expect(today).toMatch(/if \(!failed && \(reps === null \|\| !streakSettled\)\) return;\s*markDrawn\(\);/);
+    expect(today).toMatch(/if \(!sync\.ok\) \{\s*setStreakSettled\(true\);\s*return;\s*\}\s*setStreak\(sync\.data\.streak\);\s*setStreakSettled\(true\);/);
     expect(today).toMatch(/router\.replace\("\/welcome"\);[\s\S]{0,120}markDrawn\(\);/);
     const lift = src("components/SplashLift.tsx");
     expect(lift).toMatch(/drawExpected\(\)/);

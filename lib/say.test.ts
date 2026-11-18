@@ -262,6 +262,21 @@ describe("the glance's proof line", () => {
     expect(page.slice(page.indexOf("function Results("))).toMatch(/void markHeard\(sayAtLanding\.states, swap\)[\s\S]{0,80}onHeard\?\.\(swap\)/);
   });
 
+  /* The #509 review: the swaps were read once, as the recorder opened.
+     Every take stored with a coach's pair saves that pair (lib/db.ts
+     saveRep), so a Retake or Practice 2 of 3 that said the pair it had just
+     been given proved nothing, and Today's read then marked it heard: the
+     moment the proof exists for, lost for good (probe: coachretake). */
+  it("is read again for every take the recorder opens to, so the pair the last take was given can be proved on the next", () => {
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    const screen = page.slice(0, page.indexOf("function Results("));
+    const read = /const awaitingTake = result === null;\s*useEffect\(\(\) => \{\s*if \(!awaitingTake\) return;[\s\S]{0,120}fetchSwapsForProof\(\)[\s\S]{0,200}\}, \[awaitingTake\]\);/;
+    expect(screen).toMatch(read);
+    // Read after the result's own state, never before it (a hook reading it earlier would throw).
+    expect(screen.indexOf("const awaitingTake")).toBeGreaterThan(screen.indexOf("const [result, setResult]"));
+    expect(screen.match(/fetchSwapsForProof\(\)/g)).toHaveLength(1);
+  });
+
   /* The #509 review: the door waited on Say it better's whole read (every
      swap, their state, 200 recordings' text). On mobile data a tap did
      nothing for as long as that took (probe: the read held 15 s, the

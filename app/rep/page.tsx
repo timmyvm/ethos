@@ -461,20 +461,11 @@ function RepScreen() {
   const carried = useCarriedCue();
   /*
    * Say it better (#507): the account's swaps and their test state, read
-   * once as the recorder opens, so the glance can show when this take used
-   * one (the proof token, #509). A failed read is no proof, never an error.
+   * as the recorder opens for a take, so the glance can show when this
+   * take used one (the proof token, #509). A failed read is no proof,
+   * never an error. Read below, after the result's own state.
    */
   const [sayData, setSayData] = useState<{ swaps: Swap[]; states: SwapStates } | null>(null);
-  useEffect(() => {
-    let live = true;
-    fetchSwapsForProof().then(
-      (d) => live && setSayData(d),
-      () => {}
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
   /* Skipped today on this phone: the tactic stands in its slot until tomorrow. */
   const [warmupGone, setWarmupGone] = useState(() => typeof window !== "undefined" && warmupSkipped(cueDay(new Date())));
   /* While Skip's two slots trade heights, both clip (globals.css `.cue-slot`). */
@@ -654,6 +645,27 @@ function RepScreen() {
   /** The envelope of the recording being scored, drawn during the wait. */
   const [scoringWave, setScoringWave] = useState<number[]>([]);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  /*
+   * Say it better's read, again for every take the recorder opens to (the
+   * #509 review): every take stored with a coach's pair saves that pair
+   * (lib/db.ts saveRep), so a Retake, Practice 2 of 3 or the next lesson
+   * that says the pair it was just given must find it here. Read once, the
+   * screen never knew it, and Today's read then marked it heard: the
+   * moment the proof exists for, lost for good. A read that fails keeps
+   * the last one, with the swaps this screen has shown marked (onHeard).
+   */
+  const awaitingTake = result === null;
+  useEffect(() => {
+    if (!awaitingTake) return;
+    let live = true;
+    fetchSwapsForProof().then(
+      (d) => live && setSayData(d),
+      () => {}
+    );
+    return () => {
+      live = false;
+    };
+  }, [awaitingTake]);
   /**
    * The outbox key the result on screen travelled under (0016): what a
    * tester's match answer is filed by (migration 0020), since the stored

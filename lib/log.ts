@@ -296,6 +296,33 @@ export function bestRecording<T extends { created_at: string; ethos_index: numbe
 }
 
 /**
+ * The Log's list (#506): every recording the account holds, newest
+ * first, from the spine (`fetchRepSpine` reads them all, a few columns
+ * each), less what a cutoff holds back (the free plan's seven days,
+ * counted in `hidden`). Each row is the recording's whole read where the
+ * newest 90 hold it, so a round keeps its level and Hostile its claim,
+ * and the spine's own row past them. Before, the list was the whole
+ * reads alone: past 90 recordings "Recordings 100" stood over 90 rows,
+ * and the oldest ten had no door.
+ */
+export function logList<T extends { id: string; created_at: string }>(
+  spine: readonly T[],
+  whole: readonly T[],
+  cutoff = -Infinity
+): { rows: T[]; hidden: number; total: number } {
+  const every = spine.length > 0 ? spine : whole;
+  const byId = new Map(whole.map((r) => [r.id, r]));
+  const rows: T[] = [];
+  let hidden = 0;
+  for (let i = every.length - 1; i >= 0; i--) {
+    const r = every[i];
+    if (new Date(r.created_at).getTime() < cutoff) hidden += 1;
+    else rows.push(byId.get(r.id) ?? r);
+  }
+  return { rows, hidden, total: every.length };
+}
+
+/**
  * A row's day in words (#506): "Today", "Yesterday", then the weekday
  * and the date ("Sun 15 Nov"), on the phone's own calendar.
  */

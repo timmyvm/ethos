@@ -21,7 +21,7 @@ import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { limit } from "@/lib/entitlement";
 import { readable, readFailure } from "@/lib/load";
-import { bestRecording, dayWords, recordingTopic } from "@/lib/log";
+import { bestRecording, dayWords, logList, recordingTopic } from "@/lib/log";
 import { poolHere } from "@/lib/pool";
 import { ACTION_CLASS } from "@/lib/ui";
 import { usePaywallReturn } from "@/lib/use-paywall-return";
@@ -31,6 +31,8 @@ import { LogRow, LogRowSkeleton } from "@/components/log/LogRow";
 import { LogStage } from "@/components/log/LogStage";
 
 const FREE_DAYS = 7; // mechanics.md: free tier sees the last 7 days
+/** Rows whose number counts in as it lands: more than a first screen holds. */
+const COUNTED_ROWS = 8;
 
 /**
  * The Log (#17, #217; made simple in #506). Timothy, 18 Nov: "what am I
@@ -202,28 +204,25 @@ export default function HistoryPage() {
     );
   }
 
-  const empty = spine.length === 0 && reps.length === 0;
-  const scored = spine.filter((r) => r.ethos_index !== null);
+  /* Every recording the account holds, from the spine (#506 review): the
+     whole reads stop at the newest 90 (`logList`). */
+  const every: RepSpine[] = spine.length > 0 ? spine : reps;
+  const empty = every.length === 0;
+  const scored = every.filter((r) => r.ethos_index !== null);
   const series = scored.map((r) => r.ethos_index as number);
   const firstScored = scored[0] ?? null;
   const lastScored = scored[scored.length - 1] ?? null;
   /* The all-time best over every recording, not the seven days shown:
      the row that holds it wears the cup, if it is in the list. */
-  const best = bestRecording(spine);
-  const isBest = (r: RepRow) =>
-    best !== null && r.created_at === best.created_at && r.lesson_id === best.lesson_id && r.ethos_index === best.ethos_index;
+  const best = bestRecording(every);
+  const isBest = (r: { id: string }) => best !== null && r.id === best.id;
 
   // The 7-day window used to apply to everyone, premium included: the
   // limit was a constant rather than a gate. It reads the entitlement now.
   const days = premium === false ? limit(FREE_DAYS, false) : null;
   const cutoff = days === null ? -Infinity : readAt - days * 86_400_000;
-  const visible = reps.filter((r) => new Date(r.created_at).getTime() >= cutoff);
   // Held back by the free window, counted over every recording.
-  const hidden =
-    days === null
-      ? 0
-      : spine.filter((r) => new Date(r.created_at).getTime() < cutoff).length;
-  const newestFirst = [...visible].reverse();
+  const { rows: newestFirst, hidden, total } = logList<RepSpine>(spine, reps, cutoff);
   /* The topic a lesson's practice spoke on is this phone's pool's (#492),
      as the recorder resolved it. Read once per draw. */
   const pool = newestFirst.length > 0 ? poolHere() : undefined;
@@ -241,7 +240,7 @@ export default function HistoryPage() {
           index={lastScored?.ethos_index ?? null}
           first={firstScored?.ethos_index ?? null}
           series={series}
-          recordings={spine.length || reps.length}
+          recordings={every.length}
           from={firstScored ? shortDate(firstScored.created_at) : undefined}
           to={lastScored ? shortDate(lastScored.created_at) : undefined}
           draw={!heldAtMount}
@@ -260,7 +259,7 @@ export default function HistoryPage() {
         <section aria-labelledby="log-recordings" className="stagger mt-7">
           <h2 id="log-recordings" className="section-head">
             Recordings
-            <span className="section-head-count">{spine.length || reps.length}</span>
+            <span className="section-head-count">{total}</span>
           </h2>
           <div className="mt-1">
             {newestFirst.map((r, i) => {
@@ -282,6 +281,9 @@ export default function HistoryPage() {
                   best={top}
                   label={label}
                   first={i === 0}
+                  /* The first screen's numbers count in; a long
+                     history's hundredth row has nothing to arrive into. */
+                  count={i < COUNTED_ROWS}
                 />
               );
             })}
@@ -300,7 +302,7 @@ export default function HistoryPage() {
                   {hidden} older recording{hidden === 1 ? "" : "s"},{" "}
                   {/* The date holds together: at 320 "5" ended a line
                       over a lone "Oct". */}
-                  <span className="whitespace-nowrap">back to {shortDate(spine[0].created_at)}</span>
+                  <span className="whitespace-nowrap">back to {shortDate(every[0].created_at)}</span>
                 </span>
                 {/* The mark carries the tier (#280), as the door with its
                     word: the row is the door itself. */}

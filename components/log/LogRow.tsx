@@ -28,6 +28,7 @@ export function LogRow({
   best = false,
   label,
   first = false,
+  count = true,
   onOpen,
 }: {
   href: string;
@@ -39,6 +40,8 @@ export function LogRow({
   label: string;
   /** The list's first row takes no rule over it: the head is its edge. */
   first?: boolean;
+  /** False: the number is drawn where it landed, with no count (a row far down a long history). */
+  count?: boolean;
   onOpen?: () => void;
 }) {
   return (
@@ -63,11 +66,13 @@ export function LogRow({
         {best && <StatIcon kind="trophy" size={18} />}
         {index === null ? (
           "—"
-        ) : (
+        ) : count ? (
           /* `max`, not `celebrate`: a row in a list is a value arriving,
              not a recording landing, and 600ms seven rows deep is a
              loading bar. */
           <CountUp value={index} durationMs={DURATION.max} />
+        ) : (
+          index
         )}
       </span>
       <Disclosure className="justify-self-end text-stone-400" />

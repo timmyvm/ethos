@@ -10,6 +10,7 @@ import {
   ethosLine,
   LINE_SPAN,
   linePath,
+  logList,
   recordingName,
   recordingTopic,
   recordingTrait,
@@ -310,6 +311,43 @@ describe("bestRecording", () => {
     expect(bestRecording([at(1, 604)])).toBeNull();
     expect(bestRecording([at(1, 604), at(2, null)])).toBeNull();
     expect(bestRecording([])).toBeNull();
+  });
+});
+
+describe("logList", () => {
+  const at = (n: number) => new Date(Date.UTC(2026, 8, 1) + n * 86_400_000).toISOString();
+  /* A hundred recordings, a day apart, oldest first, as the spine reads them. */
+  const spine = Array.from({ length: 100 }, (_, i) => ({ id: `r${i}`, created_at: at(i), lesson_id: "f1", ethos_index: 600 + i }));
+  /* The newest 90 whole reads, each with something the spine does not hold. */
+  const whole = spine.slice(10).map((r) => ({ ...r, round: { game: "qa", level: 2 } }));
+
+  it("lists every recording, past the newest 90 whole reads (#506 review)", () => {
+    const { rows, total, hidden } = logList(spine, whole);
+    expect(total).toBe(100);
+    expect(rows).toHaveLength(100);
+    expect(hidden).toBe(0);
+    expect(rows[0].id).toBe("r99");
+    expect(rows[rows.length - 1].id).toBe("r0");
+    // Every row is a door: one id each, none twice.
+    expect(new Set(rows.map((r) => r.id)).size).toBe(100);
+  });
+
+  it("draws a recording from its whole read where the newest 90 hold it", () => {
+    const { rows } = logList<{ id: string; created_at: string; round?: unknown }>(spine, whole);
+    expect(rows.find((r) => r.id === "r50")?.round).toEqual({ game: "qa", level: 2 });
+    expect(rows.find((r) => r.id === "r5")?.round).toBeUndefined();
+  });
+
+  it("holds back what the cutoff holds back, and counts it", () => {
+    const { rows, hidden, total } = logList(spine, whole, new Date(at(93)).getTime());
+    expect(rows.map((r) => r.id)).toEqual(["r99", "r98", "r97", "r96", "r95", "r94", "r93"]);
+    expect(hidden).toBe(93);
+    expect(total).toBe(100);
+  });
+
+  it("lists the whole reads when no spine has landed", () => {
+    expect(logList([], whole.slice(-3)).rows.map((r) => r.id)).toEqual(["r99", "r98", "r97"]);
+    expect(logList([], []).total).toBe(0);
   });
 });
 

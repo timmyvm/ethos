@@ -132,7 +132,7 @@ export function nextMilestones(input: ProgressInput): Milestone[] {
         label: `${have + 1}★ on ${lesson.title}`,
         detail:
           have === 0
-            ? "first star: any recording that clears the threshold"
+            ? "first star: a real answer, 20 words or more"
             : `${have} of 3 earned`,
         current: have,
         target: have + 1,

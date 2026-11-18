@@ -8,9 +8,12 @@ import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
 import { DURATION } from "@/lib/motion";
+import { glanceCues, type GlanceWin } from "@/lib/sound-recipes";
+import { useSoundCues } from "@/lib/use-sound-cues";
 import { MomentChip } from "@/components/rep/MomentChip";
 import { Says, SAID_AFTER_MS } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
+import { StarGoals } from "@/components/StarGoals";
 import { Stars } from "@/components/Stars";
 import type { TakeAudio } from "@/components/TakeAudio";
 import type { TraitId } from "@/content/traits";
@@ -19,7 +22,7 @@ import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import type { GlanceMoment, GlancePart, SheetSection } from "@/lib/glance";
-import type { FillerHit, RepMetrics, Word } from "@/lib/metrics";
+import { starGoals, type FillerHit, type RepMetrics, type Word } from "@/lib/metrics";
 import { scoreLine, splitTomorrow } from "@/lib/coach-line";
 
 /**
@@ -155,6 +158,7 @@ export function RepResult({
   sheet = null,
   moment = false,
   rulesNote = null,
+  sounds = null,
 }: {
   result: ResultView;
   topic?: ColdTopic | null;
@@ -262,6 +266,13 @@ export function RepResult({
    * recording never sets this.
    */
   rulesNote?: string | null;
+  /**
+   * On the live glance: what the take won beyond its stars, for its
+   * sounds (#505, lib/sound-recipes.ts `glanceCues`). A ding as each star
+   * lands, the payout on three, then the take's biggest moment. A stored
+   * recording never sets this: a sound is for the moment it was earned.
+   */
+  sounds?: Omit<GlanceWin, "stars"> | null;
 }) {
   const show = (s: ResultSection) => section === "all" || section === s;
   const debrief = section === "score";
@@ -332,6 +343,12 @@ export function RepResult({
     const t = setTimeout(() => setCounting(true), lead);
     return () => clearTimeout(t);
   }, [waiting, counting, lead]);
+  /* The glance's sounds (#505), on the stars' own clock, once they go. */
+  useSoundCues(
+    glancing && timed && !waiting && sounds
+      ? glanceCues({ ...sounds, stars: m.stars }, { landAfter, starStep: STAR_STEP_MS, starMs: STAR_MS, reduced })
+      : null
+  );
   const bubbleAt = timed && !reduced ? starsDone + (celebrate ? 240 : 0) : 0;
   const [celebrating, setCelebrating] = useState(false);
   useEffect(() => {
@@ -1049,7 +1066,7 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
     <div className={centred ? "flex flex-col items-center" : "mt-5"}>
       {centred && (
         <span className="[&>span]:gap-3!">
-          <Stars n={1} size={40} arch />
+          <Stars n={m.stars} size={40} arch />
         </span>
       )}
       <h2 className={`font-display text-title ${centred ? "mt-5" : ""}`}>
@@ -1060,14 +1077,9 @@ function NotScored({ metrics: m, centred = false }: { metrics: RepMetrics; centr
           ? `${m.substance.wordCount} word${m.substance.wordCount === 1 ? "" : "s"} isn't enough yet. Give it 60 to 90 seconds and a real answer.`
           : "Almost all of that was the same few words repeated. Say something you'd have to think about."}
       </p>
-      {centred ? (
-        <p className="mt-1.5 text-caption text-stone-500">1 star, nothing measured</p>
-      ) : (
-        <div className="mt-3 flex items-center gap-2">
-          <Stars n={1} size={18} />
-          <span className="text-caption text-stone-500">1 star, nothing measured</span>
-        </div>
-      )}
+      {/* No star text (#504): "1 star, nothing measured" named the star
+          handed for showing up, and a take with nothing to score earns
+          none. The title says it. */}
     </div>
   );
 }
@@ -1297,10 +1309,13 @@ function Glance({
         greetAfterMs={greet}
       />
     );
+  /* The three stars, each with its goal under it (#504): what each one
+     asks of a take this long, lit where the take met it. */
+  const goals = starGoals(m.durationS);
   const stars = (n: number, after: number) => (
-    <span className={`[&>span]:gap-3! ${waiting ? "invisible" : ""}`}>
-      <Stars key={waiting ? "wait" : "land"} n={n as 1 | 2 | 3} size={starSize} arch land={live && !waiting} landAfterMs={after} />
-    </span>
+    <div className={`w-full ${waiting ? "invisible" : ""}`}>
+      <StarGoals key={waiting ? "wait" : "land"} n={n} goals={goals} size={starSize} land={live && !waiting} landAfterMs={after} />
+    </div>
   );
 
   /* Demos in his room, his line over his head: everywhere but a phone
@@ -1331,15 +1346,10 @@ function Glance({
           </>
         ) : !scorable ? (
           <>
-            {/* The one star a take too short to score still earns, named
-                where it stands (the review: a gold star over "Not enough
-                to score." was an earned glyph with no label). */}
-            <span className="[&>span]:gap-3!">
-              <Stars n={1} size={starSize} arch />
-            </span>
-            <p data-unscored-star className="mt-1 text-caption text-stone-500">
-              1 star for showing up
-            </p>
+            {/* A take too short to score meets no goal, and its stars say
+                so with their goals under them (#504): it was handed one
+                "for showing up", which is participation (#10). */}
+            {stars(m.stars, 0)}
             <h2 className="font-display mt-3 text-title">Not scored</h2>
           </>
         ) : (

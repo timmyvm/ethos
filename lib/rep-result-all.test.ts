@@ -104,7 +104,9 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
   it("renders exactly as it did at #484", () => {
     expect(renderToStaticMarkup(createElement(RepResult, { result: view, section: "all" }))).toMatchSnapshot();
   });
-  it("and a stored recording that could not be scored, likewise", () => {
+  /* #504: its "1 star, nothing measured" row went with the star handed
+     for showing up; the title says it, and nothing names a star. */
+  it("and a stored recording that could not be scored, likewise, with no star text", () => {
     const unscored: ResultView = {
       ...view,
       metrics: { ...metrics, substance: { wordCount: 12, distinctRatio: 0.9, repeatShare: 0 }, stars: 1 } as RepMetrics,
@@ -112,7 +114,9 @@ describe("RepResult section=\"all\", the Log's page (#427)", () => {
       coach: null,
       scorable: false,
     };
-    expect(renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }))).toMatchSnapshot();
+    const out = renderToStaticMarkup(createElement(RepResult, { result: unscored, section: "all" }));
+    expect(out).not.toMatch(/\bstars?\b/i);
+    expect(out).toMatchSnapshot();
   });
 
   /* Timothy, 12 Nov (#458), each in his words. */

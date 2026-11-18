@@ -32,6 +32,7 @@ export function CountUp({
   durationMs = DURATION.celebrate,
   className,
   format = round,
+  onClimb,
 }: {
   value: number;
   durationMs?: number;
@@ -44,6 +45,12 @@ export function CountUp({
    * degrades the number underneath it is worse than no tick.
    */
   format?: (value: number) => string;
+  /**
+   * Told when the count starts, from where to where and for how long
+   * (0 under reduced motion, where the number lands at once), and given
+   * back a way to stop: XP today's ticks on You (#505, `tickClimb`).
+   */
+  onClimb?: (from: number, to: number, durationMs: number) => (() => void) | void;
 }) {
   const [shown, setShown] = useState(value);
   const raf = useRef(0);
@@ -52,9 +59,14 @@ export function CountUp({
   const place = `${usePathname()}#${value}`;
 
   useEffect(() => {
-    if (prefersReducedMotion() || countedBefore(place, value)) {
+    if (countedBefore(place, value)) {
       setShown(value);
       return;
+    }
+    if (prefersReducedMotion()) {
+      setShown(value);
+      const stop = onClimb?.(value, value, 0);
+      return () => stop?.();
     }
     rememberCounted(place, value);
     // Start low enough to feel like a climb without a silly long count.
@@ -71,14 +83,19 @@ export function CountUp({
       setShown(t < 1 ? from + (value - from) * eased : value);
       if (t < 1) raf.current = requestAnimationFrame(tick);
     };
+    let stop: (() => void) | void;
     const cancel = afterSplash(() => {
       start = performance.now();
       raf.current = requestAnimationFrame(tick);
+      stop = onClimb?.(from, value, durationMs);
     }, browserSplashEnv());
     return () => {
       cancel();
       cancelAnimationFrame(raf.current);
+      stop?.();
     };
+    // `onClimb` is read when a count starts; a new one mid-count changes nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, durationMs, place]);
 
   return <span className={className}>{format(shown)}</span>;

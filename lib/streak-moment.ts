@@ -29,7 +29,7 @@
 
 import { celebratesStreak } from "./rep-screen";
 import { weekStart } from "./level";
-import { CHIME, MILESTONE_CHIME } from "./sfx";
+import { STREAK_LAND_S } from "./sound-recipes";
 import { SPRING, springMs } from "./spring";
 import { DURATION } from "./motion";
 import { computeStreak, type StreakState } from "./streak";
@@ -55,7 +55,7 @@ export interface StreakMomentView {
   bridged: Date[];
   /** The local day it belongs to (`dayKey`), for once a day. */
   day: string;
-  /** 7, 14 and 30 days: the chime is the milestone's (#140). */
+  /** 7, 14 and 30 days: the sound is the milestone's (#140, #505). */
   milestone: boolean;
 }
 
@@ -165,9 +165,10 @@ export function freezeLine(bridged: Date[]): string | null {
 
 /**
  * The moment's clock, in ms from its first frame. The screen arrives,
- * the flame lights as the chime starts, and the count rolls on the
- * chime's landing note (#226), with today's day filling under it; the
- * line comes in once the count has turned. Reduced motion draws the end.
+ * the flame lights as its sound starts, and the count rolls on the
+ * sound's landing note (#226, #505: `STREAK_LAND_S`), with today's day
+ * filling under it; the line comes in once the count has turned.
+ * Reduced motion draws the end.
  */
 export function momentTimeline(milestone: boolean): {
   lightAt: number;
@@ -176,9 +177,8 @@ export function momentTimeline(milestone: boolean): {
   lineAt: number;
   end: number;
 } {
-  const notes = milestone ? MILESTONE_CHIME : CHIME;
   const lightAt = DURATION.max;
-  const rollAt = lightAt + Math.round(notes[notes.length - 1].at * 1000);
+  const rollAt = lightAt + Math.round((milestone ? STREAK_LAND_S.milestone : STREAK_LAND_S.daily) * 1000);
   const rollMs = springMs(SPRING.base);
   const lineAt = rollAt + DURATION.base;
   return { lightAt, rollAt, rollMs, lineAt, end: Math.max(rollAt + rollMs, lineAt + DURATION.base) };

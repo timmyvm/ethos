@@ -37,6 +37,8 @@ import { ALL_FILLERS } from "@/lib/metric-labels";
 import { WPM_ZONE } from "@/lib/log";
 import { PermissionHelp } from "@/components/PermissionHelp";
 import { buzz, prefersReducedMotion } from "@/lib/prefs";
+import { playSound, unlockSound } from "@/lib/sound";
+import { hostileWon } from "@/lib/sound-recipes";
 import { holdAwake } from "@/lib/wake-lock";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
@@ -55,8 +57,10 @@ import type { AnalyzeResponse } from "@/app/api/analyze/route";
  * order. "You said" lands a word at a time, then, 300ms later, the
  * question as the screen's title, while Record is live from the first
  * frame. The verdict's three rows land one at a time, 300ms apart, each
- * number rolling, then Demos's line. Nothing chimes: they are a model's
- * read, and the screen labels them so. The end offers another claim
+ * number rolling, then Demos's line. A claim held at the Strong band
+ * (70) wins the round, and its row lands on the round's sound (#505,
+ * Timothy: "give them the dopamine"); a claim that did not hold is
+ * silent, never a buzzer. The end offers another claim
  * when a round is left, and goes back where you came from: Today since
  * #478 opens it as well as Practice (`?from=today`).
  *
@@ -419,7 +423,9 @@ export default function HostilePage() {
     // The take is the counted part; an answer mid-session never is.
     if (take.current === null && capped) return;
     try {
-      // The browser's own audio session, which has a microphone (lib/audio-session.ts).
+      // The tap licenses the verdict's sound later (#505); then the
+      // browser's own audio session, which has a microphone (lib/audio-session.ts).
+      unlockSound();
       setAudioSession("auto");
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -506,18 +512,27 @@ export default function HostilePage() {
   }
 
   /* The verdict lands in order: each row 300ms after the last, its
-     number rolling, then Demos's line. Reduced motion shows the end. */
+     number rolling, then Demos's line. Reduced motion shows the end, and
+     keeps the sound: the switch silences, motion does not. A held claim
+     wins the round, and "Held the claim" lands on its sound (#505). */
   useEffect(() => {
     if (phase !== "verdict" || !verdict) return;
+    const won = hostileWon(verdict.held.score);
     if (prefersReducedMotion()) {
       setStill(true);
       setLanded(4);
-      return;
+      /* On a timer the cleanup clears, as the moving path's is: an effect
+         run twice (React's development double run) still sounds once. */
+      const ring = won ? setTimeout(() => playSound("round"), 0) : null;
+      return () => {
+        if (ring) clearTimeout(ring);
+      };
     }
     setLanded(0);
     const timers = [1, 2, 3, 4].map((n) =>
       setTimeout(() => setLanded(n), ROW_LEAD_MS + (n - 1) * BEAT_MS)
     );
+    if (won) timers.push(setTimeout(() => playSound("round"), ROW_LEAD_MS));
     return () => timers.forEach(clearTimeout);
   }, [phase, verdict]);
 

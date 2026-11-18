@@ -70,7 +70,7 @@ const L: Record<string, [string, TipGlyph]> = {
   'Said "um" anyway? Keep going. Starting over costs more.': ['Said "um"? Keep going', "end"],
   'Need a moment? Slow down instead of saying "um".': ['Slow down, skip the "um"', "slow"],
   "Know your next point before this one ends. Most ums come in between.": ["Know your next point", "start"],
-  'Every star needs under 3 slip-ups a minute: an "um", a "like" or a restart.': ["Under 3 slip-ups", "cut"],
+  'Three stars means under 3 slips a minute: an "um", a "like" or a restart.': ["Under 3 slips a minute", "cut"],
   "Aim for 130 to 160 words a minute, the speed of a calm chat.": ["Talk at calm chat speed", "slow"],
   "Take a full breath at the end of each sentence. It keeps you from rushing.": ["Breathe at full stops", "pause"],
   "Go quicker through the background, slower on the part that matters.": ["Slow down for the point", "slow"],

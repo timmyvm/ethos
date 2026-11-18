@@ -37,7 +37,7 @@
  * tap. Leaving /welcome closes it (`closeIntroSound`).
  */
 
-import { readPrefs } from "./prefs";
+import { closeSound, playBlips, soundContext, unlockSound } from "./sound";
 
 export type Rng = () => number;
 
@@ -80,119 +80,32 @@ export function talkBlip(rng: Rng = Math.random): Blip {
   };
 }
 
-type AudioContextCtor = new () => AudioContext;
+/*
+ * One kit (#505): the context, the switch, the priming and the gate are
+ * the app's (lib/sound.ts). The introduction's first tap makes the
+ * context every later sound in the app plays through; the room borrows
+ * it for its pops and its mic's level; leaving the walk closes it, and
+ * the next tap that asks for sound (Record) makes a new one.
+ */
 
-let ctx: AudioContext | null = null;
-
-function ctor(): AudioContextCtor | undefined {
-  if (typeof window === "undefined") return undefined;
-  const w = window as unknown as { AudioContext?: AudioContextCtor; webkitAudioContext?: AudioContextCtor };
-  return w.AudioContext ?? w.webkitAudioContext;
-}
-
-/** The walk's context, if a tap has made one. */
-export function introContext(): AudioContext | null {
-  return ctx && ctx.state !== "closed" ? ctx : null;
-}
-
-/** One silent sample: what an older iPhone needs, inside a gesture, before a context may sound. */
-function prime(c: AudioContext): void {
-  try {
-    const b = c.createBuffer(1, 1, c.sampleRate);
-    const s = c.createBufferSource();
-    s.buffer = b;
-    s.connect(c.destination);
-    s.start(0);
-  } catch {}
-}
+/** The walk's context, if a tap has made one: the app's. */
+export const introContext = soundContext;
 
 /**
- * Inside a tap: make the context if there is none, and while it is not
- * running, play one silent sample and wake it. Returns the context, or
- * null where there is no Web Audio (the walk plays on, mute). Cheap to
- * call on every tap: an awake context is left alone.
- *
- * The sample and the wake ride on every tap until one takes (#501
- * review), not only on the tap that made the context: the first event
- * of a tap is its pointerdown, which WebKit does not count as the
- * gesture, so on an iPhone the context is made there and only the same
- * tap's touchend can let it sound.
+ * Inside a tap: the app's context, made, primed and woken on every tap
+ * until it runs (lib/sound.ts `unlockSound`).
  */
-export function unlockIntroSound(): AudioContext | null {
-  if (!introContext()) {
-    const C = ctor();
-    try {
-      ctx = C ? new C() : null;
-    } catch {
-      ctx = null;
-    }
-  }
-  const c = introContext();
-  if (c && c.state !== "running") {
-    prime(c);
-    void c.resume().catch(() => {});
-  }
-  return c;
-}
+export const unlockIntroSound = unlockSound;
 
-/**
- * Leaving the walk (#501 review): its context goes with it, as the
- * room's own did before the walk shared one, so nothing holds the
- * phone's audio awake on every screen after the introduction. A later
- * visit makes a new one on its first tap.
- */
-export function closeIntroSound(): void {
-  const c = ctx;
-  ctx = null;
-  if (c && c.state !== "closed") void c.close().catch(() => {});
-}
-
-/** Whether a blip may sound now: Sound on, and a running context. */
-function live(): AudioContext | null {
-  const c = introContext();
-  if (!c || c.state !== "running") return null;
-  if (!readPrefs().sound) return null;
-  return c;
-}
-
-function play(c: AudioContext, b: Blip): void {
-  const at = c.currentTime + 0.005 + b.at;
-  const end = at + b.attackS + b.decayS;
-  const g = c.createGain();
-  g.gain.setValueAtTime(0.0001, at);
-  g.gain.linearRampToValueAtTime(b.peak, at + b.attackS);
-  g.gain.exponentialRampToValueAtTime(0.0001, end);
-  const lp = c.createBiquadFilter();
-  lp.type = "lowpass";
-  lp.frequency.value = LOWPASS_HZ;
-  const o = c.createOscillator();
-  o.type = b.type;
-  o.frequency.setValueAtTime(b.freq, at);
-  if (b.endFreq !== b.freq) o.frequency.exponentialRampToValueAtTime(b.endFreq, end);
-  o.connect(g).connect(lp).connect(c.destination);
-  o.start(at);
-  o.stop(end + 0.03);
-  o.onended = () => {
-    try {
-      lp.disconnect();
-    } catch {}
-  };
-}
+/** Leaving the walk: the app's context closes, and a later tap makes a new one (`closeSound`). */
+export const closeIntroSound = closeSound;
 
 /** A word landing in Demos's bubble. */
 export function playTalk(): void {
-  const c = live();
-  if (!c) return;
-  try {
-    play(c, talkBlip());
-  } catch {}
+  playBlips([talkBlip()]);
 }
 
 /** An answer chosen. */
 export function playPick(): void {
-  const c = live();
-  if (!c) return;
-  try {
-    for (const b of PICK) play(c, b);
-  } catch {}
+  playBlips(PICK);
 }

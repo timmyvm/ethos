@@ -107,6 +107,10 @@ describe("Today's practice in the person's pool, on every surface (#489)", () =>
     );
   });
 
+  /* A year of days through every shape is about 4s alone and 7 to 9s in
+     the full suite on a loaded machine, past vitest's 5s (#500's run). */
+  const YEAR_WALK_MS = 30_000;
+
   /* Under 18 on the phone, under 18 on the account; and the same for an
      age never given, on both sides. */
   for (const [who, ageBand] of [
@@ -141,7 +145,7 @@ describe("Today's practice in the person's pool, on every surface (#489)", () =>
       }
       // Six places of the shipped walks hold a job prompt; a year meets each twice or three times.
       expect(standIns).toBeGreaterThanOrEqual(12);
-    });
+    }, YEAR_WALK_MS);
   }
 
   it("gives a grown-up exactly what the card gave before, on the card, the command menu and the reminder", () => {
@@ -165,7 +169,7 @@ describe("Today's practice in the person's pool, on every surface (#489)", () =>
     }
     // The grown-up's walk still holds the job prompts on their days.
     expect(jobDays).toBeGreaterThan(0);
-  });
+  }, YEAR_WALK_MS);
 
   it("never moves today's line with the pool: it reads the trait, which no pool changes", () => {
     let lines = 0;

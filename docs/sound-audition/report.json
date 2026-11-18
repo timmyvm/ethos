@@ -1,0 +1,217 @@
+{
+  "rate": 44100,
+  "rendered": "Chromium OfflineAudioContext, the kit's own master chain",
+  "stackPeakDbfs": -0.6,
+  "sounds": [
+    {
+      "id": "star-1",
+      "label": "One star: a real answer",
+      "seconds": 0.96,
+      "peakDbfs": -5.3,
+      "truePeakDbfs": -5.2,
+      "lufs": -20.8,
+      "bytes": 12270,
+      "cues": "star-1@0"
+    },
+    {
+      "id": "star-2",
+      "label": "Second star",
+      "seconds": 1.21,
+      "peakDbfs": -2.6,
+      "truePeakDbfs": -2.6,
+      "lufs": -18.4,
+      "bytes": 15405,
+      "cues": "star-2@0"
+    },
+    {
+      "id": "star-3",
+      "label": "Third star",
+      "seconds": 1.61,
+      "peakDbfs": -2.1,
+      "truePeakDbfs": -2.1,
+      "lufs": -16.9,
+      "bytes": 20107,
+      "cues": "star-3@0"
+    },
+    {
+      "id": "payout",
+      "label": "Three stars: the payout",
+      "seconds": 2.41,
+      "peakDbfs": -2,
+      "truePeakDbfs": -2,
+      "lufs": -16.7,
+      "bytes": 29824,
+      "cues": "payout@0"
+    },
+    {
+      "id": "lesson",
+      "label": "A lesson done",
+      "seconds": 1.86,
+      "peakDbfs": -2.3,
+      "truePeakDbfs": -2.2,
+      "lufs": -17,
+      "bytes": 23241,
+      "cues": "lesson@0"
+    },
+    {
+      "id": "level",
+      "label": "A level reached",
+      "seconds": 1.72,
+      "peakDbfs": -7,
+      "truePeakDbfs": -6.9,
+      "lufs": -16.6,
+      "bytes": 21360,
+      "cues": "level@0"
+    },
+    {
+      "id": "best",
+      "label": "A personal best",
+      "seconds": 1.87,
+      "peakDbfs": -4.6,
+      "truePeakDbfs": -4.6,
+      "lufs": -15.9,
+      "bytes": 23241,
+      "cues": "best@0"
+    },
+    {
+      "id": "round",
+      "label": "A round won (a game, or Hostile's claim held)",
+      "seconds": 1.41,
+      "peakDbfs": -4.9,
+      "truePeakDbfs": -4.9,
+      "lufs": -17.4,
+      "bytes": 17599,
+      "cues": "round@0"
+    },
+    {
+      "id": "boss",
+      "label": "The week's boss done",
+      "seconds": 2.28,
+      "peakDbfs": -3.1,
+      "truePeakDbfs": -3.1,
+      "lufs": -17.4,
+      "bytes": 28257,
+      "cues": "boss@0"
+    },
+    {
+      "id": "streak",
+      "label": "The streak: the flame lights, the count rolls",
+      "seconds": 1.39,
+      "peakDbfs": -6.1,
+      "truePeakDbfs": -6.1,
+      "lufs": -18.5,
+      "bytes": 17599,
+      "cues": "streak@0"
+    },
+    {
+      "id": "streak-milestone",
+      "label": "The streak at 7, 14 or 30 days",
+      "seconds": 2.09,
+      "peakDbfs": -6.8,
+      "truePeakDbfs": -6.8,
+      "lufs": -17.4,
+      "bytes": 25749,
+      "cues": "streak-milestone@0"
+    },
+    {
+      "id": "tick",
+      "label": "One XP tick",
+      "seconds": 0.44,
+      "peakDbfs": -14.7,
+      "truePeakDbfs": -14.6,
+      "lufs": -35.5,
+      "bytes": 6000,
+      "cues": "tick@0"
+    },
+    {
+      "id": "glance-1",
+      "label": "The results: one star",
+      "seconds": 1.62,
+      "peakDbfs": -5,
+      "truePeakDbfs": -5,
+      "lufs": -20.1,
+      "bytes": 20107,
+      "cues": "star-1@660"
+    },
+    {
+      "id": "glance-2",
+      "label": "The results: two stars",
+      "seconds": 1.99,
+      "peakDbfs": -2.1,
+      "truePeakDbfs": -2.1,
+      "lufs": -15.8,
+      "bytes": 24809,
+      "cues": "star-1@660 star-2@780"
+    },
+    {
+      "id": "glance-3",
+      "label": "The results: three stars, paid out",
+      "seconds": 3.55,
+      "peakDbfs": -1.7,
+      "truePeakDbfs": -1.7,
+      "lufs": -14.1,
+      "bytes": 43303,
+      "cues": "star-1@660 star-2@780 star-3@900 payout@1140"
+    },
+    {
+      "id": "glance-2-lesson",
+      "label": "A lesson's last practice, two stars",
+      "seconds": 2.88,
+      "peakDbfs": -2.1,
+      "truePeakDbfs": -2.1,
+      "lufs": -16,
+      "bytes": 35467,
+      "cues": "star-1@660 star-2@780 lesson@1020"
+    },
+    {
+      "id": "glance-3-lesson",
+      "label": "A lesson's last practice, three stars",
+      "seconds": 3.7,
+      "peakDbfs": -1.7,
+      "truePeakDbfs": -1.7,
+      "lufs": -13.3,
+      "bytes": 45184,
+      "cues": "star-1@660 star-2@780 star-3@900 payout@1140 lesson@1840"
+    },
+    {
+      "id": "glance-2-best",
+      "label": "A personal best, two stars",
+      "seconds": 2.89,
+      "peakDbfs": -2.1,
+      "truePeakDbfs": -2.1,
+      "lufs": -15.7,
+      "bytes": 35467,
+      "cues": "star-1@660 star-2@780 best@1020"
+    },
+    {
+      "id": "glance-3-boss",
+      "label": "The week's boss, three stars",
+      "seconds": 4.12,
+      "peakDbfs": -1.7,
+      "truePeakDbfs": -1.7,
+      "lufs": -13.6,
+      "bytes": 50200,
+      "cues": "star-1@660 star-2@780 star-3@900 payout@1140 boss@1840"
+    },
+    {
+      "id": "glance-2-level",
+      "label": "A level reached, two stars",
+      "seconds": 2.74,
+      "peakDbfs": -2.1,
+      "truePeakDbfs": -2.1,
+      "lufs": -15.2,
+      "bytes": 33586,
+      "cues": "star-1@660 star-2@780 level@1020"
+    },
+    {
+      "id": "xp-10",
+      "label": "XP today counting up by 10",
+      "seconds": 0.74,
+      "peakDbfs": -12.8,
+      "truePeakDbfs": -12.7,
+      "lufs": -30.6,
+      "bytes": 9762,
+      "cues": "tick@18 tick#1@38 tick#2@62 tick#3@92 tick#4@135 tick#5@300"
+    }
+  ]
+}

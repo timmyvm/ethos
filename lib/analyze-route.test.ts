@@ -480,7 +480,8 @@ describe("POST /api/analyze", () => {
     const body = await (await post(audioForm())).json();
     expect(body.scorable).toBe(false);
     expect(body.ethosIndex).toBeNull();
-    expect(body.metrics.stars).toBe(1);
+    // No real answer, no star (#504): it was handed one "for showing up".
+    expect(body.metrics.stars).toBe(0);
     expect(body.metrics.fillerCount).toBe(0); // still true, just not a win
     // No point burning an LLM call on it either.
     expect(coachRep).not.toHaveBeenCalled();

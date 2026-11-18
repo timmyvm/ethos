@@ -2,8 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { NO_INDEX_LINE, RepResult, type GlanceView, type ResultView } from "@/components/RepResult";
-import { countWords, fitGlance, glanceLine, sheetSections } from "./glance";
-import { computeMetrics, type RepMetrics } from "./metrics";
+import { countWords, fitGlance, glanceLine, GLANCE_WORDS, sheetSections, starsBudget } from "./glance";
+import { computeMetrics, starGoals, type RepMetrics } from "./metrics";
 
 /*
  * The glance and its sheet (DECISIONS #427), rendered: what goes on the
@@ -59,8 +59,10 @@ describe("the glance", () => {
   const html = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: view }));
   /* The #427 review: a bare "▲ 3" said nothing about what it was against;
      its words are on the screen again, paid for by "first ▶0:02". */
-  it("holds the score, the delta with its words, Demos's line with its moment and the cue, nothing else", () => {
-    expect(visible(html)).toBe("665 /1000 ▲ 3 since last time 4 fillers, first 0:02 Practice 2: under 4.");
+  it("holds the stars' goals, the score, the delta with its words, Demos's line with its moment and the cue, nothing else", () => {
+    expect(visible(html)).toBe(
+      "20+ words Under 12 slips Under 4 slips 665 /1000 ▲ 3 since last time 4 fillers, first 0:02 Practice 2: under 4."
+    );
     expect(html).not.toContain("sr-only\">Up 3");
   });
   it("binds the word before the chip to it, and leaves no stop floating after it", () => {
@@ -95,17 +97,34 @@ describe("the glance", () => {
     const fixed = ["The cold open", "+1", "665", "/1000", "▲ 3 since last time", "Every number", "Practice 2 of 3", "Retake"];
     const fit = fitGlance({ fixed, line: g.sentence, cue: g.cue, earned: null });
     expect(fit.words).toBe(25);
-    expect(countWords([...fixed, visible(html).replace("665 /1000 ▲ 3 since last time ", "")].join(" "))).toBeLessThanOrEqual(25);
+    /* The stars' goals ride on the ceiling (#504): Demos's line keeps its cue. */
+    const goals = starGoals(62);
+    const withGoals = fitGlance({ fixed: [...fixed, ...goals], line: g.sentence, cue: g.cue, earned: null }, starsBudget(GLANCE_WORDS, goals));
+    expect(withGoals.cue).toBe(g.cue);
+    expect(withGoals.words).toBe(33);
+    const shown = visible(html).replace("665 /1000 ▲ 3 since last time ", "");
+    expect(countWords([...fixed, shown].join(" "))).toBeLessThanOrEqual(starsBudget(GLANCE_WORDS, goals));
   });
-  it("on an unscored take: one star with its label, the title, and the reason in Demos's words", () => {
-    const unscored = { ...result, ethosIndex: null, scorable: false, coach: null, metrics: { ...metrics, substance: { wordCount: 12, distinctRatio: 0.9, repeatShare: 0 } } };
+  /* #504: each star with its goal under it, lit where the take met it,
+     and a screen reader told which, never by colour alone. */
+  it("puts each star's goal under it, met or open, and says which", () => {
+    expect(html.match(/data-star-goal="met"/g)).toHaveLength(2);
+    expect(html.match(/data-star-goal="open"/g)).toHaveLength(1);
+    expect(html).toContain('aria-label="2 of 3 stars"');
+    expect(html).toMatch(/Under 12 slips<span class="sr-only">, earned<\/span>/);
+    expect(html).toMatch(/Under 4 slips<span class="sr-only">, not earned<\/span>/);
+  });
+  it("on an unscored take: no star, each goal open, the title, and the reason in Demos's words", () => {
+    const unscored = { ...result, ethosIndex: null, scorable: false, coach: null, metrics: { ...metrics, stars: 0 as const, substance: { wordCount: 12, distinctRatio: 0.9, repeatShare: 0 } } };
     const u = glanceLine({ trait: "fillers", metrics: unscored.metrics, scorable: false, lead: "Practice 2:" });
     const out = renderToStaticMarkup(
       createElement(RepResult, { result: unscored, section: "glance", glance: { parts: u.parts, moment: null, cue: null, earned: null } })
     );
-    /* The review: a gold star over "Not enough to score" was an earned
-       glyph with no label. */
-    expect(visible(out)).toBe("1 star for showing up Not scored 12 words. Give it 60 to 90 seconds.");
+    /* #504: it was handed one star "for showing up"; a take with no real
+       answer meets no goal, and its stars say so with no line of their own. */
+    expect(visible(out)).toBe("20+ words Under 12 slips Under 4 slips Not scored 12 words. Give it 60 to 90 seconds.");
+    expect(out).not.toContain('data-star-goal="met"');
+    expect(out).not.toContain("showing up");
     expect(out).not.toContain("nothing measured");
   });
 });

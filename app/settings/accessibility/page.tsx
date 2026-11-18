@@ -5,6 +5,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { InfoRow, PAGE_CLASS, Section, Toggle } from "@/components/settings/Rows";
 import { applyMotion } from "@/components/Theme";
 import { DEFAULT_PREFS, readPrefs, writePrefs, type Prefs } from "@/lib/prefs";
+import { playSound, unlockSound } from "@/lib/sound";
 import { hapticsHere } from "@/lib/tap-tick";
 import { askedTextZoom } from "@/lib/text-size";
 
@@ -81,9 +82,17 @@ export default function AccessibilityPage() {
       <Section title={canBuzz ? "Sound and haptics" : "Sound"}>
         <Toggle
           label="Sound"
-          note="One chime at the streak celebration."
+          note="For stars, lessons and your streak."
           on={prefs.sound}
-          onChange={(v) => update({ sound: v })}
+          onChange={(v) => {
+            update({ sound: v });
+            /* Turned on, it makes the kit's context in this tap and plays
+               the one-star sound, so the switch says what it switched (#505). */
+            if (v) {
+              unlockSound();
+              playSound("star-1", { force: true });
+            }
+          }}
         />
         {canBuzz && (
           <Toggle

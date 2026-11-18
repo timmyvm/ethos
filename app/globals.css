@@ -1666,6 +1666,21 @@ body::after {
 }
 
 /*
+ * A star's goal on the results (#504, components/StarGoals.tsx): grey
+ * while its star is still to land, sage the moment it does, on the same
+ * clock, so the words never say "earned" before the star has.
+ */
+@keyframes goal-land {
+  from {
+    color: var(--color-stone-500);
+  }
+}
+.goal-land {
+  animation: goal-land var(--duration-max) var(--ease-out) backwards;
+  animation-delay: calc(var(--land-after, 0ms) + var(--i, 0) * 120ms);
+}
+
+/*
  * The recording ring (DECISIONS #228). It grows out of the button when
  * the mic opens and shrinks back into it on Stop, so the ring says
  * where recording came from; since D51 it is the take's progress, not
@@ -2004,7 +2019,7 @@ body::after {
   animation-name: fade-in;
   animation-delay: 0ms;
 }
-:root[data-motion="reduce"] :is(.fill, .fill-y, .rec-ring) {
+:root[data-motion="reduce"] :is(.fill, .fill-y, .rec-ring, .goal-land) {
   animation: none;
   transition: none;
   transform: none;

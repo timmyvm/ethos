@@ -35,7 +35,12 @@
  * Shots: LOOK_OUT, default docs/look/results-lighter/, as
  * <tag>-<variant>-<size>-<beat>-<s0|full>.png, and a JSON report of every
  * count beside them. LOOK_STRIP=1 adds the sheet's rise as a strip (0,
- * 80, 160, 240, 400ms); LOOK_BLUR=7 blurs the glance for the squint test.
+ * 80, 160, 240, 400ms); LOOK_LAND=1 shoots the glance's top as the stars
+ * land over their goals (#504); LOOK_BLUR=7 blurs the glance for the
+ * squint test. Every lit goal must be one the served take meets and
+ * every open one one it misses (#504 review). LOOK_SOUND=1 logs the
+ * notes the glance starts (#505); LOOK_SOUND=off does it with Settings'
+ * Sound off and fails on any note; both fail a note before the Record tap.
  */
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -53,7 +58,26 @@ const SIZES = (process.env.LOOK_SIZES ?? "390x844-light,390x844-dark,375x667-lig
   return { w, h, theme, name: s };
 });
 const BLUR = Number(process.env.LOOK_BLUR ?? 0);
+/** The words of the goals under the stars (#504), as the camera counts words. */
+const STAR_GOAL_WORDS = () => {
+  const g = document.querySelector("main [data-star-goals]");
+  if (!g) return 0;
+  let t = "";
+  const w = document.createTreeWalker(g, NodeFilter.SHOW_TEXT);
+  while (w.nextNode()) if (!w.currentNode.parentElement?.closest(".sr-only")) t += ` ${w.currentNode.nodeValue}`;
+  return t.split(/\s+/).filter((x) => /[A-Za-z0-9]/.test(x)).length;
+};
 const STRIP = process.env.LOOK_STRIP === "1";
+const LAND = process.env.LOOK_LAND === "1";
+/* LOOK_SOUND=1 (#505): every oscillator the page starts is logged, and
+   after the glance the sounds it played are printed as clusters (when,
+   after the glance's first frame, and the notes' fundamentals), so the
+   stars' dings, the payout and the moment can be checked on the clock. */
+const SOUND = process.env.LOOK_SOUND === "1" || process.env.LOOK_SOUND === "off";
+/* LOOK_SOUND=off (#505 review): the same log with Settings' Sound off,
+   which must start no note at all; either way no note may start before
+   the Record tap, the first gesture the page is given. */
+const SOUND_OFF = process.env.LOOK_SOUND === "off";
 mkdirSync(OUT, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const failures = [];
@@ -97,7 +121,7 @@ const bodies = {
       ...A.metrics,
       durationS: 9, wordCount: 12, wpm: 80, fillerCount: 1, fillersPerMin: 6.7,
       fillers: [A.metrics.fillers[0]], fillerCounts: { um: 1 }, topFiller: "um",
-      repairCount: 0, repairsPerMin: 0, pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 1,
+      repairCount: 0, repairsPerMin: 0, pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 0,
       substance: { wordCount: 12, distinctRatio: 0.92, repeatShare: 0 },
     },
     coach: null, ethosIndex: null, scorable: false, pauseHeadline: null,
@@ -283,6 +307,37 @@ for (const size of SIZES) {
     css.textContent = "nextjs-portal{display:none!important}";
     document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
   });
+  if (SOUND_OFF) {
+    await context.addInitScript(() => {
+      try {
+        const p = JSON.parse(localStorage.getItem("ethos.prefs") ?? "{}");
+        localStorage.setItem("ethos.prefs", JSON.stringify({ ...p, sound: false }));
+      } catch {}
+    });
+  }
+  if (SOUND) {
+    await context.addInitScript(() => {
+      const log = (window.__sounds = []);
+      const lands = (window.__lands = []);
+      /* The kit sets each pitch at its note's time, so the pitch is read from that call. */
+      const set = AudioParam.prototype.setValueAtTime;
+      AudioParam.prototype.setValueAtTime = function (v) {
+        if (this.__first === undefined) this.__first = v;
+        return set.apply(this, arguments);
+      };
+      const start = OscillatorNode.prototype.start;
+      OscillatorNode.prototype.start = function (when) {
+        const lead = Math.max(0, (when ?? 0) - this.context.currentTime);
+        const f = this.frequency.__first ?? this.frequency.value;
+        log.push({ t: performance.now() + lead * 1000, f: Math.round(f * 100) / 100 });
+        return start.apply(this, arguments);
+      };
+      /* When each star's landing starts, on the same clock. */
+      document.addEventListener("animationstart", (e) => {
+        if (e.animationName === "star-land") lands.push(Math.round(performance.now()));
+      });
+    });
+  }
   if (VARIANT === "video") {
     await context.addInitScript(() => {
       try {
@@ -369,6 +424,27 @@ for (const size of SIZES) {
         return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
       });
       ceiling += Math.min(16, noteWords);
+      /* The stars' goals ride on it too, up to 8 (#504, GLANCE_WORDS_STARS). */
+      const goalWords = await page.evaluate(STAR_GOAL_WORDS);
+      ceiling += Math.min(8, goalWords);
+      if (TAG !== "before" && goalWords === 0) fail(`${at} ${name}: no goal under the stars (#504)`);
+      /* Each lit goal is one the served take meets, and each open one it
+         does not (#504 review): a fixture's stars once lit "Under 4 slips"
+         on a take with 5. Slips are its fillers and restarts. */
+      if (TAG !== "before" && goalWords > 0) {
+        const goals = await page.$$eval("main [data-star-goal]", (els) =>
+          els.map((e) => ({ met: e.dataset.starGoal === "met", text: (e.firstChild?.nodeValue ?? "").trim() }))
+        );
+        const served = bodies[VARIANT]().metrics;
+        const slips = served.fillerCount + served.repairCount;
+        const real = goals[0]?.met === true;
+        for (const g of goals.slice(1)) {
+          const n = g.text === "No slips" ? 1 : Number(/^Under (\d+) slips$/.exec(g.text)?.[1] ?? NaN);
+          const should = real && slips < n;
+          if (!Number.isFinite(n) || g.met !== should)
+            fail(`${at} ${name}: "${g.text}" is ${g.met ? "lit" : "open"} on a take with ${slips} slips`);
+        }
+      }
       if (VARIANT === "rules" && TAG !== "before" && noteWords === 0) fail(`${at} ${name}: no note under the delta on the first take under #476`);
       const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
@@ -403,6 +479,10 @@ for (const size of SIZES) {
   }
   await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(900);
+  if (SOUND) {
+    const before = await page.evaluate(() => window.__sounds.length);
+    if (before > 0) fail(`${at}: ${before} note(s) started before the Record tap`);
+  }
   await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
   /* Five seconds of the fake mic, so the glance's first moment (0:01.7
@@ -421,18 +501,50 @@ for (const size of SIZES) {
   /* The landing: the results' first frame, then when the tap is live. */
   await page.waitForSelector("main .arrive-x", { timeout: 30000 });
   const t0 = Date.now();
+  const soundT0 = SOUND ? await page.evaluate(() => performance.now()) : 0;
+  /* LOOK_LAND=1 (#504): the stars landing over their goals, the top of
+     the glance at fixed times after its first frame, for a strip. */
+  if (LAND) {
+    for (const at of [0, 400, 650, 800, 950, 1300]) {
+      const wait = at - (Date.now() - t0);
+      if (wait > 0) await sleep(wait);
+      await page.screenshot({ path: `${OUT}${TAG}-${VARIANT}-${size.name}-land-${String(at).padStart(4, "0")}.png`, clip: { x: 0, y: 0, width: size.w, height: 300 } });
+    }
+  }
   await page.waitForSelector("main [data-step-action]", { state: "visible", timeout: 10000 });
   const tapLiveMs = Date.now() - t0;
   const glance = await page.$("main [data-glance]");
   await sleep(glance ? 3200 : 3500);
   entry.tapLiveMs = tapLiveMs;
+  if (SOUND) {
+    await sleep(1500);
+    const notes = await page.evaluate((t0) => window.__sounds.filter((n) => n.t >= t0 - 50).map((n) => ({ ...n, t: Math.round(n.t - t0) })), soundT0);
+    /* A sound's notes start together or within a few ms; a cluster is a gap of 25ms or more. */
+    const clusters = [];
+    for (const n of notes.sort((a, b) => a.t - b.t)) {
+      const last = clusters.at(-1);
+      if (last && n.t - last.end < 25) {
+        last.end = n.t;
+        last.f.add(n.f);
+      } else clusters.push({ t: n.t, end: n.t, f: new Set([n.f]) });
+    }
+    const met = await page.locator('main [data-star-goal="met"]').count();
+    const lands = await page.evaluate((t0) => window.__lands.map((t) => t - Math.round(t0)), soundT0);
+    console.log(`${at} sound: the stars start to land at ${lands.join(", ")}ms`);
+    entry.sounds = clusters.map((c) => ({ atMs: c.t, hz: [...c.f].sort((a, b) => a - b) }));
+    entry.starsMet = met;
+    console.log(`${at} sound: ${met} star(s) met; ${clusters.length} note cluster(s) after the glance's first frame`);
+    if (SOUND_OFF && clusters.length > 0) fail(`${at}: Sound is off and the glance started ${clusters.length} note cluster(s)`);
+    for (const c of clusters.slice(0, 40)) console.log(`  ${String(c.t).padStart(5)}ms  ${[...c.f].sort((a, b) => a - b).slice(0, 6).join(" ")}${c.f.size > 6 ? " …" : ""}`);
+  }
 
   if (glance) {
     /* ---- the glance ----------------------------------------------------- */
     const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : VARIANT === "lesson3" ? 30 : 25;
     await beat("glance", { ceiling });
     console.log(`${at} glance: the tap is live ${tapLiveMs}ms after the first frame`);
-    if (tapLiveMs > 400) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
+    /* LOOK_LAND holds the clock for its frames, so the tap is timed only without it. */
+    if (tapLiveMs > 400 && !LAND) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
 
     /* The chip plays, and keeps playing once the sheet is open. */
     const chip = await page.$("main [data-glance-chip]");
@@ -602,6 +714,10 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
   await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
   await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
   await sleep(900);
+  if (SOUND) {
+    const before = await page.evaluate(() => window.__sounds.length);
+    if (before > 0) fail(`${at}: ${before} note(s) started before the Record tap`);
+  }
   await page.click('button[data-record="start"]', { force: true });
   await page.waitForSelector('button[aria-label="Stop and score this recording"]');
   await sleep(2600);
@@ -625,7 +741,8 @@ if (VARIANT === "daily" && process.env.LOOK_ASK !== "0") {
     const askWords = askText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
     console.log(`daily ${size.name} reminder-ask: ${asked ? `"${askText}", ${m.words} words on the glance` : "not shown"}`);
     if (!asked) fail("the reminder ask did not show on the day's first scored take");
-    if (m.words > 25 + Math.min(16, askWords)) fail(`the glance with the ask says ${m.words} words`);
+    const goalWords = await page.evaluate(STAR_GOAL_WORDS);
+    if (m.words > 25 + Math.min(16, askWords) + Math.min(8, goalWords)) fail(`the glance with the ask says ${m.words} words`);
     if (m.scrollH > m.innerH + 1) fail("the glance with the ask scrolls");
     if (m.taps !== 1) fail(`the glance with the ask has ${m.taps} filled taps`);
     console.log(`daily ${size.name} reminder-ask: largest band ${m.maxBand}pt ${JSON.stringify(m.band)}`);

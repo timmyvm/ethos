@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CHIME, MILESTONE_CHIME } from "./sfx";
+import { RECIPES, STREAK_LAND_S } from "./sound-recipes";
 import { computeStreak } from "./streak";
 import {
   bridgedDays,
@@ -205,11 +205,19 @@ describe("the odometer", () => {
 });
 
 describe("the moment's clock", () => {
-  it("rolls the count on the chime's landing note (#226), after the flame lights", () => {
-    const t = momentTimeline(false);
-    expect(t.rollAt - t.lightAt).toBe(Math.round(CHIME[CHIME.length - 1].at * 1000));
-    const m = momentTimeline(true);
-    expect(m.rollAt - m.lightAt).toBe(Math.round(MILESTONE_CHIME[MILESTONE_CHIME.length - 1].at * 1000));
+  it("rolls the count on the sound's landing note (#226, #505), after the flame lights", () => {
+    for (const [milestone, id] of [
+      [false, "streak"],
+      [true, "streak-milestone"],
+    ] as const) {
+      const t = momentTimeline(milestone);
+      /* The landing note: the figure's loudest, its last and highest. */
+      const figure = RECIPES[id].notes.filter((n) => n.voice === "mallet");
+      const landing = figure.reduce((a, n) => (n.peak > a.peak ? n : a));
+      expect(landing).toBe(figure[figure.length - 1]);
+      expect(t.rollAt - t.lightAt).toBe(Math.round(landing.at * 1000));
+      expect(Math.round(landing.at * 1000)).toBe(Math.round((milestone ? STREAK_LAND_S.milestone : STREAK_LAND_S.daily) * 1000));
+    }
   });
 
   it("brings the line in after the turn and is over inside a second and a half", () => {

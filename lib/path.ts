@@ -184,16 +184,25 @@ export function unitStates(starMap: Record<string, number>): UnitState[] {
 
 /**
  * The next lesson worth doing (#407): the first in an open unit not done
- * yet, so the path moves on after any stars; once every open lesson has
- * some, the first without three. It used to be the first without three
- * from the start, so a lesson left on one or two stars came back ahead
- * of every new one, and a tester read it as Today repeating itself.
+ * yet, so the path moves on after any star; once every open lesson has
+ * one, the first still on one (the second star, fewer slips than 11 a
+ * minute, is the easy one, #504); then the first without three. It used
+ * to be the first without three from the start, so a lesson left on one
+ * or two stars came back ahead of every new one, and a tester read it as
+ * Today repeating itself.
+ *
+ * Since #504 the first star is a real answer (20 words or more), so a
+ * take too thin to score earns none and no longer moves the path on; it
+ * paid one "for showing up" before. The unit gates (`unlocksAt`) keep
+ * their numbers: with the second star easy they open about a lesson
+ * sooner, and the walk above still takes every lesson of an earlier unit
+ * before a later one, so nothing is skipped.
  */
 export function nextLesson(
   starMap: Record<string, number>
 ): { lesson: Drill; unit: Unit } | null {
   const open = unitStates(starMap).filter((u) => !u.locked && !u.boss);
-  for (const below of [1, 3]) {
+  for (const below of [1, 2, 3]) {
     for (const u of open) {
       for (const l of u.lessons) {
         if ((starMap[l.id] ?? 0) < below) return { lesson: l, unit: u };

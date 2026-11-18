@@ -251,6 +251,15 @@ async function storedPremium(userId: string | null): Promise<boolean> {
  */
 const OPTIONAL_COLUMNS = ["client_id", "round"] as const;
 
+/**
+ * The reps table's check refused a take of 0 stars (#504): Postgres's
+ * check violation, naming the stars column's check, for a row that asked
+ * for 0. Anything else is a real failure.
+ */
+export function starsRefused(error: { code?: string; message?: string }, stars: unknown): boolean {
+  return stars === 0 && error.code === "23514" && /stars/i.test(error.message ?? "");
+}
+
 export interface SavedRep {
   id: string;
   audioPath: string | null;
@@ -410,6 +419,13 @@ export async function saveRep(params: {
     );
     if (!missing) break;
     attempt = Object.fromEntries(Object.entries(attempt).filter(([k]) => k !== missing));
+    ({ data, error } = await insert(attempt));
+  }
+  // A take that earned no star (#504) on a table whose check still says
+  // 1 to 3 (migration 0035 is applied by hand): it is stored at 1, as
+  // every take too thin to score was before, rather than not at all.
+  if (error && starsRefused(error, attempt.stars)) {
+    attempt = { ...attempt, stars: 1 };
     ({ data, error } = await insert(attempt));
   }
 

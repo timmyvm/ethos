@@ -8,7 +8,6 @@ import {
   normalizeWord,
   countUnvoicedHesitations,
   detectRepairs,
-  starsForDisfluencyRate,
   substance,
   type Segment,
   type Word,
@@ -164,17 +163,6 @@ describe("detectPauses", () => {
   });
 });
 
-describe("starsForDisfluencyRate", () => {
-  it("applies BUILD-PLAN thresholds", () => {
-    expect(starsForDisfluencyRate(0)).toBe(3);
-    expect(starsForDisfluencyRate(2.99)).toBe(3);
-    expect(starsForDisfluencyRate(3)).toBe(2);
-    expect(starsForDisfluencyRate(5.99)).toBe(2);
-    expect(starsForDisfluencyRate(6)).toBe(1);
-    expect(starsForDisfluencyRate(20)).toBe(1);
-  });
-});
-
 describe("detectRepairs", () => {
   /**
    * The reported case: a phrase run again with a different landing.
@@ -284,7 +272,8 @@ describe("computeMetrics", () => {
     });
     expect(m.fillerCount).toBe(7);
     expect(m.fillersPerMin).toBe(7);
-    expect(m.stars).toBe(1);
+    // 7 slips in a minute: under the second goal's 11, over the third's 3.
+    expect(m.stars).toBe(2);
     expect(m.topFiller).toBe("um");
   });
 
@@ -347,8 +336,9 @@ describe("computeMetrics", () => {
     const m = computeMetrics([], 0);
     expect(m.wpm).toBe(0);
     expect(m.fillerCount).toBe(0);
-    // Silence has a perfect filler rate. It is not a perfect rep.
-    expect(m.stars).toBe(1);
+    // Silence has a perfect filler rate. It is not a perfect rep, and
+    // since #504 it is not a star either.
+    expect(m.stars).toBe(0);
   });
 
   it("falls back to last word end when duration is missing", () => {
@@ -400,7 +390,7 @@ describe("substance gate", () => {
   it("refuses to award stars for saying nothing", () => {
     const m = say(dunno);
     expect(m.fillerCount).toBe(0); // still true
-    expect(m.stars).toBe(1); // no longer 3
+    expect(m.stars).toBe(0); // no longer 3, and since #504 not 1 "for showing up"
   });
 
   it("marks a no-substance rep unscorable", () => {
@@ -422,17 +412,27 @@ describe("substance gate", () => {
     expect(substance(dunno).distinctRatio).toBeLessThan(0.3);
   });
 
-  it("caps but never inflates — variety cannot buy a star", () => {
-    // Rich vocabulary, but 10 fillers a minute is still a one-star rep.
-    const filler = "um you know like " .repeat(10);
-    const m = say(`${filler} the mechanism of compound growth is exponential`, 60);
+  it("never inflates: variety buys the first star and no other", () => {
+    // A real answer with 9 slips in 30 seconds: the first star only.
+    const m = say(
+      "the reason um compound interest matters like is that um starting at twenty " +
+        "you know beats starting at thirty um even if like the second person saves " +
+        "twice as much um every single month you know",
+      30
+    );
+    expect(isScorable(m.substance)).toBe(true);
+    expect(m.fillerCount + m.repairCount).toBeGreaterThanOrEqual(6);
     expect(m.stars).toBe(1);
+  });
+
+  it("gives a take too repetitive to score no star at all", () => {
+    expect(say("um you know like ".repeat(10)).stars).toBe(0);
   });
 
   it("treats a short but varied answer as unscorable, not as a win", () => {
     const short = "yes I agree with that entirely";
     expect(substance(short).wordCount).toBeLessThan(MIN_WORDS_TO_SCORE);
-    expect(say(short).stars).toBe(1);
+    expect(say(short).stars).toBe(0);
   });
 });
 

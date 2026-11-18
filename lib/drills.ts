@@ -71,9 +71,10 @@ export const DRILLS: Drill[] = [
       "Need a moment? Slow down instead of saying \"um\".",
       "Know your next point before this one ends. Most ums come in between.",
       /* The stars read every "um", "like", "basically" and restart
-         together (lib/metrics.ts, starsForDisfluencyRate), so a line
-         naming only ums and restarts promised a star a "like" takes. */
-      "Every star needs under 3 slip-ups a minute: an \"um\", a \"like\" or a restart.",
+         together as slips (lib/metrics.ts, starsFor), so a line naming
+         only ums and restarts promised a star a "like" takes. The third
+         star is under 3 a minute since #504; it said "every star". */
+      "Three stars means under 3 slips a minute: an \"um\", a \"like\" or a restart.",
     ],
   },
   {

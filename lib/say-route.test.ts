@@ -12,6 +12,8 @@ import type { NextRequest } from "next/server";
 const h = vi.hoisted(() => ({
   sessions: new Map<string, { id: string; anonymous: boolean; email: string | null }>(),
   limited: false,
+  /** Subjects whose room is spent. */
+  spent: new Set<string>(),
   consumed: [] as string[],
   heard: { text: "So the point is, habits compound.", words: [] as { word: string; start: number; end: number }[] },
   whisperFails: false,
@@ -39,7 +41,7 @@ vi.mock("@/lib/rate-limit", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
   consumeRateLimit: vi.fn(async (subject: string, tier: string) => {
     h.consumed.push(`${tier}:${subject}`);
-    return h.limited ? { allowed: false, window: "hour", retryAfterS: 900 } : { allowed: true, window: null, retryAfterS: 0 };
+    return h.limited || h.spent.has(subject) ? { allowed: false, window: "hour", retryAfterS: 900 } : { allowed: true, window: null, retryAfterS: 0 };
   }),
 }));
 vi.mock("@/lib/transcribe", () => ({
@@ -56,7 +58,7 @@ import { SAY_AUDIO_BYTES } from "@/lib/say";
 
 const ME = "6f1c2b9e-0d4a-4c1e-9a77-3b2f5e8d1c40";
 
-function line(opts: { token?: string | null; better?: string | null; said?: string | null; bytes?: number; type?: string } = {}) {
+function line(opts: { token?: string | null; better?: string | null; said?: string | null; bytes?: number; type?: string; ip?: string } = {}) {
   const form = new FormData();
   form.append("audio", new Blob([new Uint8Array(opts.bytes ?? 2400)], { type: opts.type ?? "audio/webm;codecs=opus" }), "line.webm");
   if (opts.better !== null) form.append("better", opts.better ?? "the point is");
@@ -64,7 +66,7 @@ function line(opts: { token?: string | null; better?: string | null; said?: stri
   const token = opts.token === undefined ? "tok" : opts.token;
   const req = new Request("http://test.local/api/say", {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), "x-forwarded-for": opts.ip ?? "203.0.113.7" },
     body: form,
   });
   return POST(req as unknown as NextRequest);
@@ -76,7 +78,9 @@ beforeEach(() => {
   h.sessions.clear();
   h.sessions.set("tok", { id: ME, anonymous: false, email: "a@b.c" });
   h.sessions.set("guest", { id: "g1", anonymous: true, email: null });
+  h.sessions.set("guest2", { id: "g2", anonymous: true, email: null });
   h.limited = false;
+  h.spent = new Set();
   h.consumed = [];
   h.whisperFails = false;
   h.transcribed = 0;
@@ -105,13 +109,28 @@ describe("POST /api/say", () => {
     expect(h.consumed).toEqual([]);
   });
 
-  it("counts every line against the account's own room, and a guest's against every guest's too", async () => {
+  it("counts every line against the account's own room, and a guest's against its address and every guest's too", async () => {
     await line();
     expect(h.consumed).toEqual([`say:say:u:${ME}`]);
     h.consumed = [];
     await line({ token: "guest" });
-    expect(h.consumed).toEqual(["say:say:u:g1", "guestall:guest:all"]);
+    expect(h.consumed).toEqual(["say:say:u:g1", "say:say:guest:ip:203.0.113.7", "guestall:guest:all"]);
     expect(LIMITS.say.hour).toBeGreaterThanOrEqual(9);
+  });
+
+  it("gives one address one guest room however many guest sessions it makes (the review)", async () => {
+    // A script minting guests on one address: once the address's room is
+    // spent, a fresh guest is refused before the ceiling every guest's
+    // recordings share is touched, and Whisper is asked nothing.
+    h.spent.add("say:guest:ip:203.0.113.7");
+    h.consumed = [];
+    const res = await line({ token: "guest2" });
+    expect(res.status).toBe(429);
+    expect(h.consumed).toEqual(["say:say:u:g2", "say:say:guest:ip:203.0.113.7"]);
+    expect(h.transcribed).toBe(0);
+    // Another address, and an account on this one, still have their own.
+    expect((await line({ token: "guest2", ip: "198.51.100.4" })).status).toBe(200);
+    expect((await line()).status).toBe(200);
   });
 
   it("answers 429 with its wait when the room is spent, and asks Whisper nothing", async () => {
@@ -130,10 +149,12 @@ describe("POST /api/say", () => {
     expect(h.transcribed).toBe(0);
   });
 
-  it("says Whisper did not answer as a 502, never as a miss", async () => {
+  it("says Whisper did not answer as a 502, never as a miss, in plain words", async () => {
     h.whisperFails = true;
     const res = await line();
     expect(res.status).toBe(502);
+    const { error } = (await res.json()) as { error: string };
+    expect(error).not.toMatch(/whisper|api|server/i);
   });
 
   it("stores nothing: no recording, no XP, no streak, nothing the count could read", async () => {

@@ -17,15 +17,19 @@
  *      and `said` (the phrase it replaces, so a miss can say "You said
  *      'the thing is'"), each phrase 60 characters at most.
  *   4. The limiter (lib/rate-limit.ts `say`, per account); a guest also
- *      counts against every guest's ceiling (`guestall`), as a recording
- *      does, since this pays for Whisper too.
+ *      counts against every guest on its address (`say` again, as the
+ *      word sheet does: a new guest session is free to make, and each
+ *      would bring its own room), then against every guest's ceiling
+ *      (`guestall`), as a recording does, since this pays for Whisper
+ *      too. Without the address's room one address minting guests could
+ *      spend the ceiling every guest's recordings share.
  *   5. Whisper (lib/transcribe.ts); a failure is 502 and the walk says
  *      it did not hear it, with its retry.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAuthHeader } from "@/lib/db";
-import { GUEST_CEILING, consumeRateLimit } from "@/lib/rate-limit";
+import { GUEST_CEILING, clientIp, consumeRateLimit } from "@/lib/rate-limit";
 import { SAY_AUDIO_BYTES, checkLine, cleanPhrase } from "@/lib/say";
 import { transcribe } from "@/lib/transcribe";
 
@@ -63,7 +67,9 @@ export async function POST(req: NextRequest) {
   if (!type) return json({ error: "Say the line again." }, 415);
 
   const own = await consumeRateLimit(`say:u:${auth.user.id}`, "say");
-  const verdict = own.allowed && auth.user.anonymous ? await consumeRateLimit(GUEST_CEILING, "guestall") : own;
+  const shared =
+    own.allowed && auth.user.anonymous ? await consumeRateLimit(`say:guest:ip:${clientIp(req.headers)}`, "say") : own;
+  const verdict = shared.allowed && auth.user.anonymous ? await consumeRateLimit(GUEST_CEILING, "guestall") : shared;
   if (!verdict.allowed) {
     return json(
       { error: "That's a lot of lines for now. Try again later.", retryAfterS: verdict.retryAfterS },
@@ -76,6 +82,6 @@ export async function POST(req: NextRequest) {
     console.error("say: Whisper failed", e instanceof Error ? e.message : e);
     return null;
   });
-  if (!heard) return json({ error: "Whisper didn't answer." }, 502);
+  if (!heard) return json({ error: "That didn't come through. Say it again." }, 502);
   return json({ ...checkLine({ text: heard.text, words: heard.words }, better, said) });
 }

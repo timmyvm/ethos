@@ -255,6 +255,35 @@ describe("what each kept key reads back", () => {
     expect(spineOf({})).toBeNull();
   });
 
+  /* #508 review: a stale shape after an upgrade. A record kept by the last
+     build is read back by this one: a column added to a read but not to its
+     codec would be drawn as undefined in the first frame, and one added to
+     both under the same KEPT_VERSION would read an old record as whole.
+     These fail when a read's columns move, so the codec and the version
+     move with them. */
+  it("each codec reads back exactly the columns its read asks for (a change moves KEPT_VERSION)", async () => {
+    const { SPINE_COLUMNS } = await import("./client-data");
+    const cols = (s: string) => s.split(",").map((c) => c.trim()).sort();
+    expect(Object.keys(spineOf(spine)![0]).sort()).toEqual(cols(SPINE_COLUMNS));
+    const data = readFileSync(path.join(__dirname, "client-data.ts"), "utf8");
+    const select = data.match(/async function readProfile\(\)[\s\S]*?\.select\("([^"]+)"\)/);
+    expect(select).not.toBeNull();
+    expect(Object.keys(profileOf(profile)!).sort()).toEqual(cols(select![1]));
+    // The shape these were written against. A new column is a new number here and in lib/held.ts.
+    expect(cols(SPINE_COLUMNS)).toEqual(["created_at", "ethos_index", "id", "lesson_id", "mode", "stars"]);
+    expect(cols(select![1])).toEqual(["display_name", "equipped_pose", "premium", "premium_until"]);
+    expect(KEPT_VERSION).toBe(1);
+  });
+
+  it("a record of another version is dropped, never read as this one's", () => {
+    reopen();
+    disk.clear();
+    disk.set(KEPT_STORE, JSON.stringify({ v: KEPT_VERSION + 1, owner: "user-a", items: { spine, profile } }));
+    expect(restoreHeld("user-a")).toBe(false);
+    expect(held(SPINE_KEY)).toBeUndefined();
+    expect(disk.has(KEPT_STORE)).toBe(false);
+  });
+
   it("the profile: its four fields, and a lapsed plan read as it would be now", () => {
     expect(profileOf(profile)).toEqual(profile);
     expect(profileOf({ ...profile, email: "x@y.z" })).toEqual(profile);

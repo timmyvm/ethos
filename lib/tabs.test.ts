@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { STORED_RECORDING, TAB_HREFS, tabIndexFor } from "./tabs";
+import { STORED_RECORDING, TAB_CHILDREN, TAB_HREFS, tabIndexFor } from "./tabs";
 
 /**
  * One tab bar, two files, and the bug that was waiting (#275).
@@ -70,7 +70,10 @@ describe("the tab bar is one list", () => {
     const block = nav.slice(nav.indexOf("const DETAIL"), nav.indexOf("export function Nav"));
     const detail = [...block.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
     expect(detail).toContain("/lessons");
-    for (const d of detail) expect(TAB_HREFS as readonly string[]).toContain(d);
+    /* A tab, or a screen that belongs to one (TAB_CHILDREN): Say it
+       better keeps the bar with You lit, and its test beneath it does not
+       (#507). */
+    for (const d of detail) expect([...TAB_HREFS, ...Object.keys(TAB_CHILDREN)]).toContain(d);
     expect(nav).toContain("DETAIL.some((d) => path.startsWith(`${d}/`))");
   });
 

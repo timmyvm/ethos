@@ -110,7 +110,7 @@ const NO_STAR = (() => {
     scorable: false,
     xp: 0,
     repId: "rep-live-nostar",
-    judged: { ran: false, unlimited: false, remaining: 1, capped: false },
+    judged: { ran: false, unlimited: false, remaining: 3, capped: false },
   };
 })();
 /* #429's longest better phrase, "a week nobody could survive at all". */

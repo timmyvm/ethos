@@ -27,7 +27,7 @@ vi.mock("@/lib/db", () => {
   previousPresence: vi.fn(async () => null),
   isPremium: vi.fn(async () => false),
   readMeterState: vi.fn(async () => ({
-    balance: 1,
+    balance: 3,
     accruedOn: null,
     usedAt: null,
   })),
@@ -85,7 +85,7 @@ import {
 import type { AnalyzeLine } from "@/lib/analyze-stream";
 import { bossWeekField } from "@/lib/boss";
 import { gameOfTheDay } from "@/lib/games";
-import { dateKey } from "@/lib/metering";
+import { dateKey, type MeterState } from "@/lib/metering";
 import { consumeRateLimit, refundRateLimit } from "@/lib/rate-limit";
 import { transcribe } from "@/lib/transcribe";
 import { ENVELOPE_RATE, serializeEnvelope, type Envelope } from "@/lib/envelope";
@@ -168,7 +168,7 @@ beforeEach(() => {
   });
   vi.mocked(isPremium).mockResolvedValue(false);
   vi.mocked(readMeterState).mockResolvedValue({
-    balance: 1,
+    balance: 3,
     accruedOn: null,
     usedAt: null,
   });
@@ -745,6 +745,93 @@ describe("judged-analysis metering", () => {
     const body = await (await post(audioForm())).json();
     expect(body.judged).toMatchObject({ ran: true, unlimited: true });
     expect(writeMeterState).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #514, Timothy 19 Nov: "a free account gets a score 3 times a day
+   * max", then "Nah give them a few recordings yo". The account's meter
+   * row is the store here: each take reads what the last one wrote.
+   */
+  describe("3 scored recordings a day (#514)", () => {
+    function meterRow(start: MeterState) {
+      let row = start;
+      vi.mocked(readMeterState).mockImplementation(async () => row);
+      vi.mocked(writeMeterState).mockImplementation(async (_u, next) => {
+        row = next;
+      });
+      // The file's other tests write nowhere.
+      onTestFinished(() => {
+        vi.mocked(writeMeterState).mockImplementation(async () => {});
+      });
+      return () => row;
+    }
+    const yesterday = () => dateKey(new Date(Date.now() - 24 * 3_600_000));
+
+    beforeEach(() => {
+      coachedFixture();
+      vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-3", anonymous: false });
+    });
+
+    it("scores three takes on a first-ever day, then measures a fourth and does not judge it", async () => {
+      const row = meterRow({ balance: 3, accruedOn: null, usedAt: null });
+      const takes = [];
+      for (let i = 0; i < 4; i++) {
+        vi.mocked(coachRep).mockClear();
+        const body = await (await post(audioForm())).json();
+        takes.push({ coached: vi.mocked(coachRep).mock.calls.length, judged: body.judged, index: body.ethosIndex !== null });
+      }
+      expect(takes.map((t) => t.judged)).toEqual([
+        { ran: true, unlimited: false, remaining: 2, capped: false },
+        { ran: true, unlimited: false, remaining: 1, capped: false },
+        { ran: true, unlimited: false, remaining: 0, capped: false },
+        { ran: false, unlimited: false, remaining: 0, capped: true },
+      ]);
+      expect(takes.map((t) => t.coached)).toEqual([1, 1, 1, 0]);
+      // The first three carry the Ethos score; the fourth has none.
+      expect(takes.map((t) => t.index)).toEqual([true, true, true, false]);
+      expect(row()).toMatchObject({ balance: 0, accruedOn: dateKey(new Date()) });
+      // Three writes, one per scored take; the fourth writes nothing.
+      expect(writeMeterState).toHaveBeenCalledTimes(3);
+    });
+
+    it("measures the fourth take in full and stores it, so the streak stands", async () => {
+      meterRow({ balance: 0, accruedOn: dateKey(new Date()), usedAt: new Date().toISOString() });
+      const body = await (await post(audioForm())).json();
+      expect(body.judged).toMatchObject({ ran: false, capped: true });
+      expect(body.ethosIndex).toBeNull();
+      expect(body.coach).toBeNull();
+      expect(body.metrics.fillerCount).toBe(1);
+      expect(body.metrics.wpm).toBeGreaterThan(0);
+      expect(body.transcript).toBeTruthy();
+      expect(saveRep).toHaveBeenCalledTimes(1);
+    });
+
+    it("is back to 3 the next day, whatever yesterday left", async () => {
+      for (const left of [0, 2]) {
+        const row = meterRow({ balance: left, accruedOn: yesterday(), usedAt: null });
+        const body = await (await post(audioForm())).json();
+        expect(body.judged).toMatchObject({ ran: true, remaining: 2, capped: false });
+        expect(row()).toMatchObject({ balance: 2, accruedOn: dateKey(new Date()) });
+      }
+    });
+
+    it("tops an account carrying the old rule's balance of 1 up to 3 on its next day", async () => {
+      const row = meterRow({ balance: 1, accruedOn: yesterday(), usedAt: null });
+      const judged = [];
+      for (let i = 0; i < 4; i++) judged.push((await (await post(audioForm())).json()).judged.ran);
+      expect(judged).toEqual([true, true, true, false]);
+      expect(row().balance).toBe(0);
+    });
+
+    it("never counts a take with nothing in it against the day's 3", async () => {
+      const row = meterRow({ balance: 1, accruedOn: dateKey(new Date()), usedAt: null });
+      vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
+      await post(audioForm());
+      vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+      const body = await (await post(audioForm())).json();
+      expect(body.judged).toMatchObject({ ran: true, remaining: 0 });
+      expect(row().balance).toBe(0);
+    });
   });
 });
 

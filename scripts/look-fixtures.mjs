@@ -946,7 +946,7 @@ const analyze = {
   pauseHeadline: "3 pauses between sentences.",
   accuracy: null, mode: "daily", mods: [], xpMultiplier: 1, captureMode: "voice",
   delivery: null, deliveryMoments: [], previousPresence: null,
-  judged: { ran: true, unlimited: false, remaining: 0, capped: false },
+  judged: { ran: true, unlimited: false, remaining: 2, capped: false },
 };
 
 /**

@@ -1,33 +1,37 @@
 /**
- * Judged-analysis metering — the chess.com model (decisions 11 Aug, §3).
+ * Judged-analysis metering — the chess.com model (decisions 11 Aug, §3;
+ * the rate since #514, Timothy 19 Nov: "Nah give them a few recordings
+ * yo").
  *
  * The split is the one already in the Index spec: the MEASURED tier
  * (fillers, WPM, pause ratio, repetition, transcript, and the live
- * camera ring) is free and unlimited forever, because reps cost nothing
- * to serve and the free tier still has to build a habit. The JUDGED tier
- * — cited moments, credibility/engagement, the supply-layer upgrade,
- * Demos's actual read — is one Claude call per rep, so that is what is
- * metered.
+ * camera ring) is free and unlimited forever, because recordings cost
+ * nothing to serve and the free tier still has to build a habit. The
+ * JUDGED tier — the Ethos score, cited moments, credibility/engagement,
+ * the supply-layer upgrade, Demos's actual read — is one Claude call per
+ * recording, so that is what is metered.
  *
- * Two guardrails are non-negotiable and both are enforced here:
+ * A free account gets 3 scored recordings a day, fresh each day: a new
+ * day tops the balance back up to 3, and nothing banks past 3. Two
+ * guardrails are non-negotiable and both are enforced here:
  *
- *  1. **Streaks count reps, not analyses.** Nothing in this file can
- *     break a streak — the streak is derived from the reps table and a
- *     metered rep is still a rep. Punishing the behaviour you want is
- *     rage-inducing.
- *  2. **Unused analyses roll over, to a maximum of 3.** Someone who
- *     practises hard on Saturday must never end up worse off than
- *     someone who logs in daily.
+ *  1. **Streaks count recordings, not analyses.** Nothing in this file
+ *     can break a streak — the streak is derived from the reps table and
+ *     a metered recording is still a recording. Punishing the behaviour
+ *     you want is rage-inducing.
+ *  2. **Every day starts at 3.** Someone who practises hard on a
+ *     Saturday is never worse off than someone who logs in daily. The
+ *     old rule banked unused reads (one a day, up to 3) to get there;
+ *     3 a day leaves nothing to bank.
  *
- * The balance is a single number rather than "today's one plus a
- * separate bank": a new day tops it up by one, capped at MAX_BALANCE.
+ * The balance is a single number: a new day tops it up to MAX_BALANCE.
  * Premium skips all of it.
  */
 
-/** One free judged analysis accrues per day. */
-export const DAILY_GRANT = 1;
+/** A free account's scored recordings a day (#514). */
+export const DAILY_GRANT = 3;
 
-/** Ceiling on the balance — "roll over, up to 3". */
+/** Ceiling on the balance: a day's grant, never more (nothing banks). */
 export const MAX_BALANCE = 3;
 
 export interface MeterState {
@@ -35,7 +39,7 @@ export interface MeterState {
   balance: number;
   /** Local calendar date (YYYY-MM-DD) the balance was last topped up. */
   accruedOn: string | null;
-  /** When the last judged analysis was spent, for "back tomorrow" copy. */
+  /** When the last judged analysis was spent. */
   usedAt: string | null;
 }
 
@@ -67,8 +71,8 @@ export function dateKey(d: Date): string {
  * also not an exploit: claiming an offset that moves you BACKWARDS
  * produces an earlier date, which grants nothing (see `accrue` — days
  * elapsed is floored at zero), and claiming one that moves you forwards
- * pulls tomorrow's single coin-flip of an analysis a few hours early,
- * once. The rate is unchanged either way.
+ * pulls tomorrow's 3 a few hours early, once. The rate is unchanged
+ * either way.
  */
 export function localDate(now: Date, offsetMinutes: number | null): Date {
   if (offsetMinutes === null || !Number.isFinite(offsetMinutes)) return now;
@@ -85,13 +89,13 @@ function daysBetweenKeys(from: string, to: string): number {
 }
 
 /**
- * Top the balance up for however many days have passed. A user coming
- * back after a week gets 3, not 7 — the cap is the whole point of "up to
- * 3" — and a user coming back the same day gets nothing new.
+ * Top the balance up on a new day. Any new day, one or seven later, tops
+ * it up to 3 (a balance carried from the old one-a-day rule included);
+ * a user coming back the same day gets nothing new.
  */
 export function accrue(state: MeterState, today: string): MeterState {
   if (!state.accruedOn) {
-    // First ever rep: today's grant, nothing banked.
+    // First ever recording: today's 3.
     return { ...state, balance: Math.min(MAX_BALANCE, DAILY_GRANT), accruedOn: today };
   }
   const elapsed = Math.max(0, daysBetweenKeys(state.accruedOn, today));

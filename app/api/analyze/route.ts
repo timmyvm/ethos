@@ -727,7 +727,7 @@ async function handleTake(
    * (the rep is stored either way, so the streak is untouched — streaks
    * count reps, not analyses), and it does not spend an analysis on a
    * rep with nothing in it. A near-silent rep has nothing to judge, so
-   * burning the day's one analysis on it would be theft.
+   * burning one of the day's 3 (#514) on it would be theft.
    */
   const meterState = await meterState$;
   const decision =

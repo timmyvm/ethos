@@ -13,7 +13,7 @@ import { neutralAudioName } from "./audio-name";
 import type { CoachOutput } from "./coach";
 import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
-import type { MeterState } from "./metering";
+import { DAILY_GRANT, type MeterState } from "./metering";
 import { substance, type RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
@@ -180,7 +180,8 @@ export async function previousPresence(
 export async function readMeterState(
   userId: string | null
 ): Promise<MeterState> {
-  const fresh: MeterState = { balance: 1, accruedOn: null, usedAt: null };
+  // A first-ever recording starts at the day's grant (accrue sets it too).
+  const fresh: MeterState = { balance: DAILY_GRANT, accruedOn: null, usedAt: null };
   if (!userId) return fresh;
   const db = supabaseAdmin();
   if (!db) return fresh;
@@ -191,7 +192,7 @@ export async function readMeterState(
     .maybeSingle();
   if (!data) return fresh;
   return {
-    balance: (data.judged_rollover as number | null) ?? 1,
+    balance: (data.judged_rollover as number | null) ?? DAILY_GRANT,
     accruedOn: (data.judged_accrued_on as string | null) ?? null,
     usedAt: (data.judged_analysis_used_at as string | null) ?? null,
   };

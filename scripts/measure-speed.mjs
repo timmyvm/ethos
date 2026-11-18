@@ -48,7 +48,7 @@
 import http from "node:http";
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { supabaseRoute, session, seed } from "./look-fixtures.mjs";
@@ -542,7 +542,7 @@ const results = {
 // ---- The bundle (read from the build, not the browser) ---------------------
 
 function bundleTable() {
-  const dir = join(ROOT, process.env.BUILD_DIR ?? ".next-build");
+  const dir = resolve(ROOT, process.env.BUILD_DIR ?? ".next-build");
   const mf = join(dir, "app-build-manifest.json");
   if (!existsSync(mf)) return null;
   const pages = JSON.parse(readFileSync(mf, "utf8")).pages;

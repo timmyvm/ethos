@@ -263,7 +263,7 @@ export function RepResult({
   starSize?: number;
   /** The glance's words (section "glance", #427). */
   glance?: GlanceView | null;
-  /** On the glance of a capped take, under its hero: "Measured, not judged." or the plum line. */
+  /** On the glance of a capped take, under its hero: "Ethos score back tomorrow", or the plum door saying it (#514). */
   cappedNote?: ReactNode;
   /**
    * On the glance, in the slot of Demos's cue for next time: the reminder

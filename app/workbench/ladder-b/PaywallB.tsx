@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
+import { FREE_ALLOWANCE } from "@/lib/allowance-copy";
 import { PremiumMark } from "@/components/PremiumMark";
 import { reasonLine } from "@/components/Paywall";
 import { Overlay } from "@/components/ui/Overlay";
@@ -31,7 +32,7 @@ import { Stair } from "./Stair";
 const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
 
 const BENEFITS = [
-  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep("(free: 1 a day)")}</> },
+  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep(FREE_ALLOWANCE)}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },

@@ -7,6 +7,7 @@ import { PremiumMark } from "@/components/PremiumMark";
 import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
 import { Overlay, useOverlayClose } from "@/components/ui/Overlay";
+import { FREE_ALLOWANCE, SCORED_BENEFIT } from "@/lib/allowance-copy";
 import { useAttempts } from "@/lib/attempt";
 import { currentPath, openPortal, startCheckout } from "@/lib/billing-client";
 import {
@@ -71,7 +72,7 @@ export interface PaywallAsk {
 /** Live checkout, read once at module level: on only when it is exactly "1". */
 const CHECKOUT_OPEN = process.env.NEXT_PUBLIC_CHECKOUT_OPEN === "1";
 
-/** A phrase that wraps whole, so a line never breaks "(free: 1 / a day)". */
+/** A phrase that wraps whole, so a line never breaks "(free: 3 / a day)". */
 const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
 
 /**
@@ -81,10 +82,12 @@ const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
  * the free allowance, the last names the modes Practice's Premium card
  * lists, so the Stair stands 40px higher on a short phone. On a 320
  * phone a line may still break, balanced, and only between its phrases:
- * the read and its "always" hold together, and so does the allowance.
+ * the benefit holds together, and so does the allowance. The first is
+ * the free plan's rule (#514, lib/allowance-copy.ts): every recording
+ * scored, where free scores 3 a day.
  */
 export const BENEFITS = [
-  { Glyph: IconBubble, text: <>{keep("Demos's full read, always")} {keep("(free: 1 a day)")}</> },
+  { Glyph: IconBubble, text: <>{keep(SCORED_BENEFIT)} {keep(FREE_ALLOWANCE)}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },

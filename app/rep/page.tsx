@@ -54,6 +54,7 @@ import { dayTurned, lastSpokeOn } from "@/lib/home";
 import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
+import { CAPPED_DOOR, CAPPED_LINE, CAPPED_REASON, PRO_MOMENT_LINE } from "@/lib/allowance-copy";
 import { buildPortfolio } from "@/lib/portfolio";
 import { poolHere } from "@/lib/pool";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -3498,11 +3499,10 @@ function Results({
   useEffect(() => {
     if (rulesNoteText) markRulesNoteTold();
   }, [rulesNoteText]);
-  const cappedLine = capped
-    ? daysSpoken >= PRO_MOMENT_DAYS
-      ? "Premium reads every recording"
-      : "Measured, not judged."
-    : null;
+  /* A capped take (#514: a free account's fourth of the day) says when
+     its Ethos score comes back: grey before day 3, the Premium door
+     from then on (lib/allowance-copy.ts). */
+  const cappedLine = capped ? (daysSpoken >= PRO_MOMENT_DAYS ? CAPPED_DOOR : CAPPED_LINE) : null;
   /* The way on, the same in the shelf and the sheet's foot: its words and
      where it goes (lib/way-on.ts). A lesson's ending names the next
      lesson, Lessons' Up next; the header's back is the way to this one.
@@ -3695,15 +3695,16 @@ function Results({
   };
   const upgradeRead = () =>
     onUpgrade({
-      reason: "The judged read · 1 a day free",
+      reason: CAPPED_REASON,
       headline: "Keep the coaching coming",
     });
   const cappedNote = cappedLine ? (
     daysSpoken >= PRO_MOMENT_DAYS ? (
       /* The map's #1 surface (docs/growth/04 §1.1): came back for a
-         second read the same day, right after finished work. One quiet
-         line, day 3 on; before that, the three words. */
-      <button onClick={upgradeRead} className="press min-h-11 text-link text-plum-700">
+         fourth score the same day, right after finished work. One quiet
+         line, day 3 on, that also says when the score is back; before
+         that, the grey line alone. */
+      <button data-capped-door onClick={upgradeRead} className="press min-h-11 text-link text-plum-700">
         <PremiumDoor>{cappedLine}</PremiumDoor>
       </button>
     ) : (
@@ -4251,10 +4252,7 @@ function ProgressMoment({
           reps={reps}
           lead={buildPortfolio(readOnboarding().answers).focus?.metric}
         />
-        <p className="mt-4 text-body text-stone-500">
-          Free shows the last 7 days and reads one recording a day. Premium
-          opens all of it.
-        </p>
+        <p className="mt-4 text-body text-stone-500">{PRO_MOMENT_LINE}</p>
       </div>
 
       <button onClick={() => setSheet(true)} className={PRIMARY}>

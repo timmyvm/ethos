@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
 import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
+import { FREE_ALLOWANCE } from "@/lib/allowance-copy";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -62,7 +63,7 @@ function IconOut() {
 /** The same five lines the paywall has always carried (#199). */
 const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
 const BENEFITS = [
-  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep("(free: 1 a day)")}</> },
+  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep(FREE_ALLOWANCE)}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
   { Glyph: IconSpark, text: "Every word you've earned, kept" },

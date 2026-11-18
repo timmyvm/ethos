@@ -211,7 +211,7 @@ export function glanceLine(p: {
   words?: Word[] | null;
   /** The transcript, for Variety's marks (lib/transcript-words.ts). */
   transcript?: string;
-  /** Measured, not judged: the hero already shows the filler count. */
+  /** Capped (no Ethos score today, #514): the hero already shows the filler count. */
   capped?: boolean;
   scorable?: boolean;
   /** `cueLead`'s answer; null for no cue. */

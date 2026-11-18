@@ -54,7 +54,22 @@ export interface Swap {
   repId: string | null;
   /** When it was saved (ISO). */
   savedAt: string;
+  /**
+   * Every row merged into this swap (mergeSwaps), the first saved first,
+   * each as its own table holds it: the coach's pair and a word sheet's
+   * save of the same words are one swap. Remove takes all of them off,
+   * Undo puts all of them back, its state is kept under each key, and
+   * none of their recordings can count as a later use. Absent for a swap
+   * of one row.
+   */
+  rows?: Swap[];
 }
+
+/** Every row a swap stands for, each as its table holds it. */
+export const partsOf = (s: Swap): Swap[] => s.rows ?? [s];
+
+/** Every recording the swap came from: never a later use of it. */
+export const sourcesOf = (s: Swap): string[] => partsOf(s).flatMap((p) => (p.repId ? [p.repId] : []));
 
 export type TestResult = "said" | "missed" | "shown";
 
@@ -110,22 +125,32 @@ const pairOf = (s: Swap) => `${fold(s.said).trim()}|${fold(s.better).trim()}`;
 
 /**
  * The coach's pairs and the word sheet's saves as one list, newest
- * first. A pair saved both ways is one swap: the first saved, with the
- * other's sentence and recording where it has none.
+ * first. A pair saved both ways is one swap: the first saved, keeping
+ * every row in `rows`. Its sentence and its recording come from one row,
+ * never one from each (a sentence from one recording beside another's
+ * moment would be a claim nothing traces to): the first saved with a
+ * recording, else the first with a sentence.
  */
 export function mergeSwaps(...lists: readonly Swap[][]): Swap[] {
-  const byPair = new Map<string, Swap>();
+  const byPair = new Map<string, Swap[]>();
   for (const s of lists.flat()) {
     const k = pairOf(s);
-    const held = byPair.get(k);
-    if (!held) {
-      byPair.set(k, s);
+    byPair.set(k, [...(byPair.get(k) ?? []), ...partsOf(s)]);
+  }
+  const out: Swap[] = [];
+  for (const rows of byPair.values()) {
+    const all = [...rows].sort((a, b) => (a.savedAt < b.savedAt ? -1 : a.savedAt > b.savedAt ? 1 : 0));
+    const first = all[0];
+    if (all.length === 1) {
+      out.push(first);
       continue;
     }
-    const [first, second] = held.savedAt <= s.savedAt ? [held, s] : [s, held];
-    byPair.set(k, { ...first, sentence: first.sentence ?? second.sentence, repId: first.repId ?? second.repId });
+    const from = all.find((r) => r.repId) ?? all.find((r) => r.sentence) ?? first;
+    /* A row from the same recording may hold the sentence the coach's pair does not. */
+    const sentence = from.sentence ?? (from.repId ? (all.find((r) => r.repId === from.repId && r.sentence)?.sentence ?? null) : null);
+    out.push({ ...first, sentence, repId: from.repId, rows: all });
   }
-  return [...byPair.values()].sort((a, b) => (a.savedAt < b.savedAt ? 1 : a.savedAt > b.savedAt ? -1 : 0));
+  return out.sort((a, b) => (a.savedAt < b.savedAt ? 1 : a.savedAt > b.savedAt ? -1 : 0));
 }
 
 /* ---- days -------------------------------------------------------------- */
@@ -166,8 +191,23 @@ export function freshState(swap: Pick<Swap, "savedAt">): SwapState {
   };
 }
 
+/**
+ * Where a swap stands: the newest state kept under any of its rows' keys
+ * (a merged swap's state is written under each, so it holds when one row
+ * leaves its table), else a fresh one.
+ */
 export function stateOf(swap: Swap, states: SwapStates): SwapState {
-  return states[swap.key] ?? freshState(swap);
+  return keptState(swap, states) ?? freshState(swap);
+}
+
+/** The newest state kept under any of a swap's keys, or undefined when none was ever written. */
+export function keptState(swap: Swap, states: SwapStates): SwapState | undefined {
+  let best: SwapState | undefined;
+  for (const p of partsOf(swap)) {
+    const s = states[p.key];
+    if (s && (!best || Date.parse(s.at) > Date.parse(best.at))) best = s;
+  }
+  return best;
 }
 
 /**
@@ -204,21 +244,36 @@ export const nowSays = (v: SwapView) => v.uses.length > 0 || !!v.state.heardAt;
 /** When it was last heard in a real recording. */
 const lastHeard = (v: SwapView) => v.uses[0]?.createdAt ?? v.state.heardAt ?? "";
 
+/** How many of today's three are already spent: a swap answered today, however it went. */
+export function testedToday(views: readonly SwapView[], today: string): number {
+  return views.filter((v) => v.state.testedOn === today).length;
+}
+
 /**
  * Today's test: the swaps still being learned whose day has come, the
- * longest waiting first, then the oldest saved; three at most. One you
- * now say is never tested: the recording already proved it.
+ * longest waiting first, then the oldest saved; three a day at most, so
+ * one answered earlier today takes a place (finishing the test never
+ * brings the next three the same day). One you now say is never tested:
+ * the recording already proved it.
  */
 export function dueToday<V extends SwapView>(views: readonly V[], today: string): V[] {
+  const room = Math.max(0, DUE_A_DAY - testedToday(views, today));
   return views
     .filter((v) => !v.state.hidden && !nowSays(v) && v.state.due <= today)
     .sort((a, b) => (a.state.due < b.state.due ? -1 : a.state.due > b.state.due ? 1 : a.swap.savedAt < b.swap.savedAt ? -1 : 1))
-    .slice(0, DUE_A_DAY);
+    .slice(0, room);
 }
 
-/** The next day anything is due, when nothing is due today; null when nothing is being learned. */
+/**
+ * The next day anything is due, when nothing is due today; null when
+ * nothing is being learned. One whose day has come but past today's
+ * three is tomorrow's.
+ */
 export function nextDue(views: readonly SwapView[], today: string): string | null {
-  const days = views.filter((v) => !v.state.hidden && !nowSays(v)).map((v) => (v.state.due <= today ? today : v.state.due));
+  const due = new Set(dueToday(views, today).map((v) => v.swap.key));
+  const days = views
+    .filter((v) => !v.state.hidden && !nowSays(v))
+    .map((v) => (due.has(v.swap.key) ? today : v.state.due <= today ? addDays(today, 1) : v.state.due));
   return days.length ? days.sort()[0] : null;
 }
 
@@ -266,41 +321,118 @@ export interface TimedWord {
 }
 
 /**
+ * One word of a text, where a match may start and stop: `joined` when a
+ * hyphen ties it to the word before ("known" in "well-known", so "known"
+ * alone is never found inside it), `stops` when a sentence ends after it
+ * (a phrase never runs across a full stop, "1.5" aside).
+ */
+interface Tok {
+  w: string;
+  /** Where it stands in the text it was read from, by characters. */
+  from: number;
+  to: number;
+  joined: boolean;
+  stops: boolean;
+}
+
+const HYPHEN_GAP = /^\s*[-‐‑]$/;
+const STOP = /[.!?…]/;
+
+function tokensOf(text: string): Tok[] {
+  const out: Tok[] = [];
+  for (const m of fold(text).matchAll(WORD)) {
+    const from = m.index ?? 0;
+    const prev = out[out.length - 1];
+    const gap = text.slice(prev ? prev.to : 0, from);
+    if (prev && STOP.test(gap) && !(/^[.,]$/.test(gap) && /\d$/.test(prev.w) && /^\d/.test(m[0]))) prev.stops = true;
+    out.push({ w: m[0].replace(/'/g, ""), from, to: from + m[0].length, joined: !!prev && HYPHEN_GAP.test(gap), stops: false });
+  }
+  return out;
+}
+
+/** A transcript read once per visit, however many swaps look in it. */
+const tokenCache = new Map<string, Tok[]>();
+function tokensCached(text: string): Tok[] {
+  let t = tokenCache.get(text);
+  if (!t) {
+    if (tokenCache.size > 400) tokenCache.clear();
+    t = tokensOf(text);
+    tokenCache.set(text, t);
+  }
+  return t;
+}
+
+/** Whisper's timed words as one text, each token knowing the word it came from. */
+function wordTokens(words: readonly TimedWord[]): { toks: Tok[]; item: number[] } {
+  let text = "";
+  const starts: number[] = [];
+  for (const w of words) {
+    starts.push(text.length);
+    text += `${w.word} `;
+  }
+  const toks = tokensOf(text);
+  const item: number[] = [];
+  let k = 0;
+  for (const t of toks) {
+    while (k + 1 < starts.length && starts[k + 1] <= t.from) k++;
+    item.push(k);
+  }
+  return { toks, item };
+}
+
+/**
+ * Where `phrase` stands in tokens, as [first, last] token: its words one
+ * after another, whole words only (never the tail or head of a hyphened
+ * word), inside one sentence. A place inside `not` (the phrase it
+ * replaces) is not a place: "unique" said inside "kind of unique" is the
+ * old phrase said again, never the better one. In order, none overlapping.
+ */
+function placesIn(toks: readonly Tok[], phrase: string, not?: string | null): [number, number][] {
+  const want = phraseWords(phrase);
+  if (want.length === 0) return [];
+  const find = (ws: string[]) => {
+    const out: [number, number][] = [];
+    for (let i = 0; i + ws.length <= toks.length; i++) {
+      if (toks[i].joined) continue;
+      let ok = true;
+      for (let k = 0; k < ws.length && ok; k++) ok = toks[i + k].w === ws[k] && (k === ws.length - 1 || !toks[i + k].stops);
+      if (!ok || toks[i + ws.length]?.joined) continue;
+      out.push([i, i + ws.length - 1]);
+    }
+    return out;
+  };
+  const notWords = not ? phraseWords(not) : [];
+  const inside = notWords.length >= want.length ? find(notWords) : [];
+  const out: [number, number][] = [];
+  for (const [i, j] of find(want)) {
+    if (inside.some(([a, b]) => a <= i && j <= b)) continue;
+    if (out.length && i <= out[out.length - 1][1]) continue;
+    out.push([i, j]);
+  }
+  return out;
+}
+
+/**
  * Where `phrase` was said in Whisper's timed words: the first place its
  * words come one after another, whole words only, case, punctuation and
- * apostrophes aside. Null when it was not said.
+ * apostrophes aside, and never inside `not` (the phrase it replaces).
+ * Null when it was not said.
  */
-export function phraseAt(words: readonly TimedWord[] | null | undefined, phrase: string): { start: number; end: number } | null {
-  const want = phraseWords(phrase);
-  if (!words || want.length === 0) return null;
-  const flat: { w: string; start: number; end: number }[] = [];
-  for (const w of words) for (const t of phraseWords(w.word)) flat.push({ w: t, start: w.start, end: w.end });
-  for (let i = 0; i + want.length <= flat.length; i++) {
-    if (want.every((w, k) => flat[i + k].w === w)) return { start: flat[i].start, end: flat[i + want.length - 1].end };
-  }
-  return null;
+export function phraseAt(
+  words: readonly TimedWord[] | null | undefined,
+  phrase: string,
+  not?: string | null
+): { start: number; end: number } | null {
+  if (!words || words.length === 0) return null;
+  const { toks, item } = wordTokens(words);
+  const hit = placesIn(toks, phrase, not)[0];
+  return hit ? { start: words[item[hit[0]]].start, end: words[item[hit[1]]].end } : null;
 }
 
-/** The transcript's sentences: a terminator ends one unless it sits between digits ("1.5"). */
-function sentencesOf(text: string): string[] {
-  return text.split(/(?<!\d)[.!?…]+(?!\d)\s*/).filter((s) => s.trim());
-}
-
-/** How many times `phrase` was said in `text`, whole words inside one sentence. */
-export function timesIn(text: string | null | undefined, phrase: string): number {
-  const want = phraseWords(phrase);
-  if (!text || want.length === 0) return 0;
-  let n = 0;
-  for (const s of sentencesOf(text)) {
-    const t = phraseWords(s);
-    for (let i = 0; i + want.length <= t.length; i++) {
-      if (want.every((w, k) => t[i + k] === w)) {
-        n++;
-        i += want.length - 1;
-      }
-    }
-  }
-  return n;
+/** How many times `phrase` was said in `text`, whole words inside one sentence, never inside `not`. */
+export function timesIn(text: string | null | undefined, phrase: string, not?: string | null): number {
+  if (!text) return 0;
+  return placesIn(tokensCached(text), phrase, not).length;
 }
 
 /**
@@ -309,17 +441,12 @@ export function timesIn(text: string | null | undefined, phrase: string): number
  * what comes after. Null when the sentence does not hold it.
  */
 export function markIn(sentence: string, phrase: string): { before: string; match: string; after: string } | null {
-  const want = phraseWords(phrase);
-  if (want.length === 0) return null;
-  const toks = [...fold(sentence).matchAll(WORD)].map((m) => ({ w: m[0].replace(/'/g, ""), start: m.index ?? 0, end: (m.index ?? 0) + m[0].length }));
-  for (let i = 0; i + want.length <= toks.length; i++) {
-    if (want.every((w, k) => toks[i + k].w === w)) {
-      const from = toks[i].start;
-      const to = toks[i + want.length - 1].end;
-      return { before: sentence.slice(0, from), match: sentence.slice(from, to), after: sentence.slice(to) };
-    }
-  }
-  return null;
+  const toks = tokensOf(sentence);
+  const hit = placesIn(toks, phrase)[0];
+  if (!hit) return null;
+  const from = toks[hit[0]].from;
+  const to = toks[hit[1]].to;
+  return { before: sentence.slice(0, from), match: sentence.slice(from, to), after: sentence.slice(to) };
 }
 
 /**
@@ -358,26 +485,29 @@ export interface SwapUse {
 
 /**
  * The real recordings that used a swap's better phrase, newest first:
- * stored after the swap was saved, never the recording it came from.
- * Whisper's own text finds them; where the timed words were read they
- * must hold it too, and give the moment. The test's one-line takes are
- * never stored, so they are never here.
+ * stored after the swap was saved, never a recording it came from (any
+ * row merged into it included). Whisper's own text finds them, never
+ * inside a place the old phrase was said again; where the timed words
+ * were read they must hold it too, and give the moment. The test's
+ * one-line takes are never stored, so they are never here.
  */
 export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
   const out: SwapUse[] = [];
+  const from = new Set(sourcesOf(swap));
+  const saved = Date.parse(swap.savedAt);
   for (const t of takes) {
-    if (t.created_at <= swap.savedAt || t.id === swap.repId) continue;
-    const times = timesIn(t.transcript, swap.better);
+    if (from.has(t.id) || !(Date.parse(t.created_at) > saved)) continue;
+    const times = timesIn(t.transcript, swap.better, swap.said);
     if (times === 0) continue;
     let at: number | null = null;
     if (t.words !== undefined) {
-      const hit = phraseAt(t.words, swap.better);
+      const hit = phraseAt(t.words, swap.better, swap.said);
       if (t.words && !hit) continue;
       at = hit?.start ?? null;
     }
     out.push({ repId: t.id, createdAt: t.created_at, times, at });
   }
-  return out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+  return out.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 /** Every time across the later recordings: "6 times". */
@@ -395,24 +525,37 @@ export interface Proof {
   end: number;
 }
 
+/** The take the glance is on, as much of it as the proof line reads. */
+export interface ProofTake {
+  /** The stored recording; null when it was not stored, and then nothing is proof. */
+  id: string | null | undefined;
+  /** Whisper's text: the count reads it, so the proof must agree with it. */
+  transcript: string | null | undefined;
+  /** Whisper's timed words: where the phrase was said. */
+  words: readonly TimedWord[] | null | undefined;
+  /** When the take began. */
+  startedAt: Date;
+}
+
 /**
  * The swap this take proves, if any: one saved before the take started,
- * not taken off the list, whose better phrase is in the take's timed
- * words and has not been seen in a real recording before (the line is
- * said once a swap). The earliest said wins.
+ * not taken off the list, not from this take, whose better phrase is in
+ * the take's text as the count reads it (never inside the old phrase said
+ * again) and in its timed words for the moment, and has not been seen in
+ * a real recording before (the line is said once a swap). Only a stored
+ * take proves anything: "you now say" counts stored recordings, and the
+ * line marks the swap heard. The earliest said wins.
  */
-export function proofIn(
-  swaps: readonly Swap[],
-  states: SwapStates,
-  words: readonly TimedWord[] | null | undefined,
-  takeStarted: Date
-): Proof | null {
+export function proofIn(swaps: readonly Swap[], states: SwapStates, take: ProofTake): Proof | null {
+  if (!take.id) return null;
   let best: Proof | null = null;
   for (const s of swaps) {
-    const st = states[s.key];
+    const st = keptState(s, states);
     if (st?.hidden || st?.heardAt) continue;
-    if (new Date(s.savedAt).getTime() >= takeStarted.getTime()) continue;
-    const hit = phraseAt(words, s.better);
+    if (!(Date.parse(s.savedAt) < take.startedAt.getTime())) continue;
+    if (sourcesOf(s).includes(take.id)) continue;
+    if (timesIn(take.transcript, s.better, s.said) === 0) continue;
+    const hit = phraseAt(take.words, s.better, s.said);
     if (!hit) continue;
     if (!best || hit.start < best.at) best = { key: s.key, said: s.said, better: s.better, at: hit.start, end: hit.end };
   }
@@ -456,7 +599,7 @@ export function backLine(due: string, today: string): string {
 
 /** When the next test is, on a day with none due: "Next test tomorrow", "Next test Fri". */
 export function nextTestLine(due: string, today: string): string {
-  return backLine(due, today).replace(/^Back /, "Next test ");
+  return daysBetween(today, due) <= 0 ? "Next test today" : backLine(due, today).replace(/^Back /, "Next test ");
 }
 
 /** The day a recording was made, as the walk says it: "today", "yesterday", "Monday", "12 Nov". */
@@ -519,9 +662,12 @@ export function checkLine(
   better: string,
   said: string | null
 ): LineCheck {
-  const hit = phraseAt(t.words, better);
-  const heard = !!hit || timesIn(t.text, better) > 0;
-  const old = !!said && (!!phraseAt(t.words, said) || timesIn(t.text, said) > 0);
+  /* Never inside the old phrase: "unique" said inside "kind of unique"
+     is the old phrase again, and "good" inside "really good" when the
+     better one is "really good" is the better one said. */
+  const hit = phraseAt(t.words, better, said);
+  const heard = !!hit || timesIn(t.text, better, said) > 0;
+  const old = !!said && (!!phraseAt(t.words, said, better) || timesIn(t.text, said, better) > 0);
   return { heard, at: hit?.start ?? null, old, text: t.text.trim().slice(0, 200) };
 }
 

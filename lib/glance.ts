@@ -673,10 +673,10 @@ export function fitGlance(
  * moment. Its words ride on the same ceiling as everything else (#504's
  * goals, #498's level-up line, Demos's cue). The struck old phrase is the
  * first thing to go: the full line stands only where it costs nothing
- * else on the glance; otherwise the short one ("✓ the point is ▶0:14")
- * is fitted, and fitGlance makes its usual cuts around it. Where even the
- * short line cannot fit, the proof waits (the swap's page still counts
- * the recording).
+ * else on the glance; otherwise the short one ("✓ the point is ▶0:14"),
+ * on the same terms. Where even the short line would cost the cue, the
+ * earned line or the line's long form, the proof waits (the swap's page
+ * still counts the recording).
  */
 export function fitGlanceProof(
   p: Parameters<typeof fitGlance>[0],
@@ -685,13 +685,18 @@ export function fitGlanceProof(
 ): ReturnType<typeof fitGlance> & { proof: "full" | "short" | null } {
   const base = fitGlance(p, budget);
   if (!proof) return { ...base, proof: null };
-  const withProof = (text: string) => fitGlance({ ...p, fixed: [...p.fixed, text] }, budget);
-  const full = withProof(proof.full);
-  if (full.words <= budget && full.cue === base.cue && full.earned === base.earned && full.short === base.short) {
-    return { ...full, proof: "full" };
-  }
-  const short = withProof(proof.short);
-  if (short.words <= budget) return { ...short, proof: "short" };
+  /* Either form stands only where it costs nothing else: the same cue, the
+     same earned line, the same form of the line. The cue, the goals and
+     the level-up keep their places, and the proof waits (the review:
+     the short form used to push Demos's cue off to fit). */
+  const fits = (text: string) => {
+    const f = fitGlance({ ...p, fixed: [...p.fixed, text] }, budget);
+    return f.words <= budget && f.cue === base.cue && f.earned === base.earned && f.short === base.short ? f : null;
+  };
+  const full = fits(proof.full);
+  if (full) return { ...full, proof: "full" };
+  const short = fits(proof.short);
+  if (short) return { ...short, proof: "short" };
   return { ...base, proof: null };
 }
 

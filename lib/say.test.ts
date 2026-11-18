@@ -193,13 +193,20 @@ describe("finding a phrase", () => {
 });
 
 describe("one list from the coach and the word sheet", () => {
-  it("merges a pair saved both ways into the first saved, keeping a sentence", () => {
+  it("merges a pair saved both ways into the first saved, its sentence and recording from one row", () => {
     const coach = coachSwap({ id: "c1", original: "very cold", upgrade: "freezing", created_at: at("2026-11-10"), rep_id: "r1" });
     const word = wordSwap({ id: "w1", word: "Very cold", instead: "freezing", sentence: "It was very cold.", rep_id: null, created_at: at("2026-11-12") });
     const other = wordSwap({ id: "w2", word: "got", instead: "landed", sentence: null, rep_id: null, created_at: at("2026-11-14") });
     const merged = mergeSwaps([coach], [word, other]);
     expect(merged.map((s) => s.key)).toEqual(["w:w2", "c:c1"]);
-    expect(merged[1]).toMatchObject({ sentence: "It was very cold.", repId: "r1" });
+    // The word save's sentence may come from any recording: the coach's
+    // recording is the one with a moment, so its own sentence is read
+    // from it (lib/say-store.ts), never the other row's beside it.
+    expect(merged[1]).toMatchObject({ sentence: null, repId: "r1" });
+    expect(merged[1].rows?.map((s) => s.key)).toEqual(["c:c1", "w:w1"]);
+    // A save from the same recording lends its sentence.
+    const sameRep = wordSwap({ id: "w3", word: "very cold", instead: "freezing", sentence: "It was very cold.", rep_id: "r1", created_at: at("2026-11-12") });
+    expect(mergeSwaps([coach], [sameRep])[0]).toMatchObject({ key: "c:c1", sentence: "It was very cold.", repId: "r1" });
   });
 });
 
@@ -209,11 +216,13 @@ describe("the glance's proof line", () => {
     swap({ key: "c:2", said: "a week nobody could really do", better: "an impossible week", savedAt: at("2026-11-16") }),
     swap({ key: "c:3", said: "kind of like", better: "for example", savedAt: at("2026-11-18", 23) }),
   ];
+  const text = "For example, the point is we planned an impossible week.";
   const words = timed("for example the point is we planned an impossible week", 3);
   const started = new Date(at("2026-11-18", 20));
+  const take = { id: "rep-new", transcript: text, words, startedAt: started };
 
   it("names the earliest saved swap the take said, saved before the take began", () => {
-    const p = proofIn(swaps, {}, words, started);
+    const p = proofIn(swaps, {}, take);
     // "for example" was saved after this take began: it cannot be proof.
     expect(p).toMatchObject({ key: "c:1", better: "the point is" });
     expect(p!.at).toBeCloseTo(3.8);
@@ -221,13 +230,13 @@ describe("the glance's proof line", () => {
 
   it("says it once: a swap already heard, or taken off the list, is passed over", () => {
     const heard = { "c:1": { ...freshState(swaps[0]), heardAt: at("2026-11-17") } };
-    expect(proofIn(swaps, heard, words, started)?.key).toBe("c:2");
+    expect(proofIn(swaps, heard, take)?.key).toBe("c:2");
     const hidden = { "c:1": { ...freshState(swaps[0]), hidden: true }, "c:2": { ...freshState(swaps[1]), hidden: true } };
-    expect(proofIn(swaps, hidden, words, started)).toBeNull();
+    expect(proofIn(swaps, hidden, take)).toBeNull();
   });
 
   it("counts its words as the ceiling does: the struck phrase, then the better one and its time", () => {
-    const p = proofIn(swaps, {}, words, started)!;
+    const p = proofIn(swaps, {}, take)!;
     expect(proofWords(p, "full")).toBe("the thing is → ✓ the point is 0:03");
     expect(countWords(proofWords(p, "full"))).toBe(7);
     expect(countWords(proofWords(p, "short"))).toBe(4);

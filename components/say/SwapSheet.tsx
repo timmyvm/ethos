@@ -100,7 +100,7 @@ export function SwapSheet({
               {uses.length > 0 && (
                 <ul className="mt-2.5 flex flex-wrap gap-x-3 gap-y-3">
                   {uses.slice(0, SHOWN_USES).map((u) => {
-                    const hit = words ? phraseAt(words.get(u.repId), swap.better) : null;
+                    const hit = words ? phraseAt(words.get(u.repId), swap.better, swap.said) : null;
                     const day = chipDay(u.createdAt);
                     return (
                       <li key={u.repId} className="flex min-h-6 items-center">

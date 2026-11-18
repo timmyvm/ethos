@@ -3532,14 +3532,25 @@ function Results({
   const testerWords = match && resultKey ? `Tester Did ${snapshot.index ?? "the score"} feel right? Too low About right Too high` : "";
   /*
    * Say it better's proof line (#507): this take said a saved swap's
-   * better phrase, found in Whisper's own timed words. Worked out once,
-   * from the swaps as they were when the take began; said once a swap
-   * (markHeard). It rides on the same ceiling, its struck phrase the
-   * first thing to go (lib/glance.ts fitGlanceProof).
+   * better phrase, found in Whisper's text as the count reads it and in
+   * its timed words for the moment. Only a stored take with its number
+   * proves anything (the count reads stored recordings, and the line
+   * marks the swap heard). Worked out once, from the swaps as they were
+   * when the take began; said once a swap (markHeard). It rides on the
+   * same ceiling, its struck phrase the first thing to go
+   * (lib/glance.ts fitGlanceProof).
    */
   const proof = useMemo(
-    () => (scorable && say ? proofIn(say.swaps, say.states, result.words, new Date(startedAt)) : null),
-    [scorable, say, result.words, startedAt]
+    () =>
+      scorable && result.ethosIndex !== null && say
+        ? proofIn(say.swaps, say.states, {
+            id: result.repId,
+            transcript: result.transcript,
+            words: result.words,
+            startedAt: new Date(startedAt),
+          })
+        : null,
+    [scorable, result.ethosIndex, result.repId, result.transcript, say, result.words, startedAt]
   );
   const fit = fitGlanceProof(
     {
@@ -3587,7 +3598,7 @@ function Results({
   useEffect(() => {
     if (!proofShown || !say) return;
     const swap = say.swaps.find((s) => s.key === proofShown.key);
-    if (swap) void markHeard(proofShown.key, say.states, swap).catch(() => {});
+    if (swap) void markHeard(say.states, swap).catch(() => {});
     // Once per take: the proof is fixed when the take lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proofShown?.key]);

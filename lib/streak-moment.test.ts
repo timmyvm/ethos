@@ -270,8 +270,27 @@ describe("the moment's room", () => {
   });
 
   it("grows the count with the screen, from num-xl's 72 to 160", () => {
-    expect(rule(".streak-count")).toMatch(/font-size: clamp\(var\(--text-num-xl\), 19dvh, 10rem\)/);
+    expect(rule(".streak-count").replace(/\s+/g, " ")).toMatch(
+      /font-size: clamp\( var\(--text-num-xl\), min\(19dvh, calc\(\(100vw - 40px\) \/ \(var\(--places, 1\) \* 0\.6\)\)\), 10rem \)/
+    );
     expect(css).toMatch(/--text-num-xl: 4\.5rem;/);
+  });
+
+  /* The #496 review: at 160 a thousand days stood 378 wide in 390x844's
+     350 column (Outfit 800's tabular figure is 0.59em, measured on the
+     build). The column bounds the size by the count's places. */
+  it("never sets the count wider than the column, a thousand days included", () => {
+    const FIGURE = 0.59;
+    const size = (w: number, h: number, places: number) =>
+      Math.min(Math.max(72, Math.min(0.19 * h, (w - 40) / (places * 0.6))), 160);
+    for (const [w, h] of [[320, 568], [320, 692], [360, 800], [375, 667], [390, 844], [393, 852], [430, 932]]) {
+      for (const places of [1, 2, 3, 4]) {
+        expect(places * FIGURE * size(w, h, places), `${places} places at ${w}x${h}`).toBeLessThanOrEqual(w - 40);
+      }
+      // One place keeps the height's size: the bound only bites on a long count.
+      expect(size(w, h, 1)).toBe(Math.min(Math.max(72, 0.19 * h), 160));
+    }
+    expect(tsx).toMatch(/className="streak-count text-num-xl" style=\{\{ "--places": places\.length \} as CSSProperties\}/);
   });
 
   it("stands the count in the same one-line places with motion or without, so reduced motion lays out the same", () => {

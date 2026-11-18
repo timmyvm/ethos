@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
 import { IconFreeze } from "@/components/Icon";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { TapTick } from "@/components/ui/TapTick";
@@ -202,7 +202,9 @@ export function StreakMoment({
           <span className="sr-only" data-streak-line="">
             {line}
           </span>
-          <span aria-hidden className="streak-count text-num-xl">
+          {/* Its places set its width's ceiling (`--places`, .streak-count):
+              a thousand days at 160 would stand wider than the column. */}
+          <span aria-hidden className="streak-count text-num-xl" style={{ "--places": places.length } as CSSProperties}>
             {calm ? (
               /* Today's count at rest, in the same one-line places the
                  roll turns in, so the screen stands the same with or

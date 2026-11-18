@@ -7928,8 +7928,16 @@ html[data-test-tile] .test-tile-slot {
   color: var(--color-ink);
   /* The count is the event: num-xl's 72 on the shortest phone, growing
      with the screen to 160 (#496), sized to the screen as Today's topic
-     is (DESIGN principle 3: a hero at display size). */
-  font-size: clamp(var(--text-num-xl), 19dvh, 10rem);
+     is (DESIGN principle 3: a hero at display size). Never wider than
+     the column (the screen less px-5's 40): a place is 0.59em of
+     Outfit 800's tabular figures, so 0.6em a place, `--places` of them
+     (the component sets it). A thousand days at 160 stood 378 wide in
+     390x844's 350 column; it sets at 145 and fits. */
+  font-size: clamp(
+    var(--text-num-xl),
+    min(19dvh, calc((100vw - 40px) / (var(--places, 1) * 0.6))),
+    10rem
+  );
 }
 /* One place of the odometer: a clip one line tall, the column inside it
    holding yesterday's digit over today's. */

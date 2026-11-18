@@ -304,7 +304,7 @@ describe("today's line at the foot", () => {
     expect(lineFigure(pace({}))).toMatchObject({
       figure: "130 to 160",
       rate: "words a minute",
-      label: "Today's line: nearer it than 100",
+      label: "Today's line: closer than 100",
     });
     expect(lineFigure(pace({ line: 145 })).label).toBe("Today's line: stay inside it");
     expect(lineFigure(pace({ today: 178, closed: true }))).toMatchObject({ state: "closed", figure: "178" });

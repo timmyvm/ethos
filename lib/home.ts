@@ -199,7 +199,9 @@ export function lineFigure(c: Challenge | null): FootFigure {
     const band = NORMS[c.trait].band;
     const zone = band ? `${band.lo} to ${band.hi}` : fmtLine(c.line);
     const inside = band ? c.line >= band.lo && c.line <= band.hi : false;
-    const label = inside ? `${LINE_NAME}: stay inside it` : `${LINE_NAME}: nearer it than ${fmtLine(c.line)}`;
+    /* "nearer it than 104" read cold as a riddle (#500 review): the zone
+       stands over the words, so "closer" needs no "it". */
+    const label = inside ? `${LINE_NAME}: stay inside it` : `${LINE_NAME}: closer than ${fmtLine(c.line)}`;
     return {
       state: "open",
       figure: zone,

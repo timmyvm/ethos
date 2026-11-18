@@ -21,7 +21,8 @@
  * Variants: lesson (The cold open, practice 1 of 3), lesson3 (its last
  * practice, the first two taken earlier today: the lesson's ending, and
  * its exit; LOOK_PLAN=code for Premium), daily (Today's card, Pausing),
- * unscored (12 words), game (a Q&A round), capped (a free account's
+ * unscored (12 words), game (a Q&A round), game0 (a Q&A round too short
+ * to score: no star, no XP, #510), capped (a free account's
  * second take today), tester, best (LOOK_BEST=1), first (LOOK_FRESH=1),
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
  * upload, rules (#491: the first take under #476's pause rules against
@@ -134,6 +135,19 @@ const bodies = {
       cutIns: [{ at: 17.2, line: "Says who?", gap: 1.2, gapFrom: 17.4, gapTo: 18.6, verdict: "held", fillerAt: null, fillerWord: null, cleanAfter: 22, spokeAfter: 30 }],
     },
   }),
+  /* #510: a Q&A round too short to score: no star, so the round card in
+     the sheet carries no XP line (the server answers xp 0). */
+  game0: () => ({
+    ...bodies.unscored(),
+    mode: "game",
+    mods: ["interrupt"],
+    xpMultiplier: 2,
+    xp: 0,
+    round: {
+      game: "qa", v: 1, level: 1, cap: 90, durationS: 9, stoppedBy: "you", lastWord: 8.6, stars: 0, scorable: false, counted: false, best: 22,
+      cutIns: [{ at: 4.2, line: "Says who?", gap: 0.6, gapFrom: 4.4, gapTo: 5.0, verdict: "held", fillerAt: null, fillerWord: null, cleanAfter: 3, spokeAfter: 4 }],
+    },
+  }),
   video: () => ({ ...A, captureMode: "video", previousPresence: 680 }),
   boss: () => ({
     ...A,
@@ -144,7 +158,7 @@ const bodies = {
   rules: () => ({ ...A, pauseRules: 476, tier1: { ...A.tier1, pause: 73 }, previousIndex: RULES_PREV, ethosIndex: RULES_PREV + 71 }),
 };
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
-const premium = ["game", "video"].includes(VARIANT) || process.env.LOOK_PLAN === "code";
+const premium = ["game", "game0", "video"].includes(VARIANT) || process.env.LOOK_PLAN === "code";
 /* lesson3: the lesson's first two practices, taken earlier today, so the
    last practice is the lesson's ending ("Lesson done: 6, 4, 4 fillers"). */
 if (VARIANT === "lesson3") {
@@ -409,7 +423,7 @@ for (const size of SIZES) {
     }
     m.screens = scroller ? i : +(m.scrollH / m.innerH).toFixed(2);
     entry.beats.push(m);
-    const outside = VARIANT === "game" && m.wordsNoRound !== m.words ? `, ${m.wordsNoRound} outside the round card` : "";
+    const outside = VARIANT.startsWith("game") && m.wordsNoRound !== m.words ? `, ${m.wordsNoRound} outside the round card` : "";
     console.log(`${at} ${name}: ${m.words} words (${m.wordsNoTranscript} outside the transcript${outside}), ${m.numbers} numbers, ${m.screens} screens, ${m.taps} filled tap(s), ${m.chips} chips`);
     if (ceiling !== null) {
       /* The reminder ask's own words ride on the ceiling, up to 16 (#430, GLANCE_WORDS_ASK). */
@@ -446,7 +460,7 @@ for (const size of SIZES) {
         }
       }
       if (VARIANT === "rules" && TAG !== "before" && noteWords === 0) fail(`${at} ${name}: no note under the delta on the first take under #476`);
-      const counted = VARIANT === "game" ? m.wordsNoRound : m.words;
+      const counted = VARIANT.startsWith("game") ? m.wordsNoRound : m.words;
       if (counted > ceiling) fail(`${at} ${name}: ${counted} words over the ceiling of ${ceiling}`);
       if (m.scrollH > m.innerH + 1) fail(`${at} ${name}: scrolls (${m.scrollH} over ${m.innerH})`);
       if (m.taps !== 1) fail(`${at} ${name}: ${m.taps} filled taps`);
@@ -459,7 +473,7 @@ for (const size of SIZES) {
   }
 
   /* ---- the way in ------------------------------------------------------- */
-  if (VARIANT === "game") {
+  if (VARIANT === "game" || VARIANT === "game0") {
     await page.goto(`${BASE}/rep?game=qa&q=qa2`);
   } else if (VARIANT === "boss") {
     /* Where /boss's Start reading lands once the 90s read is over. */

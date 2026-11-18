@@ -1,0 +1,81 @@
+{
+  "tag": "after",
+  "variant": "game0",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "maxBand": 74,
+          "band": [
+            589,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 24,
+          "wordsNoTranscript": 24,
+          "wordsNoRound": 24,
+          "numbers": 5,
+          "text": "Q&A 20+ words Under 2 slips No slips Not scored 12 words. Give it 60 to 90 seconds. Every number Retake Another round: Q&A",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/xp-read/glance/after-game0-390x844-light-glance-s0.png",
+            "docs/look/xp-read/glance/after-game0-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 130,
+          "wordsNoTranscript": 119,
+          "wordsNoRound": 110,
+          "numbers": 23,
+          "text": "Every number Done Demos cut in at 0:04 Hear it 0.6s held after he cut in You stopped 4s after he cut in. Your game scores Hear it back Demos cut in filler 0:00 Says who? 0:04 um 0:02 Your scores Length 9s, target 60 to 90s Pausing 72 Filler control 55 1 filler in 9 seconds. Most were “um”. ↳ Replace it with silence, not a different word. Sentence restarts 66 Pace 93 Variety 66 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Q&A, level 1 0 of 2 counted. Two on two different days open level 2. A round counts when you hold 0.8s after each cut-in and keep two stars. Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/xp-read/glance/after-game0-390x844-light-sheet-s0.png",
+            "docs/look/xp-read/glance/after-game0-390x844-light-sheet-s1.png"
+          ],
+          "screens": 2
+        },
+        {
+          "maxBand": 133,
+          "band": [
+            97,
+            230
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 46,
+          "wordsNoTranscript": 46,
+          "wordsNoRound": 46,
+          "numbers": 3,
+          "text": "Practice Q&A Would you rather be respected or liked? Take a side. When Demos cuts in, hold a second before you answer. Pause before answering Answer, then carry on Finish every sentence Level 1 ×2 XP Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/xp-read/glance/after-game0-390x844-light-exit-tap-s0.png",
+            "docs/look/xp-read/glance/after-game0-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 5
+    }
+  ]
+}

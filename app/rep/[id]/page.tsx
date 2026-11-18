@@ -25,6 +25,7 @@ import { parsePracticeId } from "@/lib/lesson-progress";
 import { readable, readFailure } from "@/lib/load";
 import { recordingName, recordingTopic, recordingTrait } from "@/lib/log";
 import { poolHere } from "@/lib/pool";
+import { repairsFromScore } from "@/lib/index-score";
 import { computeMetrics, substance, type StarCount } from "@/lib/metrics";
 import { fromRow } from "@/lib/presence";
 import { plainRead, tracedStrength } from "@/lib/plain-read";
@@ -217,6 +218,13 @@ export default function RepDetail({
     // Length and variety, from the stored words: the row has no word
     // count column and the screen printed "0 words" over the transcript.
     substance: substance(rep.transcript),
+    // Sentence restarts, read back from the stored score: the row keeps
+    // no count, and a count of 0 here put "No sentence restarts" under
+    // every score (the review of #502).
+    ...(() => {
+      const r = repairsFromScore(rep.dimensions?.tier1?.repairs, rep.duration_s);
+      return r ? { repairCount: r.repairCount, repairsPerMin: r.repairsPerMin, repairsAtLeast: r.atLeast } : {};
+    })(),
   };
 
   const dims = rep.dimensions;

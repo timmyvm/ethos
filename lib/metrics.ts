@@ -62,11 +62,18 @@ export interface RepMetrics {
    */
   filledPer100: number;
   /**
-   * Self-corrections: a phrase restarted with a different landing.
+   * Sentence restarts (#502): a phrase restarted with a different landing.
    * A listener hears one of these exactly the way they hear an "um".
    */
   repairCount: number;
   repairsPerMin: number;
+  /**
+   * Set only on a stored recording whose Sentence restarts score is 0:
+   * the count was read back from the score (index-score.ts
+   * `repairsFromScore`), and a score of 0 says 3 a minute or more, not
+   * how many. Never set on a live take, which counted them.
+   */
+  repairsAtLeast?: boolean;
   /**
    * Mid-clause gaps short enough to be a swallowed "um" rather than a
    * deliberate silence. A diagnostic, not a score — see

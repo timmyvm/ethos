@@ -479,8 +479,11 @@ export function cueEvidence(cue: Pick<Cue, "kind" | "word">, take: CueTake): { l
       if (n === 0) return { line: plain(`No pauses between sentences in ${secs}s.`), short: plain("No pauses between sentences.") };
       return chip("1 pause between sentences, at ", `${n} pauses between sentences, first `, `${n} ${plural(n, "pause", "pauses")} between sentences.`);
     case "restarts":
-      if (n === 0) return { line: plain(`No restarts in ${secs}s.`), short: plain("No restarts.") };
-      return { line: plain(`${n} ${plural(n, "restart", "restarts")} in ${secs}s.`), short: plain(`${n} ${plural(n, "restart", "restarts")}.`) };
+      if (n === 0) return { line: plain(`No sentence restarts in ${secs}s.`), short: plain("No sentence restarts.") };
+      return {
+        line: plain(`${n} ${plural(n, "sentence restart", "sentence restarts")} in ${secs}s.`),
+        short: plain(`${n} ${plural(n, "sentence restart", "sentence restarts")}.`),
+      };
     case "fast":
     case "slow":
       return both(`${n} words a minute.`);
@@ -514,7 +517,9 @@ function answerHead(a: CueAnswer): { long: string; short: string } {
         ? { long: "No pauses between sentences", short: "No pauses between sentences" }
         : { long: `${n} ${plural(n, "pause", "pauses")} between sentences`, short: `${n} ${plural(n, "pause", "pauses")} between sentences` };
     case "restarts":
-      return n === 0 ? { long: "No restarts", short: "No restarts" } : { long: `${n} ${plural(n, "restart", "restarts")}`, short: `${n} ${plural(n, "restart", "restarts")}` };
+      return n === 0
+        ? { long: "No sentence restarts", short: "No sentence restarts" }
+        : { long: `${n} ${plural(n, "sentence restart", "sentence restarts")}`, short: `${n} ${plural(n, "sentence restart", "sentence restarts")}` };
     case "fast":
     case "slow":
       return { long: `${n} words a minute`, short: `Pace ${n}` };
@@ -587,7 +592,7 @@ export function warmupLead(cue: Pick<Cue, "kind" | "word" | "last">): string {
     case "unheld":
       return "Last time, no pauses between sentences";
     case "restarts":
-      return `Last time, ${n} ${plural(n, "restart", "restarts")}`;
+      return `Last time, ${n} ${plural(n, "sentence restart", "sentence restarts")}`;
     case "fast":
     case "slow":
       return `Last time, ${n} words a minute`;

@@ -221,7 +221,7 @@ export const GAMES: Game[] = [
     tips: [
       "When Demos cuts in, stop. Wait a second, then answer. That pause is timed.",
       "Answer what Demos asked, then go back to your point.",
-      "Finish the sentence you started. Starting over costs points.",
+      "Finish the sentence you started. A sentence restart costs points.",
     ],
   },
   {

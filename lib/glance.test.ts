@@ -200,10 +200,10 @@ describe("glanceLine, every row of the tables", () => {
     expect(g.sentence).toBe("1 of 2 pauses too long, at 0:50");
   });
 
-  it("Restarts: two or more, one, none, with no chip this pass", () => {
-    expect([line("repairs", { repairCount: 3 }).sentence, line("repairs", { repairCount: 3 }).cue]).toEqual(["3 restarts in 62s.", "Next time: under 3."]);
-    expect([line("repairs").sentence, line("repairs").cue]).toEqual(["1 restart in 62s.", "Next time: none."]);
-    expect([line("repairs", { repairCount: 0 }).sentence, line("repairs", { repairCount: 0 }).cue]).toEqual(["No restarts in 62s.", "Next time: none again."]);
+  it("Sentence restarts: two or more, one, none, with no chip this pass", () => {
+    expect([line("repairs", { repairCount: 3 }).sentence, line("repairs", { repairCount: 3 }).cue]).toEqual(["3 sentence restarts in 62s.", "Next time: under 3."]);
+    expect([line("repairs").sentence, line("repairs").cue]).toEqual(["1 sentence restart in 62s.", "Next time: none."]);
+    expect([line("repairs", { repairCount: 0 }).sentence, line("repairs", { repairCount: 0 }).cue]).toEqual(["No sentence restarts in 62s.", "Next time: none again."]);
     expect(line("repairs", { repairCount: 3 }).moment).toBeNull();
   });
 

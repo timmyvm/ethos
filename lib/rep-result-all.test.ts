@@ -186,10 +186,10 @@ describe("the Log's dimension rows read at a glance (#471)", () => {
     expect(text).toMatch(/Filler control Okay 55 out of 100/);
   });
 
-  it("names a fault's row for its skill", () => {
+  it("names a fault's row for its skill, and Sentence restarts by its one name (#502)", () => {
     expect(text).toContain("Filler control");
-    expect(text).toContain("Restart control");
-    expect(text).not.toMatch(/\bRestarts\b/);
+    expect(text).toContain("Sentence restarts");
+    expect(text).not.toMatch(/\bRestart control\b|(?<!Sentence )\bRestarts\b/);
   });
 
   it("fills a Strong row's bar in sage and every other in the plain neutral, never terracotta", () => {

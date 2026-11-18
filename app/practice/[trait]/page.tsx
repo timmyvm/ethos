@@ -508,8 +508,13 @@ function RingCentre({
       ) : (
         <CountUp value={raw} format={fmtRaw} durationMs={DURATION.max} className={FIGURE} />
       )}
+      {/* Under a 200px ring (a 320 screen) the unit steps down to the
+          caption and takes a wider measure, so a three-line unit ("pauses
+          between sentences a minute", "sentence restarts in 100 words",
+          #502) stands in two lines and the value and the percentile stay
+          inside the ring rather than on its stroke. */}
       <span
-        className={`mt-1.5 max-w-[68%] text-center text-body leading-tight font-medium text-stone-500 text-balance ${
+        className={`mt-1 max-w-[80%] text-center text-caption leading-tight font-medium text-stone-500 text-balance [@container(min-height:312px)]:mt-1.5 [@container(min-height:312px)]:max-w-[68%] [@container(min-height:312px)]:text-body ${
           raw === null ? "invisible" : ""
         }`}
       >

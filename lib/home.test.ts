@@ -268,7 +268,7 @@ describe("today's line at the foot", () => {
       rate: "in 100 words",
       label: "Today's line: fewer um or uh",
     });
-    expect(lineFigure(line({ trait: "repairs", direction: "lower", line: 1.2 })).label).toBe("Today's line: fewer restarts");
+    expect(lineFigure(line({ trait: "repairs", direction: "lower", line: 1.2 })).label).toBe("Today's line: fewer sentence restarts");
     expect(lineFigure(line({ trait: "range", direction: "higher", line: 62 })).label).toBe(
       "Today's line: more different words"
     );

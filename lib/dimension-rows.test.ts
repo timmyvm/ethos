@@ -64,7 +64,7 @@ describe("one scale for the rows, the same Index (#471)", () => {
     expect(rows.map((r) => r.name)).toEqual([
       "Pausing",
       "Filler control",
-      "Restart control",
+      "Sentence restarts",
       "Pace",
       "Variety",
       "Structure",
@@ -87,7 +87,7 @@ describe("one scale for the rows, the same Index (#471)", () => {
     expect(rows.map((r) => r.weight)).toEqual(Object.values(INDEX_WEIGHTS));
   });
 
-  it("draws no row a take never had: no judged four without the coach, no Restart control before the split", () => {
+  it("draws no row a take never had: no judged four without the coach, no Sentence restarts row before the split", () => {
     expect(dimensionRows(tier1, null)).toHaveLength(5);
     const { repairs: _, ...old } = tier1;
     expect(dimensionRows(old, null).map((r) => r.key)).toEqual(["pause", "fillers", "pace", "range"]);
@@ -101,10 +101,10 @@ describe("one scale for the rows, the same Index (#471)", () => {
 });
 
 describe("a fault is named for its skill where its number is a score (#471)", () => {
-  it("never puts a fault's name over a score", () => {
+  it("never puts a fault's name over a score, but Sentence restarts, one name everywhere (#502)", () => {
     // "Fillers 88" read as 88 fillers; the count keeps the trait's name.
     for (const name of Object.values(DIMENSION_NAME)) {
-      expect(name).not.toMatch(/^(Fillers|Restarts|Self-corrections)$/);
+      expect(name).not.toMatch(/^(Fillers|Restarts|Restart control|Self-corrections)$/);
     }
   });
 
@@ -114,7 +114,7 @@ describe("a fault is named for its skill where its number is a score (#471)", ()
       if (t.id === "pause" || t.id === "pace" || t.id === "range") expect(t.skill).toBe(t.name);
     }
     expect(DIMENSION_NAME.fillers).toBe("Filler control");
-    expect(DIMENSION_NAME.repairs).toBe("Restart control");
+    expect(DIMENSION_NAME.repairs).toBe("Sentence restarts");
     expect(DIMENSION_NAME.confidence).toBe("Steadiness");
   });
 });
@@ -214,7 +214,7 @@ describe("a count as people feel it (#471, plan §7)", () => {
 describe("a percentile says what it is against and which way is up (#471)", () => {
   it("says where you sit in words, the right way up for every trait", () => {
     expect(placeWords({ id: "fillers", percentile: 93 })).toBe("Fewer ums and uhs than 93 in 100 speakers");
-    expect(placeWords({ id: "repairs", percentile: 40 })).toBe("Fewer restarts than 40 in 100 speakers");
+    expect(placeWords({ id: "repairs", percentile: 40 })).toBe("Fewer sentence restarts than 40 in 100 speakers");
     expect(placeWords({ id: "pause", percentile: 18 })).toBe("More pauses between sentences than 18 in 100 speakers");
     expect(placeWords({ id: "range", percentile: 68 })).toBe("More varied words than 68 in 100 speakers");
     expect(placeWords({ id: "pace", percentile: 72 })).toBe("Nearer the middle of 130 to 160 than 72 in 100 speakers");

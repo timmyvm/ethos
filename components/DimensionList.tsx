@@ -43,8 +43,9 @@ interface Detail {
  * this under that) and a bar that shows the band: sage where it is
  * Strong, because a Strong row is earned, and a neutral where it is
  * not. A trait named for its fault is
- * named for its skill here (Filler control, Restart control), so a high
- * number reads as good on every row. The Index itself is the same
+ * named for its skill here (Filler control), so a high number reads as
+ * good on every row; Sentence restarts keeps its one name (#502), and
+ * its band word and bar say which way is good. The Index itself is the same
  * number: nothing is rescored.
  *
  * The rows end on their last row (#484, Timothy 16 Nov: the foot,
@@ -145,8 +146,8 @@ export function DimensionList({
       // The score runs on every filler a minute, so the rate wears its
       // one label (E32): the row's own name is the skill's. How often, as
       // people feel it (§7: "about one 'um' every 20 seconds"), beside the
-      // count; the Log keeps the rate and the scale, in the Restarts
-      // row's grammar: a bare "8 scores 0" read as 8 fillers.
+      // count; the Log keeps the rate and the scale, in the Sentence
+      // restarts row's grammar: a bare "8 scores 0" read as 8 fillers.
       detail: brief
         ? fillers === 0
           ? `No fillers in ${secs} seconds.`
@@ -160,14 +161,27 @@ export function DimensionList({
     },
     // Scored separately from fillers because they're separate problems
     // with separate fixes. Reps recorded before the split have no
-    // repairs score, and get no row rather than an invented one.
+    // repairs score, and get no row rather than an invented one. One
+    // name for the count everywhere since #502: "sentence restarts".
     repairs: {
-      detail: `${plural(repairs, "restarted phrase")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
-        brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute. 0 restarts a minute scores 100; 3 scores 0.`
+      detail: `${
+        /* A stored score of 0 says 3 a minute or more, never how many
+           (index-score.ts repairsFromScore). */
+        metrics.repairsAtLeast
+          ? "3 or more sentence restarts a minute."
+          : repairs === 0
+          ? `No sentence restarts in ${secs} seconds.`
+          : `${plural(repairs, "sentence restart")} in ${secs} seconds${tail(everyLine(repairs, metrics.durationS))}.${
+              brief ? "" : ` ${metrics.repairsPerMin ?? 0} a minute.`
+            }`
+      }${
+        /* No-break spaces keep each number on its words' line: at 320 the
+           rule broke after "0" (#502's look loop). */
+        brief ? "" : " 0\u00a0sentence restarts a minute scores 100; 3\u00a0scores 0."
       }`,
       improve:
         repairs > 0
-          ? "Finish the sentence, then say the better one. A restart makes the listener start over with you."
+          ? "Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
           : undefined,
     },
     /* The Log's ledger keeps the rule, said with its number (#490: "A
@@ -202,11 +216,15 @@ export function DimensionList({
        A hedge is "maybe", "I guess", "sort of" or "I feel like"
        (index-score.ts countHedges), so the line gives two as examples
        and never says the count was only those two. */
+    /* The restarts it counts are the Sentence restarts row's own, where
+       that row is on the card (the review of #502): the judge's anchor
+       also counts every "I mean", "wait no" and "sorry"
+       (index-score.ts countRestarts), so one take read "No sentence
+       restarts" on one row and "2 sentence restarts" two rows down. */
     confidence: coach
       ? {
-          detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${plural(
-            anchors.restartCount,
-            "restart"
+          detail: `${coach.dimensions.confidence.citedMoment} (${hedgeWords(anchors.hedgeCount)}, ${restartWords(
+            typeof tier1.repairs === "number" && !metrics.repairsAtLeast ? repairs : anchors.restartCount
           )}.)`,
           improve: coach.dimensions.confidence.improve,
         }
@@ -257,7 +275,17 @@ function tail(s: string | null): string {
 export function hedgeWords(n: number): string {
   const like = "like “maybe” or “I guess”";
   if (!(n > 0)) return `no phrases ${like}`;
-  return `${n} ${n === 1 ? "phrase" : "phrases"} ${like}`;
+  return `${n}\u00a0${n === 1 ? "phrase" : "phrases"} ${like}`;
+}
+
+/**
+ * "no sentence restarts", "1 sentence restart", "3 sentence restarts":
+ * hedgeWords' grammar beside it. Both join the number to its word with
+ * a no-break space, as the Log's rule does: at 320 the line broke after
+ * "(2" and after "1" (the review of #502).
+ */
+export function restartWords(n: number): string {
+  return n > 0 ? plural(n, "sentence restart").replace(" ", "\u00a0") : "no sentence restarts";
 }
 
 /** The band's word, in the colour it means: sage where earned, ink where it asks for work. */
@@ -309,9 +337,18 @@ function RowDetails({
               measured ones (`.trait-dot`, the square the Log, You and
               Lessons draw; #493: it was a 3x14 tick of its own), blank
               on the four, so the nine names share one left edge. */}
+          {/* The name wraps rather than cuts (the review of #502): at 320
+              "Sentence restarts" beside "Work on this" read "Sentence…",
+              and "Filler control" lost its last word the same way. The
+              swatch keeps the first line's middle, so a one-line row is
+              drawn as it was. */}
           <span className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span aria-hidden className={`size-2 shrink-0 self-center ${trait ? "trait-dot" : ""}`} />
-            <span className="font-display min-w-0 truncate text-row font-bold">{row.name}</span>
+            <span className="text-row flex h-[calc(var(--text-row--line-height)*1em)] shrink-0 items-center self-start">
+              <span aria-hidden className={`size-2 shrink-0 ${trait ? "trait-dot" : ""}`} />
+            </span>
+            <span data-row-name className="font-display min-w-0 text-row font-bold text-balance">
+              {row.name}
+            </span>
           </span>
           {scored && (
             <span data-band-word className={`shrink-0 text-caption font-semibold ${BAND_TEXT[row.band]}`}>

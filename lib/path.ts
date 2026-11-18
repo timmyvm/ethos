@@ -58,7 +58,7 @@ const BOSS_LESSONS: Drill[] = [
     tips: [
       "When the interruption lands, pause before answering. The pause is the answer to \"are you rattled\".",
       "Answer the question asked, then return to your point. Abandoning the point is what makes people sound beaten.",
-      "One breath before you resume. Restarting mid-sentence reads as flustered and is scored as a repair.",
+      "One breath before you resume. A sentence restart reads as flustered and costs points.",
     ],
   },
 ];

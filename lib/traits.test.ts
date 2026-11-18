@@ -333,7 +333,7 @@ const flat = (n: number, s: Partial<Record<TraitKey, number>>) => Array.from({ l
 const NAME: Record<TraitKey, string> = {
   pause: "Pausing",
   fillers: "Filler control",
-  repairs: "Restart control",
+  repairs: "Sentence restarts",
   pace: "Pace",
   range: "Variety",
   structure: "Structure",

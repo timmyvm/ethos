@@ -14,7 +14,8 @@
  *    same number, said once at the top of the page since #484);
  *  - one word for how it went, from the row's share of its max (`band`);
  *  - named for the skill where the trait is named for the fault
- *    (content/traits.ts `skill`: Filler control, Restart control since #490).
+ *    (content/traits.ts `skill`: Filler control), except Sentence
+ *    restarts, one name everywhere since #502.
  *
  * Pure: the rows, the words and the headline are computed here and
  * drawn by components/DimensionList.tsx and You's trait rows.
@@ -80,6 +81,9 @@ export const DIMENSION_NAME: Record<TraitKey, string> = {
   engagement: "Engagement",
   confidence: "Steadiness",
 };
+
+/** The row names that are plural nouns, so a line about one takes "are". */
+const PLURAL_NAMES = new Set<string>([TRAIT.repairs.skill]);
 
 /** The measured five, the traits content/traits.ts teaches. */
 export function isTraitKey(key: string): key is TraitId {
@@ -189,8 +193,11 @@ export function rowsHeadline(rows: DimensionRow[]): string {
   const lowest = [...rows].sort((a, b) => a.score - b.score || ORDER.indexOf(a.key) - ORDER.indexOf(b.key))[0];
   const said: string[] = [];
   if (strong.length > 0) said.push(`You ${listWords(strong.map((r) => STRONG_PHRASE[r.key]))}.`);
-  if (lowest.band === "work") said.push(`${lowest.name} is the one to work on.`);
-  else if (lowest.band === "okay") said.push(`${lowest.name} has the most room to grow.`);
+  /* A plural name takes a plural verb: "Sentence restarts are the one
+     to work on" (#502). */
+  const many = PLURAL_NAMES.has(lowest.name);
+  if (lowest.band === "work") said.push(`${lowest.name} ${many ? "are" : "is"} the one to work on.`);
+  else if (lowest.band === "okay") said.push(`${lowest.name} ${many ? "have" : "has"} the most room to grow.`);
   else said.push(`Strong on all ${rows.length}.`);
   return said.join(" ");
 }
@@ -228,7 +235,7 @@ export function varietyWords(distinctRatio: number | null | undefined): string |
   return `${Math.round(distinctRatio * 100)} different words in every 100 you said.`;
 }
 
-/** "1 restarted phrase", "3 restarted phrases". */
+/** "1 sentence restart", "3 sentence restarts". */
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }

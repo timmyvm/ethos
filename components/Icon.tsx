@@ -330,7 +330,7 @@ export function IconPause({ size }: { size?: number }) {
 }
 
 /**
- * Restarts: the arrow that goes back round to the start, a sentence
+ * Sentence restarts: the arrow that goes back round to the start, a sentence
  * begun again (#478, Today's flat tiles).
  */
 export function IconRestart({ size }: { size?: number }) {

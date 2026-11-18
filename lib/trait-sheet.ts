@@ -4,7 +4,7 @@ import { withFrom } from "./back-from";
 import type { RepRow } from "./client-data";
 import { upNextLesson } from "./lesson-up-next";
 import type { TraitKey } from "./traits";
-import { BAND_WORD, bandOf } from "./dimension-rows";
+import { BAND_WORD, bandOf, DIMENSION_NAME } from "./dimension-rows";
 import { fmtRaw, placeSource, placeWords, readTraitsFromRow } from "./trait-readings";
 
 /**
@@ -76,4 +76,17 @@ export function practiseHref(key: string, done: Record<string, number> = {}): st
   const mine = lessonsForTrait(key);
   const next = upNextLesson(done, key, mine) ?? mine[0];
   return next ? withFrom(`/lessons/${next.id}`, "you") : withFrom(`/practice/${key}`, "you");
+}
+
+/**
+ * The words on the sheet's Practise tap. A trait's name, except where
+ * the name is the fault: "Practise Sentence restarts" read as practising
+ * the restarts, so that one says the skill (#502).
+ */
+const PRACTISE_WORDS: Partial<Record<TraitKey, string>> = {
+  repairs: "finishing sentences",
+};
+
+export function practiseLabel(key: TraitKey): string {
+  return `Practise ${PRACTISE_WORDS[key] ?? DIMENSION_NAME[key]}`;
 }

@@ -94,7 +94,7 @@ export function fillerScore(fillersPerMin: number): number {
 }
 
 /**
- * Self-corrections /100 — a steeper curve than fillers, on purpose.
+ * Sentence restarts /100 — a steeper curve than fillers, on purpose.
  *
  * Repairs are rarer and cost more when they land: an "um" is half a
  * second of nothing, an abandoned sentence makes a listener drop the
@@ -106,6 +106,40 @@ export const REPAIR_ZERO_AT = 3;
 
 export function repairScore(repairsPerMin: number): number {
   return clamp(Math.round(100 * (1 - repairsPerMin / REPAIR_ZERO_AT)));
+}
+
+/**
+ * The sentence restarts a stored recording had, read back from its
+ * score. A row keeps the score and the length but no count (there is no
+ * column), and the Log's page rebuilt the take's numbers with a count of
+ * 0, so every stored recording's Sentence restarts row said "No sentence
+ * restarts in 65 seconds." over a score of 66, beside Steadiness's "1
+ * sentence restart" (the review of #502). The score is `repairScore` of
+ * the count over the length, so the count is the whole number whose
+ * score is the stored one: one restart moves the score 2000/seconds
+ * points, 31 on a 65-second take, so for any take under half an hour
+ * there is exactly one. A score that matches none (a row written by
+ * other code) takes the nearest.
+ *
+ * At 0 the scale has run out: the take had 3 a minute or more and the
+ * score cannot say how many more, so `atLeast` is set and the count is
+ * the fewest that scores 0. Null where nothing can be read back: no
+ * score (a take before the split) or no length.
+ */
+export function repairsFromScore(
+  score: number | null | undefined,
+  durationS: number
+): { repairCount: number; repairsPerMin: number; atLeast: boolean } | null {
+  if (typeof score !== "number" || !Number.isFinite(score) || !(durationS > 0)) return null;
+  const minutes = durationS / 60;
+  const perMin = (n: number) => Math.round((n / minutes) * 100) / 100;
+  const most = Math.ceil(REPAIR_ZERO_AT * minutes);
+  if (score <= 0) return { repairCount: most, repairsPerMin: perMin(most), atLeast: true };
+  let best = 0;
+  for (let n = 1; n <= most; n++) {
+    if (Math.abs(repairScore(perMin(n)) - score) < Math.abs(repairScore(perMin(best)) - score)) best = n;
+  }
+  return { repairCount: best, repairsPerMin: perMin(best), atLeast: false };
 }
 
 /**
@@ -224,7 +258,7 @@ export function countHedges(transcript: string): number {
 }
 
 /**
- * Restarts / self-corrections.
+ * Sentence restarts (the stored key is `repairs`, #502).
  *
  * The v1 version only caught a doubled word ("the the") and a handful of
  * explicit markers, which misses the commonest repair by far: you say a

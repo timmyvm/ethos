@@ -12,7 +12,7 @@
  * every recording (`FillerHit.t`), so it is free and it is retroactive:
  * every recording ever taken already has one.
  *
- * What it deliberately does NOT include: self-corrections. Those are
+ * What it deliberately does NOT include: sentence restarts. Those are
  * counted but not timestamped (`repairCount` has no `t`), and a number
  * that silently ignores half of what it claims to measure is worse than
  * a narrower number that is exactly true. So this is fillers only, and

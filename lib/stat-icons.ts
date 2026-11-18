@@ -46,3 +46,25 @@ export const STAT_ICON_LARGE_SRC: Partial<Record<StatKind, string>> = {
 };
 export const STAT_ICON_LARGE_PX = 840;
 export const STAT_ICON_LARGE_MAX_BYTES = 48_000;
+
+/*
+ * The large cut is a file no other screen draws, so on the moment's
+ * first frame it was not yet fetched: the screen arrived with an empty
+ * slot where the flame stands, and under reduced motion the end was
+ * drawn without its flame until the file landed (the #496 review). The
+ * moment is owed seconds before it plays (the glance stands between),
+ * so the file is fetched and decoded then. Each image is held, so its
+ * decoded picture stays in the page's memory until the moment draws it.
+ */
+const warm = new Map<string, HTMLImageElement>();
+
+/** Fetch and decode a kind's large cut ahead of the screen that draws it. Once a page; a no-op off the browser. */
+export function warmLargeStatIcon(kind: StatKind): void {
+  const src = STAT_ICON_LARGE_SRC[kind];
+  if (!src || warm.has(src) || typeof Image === "undefined") return;
+  const img = new Image();
+  img.decoding = "async";
+  img.src = src;
+  warm.set(src, img);
+  img.decode?.().catch(() => {});
+}

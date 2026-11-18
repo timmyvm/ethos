@@ -246,6 +246,10 @@ for (const scene of SCENES) {
           end: Number(el.getAttribute("data-end-ms")),
           /* What the first frame drew, before anything was sought. */
           first: el.querySelector(".streak-count")?.textContent ?? null,
+          /* The flame's file was there for that frame (#496 review: the
+             large cut, fetched only as the moment mounted, left the slot
+             empty, and the reduced-motion end stood without its flame). */
+          flame: [...el.querySelectorAll(".streak-flame img")].map((i) => i.complete && i.naturalWidth > 0),
           animations: document.getAnimations().length,
         };
       });
@@ -303,6 +307,8 @@ for (const scene of SCENES) {
             })(),
           };
         });
+      if (TAG !== "before" && !(timeline.flame.length && timeline.flame.every(Boolean)))
+        fail(`${at}: the flame's file was not there on the moment's first frame (${JSON.stringify(timeline.flame)})`);
       if (S.calm) {
         /* Reduced motion: lit and at today's count from the first frame, nothing rolling. */
         console.log(`${at}: first frame "${timeline.first}", ${timeline.animations} animation(s)`);

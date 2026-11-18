@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { StatIcon } from "@/components/StatIcon";
 import { StreakBadge } from "@/components/StreakBadge";
 import {
@@ -103,6 +103,60 @@ describe("the large flame (#496)", () => {
     expect(html({ kind: "streak", size: 20 })).toContain('src="/icons/3d/streak.webp"');
     // A kind with no large cut keeps its own file.
     expect(html({ kind: "xp", size: 64, large: true })).toContain('src="/icons/3d/xp.webp"');
+  });
+});
+
+/*
+ * The #496 review: the large flame is drawn by one screen only, so on the
+ * moment's first frame it had not been fetched; the screen arrived with
+ * an empty slot, and under reduced motion the end stood without its
+ * flame. The moment is owed seconds before it plays, and the file is
+ * fetched and decoded then.
+ */
+describe("warming the large flame", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  /* A fresh module each time: what was warmed is held for the page's life. */
+  const fresh = async () => {
+    vi.resetModules();
+    return (await import("./stat-icons")).warmLargeStatIcon;
+  };
+
+  it("fetches and decodes the large cut once a page, and nothing for a kind without one", async () => {
+    const warmLargeStatIcon = await fresh();
+    const made: { src: string; decoded: number }[] = [];
+    vi.stubGlobal(
+      "Image",
+      class {
+        decoding = "";
+        private one = { src: "", decoded: 0 };
+        constructor() {
+          made.push(this.one);
+        }
+        set src(v: string) {
+          this.one.src = v;
+        }
+        decode() {
+          this.one.decoded += 1;
+          return Promise.resolve();
+        }
+      }
+    );
+    warmLargeStatIcon("xp");
+    expect(made).toEqual([]);
+    warmLargeStatIcon("streak");
+    warmLargeStatIcon("streak");
+    expect(made).toEqual([{ src: STAT_ICON_LARGE_SRC.streak, decoded: 1 }]);
+  });
+
+  it("is a no-op where there is no Image (the server)", async () => {
+    const warmLargeStatIcon = await fresh();
+    vi.stubGlobal("Image", undefined);
+    expect(() => warmLargeStatIcon("streak")).not.toThrow();
+  });
+
+  it("is called where the take owes the moment, beside setting it", () => {
+    const rep = read("app/rep/page.tsx");
+    expect(rep).toMatch(/if \(owed\) \{\s*setOwedMoment\(owed\);[\s\S]{0,200}?warmLargeStatIcon\("streak"\);\s*\}/);
   });
 });
 

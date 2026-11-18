@@ -174,6 +174,8 @@ describe("every object stands in the card's zone, by its visible box", () => {
     expect(short).toMatch(/\.home-display\[data-long\] \{\s*font-size: 7\.4vw;/);
     // The roulette's reel in the same card, a step down too.
     expect(short).toMatch(/\.home-display\.home-reel \{\s*--reel-fs: min\(1\.75rem, 9\.4cqw\);/);
+    // A day already spoken: under the trait and the tactic, the topic takes 16, not 24.
+    expect(short).toMatch(/\.home-hero\[data-spin="glyph"\] \.home-hero-words:has\(\.tip-glyph\) ~ \.home-display \{\s*padding-top: 16px;/);
     // The sizes are the scale's own steps (34's and 28's at 320), never a new one.
     expect(home).toMatch(/\.home-display\[data-long\] \{\s*font-size: min\(2\.125rem, 8\.8vw\);/);
     expect(home).toMatch(/\.home-display\[data-longer\] \{\s*font-size: min\(1\.75rem, 7\.4vw\);/);
@@ -204,6 +206,10 @@ describe("every object stands in the card's zone, by its visible box", () => {
         expect(left + s * box["--art-w"], `${id} inside the card`).toBeLessThanOrEqual(card - 8);
         expect(t + s * box["--art-h"] - 1e-6, `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
         if (small) expect(s * box["--art-h"], `${id} at ${shortPhone ? 100 : 120}px at most`).toBeLessThanOrEqual((shortPhone ? 100 : 120) + 0.01);
+        /* A day already spoken on a short phone: the words hold at least the
+           lead (18), the trait's chip (22) and one line of the tactic (18),
+           8 apart, and the topic stands 16 under them. */
+        if (shortPhone) expect(t + s * box["--art-h"] - 1e-6, `${id} above One more's topic`).toBeLessThanOrEqual(20 + (18 + 8 + 22 + 8 + 18) + 16 - 6);
       }
     });
   }

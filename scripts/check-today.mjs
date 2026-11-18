@@ -652,6 +652,86 @@ extraReps.length = 0;
   }
 }
 
+// 7c: the same on a day already spoken (One more), whose card stands the
+// trait and the tactic over the topic (the adversarial review of 19 Nov:
+// under an installed SE's status bar t12's four lines stood Start 2 under
+// the bar there, which 7 and 7b, walked on an open day, never saw).
+{
+  testerMode.today = true;
+  for (const [width, height, inset, top] of [[320, 568, 0, 0], [375, 667, 0, 0], [320, 692, 34, 0], [320, 568, 0, 20], [375, 667, 0, 20]]) {
+    const context = await browser.newContext({
+      viewport: { width, height },
+      deviceScaleFactor: 1,
+      isMobile: true,
+      hasTouch: true,
+      locale: "en-AU",
+      timezoneId: "Australia/Melbourne",
+      serviceWorkers: "block",
+    });
+    await context.route("http://supabase.local/**", supabaseRoute);
+    await context.addInitScript(seed, { theme: "light", session });
+    const page = await context.newPage();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { top, bottom: inset, left: 0, right: 0 } });
+    await page.goto(`${BASE}/`);
+    await page.waitForSelector(".home-hero:not([data-family='none']) #home-topic", { timeout: 20000 });
+    await page.waitForSelector('main .home-start', { timeout: 20000 });
+    await sleep(600);
+    const name = `${width}x${height}${top ? ` under a ${top}px status bar` : ""}`;
+    const walk = await page.evaluate(
+      ({ topics, longAt, longerAt, margin }) => {
+        const lead = document.querySelector(".home-hero-lead")?.textContent ?? "";
+        const h2 = document.querySelector("#home-topic");
+        const span = h2.querySelector("span");
+        const was = { text: span.textContent, long: h2.getAttribute("data-long"), longer: h2.getAttribute("data-longer") };
+        const out = [];
+        for (const t of topics) {
+          span.textContent = t.prompt;
+          if (t.prompt.length > longAt) h2.setAttribute("data-long", "true");
+          else h2.removeAttribute("data-long");
+          if (t.prompt.length > longerAt) h2.setAttribute("data-longer", "true");
+          else h2.removeAttribute("data-longer");
+          const bar = document.querySelector("nav .nav-glass").getBoundingClientRect().top;
+          /* Start and the spin and difficulty circles beside it. */
+          const low = Math.max(...[...document.querySelectorAll("main .home-hero a, main .home-hero button")].map((e) => e.getBoundingClientRect().bottom));
+          out.push({ id: t.id, low: Math.round(low), clear: low <= bar - margin, bar: Math.round(bar) });
+        }
+        span.textContent = was.text;
+        for (const [k, v] of [["data-long", was.long], ["data-longer", was.longer]]) {
+          if (v === null) h2.removeAttribute(k);
+          else h2.setAttribute(k, v);
+        }
+        return { lead, out };
+      },
+      { topics: TOPICS, longAt: LONG_AT, longerAt: LONGER_AT, margin: 4 }
+    );
+    const under = walk.out.filter((w) => !w.clear);
+    const lowest = walk.out.reduce((a, b) => (b.low > a.low ? b : a));
+    ok(
+      `${name}, a day already spoken: with each of the ${walk.out.length} topics in the card, Start and its circles stand clear of the tab bar`,
+      walk.lead === "One more" && walk.out.length === TOPICS.length && under.length === 0,
+      under.length
+        ? `${under.length} under it: ${under.slice(0, 6).map((u) => `${u.id} ends ${u.low}`).join(", ")}; bar ${lowest.bar}`
+        : `"${walk.lead}"; the lowest, ${lowest.id}, ends ${lowest.low}; bar ${lowest.bar}`
+    );
+    /* Its roulette opens from the spin circle, in the same card. */
+    await page.click('main button[aria-label="Spin a new topic"]');
+    await page.waitForSelector("main .home-reel span.block", { timeout: 10000 });
+    await sleep(1800);
+    const reel = await page.evaluate(() => ({
+      low: Math.max(...[...document.querySelectorAll("main .home-hero a, main .home-hero button")].map((e) => e.getBoundingClientRect().bottom)),
+      bar: document.querySelector("nav .nav-glass").getBoundingClientRect().top,
+    }));
+    ok(
+      `${name}, a day already spoken: the roulette's taps stand clear of the tab bar`,
+      reel.low <= reel.bar - 4,
+      `the lowest ends ${Math.round(reel.low)}, bar ${Math.round(reel.bar)}`
+    );
+    await context.close();
+  }
+  testerMode.today = false;
+}
+
 await browser.close();
 const failed = findings.filter((f) => !f.pass).length;
 console.log(`\n${findings.length - failed}/${findings.length} passed`);

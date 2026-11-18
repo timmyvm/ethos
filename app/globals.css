@@ -6475,6 +6475,16 @@ summary::-webkit-details-marker {
   .home-display.home-reel {
     --reel-fs: min(1.75rem, 9.4cqw);
   }
+  /* A day already spoken (One more): the trait and the tactic stand over
+     the topic too, so the words already run far below the object's foot,
+     and the topic takes 16 under them, not 24. Under an installed SE's
+     status bar the four lines of t12 ("Explain how interest works...")
+     stood Start 2 under the bar; now 6 over it (the adversarial review of
+     19 Nov, scripts/check-today.mjs 7c). Where nothing overflows the card
+     nothing moves: the topic stands on the card's foot. */
+  .home-hero[data-spin="glyph"] .home-hero-words:has(.tip-glyph) ~ .home-display {
+    padding-top: 16px;
+  }
 }
 /* TipLine on the card: its glyph, its cue and its open sentence in the
    card's ink. */

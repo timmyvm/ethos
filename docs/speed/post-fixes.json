@@ -2,8 +2,8 @@
  "meta": {
   "label": "post-fixes",
   "base": "http://localhost:4041",
-  "when": "2026-11-18T06:07:42.699Z",
-  "commit": "bddd8b4",
+  "when": "2026-11-18T06:44:16.784Z",
+  "commit": "e3260a7",
   "profile": {
    "name": "phone",
    "cpu": 4,
@@ -22,7 +22,8 @@
   "merged": [
    "2026-11-18T05:40:59.343Z",
    "2026-11-18T06:03:37.426Z",
-   "2026-11-18T06:07:42.699Z"
+   "2026-11-18T06:07:42.699Z",
+   "2026-11-18T06:44:16.784Z"
   ]
  },
  "bundle": {
@@ -48,11 +49,6 @@
     "jsGzKB": 201.9,
     "beyondLayoutGzKB": 0.2
    },
-   "/auth/callback": {
-    "jsRawKB": 881,
-    "jsGzKB": 268.2,
-    "beyondLayoutGzKB": 66.6
-   },
    "/auth/forgot": {
     "jsRawKB": 791.6,
     "jsGzKB": 236.4,
@@ -62,6 +58,11 @@
     "jsRawKB": 792.9,
     "jsGzKB": 236.8,
     "beyondLayoutGzKB": 35.1
+   },
+   "/auth/callback": {
+    "jsRawKB": 881,
+    "jsGzKB": 268.2,
+    "beyondLayoutGzKB": 66.6
    },
    "/calibrate": {
     "jsRawKB": 716.5,
@@ -93,6 +94,11 @@
     "jsGzKB": 276.1,
     "beyondLayoutGzKB": 74.4
    },
+   "/(marketing)/about": {
+    "jsRawKB": 728,
+    "jsGzKB": 216.9,
+    "beyondLayoutGzKB": 15.2
+   },
    "/(marketing)/privacy": {
     "jsRawKB": 697.4,
     "jsGzKB": 204.6,
@@ -103,20 +109,15 @@
     "jsGzKB": 204.6,
     "beyondLayoutGzKB": 2.9
    },
-   "/(marketing)/about": {
-    "jsRawKB": 728,
-    "jsGzKB": 216.9,
-    "beyondLayoutGzKB": 15.2
+   "/": {
+    "jsRawKB": 981.7,
+    "jsGzKB": 309.7,
+    "beyondLayoutGzKB": 108
    },
    "/practice/[trait]": {
     "jsRawKB": 902.3,
     "jsGzKB": 279.4,
     "beyondLayoutGzKB": 77.7
-   },
-   "/": {
-    "jsRawKB": 981.7,
-    "jsGzKB": 309.7,
-    "beyondLayoutGzKB": 108
    },
    "/active": {
     "jsRawKB": 729.4,
@@ -128,11 +129,6 @@
     "jsGzKB": 279.2,
     "beyondLayoutGzKB": 77.5
    },
-   "/history": {
-    "jsRawKB": 910,
-    "jsGzKB": 282.7,
-    "beyondLayoutGzKB": 81
-   },
    "/games": {
     "jsRawKB": 894.3,
     "jsGzKB": 276.7,
@@ -143,10 +139,15 @@
     "jsGzKB": 284.7,
     "beyondLayoutGzKB": 83
    },
-   "/rep/[id]": {
-    "jsRawKB": 1009.1,
-    "jsGzKB": 317.1,
-    "beyondLayoutGzKB": 115.4
+   "/history": {
+    "jsRawKB": 910,
+    "jsGzKB": 282.7,
+    "beyondLayoutGzKB": 81
+   },
+   "/settings/accessibility": {
+    "jsRawKB": 729.2,
+    "jsGzKB": 215.9,
+    "beyondLayoutGzKB": 14.2
    },
    "/settings/account/email": {
     "jsRawKB": 805.5,
@@ -168,21 +169,6 @@
     "jsGzKB": 210.8,
     "beyondLayoutGzKB": 9.1
    },
-   "/settings/data": {
-    "jsRawKB": 794.5,
-    "jsGzKB": 239.4,
-    "beyondLayoutGzKB": 37.7
-   },
-   "/settings/help": {
-    "jsRawKB": 712.6,
-    "jsGzKB": 210,
-    "beyondLayoutGzKB": 8.4
-   },
-   "/settings": {
-    "jsRawKB": 891.5,
-    "jsGzKB": 276.3,
-    "beyondLayoutGzKB": 74.7
-   },
    "/settings/data/stored": {
     "jsRawKB": 709.8,
     "jsGzKB": 208.9,
@@ -193,15 +179,30 @@
     "jsGzKB": 226.5,
     "beyondLayoutGzKB": 24.8
    },
-   "/settings/practice/focus": {
-    "jsRawKB": 796.7,
-    "jsGzKB": 238.1,
-    "beyondLayoutGzKB": 36.4
+   "/settings/help": {
+    "jsRawKB": 712.6,
+    "jsGzKB": 210,
+    "beyondLayoutGzKB": 8.4
+   },
+   "/settings/data": {
+    "jsRawKB": 794.5,
+    "jsGzKB": 239.4,
+    "beyondLayoutGzKB": 37.7
+   },
+   "/settings": {
+    "jsRawKB": 891.5,
+    "jsGzKB": 276.3,
+    "beyondLayoutGzKB": 74.7
    },
    "/settings/plan": {
     "jsRawKB": 802.9,
     "jsGzKB": 241.3,
     "beyondLayoutGzKB": 39.6
+   },
+   "/settings/practice/focus": {
+    "jsRawKB": 796.7,
+    "jsGzKB": 238.1,
+    "beyondLayoutGzKB": 36.4
    },
    "/settings/practice": {
     "jsRawKB": 733.4,
@@ -218,50 +219,50 @@
     "jsGzKB": 280,
     "beyondLayoutGzKB": 78.4
    },
-   "/signup": {
-    "jsRawKB": 790.6,
-    "jsGzKB": 235.9,
-    "beyondLayoutGzKB": 34.2
+   "/shop": {
+    "jsRawKB": 818.1,
+    "jsGzKB": 248.2,
+    "beyondLayoutGzKB": 46.5
    },
    "/signin": {
     "jsRawKB": 789.9,
     "jsGzKB": 235.7,
     "beyondLayoutGzKB": 34.1
    },
-   "/settings/accessibility": {
-    "jsRawKB": 729.2,
-    "jsGzKB": 215.9,
-    "beyondLayoutGzKB": 14.2
+   "/signup": {
+    "jsRawKB": 790.6,
+    "jsGzKB": 235.9,
+    "beyondLayoutGzKB": 34.2
    },
-   "/shop": {
-    "jsRawKB": 818.1,
-    "jsGzKB": 248.2,
-    "beyondLayoutGzKB": 46.5
-   },
-   "/welcome": {
-    "jsRawKB": 1025.6,
-    "jsGzKB": 323.9,
-    "beyondLayoutGzKB": 122.3
+   "/tester": {
+    "jsRawKB": 734.6,
+    "jsGzKB": 218.3,
+    "beyondLayoutGzKB": 16.6
    },
    "/words": {
     "jsRawKB": 735.3,
     "jsGzKB": 218.9,
     "beyondLayoutGzKB": 17.2
    },
-   "/rep": {
-    "jsRawKB": 1217.9,
-    "jsGzKB": 386.3,
-    "beyondLayoutGzKB": 184.7
+   "/welcome": {
+    "jsRawKB": 1025.6,
+    "jsGzKB": 323.9,
+    "beyondLayoutGzKB": 122.3
    },
    "/you": {
     "jsRawKB": 1064.2,
     "jsGzKB": 335.2,
     "beyondLayoutGzKB": 133.6
    },
-   "/tester": {
-    "jsRawKB": 734.6,
-    "jsGzKB": 218.3,
-    "beyondLayoutGzKB": 16.6
+   "/rep/[id]": {
+    "jsRawKB": 1009.1,
+    "jsGzKB": 317.1,
+    "beyondLayoutGzKB": 115.4
+   },
+   "/rep": {
+    "jsRawKB": 1217.9,
+    "jsGzKB": 386.3,
+    "beyondLayoutGzKB": 184.7
    }
   }
  },
@@ -27360,23 +27361,23 @@
    "url": "/welcome",
    "cold": {
     "ttfb": 464,
-    "fcp": 1160,
-    "lcp": 1720,
-    "ready": 1191,
+    "fcp": 1104,
+    "lcp": 1676,
+    "ready": 1081,
     "cls": 0,
     "tbt": 0,
-    "longTaskMs": 499,
-    "bytes": 266608,
+    "longTaskMs": 515,
+    "bytes": 266642,
     "requests": 12
    },
    "warm": {
-    "ttfb": 462,
-    "fcp": 776,
-    "lcp": 1304,
-    "ready": 719,
+    "ttfb": 463,
+    "fcp": 748,
+    "lcp": 1320,
+    "ready": 701,
     "cls": 0,
-    "tbt": 15,
-    "longTaskMs": 65,
+    "tbt": 17,
+    "longTaskMs": 163,
     "bytes": 0,
     "requests": 2
    },
@@ -27385,7 +27386,7 @@
    "byKind": {
     "doc": {
      "requests": 1,
-     "bytes": 17628
+     "bytes": 17662
     },
     "font": {
      "requests": 2,
@@ -27409,10 +27410,10 @@
      "kind": "doc",
      "method": "GET",
      "url": "/welcome",
-     "start": 2,
-     "ttfb": 465,
-     "end": 478,
-     "bytes": 17628,
+     "start": 7,
+     "ttfb": 467,
+     "end": 471,
+     "bytes": 17662,
      "status": 200,
      "handshake": true
     },
@@ -27420,9 +27421,9 @@
      "kind": "font",
      "method": "GET",
      "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
-     "start": 561,
-     "ttfb": 788,
-     "end": 889,
+     "start": 521,
+     "ttfb": 675,
+     "end": 890,
      "bytes": 32228,
      "status": 200
     },
@@ -27430,9 +27431,9 @@
      "kind": "font",
      "method": "GET",
      "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
-     "start": 566,
-     "ttfb": 792,
-     "end": 1030,
+     "start": 522,
+     "ttfb": 675,
+     "end": 841,
      "bytes": 20184,
      "status": 200
     },
@@ -27440,9 +27441,9 @@
      "kind": "css",
      "method": "GET",
      "url": "/_next/static/css/979d34b92031a489.css",
-     "start": 611,
-     "ttfb": 792,
-     "end": 1123,
+     "start": 526,
+     "ttfb": 681,
+     "end": 1011,
      "bytes": 38893,
      "status": 200
     },
@@ -27450,9 +27451,9 @@
      "kind": "css",
      "method": "GET",
      "url": "/_next/static/css/6218dba966cdb5bc.css",
-     "start": 629,
-     "ttfb": 815,
-     "end": 833,
+     "start": 526,
+     "ttfb": 680,
+     "end": 690,
      "bytes": 552,
      "status": 200
     },
@@ -27460,9 +27461,9 @@
      "kind": "css",
      "method": "GET",
      "url": "/_next/static/css/5440b1f6c795b3cf.css",
-     "start": 692,
-     "ttfb": 845,
-     "end": 875,
+     "start": 526,
+     "ttfb": 681,
+     "end": 722,
      "bytes": 1141,
      "status": 200
     },
@@ -27470,19 +27471,19 @@
      "kind": "img",
      "method": "GET",
      "url": "/demos-512/demos-onboard-wave.webp",
-     "start": 1039,
-     "ttfb": 1191,
-     "end": 1372,
+     "start": 894,
+     "ttfb": 1046,
+     "end": 1275,
      "bytes": 38142,
      "status": 200
     },
     {
      "kind": "js",
      "method": "GET",
-     "url": "/_next/static/chunks/webpack-4b6d14a3311b927b.js",
-     "start": 1127,
-     "ttfb": 1281,
-     "end": 1308,
+     "url": "/_next/static/chunks/webpack-3a0296a74500ef48.js",
+     "start": 1014,
+     "ttfb": 1169,
+     "end": 1189,
      "bytes": 2205,
      "status": 200
     },
@@ -27490,9 +27491,9 @@
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/0937d497-5cc38ae15d9ba0f7.js",
-     "start": 1152,
-     "ttfb": 1308,
-     "end": 2246,
+     "start": 1040,
+     "ttfb": 1195,
+     "end": 2279,
      "bytes": 54364,
      "status": 200
     },
@@ -27500,9 +27501,9 @@
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/89-1bf19ee7afe513ce.js",
-     "start": 1155,
-     "ttfb": 1321,
-     "end": 2314,
+     "start": 1040,
+     "ttfb": 1196,
+     "end": 2140,
      "bytes": 46874,
      "status": 200
     },
@@ -27510,9 +27511,9 @@
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/main-app-ed90514f67e2f6bd.js",
-     "start": 1156,
-     "ttfb": 1319,
-     "end": 1332,
+     "start": 1040,
+     "ttfb": 1196,
+     "end": 1210,
      "bytes": 572,
      "status": 200
     },
@@ -27520,9 +27521,9 @@
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/519e8b78-264c6272f8643b1a.js",
-     "start": 1157,
-     "ttfb": 1321,
-     "end": 1462,
+     "start": 1041,
+     "ttfb": 1202,
+     "end": 1470,
      "bytes": 13825,
      "status": 200
     }
@@ -27535,8 +27536,8 @@
       512
      ],
      "box": [
-      88,
-      88
+      86,
+      86
      ],
      "inView": true,
      "loading": null,
@@ -27549,25 +27550,25 @@
   "start-url": {
    "url": "/",
    "cold": {
-    "ttfb": 160,
-    "fcp": 1517,
-    "lcp": 1734,
-    "ready": 1469,
+    "ttfb": 163,
+    "fcp": 1525,
+    "lcp": 2110,
+    "ready": 1515,
     "cls": 0,
     "tbt": 0,
-    "longTaskMs": 496,
-    "bytes": 392243,
-    "requests": 19
+    "longTaskMs": 452,
+    "bytes": 364828,
+    "requests": 20
    },
    "warm": {
-    "ttfb": 458,
-    "fcp": 672,
-    "lcp": 1664,
-    "ready": 1642,
-    "cls": 0,
-    "tbt": 73,
-    "longTaskMs": 242,
-    "bytes": 210051,
+    "ttfb": 460,
+    "fcp": 740,
+    "lcp": 1844,
+    "ready": 1819,
+    "cls": 0.007,
+    "tbt": 143,
+    "longTaskMs": 324,
+    "bytes": 210186,
     "requests": 41
    },
    "readyPath": "/welcome",
@@ -27575,7 +27576,7 @@
    "byKind": {
     "doc": {
      "requests": 2,
-     "bytes": 27162
+     "bytes": 27219
     },
     "font": {
      "requests": 2,
@@ -27590,8 +27591,8 @@
      "bytes": 50228
     },
     "js": {
-     "requests": 8,
-     "bytes": 221283
+     "requests": 9,
+     "bytes": 188806
     }
    },
    "waterfall": [
@@ -27599,10 +27600,10 @@
      "kind": "doc",
      "method": "GET",
      "url": "/",
-     "start": 4,
-     "ttfb": 458,
-     "end": 459,
-     "bytes": 9534,
+     "start": 6,
+     "ttfb": 467,
+     "end": 471,
+     "bytes": 9557,
      "status": 200,
      "handshake": true
     },
@@ -27610,29 +27611,19 @@
      "kind": "font",
      "method": "GET",
      "url": "/_next/static/media/7b0b24f36b1a6d0b-s.p.woff2",
-     "start": 511,
-     "ttfb": 670,
-     "end": 753,
+     "start": 509,
+     "ttfb": 660,
+     "end": 749,
      "bytes": 32228,
-     "status": 200
-    },
-    {
-     "kind": "font",
-     "method": "GET",
-     "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
-     "start": 512,
-     "ttfb": 674,
-     "end": 919,
-     "bytes": 20184,
      "status": 200
     },
     {
      "kind": "css",
      "method": "GET",
      "url": "/_next/static/css/979d34b92031a489.css",
-     "start": 516,
-     "ttfb": 674,
-     "end": 1002,
+     "start": 517,
+     "ttfb": 670,
+     "end": 993,
      "bytes": 38893,
      "status": 200
     },
@@ -27640,19 +27631,29 @@
      "kind": "css",
      "method": "GET",
      "url": "/_next/static/css/6218dba966cdb5bc.css",
-     "start": 516,
-     "ttfb": 674,
-     "end": 684,
+     "start": 518,
+     "ttfb": 671,
+     "end": 686,
      "bytes": 552,
+     "status": 200
+    },
+    {
+     "kind": "font",
+     "method": "GET",
+     "url": "/_next/static/media/de42cfb9a3b980ae-s.p.woff2",
+     "start": 518,
+     "ttfb": 670,
+     "end": 904,
+     "bytes": 20184,
      "status": 200
     },
     {
      "kind": "img",
      "method": "GET",
      "url": "/icons/3d/hostile.webp",
-     "start": 928,
-     "ttfb": 1081,
-     "end": 1083,
+     "start": 908,
+     "ttfb": 1063,
+     "end": 1063,
      "bytes": 6168,
      "status": 200
     },
@@ -27660,9 +27661,9 @@
      "kind": "img",
      "method": "GET",
      "url": "/icons/3d/boss.webp",
-     "start": 1008,
-     "ttfb": 1160,
-     "end": 1161,
+     "start": 1002,
+     "ttfb": 1164,
+     "end": 1168,
      "bytes": 5918,
      "status": 200
     },
@@ -27670,19 +27671,19 @@
      "kind": "doc",
      "method": "GET",
      "url": "/welcome",
-     "start": 1033,
-     "ttfb": 1188,
-     "end": 1189,
-     "bytes": 17628,
+     "start": 1021,
+     "ttfb": 1178,
+     "end": 1178,
+     "bytes": 17662,
      "status": 200
     },
     {
      "kind": "js",
      "method": "GET",
-     "url": "/_next/static/chunks/webpack-4b6d14a3311b927b.js",
-     "start": 1088,
-     "ttfb": 1244,
-     "end": 1248,
+     "url": "/_next/static/chunks/webpack-3a0296a74500ef48.js",
+     "start": 1073,
+     "ttfb": 1225,
+     "end": 1227,
      "bytes": 2205,
      "status": 200
     },
@@ -27690,79 +27691,19 @@
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/0937d497-5cc38ae15d9ba0f7.js",
-     "start": 1165,
-     "ttfb": 1319,
-     "end": 1758,
+     "start": 1172,
+     "ttfb": 1326,
+     "end": 1721,
      "bytes": 54364,
-     "status": 200
-    },
-    {
-     "kind": "js",
-     "method": "GET",
-     "url": "/_next/static/chunks/89-1bf19ee7afe513ce.js",
-     "start": 1199,
-     "ttfb": 1353,
-     "end": 2453,
-     "bytes": 46874,
-     "status": 200
-    },
-    {
-     "kind": "img",
-     "method": "GET",
-     "url": "/demos-512/demos-onboard-wave.webp",
-     "start": 1228,
-     "ttfb": 1378,
-     "end": 2343,
-     "bytes": 38142,
-     "status": 200
-    },
-    {
-     "kind": "css",
-     "method": "GET",
-     "url": "/_next/static/css/5440b1f6c795b3cf.css",
-     "start": 1229,
-     "ttfb": 1380,
-     "end": 1412,
-     "bytes": 1141,
-     "status": 200
-    },
-    {
-     "kind": "js",
-     "method": "GET",
-     "url": "/_next/static/chunks/webpack-4b6d14a3311b927b.js",
-     "start": 1416,
-     "ttfb": 1573,
-     "end": 1646,
-     "bytes": 2205,
-     "status": 200
-    },
-    {
-     "kind": "js",
-     "method": "GET",
-     "url": "/_next/static/chunks/0937d497-5cc38ae15d9ba0f7.js",
-     "start": 1425,
-     "ttfb": 1581,
-     "end": 2962,
-     "bytes": 54364,
-     "status": 200
-    },
-    {
-     "kind": "js",
-     "method": "GET",
-     "url": "/_next/static/chunks/89-1bf19ee7afe513ce.js",
-     "start": 1425,
-     "ttfb": 1581,
-     "end": 2937,
-     "bytes": 46874,
      "status": 200
     },
     {
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/main-app-ed90514f67e2f6bd.js",
-     "start": 1425,
-     "ttfb": 1578,
-     "end": 1598,
+     "start": 1202,
+     "ttfb": 1356,
+     "end": 1362,
      "bytes": 572,
      "status": 200
     },
@@ -27770,9 +27711,79 @@
      "kind": "js",
      "method": "GET",
      "url": "/_next/static/chunks/519e8b78-264c6272f8643b1a.js",
-     "start": 1425,
-     "ttfb": 1589,
-     "end": 2039,
+     "start": 1203,
+     "ttfb": 1359,
+     "end": 1563,
+     "bytes": 13825,
+     "status": 200
+    },
+    {
+     "kind": "img",
+     "method": "GET",
+     "url": "/demos-512/demos-onboard-wave.webp",
+     "start": 1240,
+     "ttfb": 1391,
+     "end": 2147,
+     "bytes": 38142,
+     "status": 200
+    },
+    {
+     "kind": "css",
+     "method": "GET",
+     "url": "/_next/static/css/5440b1f6c795b3cf.css",
+     "start": 1242,
+     "ttfb": 1394,
+     "end": 1428,
+     "bytes": 1141,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/webpack-3a0296a74500ef48.js",
+     "start": 1435,
+     "ttfb": 1586,
+     "end": 1634,
+     "bytes": 2205,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/0937d497-5cc38ae15d9ba0f7.js",
+     "start": 1447,
+     "ttfb": 1600,
+     "end": 2810,
+     "bytes": 54364,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/89-1bf19ee7afe513ce.js",
+     "start": 1448,
+     "ttfb": 1606,
+     "end": 2629,
+     "bytes": 46874,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/main-app-ed90514f67e2f6bd.js",
+     "start": 1448,
+     "ttfb": 1606,
+     "end": 1625,
+     "bytes": 572,
+     "status": 200
+    },
+    {
+     "kind": "js",
+     "method": "GET",
+     "url": "/_next/static/chunks/519e8b78-264c6272f8643b1a.js",
+     "start": 1448,
+     "ttfb": 1607,
+     "end": 1956,
      "bytes": 13825,
      "status": 200
     }
@@ -27785,8 +27796,8 @@
       512
      ],
      "box": [
-      84,
-      84
+      87,
+      87
      ],
      "inView": true,
      "loading": null,

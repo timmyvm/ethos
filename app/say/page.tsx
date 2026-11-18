@@ -129,6 +129,10 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
   const items = read?.items ?? [];
   const lists = sayLists(items, today);
   const empty = read !== null && lists.m === 0;
+  /* The day a swap is next tested: today for one of today's three; one
+     due but past the three waits a day; else the day it comes back. */
+  const nextTestDay = (v: SayItem) =>
+    lists.due.some((d) => d.swap.key === v.swap.key) ? today : v.state.due > today ? v.state.due : addDays(today, 1);
   const practice = () => todayHref(heldReps() ?? [], new Date(), poolHere());
 
   return (
@@ -147,7 +151,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
         <div className="relative min-h-0 flex-1">
           {empty ? (
             <div className="absolute inset-0 flex items-end justify-center pb-6">
-              <div className="demos-fit w-full flex-1">
+              <div className="demos-fit h-full w-full flex-1">
                 <div className="demos-fit-room">
                   <DemosArt pose="speaking" size={300} fit grounded />
                 </div>
@@ -280,7 +284,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
                         onClick={() => setOpen(v)}
                         className={`press-row ${ROW}`}
                       >
-                        <SwapPair said={v.swap.said} better={v.swap.better} className="flex-1" />
+                        <SwapPair said={v.swap.said} better={v.swap.better} stacked className="flex-1" />
                         <span className="font-display shrink-0 text-row font-semibold tabular-nums text-sage-700">{count}</span>
                       </button>
                     </li>
@@ -298,8 +302,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
               </h2>
               <ul className="mt-1">
                 {lists.learning.map((v) => {
-                  /* Due, but past today's three: it waits a day. */
-                  const when = backLine(v.state.due > today ? v.state.due : addDays(today, 1), today);
+                  const when = backLine(nextTestDay(v), today);
                   return (
                     <li key={v.swap.key}>
                       <button
@@ -309,7 +312,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
                         onClick={() => setOpen(v)}
                         className={`press-row ${ROW}`}
                       >
-                        <SwapPair said={v.swap.said} better={v.swap.better} className="flex-1" />
+                        <SwapPair said={v.swap.said} better={v.swap.better} stacked className="flex-1" />
                         <span className="font-display shrink-0 text-row font-semibold text-stone-500">{when}</span>
                       </button>
                     </li>
@@ -326,6 +329,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
           key={open.swap.key}
           item={open}
           today={today}
+          next={nextTestDay(open)}
           onClose={() => setOpen(null)}
           onRemove={() => void remove(open)}
         />

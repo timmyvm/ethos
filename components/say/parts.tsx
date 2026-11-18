@@ -32,9 +32,20 @@ export function SayArt({ className = "" }: { className?: string }) {
  * as the neutral word label (`.you-word`), the arrow travelling with what
  * it points at so a narrow phone wraps the pair whole (#496).
  */
-export function SwapPair({ said, better, className = "" }: { said: string; better: string; className?: string }) {
+export function SwapPair({
+  said,
+  better,
+  stacked = false,
+  className = "",
+}: {
+  said: string;
+  better: string;
+  /** In a list: what you said above, the better one under it, every row the same shape however long the phrases. */
+  stacked?: boolean;
+  className?: string;
+}) {
   return (
-    <span className={`flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 ${className}`}>
+    <span className={`flex min-w-0 ${stacked ? "flex-col items-start gap-1" : "flex-wrap items-center gap-x-2.5 gap-y-1"} ${className}`}>
       <span className="text-stone-400 line-through">
         <SwapFrom />
         {said}

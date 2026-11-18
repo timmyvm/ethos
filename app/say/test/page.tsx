@@ -242,7 +242,7 @@ export default function SayTest() {
         <div className="pt-[env(safe-area-inset-top)]">
           <BackLink href="/say" label="Say it better" />
         </div>
-        <div className="flex min-h-[240px] flex-1 flex-col items-center justify-end">
+        <div className="flex min-h-[156px] flex-1 flex-col items-center justify-end">
           <SpeechBubble tail="down" className="text-center">
             {endLine(said, queue.length)}
           </SpeechBubble>
@@ -252,30 +252,32 @@ export default function SayTest() {
             </div>
           </div>
         </div>
+        {/* Each pair in the page's list shape (what you said, the better
+            one under it), the check or the day it comes back at its right. */}
         <ul className="mt-4" data-say-end-list>
           {queue.map((q) => {
             const r = results[q.swap.key];
             return (
-              <li key={q.swap.key} className="flex min-h-12 items-start gap-3 py-2 text-detail font-normal">
-                <SwapPair said={q.swap.said} better={q.swap.better} className="flex-1 pt-0.5" />
+              <li key={q.swap.key} className="flex min-h-12 items-center gap-3 py-2 text-detail font-normal">
+                <SwapPair said={q.swap.said} better={q.swap.better} stacked className="flex-1" />
                 {r === "said" ? (
-                  <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-sage-600 text-white">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sage-600 text-white">
                     <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 7.4l2.6 2.6L11 4.4" />
                     </svg>
                     <span className="sr-only">Said out loud</span>
                   </span>
                 ) : (
-                  <span className="font-display mt-1 shrink-0 text-row font-semibold text-stone-500">
-                    {r ? "Back tomorrow" : "Not yet"}
-                  </span>
+                  <span className="font-display shrink-0 text-row font-semibold text-stone-500">{r ? "Back tomorrow" : "Not yet"}</span>
                 )}
               </li>
             );
           })}
         </ul>
-        <p className="mt-3 text-center text-body text-stone-500">Next, say one in today&apos;s practice.</p>
+        {/* The next step rides with its tap, so a short screen never
+            hides it under the shelf. */}
         <FooterShelf hairline={false}>
+          <p className="mb-3 text-center text-body text-stone-500">Next, say one in today&apos;s practice.</p>
           <Link href={practice()} className={ACTION_CLASS}>
             Today&apos;s practice
           </Link>
@@ -444,7 +446,9 @@ export default function SayTest() {
         )}
       </div>
 
-      <FooterShelf hairline={false} className="flex flex-col items-center">
+      {/* The mic help is long: on a short phone it scrolls whole, its
+          way out after it, rather than under a shelf that cuts it. */}
+      <FooterShelf hairline={false} sticky={phase !== "blocked"} className="flex flex-col items-center">
         {answered ? (
           <button type="button" onClick={next} className={`${ACTION_CLASS} w-full`} data-say-next>
             {i + 1 >= total ? "See how you did" : "Next"}

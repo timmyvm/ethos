@@ -6,7 +6,7 @@ import { SheetHead } from "@/components/ui/SheetHead";
 import { MarkedSentence } from "@/components/say/parts";
 import { SayChip, useMoments } from "@/components/say/useMoments";
 import { fetchTakeWords, type SayItem } from "@/lib/say-store";
-import { backLine, chipDay, clock, nowSays, phraseAt, saidOn, timesLine, timesUsed, type TimedWord } from "@/lib/say";
+import { chipDay, clock, nextTestLine, nowSays, phraseAt, saidOn, timesLine, timesUsed, type TimedWord } from "@/lib/say";
 
 /** How many later recordings a sheet lists with their moments. */
 const SHOWN_USES = 4;
@@ -24,11 +24,14 @@ const SHOWN_USES = 4;
 export function SwapSheet({
   item,
   today,
+  next,
   onClose,
   onRemove,
 }: {
   item: SayItem;
   today: string;
+  /** The day of its next test: today when it is one of today's three, else the day it comes back. */
+  next: string;
   onClose: () => void;
   onRemove: () => void;
 }) {
@@ -51,8 +54,8 @@ export function SwapSheet({
   const n = timesUsed(uses);
 
   return (
-    <Overlay label={swap.better} onClose={onClose}>
-      <div data-trait="range" data-say-sheet className="elev-3 w-full max-w-[430px] rounded-t-sheet bg-raised px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2">
+    <Overlay label={swap.better} onClose={onClose} className="w-full max-w-[430px]">
+      <div data-trait="range" data-say-sheet className="elev-3 w-full rounded-t-sheet bg-raised px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2">
         <SheetHead onClose={onClose} />
         {player.element}
         <p className="text-body text-stone-400 line-through">
@@ -119,7 +122,7 @@ export function SwapSheet({
             </>
           ) : (
             <p className="mt-1 text-body text-stone-500">
-              Not yet. {state.due <= today ? "It's in today's test." : `${backLine(state.due, today)} in the test.`}
+              Not yet. {next <= today ? "It's in today's test." : `${nextTestLine(next, today)}.`}
             </p>
           )}
         </section>

@@ -1,0 +1,310 @@
+{
+  "tag": "after",
+  "variant": "unscored",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "maxBand": 62,
+          "band": [
+            601,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 27,
+          "wordsNoTranscript": 27,
+          "wordsNoRound": 27,
+          "numbers": 7,
+          "text": "Your first sentence 20+ words Under 2 slips No slips Not scored 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-light-glance-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 72,
+          "wordsNoTranscript": 61,
+          "wordsNoRound": 72,
+          "numbers": 14,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 Your scores Length 9s, target 60 to 90s Pausing 72 Filler control 55 1 filler in 9 seconds. Most were “um”. ↳ Replace it with silence, not a different word. Restart control 66 Pace 93 Variety 66 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-light-sheet-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-light-sheet-s1.png"
+          ],
+          "screens": 2
+        },
+        {
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 37,
+          "wordsNoTranscript": 37,
+          "wordsNoRound": 37,
+          "numbers": 1,
+          "text": "Lesson Your first sentence The most overrated piece of advice you've been given Your first sentence Mouth shut, no \"um\" Breathe, then speak Say your side first Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-light-exit-tap-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 10
+    },
+    {
+      "size": "390x844-dark",
+      "beats": [
+        {
+          "maxBand": 62,
+          "band": [
+            601,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 27,
+          "wordsNoTranscript": 27,
+          "wordsNoRound": 27,
+          "numbers": 7,
+          "text": "Your first sentence 20+ words Under 2 slips No slips Not scored 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-dark-glance-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 72,
+          "wordsNoTranscript": 61,
+          "wordsNoRound": 72,
+          "numbers": 14,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 Your scores Length 9s, target 60 to 90s Pausing 72 Filler control 55 1 filler in 9 seconds. Most were “um”. ↳ Replace it with silence, not a different word. Restart control 66 Pace 93 Variety 66 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-dark-sheet-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-dark-sheet-s1.png"
+          ],
+          "screens": 2
+        },
+        {
+          "maxBand": 55,
+          "band": [
+            557,
+            611
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 37,
+          "wordsNoTranscript": 37,
+          "wordsNoRound": 37,
+          "numbers": 1,
+          "text": "Lesson Your first sentence The most overrated piece of advice you've been given Your first sentence Mouth shut, no \"um\" Breathe, then speak Say your side first Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-dark-exit-tap-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-390x844-dark-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 16
+    },
+    {
+      "size": "320x568-light",
+      "beats": [
+        {
+          "maxBand": 96,
+          "band": [
+            291,
+            387
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 27,
+          "wordsNoTranscript": 27,
+          "wordsNoRound": 27,
+          "numbers": 7,
+          "text": "Your first sentence 20+ words Under 2 slips No slips Not scored 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-glance-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 72,
+          "wordsNoTranscript": 61,
+          "wordsNoRound": 72,
+          "numbers": 14,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 Your scores Length 9s, target 60 to 90s Pausing 72 Filler control 55 1 filler in 9 seconds. Most were “um”. ↳ Replace it with silence, not a different word. Restart control 66 Pace 93 Variety 66 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-sheet-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-sheet-s1.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-sheet-s2.png"
+          ],
+          "screens": 3
+        },
+        {
+          "maxBand": 40,
+          "band": [
+            33,
+            73
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 37,
+          "wordsNoTranscript": 37,
+          "wordsNoRound": 37,
+          "numbers": 1,
+          "text": "Lesson Your first sentence The most overrated piece of advice you've been given Your first sentence Mouth shut, no \"um\" Breathe, then speak Say your side first Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 589,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-exit-tap-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-exit-tap-s1.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-light-exit-tap-full.png"
+          ],
+          "screens": 1.04
+        }
+      ],
+      "tapLiveMs": 4
+    },
+    {
+      "size": "320x568-dark",
+      "beats": [
+        {
+          "maxBand": 96,
+          "band": [
+            291,
+            387
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 27,
+          "wordsNoTranscript": 27,
+          "wordsNoRound": 27,
+          "numbers": 7,
+          "text": "Your first sentence 20+ words Under 2 slips No slips Not scored 12 words. Give it 60 to 90 seconds. Every number Retake Practice 2 of 3",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-glance-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 72,
+          "wordsNoTranscript": 61,
+          "wordsNoRound": 72,
+          "numbers": 14,
+          "text": "Every number Done Hear it back filler 0:00 um 0:02 Your scores Length 9s, target 60 to 90s Pausing 72 Filler control 55 1 filler in 9 seconds. Most were “um”. ↳ Replace it with silence, not a different word. Restart control 66 Pace 93 Variety 66 What you said 12 words filler vague So the thing about habits is, um, they compound. You do 6 days running You showed up again. Retake",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-sheet-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-sheet-s1.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-sheet-s2.png"
+          ],
+          "screens": 3
+        },
+        {
+          "maxBand": 40,
+          "band": [
+            33,
+            73
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 37,
+          "wordsNoTranscript": 37,
+          "wordsNoRound": 37,
+          "numbers": 1,
+          "text": "Lesson Your first sentence The most overrated piece of advice you've been given Your first sentence Mouth shut, no \"um\" Breathe, then speak Say your side first Voice Video Record This one keeps a 6-day streak alive",
+          "scrollH": 589,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-exit-tap-s0.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-exit-tap-s1.png",
+            "docs/look/merge-18nov/after/glance/after-unscored-320x568-dark-exit-tap-full.png"
+          ],
+          "screens": 1.04
+        }
+      ],
+      "tapLiveMs": 7
+    }
+  ]
+}

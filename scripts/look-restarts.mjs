@@ -14,6 +14,9 @@
  *   glance       a Finish it anyway practice's glance, three in 62s
  *   sheet-row    "Every number", the rows' headline and the trait's row open
  *   ledger       the Log's stored recording, the trait's row open
+ *   ledger-low   the same at a score of 33 ("Work on this", the widest
+ *                band word) with Steadiness open: the review of #502
+ *                found the name cut to "Sentence…" there at 320
  *   you-rows     You's trait levels, the trait's row
  *   you-sheet    the trait's sheet on You
  *   command      the command menu (a desktop window), "restart" typed
@@ -63,7 +66,21 @@ const browser = await chromium.launch({
   args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
 });
 
-async function context(v, { analyze = null, desktop = false } = {}) {
+/* The fixture stores a Sentence restarts score of 66 on every recording;
+   ledger-low reads it as 33, so the row wears "Work on this". */
+const lowRepairs = (route) =>
+  supabase(
+    new Proxy(route, {
+      get(t, k) {
+        if (k === "fulfill")
+          return (o) => t.fulfill(o && typeof o.body === "string" ? { ...o, body: o.body.replace(/"repairs":66/g, '"repairs":33') } : o);
+        const val = t[k];
+        return typeof val === "function" ? val.bind(t) : val;
+      },
+    })
+  );
+
+async function context(v, { analyze = null, desktop = false, low = false } = {}) {
   const ctx = await browser.newContext({
     ...(desktop
       ? { viewport: { width: 1180, height: 800 } }
@@ -75,7 +92,7 @@ async function context(v, { analyze = null, desktop = false } = {}) {
     colorScheme: v.theme,
     serviceWorkers: "block",
   });
-  await ctx.route("http://supabase.local/**", supabase);
+  await ctx.route("http://supabase.local/**", low ? lowRepairs : supabase);
   await ctx.route("**/api/push", (r) => r.fulfill(json({ ok: true })));
   await ctx.route("**/api/tester/collect", collectRoute);
   await ctx.route("**/api/billing/*", billingApiRoute);
@@ -225,9 +242,9 @@ async function results(v) {
   await ctx.close();
 }
 
-async function ledger(v) {
+async function ledger(v, low = false) {
   resetPlan("free");
-  const { ctx, page } = await context(v);
+  const { ctx, page } = await context(v, { low });
   await page.goto(`${BASE}/history`);
   await page.waitForSelector('main a[href^="/rep/"]', { timeout: 30000 });
   await sleep(800);
@@ -240,7 +257,16 @@ async function ledger(v) {
   });
   await sleep(500);
   await scrollToEl(page, () => document.querySelector('main details summary[data-trait="repairs"]')?.closest("details"), 200);
-  await shoot(page, "ledger", v);
+  await shoot(page, low ? "ledger-low" : "ledger", v);
+  if (low) {
+    /* Steadiness, open, counts the same restarts as the row above it. */
+    await page.evaluate(() => {
+      const d = [...document.querySelectorAll("main details")].find((e) => /Steadiness/.test(e.querySelector("summary")?.textContent ?? ""));
+      if (d) d.open = true;
+    });
+    await scrollToEl(page, () => [...document.querySelectorAll("main details")].find((e) => /Steadiness/.test(e.querySelector("summary")?.textContent ?? "")), 300);
+    await shoot(page, "ledger-steadiness", v);
+  }
   await ctx.close();
 }
 
@@ -288,6 +314,7 @@ for (const v of VIEWS) {
   if (want("lesson")) await lesson(v);
   if (want("glance") || want("sheet-row")) await results(v);
   if (want("ledger")) await ledger(v);
+  if (want("ledger-low")) await ledger(v, true);
   if (want("you-rows") || want("you-sheet")) await you(v);
   if (want("command") && v.w === 390) await command(v);
 }

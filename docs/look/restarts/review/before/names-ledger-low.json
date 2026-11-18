@@ -1,0 +1,78 @@
+{
+  "ledger-low 390x844-light": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger-steadiness 390x844-light": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you.",
+      "\"you do the small version every day\" (2 phrases like “maybe” or “I guess”, 2 sentence restarts.)"
+    ],
+    "labels": []
+  },
+  "ledger-low 390x844-dark": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger-steadiness 390x844-dark": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you.",
+      "\"you do the small version every day\" (2 phrases like “maybe” or “I guess”, 2 sentence restarts.)"
+    ],
+    "labels": []
+  },
+  "ledger-low 320x568-light": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger-steadiness 320x568-light": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you.",
+      "\"you do the small version every day\" (2 phrases like “maybe” or “I guess”, 2 sentence restarts.)"
+    ],
+    "labels": []
+  },
+  "ledger-low 320x568-dark": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger-steadiness 320x568-dark": {
+    "text": [
+      "You kept fillers down and spoke at a good pace. Sentence restarts are the one to work on.",
+      "Sentence restarts",
+      "2 sentence restarts in 65 seconds, about one every 35 seconds. 1.85 a minute. 0 sentence restarts a minute scores 100; 3 scores 0.",
+      "↳ Finish the sentence, then say the better one. A sentence restart makes the listener start over with you.",
+      "\"you do the small version every day\" (2 phrases like “maybe” or “I guess”, 2 sentence restarts.)"
+    ],
+    "labels": []
+  }
+}

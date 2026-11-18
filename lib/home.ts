@@ -1,7 +1,7 @@
 /**
  * Today, "the object" (#393, direction B). The pure half of the home:
- * which glass object stands on the practice card, the tiles' short
- * units and their order, what today's line and the clean run say in a
+ * which glass object stands on the practice card, the tiles' units and
+ * their order, what today's line and the clean run say in a
  * tile, the greeting's name, and the This week view. The screen
  * (app/page.tsx, components/home/) only draws what these return, so
  * every state is a number a test can hold.
@@ -12,13 +12,12 @@ import { NORMS } from "@/content/norms";
 import type { Pool } from "@/content/portfolio";
 import { TRAIT, TRAITS, type TraitId } from "@/content/traits";
 import { cleanName } from "./answers";
-import { bandClose, practiceRow, type Challenge } from "./challenge";
+import { practiceRow, type Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
 import type { RepRow, RepSpine } from "./client-data";
 import { ART_BOUNDS } from "./lesson-art-bounds";
 import { weekStart } from "./level";
-import { choosePractice, standing, type Chosen } from "./next-practice";
-import { percentile } from "./percentile";
+import { choosePractice, type Chosen } from "./next-practice";
 import { repHref } from "./rep-config";
 import { measured, readTraitsFromRow, type TraitReading } from "./trait-readings";
 
@@ -117,44 +116,24 @@ export function artBox(id: string): Record<"--art-l" | "--art-t" | "--art-w" | "
 /* The tiles. */
 
 /**
- * A trait's unit where a tile has a half column for it. The full unit
- * ("held pauses a minute") stays in the tile's label for screen readers
- * and on the trait's own page.
+ * A trait's unit as a tile says it (#495): the trait's own words from
+ * content/traits.ts, under the number, never a short form. "/min",
+ * "/100 words" and "wpm" were three spellings beside "um or uh per
+ * hundred words" on Lessons and "words a minute" in the results; one
+ * measure has one unit, in words, wherever it is printed. Singular where
+ * the printed number is one.
  */
-export const SHORT_UNIT: Record<TraitId, string> = {
-  pause: "/min",
-  fillers: "/100 words",
-  repairs: "/100 words",
-  pace: "wpm",
-  range: "/100 words",
-};
-
-/**
- * How wide a printed number and a short unit are, in ems of their own
- * size (Outfit 800 tabular digits; the unit at 700), measured in the
- * browser with a little to spare. A tile sets its number on one line
- * with its unit (`.home-num-line`), and the number takes the largest
- * size up to the tile's own that leaves the unit room, so "9.8 /100
- * words" holds one line in a 102px column at 320 and no unit wraps.
- */
-export function numEm(printed: string): number {
-  let em = 0;
-  for (const ch of printed) em += /\d/.test(ch) ? 0.58 : ch === "." ? 0.28 : 0.6;
-  return Math.round(em * 100) / 100 || 0.58;
+export function tileUnit(id: TraitId, shown: string): string {
+  return shown === "1" ? TRAIT[id].unitOne : TRAIT[id].unit;
 }
-export const UNIT_EM: Record<string, number> = {
-  "/100 words": 5.2,
-  wpm: 2.3,
-  "/min": 2.1,
-  s: 0.5,
-};
 
 /**
  * The five in the bento's order. The wide tile is the trait the card
  * works on (`focus`, the practice's own trait, so the card, today's line
- * and the wide tile name one trait, #268); the other four follow by the
- * percentile printed on them, lowest first, so the order reads weakest
- * first by the numbers on screen. Without a focus (a failed choice) the
+ * and the wide tile name one trait, #268); the other four follow by
+ * percentile, lowest first, so the weakest stands nearest the card (the
+ * percentile itself left the tiles in #495; the trait page says it in
+ * words). Without a focus (a failed choice) the
  * lowest percentile takes the wide tile. A trait with no reading sorts
  * last; with no reading at all the order is the lessons'.
  */
@@ -191,100 +170,48 @@ export function fmtLine(n: number): string {
   return n >= 10 ? String(Math.round(n)) : n.toFixed(1);
 }
 
-export interface LineTile {
-  /** The number the tile prints: today's best once spoken, the line before. */
-  shown: number;
-  state: "open" | "closed" | "short";
-  /** The bar: today's fill and the line's mark, 0 to 1 of its width. */
-  fill: number;
-  mark: number;
-  caption: string;
-}
-
-/** Where the line sits on the bar; past it is room to clear it by. */
-export const LINE_MARK = 0.8;
-
 /**
- * Today's line as a tile. Open, the number is the line and the bar is
- * empty to its mark; spoken, the number is today's best and the fill
- * runs to it on the trait's own standing, so "fewer is better" fills
- * the same way as "more is better".
- */
-export function lineTile(c: Challenge): LineTile {
-  /* Pace's line is a distance from its zone, so it has no verb: never
-     "Inside it" or "Inside your line of 100" (lib/challenge.ts). */
-  const verb = c.direction === "band" ? null : VERB[c.direction];
-  if (c.today === null) {
-    return {
-      shown: c.line,
-      state: "open",
-      fill: 0,
-      mark: LINE_MARK,
-      caption: verb
-        ? `${verb} it on ${c.cleared.n} of your last ${c.cleared.of}.`
-        : `Cleared on ${c.cleared.n} of your last ${c.cleared.of}.`,
-    };
-  }
-  const lineS = Math.max(standing(c.trait, c.line), 0.05);
-  const fill = Math.max(0, Math.min(1, (standing(c.trait, c.today) / lineS) * LINE_MARK));
-  if (c.closed) {
-    const on = fmtLine(c.today) === fmtLine(c.line);
-    let caption = "On your line.";
-    if (!on && verb) caption = `${verb} your line of ${fmtLine(c.line)}.`;
-    if (!on && !verb) {
-      const said = bandClose(c);
-      caption = `${said[0].toUpperCase()}${said.slice(1)}.`;
-    }
-    return {
-      shown: c.today,
-      state: "closed",
-      /* A close always reaches the mark, whatever the rounding. */
-      fill: Math.max(fill, LINE_MARK),
-      mark: LINE_MARK,
-      caption,
-    };
-  }
-  return {
-    shown: c.today,
-    state: "short",
-    fill: Math.min(fill, LINE_MARK - 0.04),
-    mark: LINE_MARK,
-    caption: `Your line is ${fmtLine(c.line)}.`,
-  };
-}
-
-/**
- * Today's line in the wide tile (D23, E24): the card's trait prints its
- * number at the left, and the tile's right half holds today's line as a
- * head with its flag or check, the line itself as a number with the
- * tile's unit ("1.0 /min"), and a caption; the line also draws itself as
- * a tick on the trait's own bar at its percentile, on the same scale as
- * the bar's fill. The caption no longer names the line ("Line 1."), since
- * the number stands over it.
+ * Today's line in the wide tile (#495): under its head, one sentence
+ * that says what clears it, in the unit of the number beside it. It
+ * carried a second number with its unit, a caption about the last six
+ * recordings and a tick on the percentile bar, three numbers and a bare
+ * ordinal in one tile (the morning tour). Open and short say the same
+ * thing, since the way to clear it has not changed; the flag or the
+ * check says which. A closed line says the number that cleared it.
  */
 export interface WideLine {
-  state: LineTile["state"];
-  /** The line as the tile prints it (`fmtLine`). */
-  line: string;
-  caption: string;
-  /** Where the line sits on the trait's bar, 0 to 100. */
-  tick: number;
+  state: "open" | "closed" | "short";
+  sentence: string;
 }
 
 export function wideLine(c: Challenge): WideLine {
-  const t = lineTile(c);
-  return {
-    state: t.state,
-    line: fmtLine(c.line),
-    caption: t.caption,
-    tick: Math.max(0, Math.min(100, percentile(c.line, NORMS[c.trait]))),
-  };
+  if (c.today !== null && c.closed) {
+    return { state: "closed", sentence: `Cleared with ${fmtLine(c.today)} today.` };
+  }
+  const state = c.today === null ? "open" : "short";
+  if (c.direction === "band") {
+    /* Pace's line is a distance from its zone, so it has no verb: never
+       "Over 104" (lib/challenge.ts). */
+    const band = NORMS[c.trait].band;
+    const zone = band ? `${band.lo} to ${band.hi}` : "the zone";
+    const inside = band ? c.line >= band.lo && c.line <= band.hi : false;
+    return {
+      state,
+      sentence: inside ? `Inside ${zone} clears it.` : `Nearer ${zone} than ${fmtLine(c.line)} clears it.`,
+    };
+  }
+  return { state, sentence: `${VERB[c.direction]} ${fmtLine(c.line)} clears it.` };
 }
+
+/** The clean run's name on Today (#495): "Clean run" is also a badge on You that counts something else. */
+export const RUN_NAME = "No-filler run";
+/** The clean run before there is one. */
+export const RUN_FIRST = "Your first recording sets it.";
 
 export interface CleanRunTile {
   /** The last recording's longest stretch with no filler, whole seconds. */
   s: number;
-  /** That recording's length: the bar's whole width. */
+  /** That recording's length. */
   of: number;
   /** The best before it, or null on the first recording. */
   best: number | null;
@@ -293,8 +220,9 @@ export interface CleanRunTile {
 }
 
 /**
- * The clean run (#254, #267) as a tile: the newest recording, against
- * its own length, with the best before it as the bar's mark.
+ * The clean run (#254, #267) as a tile: the newest recording's longest
+ * stretch with no filler, and one sentence (#495: "Of 65s. Best 53s."
+ * was two fragments, and what the number was showed only on day zero).
  */
 export function cleanRunTile(reps: RepRow[]): CleanRunTile | null {
   /* A take too short to score is not a clean run: one word in 8s read
@@ -313,10 +241,10 @@ export function cleanRunTile(reps: RepRow[]): CleanRunTile | null {
   const newBest = best !== null && now.s >= best;
   const caption =
     best === null
-      ? `Of ${of}s.`
+      ? "Longest in your last recording."
       : newBest
-        ? `Of ${of}s. A new best.`
-        : `Of ${of}s. Best ${Math.round(best)}s.`;
+        ? "Longest in your last recording, a new best."
+        : `Longest in your last recording. Best ${Math.round(best)}s.`;
   return { s, of, best: best === null ? null : Math.round(best), newBest, caption };
 }
 

@@ -54,8 +54,9 @@ function rep(over: Partial<RepRow>): RepRow {
   } as RepRow;
 }
 
-const held = (n: number) =>
-  Array.from({ length: n }, () => ({ kind: "mid", t: 1, len: 1 })) as RepRow["pauses"];
+/** `n` pauses between sentences, the kind the Log counts (#495). */
+const held = (n: number, kind: "pre" | "mid" = "pre") =>
+  Array.from({ length: n }, () => ({ kind, t: 1, len: 1 })) as RepRow["pauses"];
 
 describe("movedRows", () => {
   it("prints day one, now, and the signed change", () => {
@@ -110,7 +111,19 @@ describe("movedRows", () => {
     expect(fillers.series).toHaveLength(2);
   });
 
-  /* A one-word 8s take printed Words / min 128 to 7 and Fillers 9.3 to 0.0. */
+  /* #495, the morning tour: the row counted every pause of 0.8s or more,
+     so a take that stopped mid-sentence five more times read as better.
+     The stored pauses are read again on every open, so an old row reads
+     the same rule: a display of what is stored, not a rescore. */
+  it("counts pauses between sentences only, never one mid-sentence", () => {
+    const [, , , pauses] = movedRows([
+      rep({ pauses: [...held(2), ...held(1, "mid")] }),
+      rep({ pauses: [...held(2), ...held(6, "mid")] }),
+    ]);
+    expect(pauses).toMatchObject({ label: "Pauses between sentences", unit: "in a recording", then: "2", now: "2", change: null, direction: "flat" });
+  });
+
+  /* A one-word 8s take printed pace 128 to 7 and fillers 9.3 to 0.0. */
   it("leaves a take too short to score out of the measurements", () => {
     const short = rep({ transcript: "Hello.", ethos_index: null, duration_s: 8.3, wpm: 7, filler_count: 0 });
     const [, fillers, pace, pauses] = movedRows([

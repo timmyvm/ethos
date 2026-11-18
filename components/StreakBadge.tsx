@@ -26,8 +26,10 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
    * Day zero shows too, unlit (26 Sep, Timothy: the corner read as
    * empty). A zero with an unlit flame is a number waiting to move, and
    * the headline no longer says "day one" in words. Since D25 the whole
-   * chip is unlit at zero, the wash too; a running streak on an open day
-   * keeps its wash and greys only the flame.
+   * chip is unlit at zero, the wash too; since #495 a running streak on
+   * an open day stands on the neutral surface too, its count in ink and
+   * its flame grey, and takes the sage wash and the lit flame once today
+   * is spoken (sage means earned, and today is not yet).
    */
   const open = streak.current === 0 || streak.atRisk;
 

@@ -670,9 +670,15 @@ export default function Home() {
 
       {/* The switch (ToyCad's Start / My Recent), on the shared Segmented
           and its keys. Gone on a failed read, where neither side has a
-          number to show. */}
+          number to show. 60px over it, not the section's 28 (#495, the
+          morning tour): at 28 it stood half under the floating tab bar
+          on the first screen, its labels cut, at 390x844 and 393x852.
+          At 60 it starts wholly under the bar on both (its top at 756,
+          the bar's from 746 and 754, its foot at 808 inside the bar's
+          810 and 818) and clears it at 430x932 (bar from 834); no band
+          over 64. */}
       {!failed && (
-        <div className="mt-7">
+        <div className="mt-15">
           <Segmented
             label="Show"
             size="lg"

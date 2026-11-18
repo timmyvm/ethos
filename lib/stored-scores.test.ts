@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SHAPED_TAKE, whisperTake } from "./__fixtures__/whisper-take";
 import type { RepRow } from "./client-data";
 import { ethosIndex, pauseScore, type Tier1Scores } from "./index-score";
-import { movedRows, skillRows } from "./log";
+import { bestRecording, ethosLine } from "./log";
 import { computeMetrics, type Word } from "./metrics";
 import { pauseReport, reportJudged, type JudgedPause } from "./pause-quality";
 import { celebrates, personalBests } from "./rewards";
@@ -11,7 +11,6 @@ import { readTraitsFromRow } from "./trait-readings";
 import { repTraitGain } from "./traits";
 import { weekView } from "./home";
 import { achievements } from "./achievements";
-import { insights } from "./insights";
 
 /*
  * Nothing is rescored (DECISIONS #422, Timothy, 6 Nov: "fix it but dont
@@ -137,14 +136,14 @@ function rejudged(rows: RepRow[]): RepRow[] {
 /** Everything a stored row shows a number through. */
 function readAll(rows: RepRow[]) {
   return {
-    moved: movedRows(rows),
-    skills: skillRows(rows),
+    /* The Log's stage line and its best row (#506), read off the stored Index. */
+    line: ethosLine(rows.filter((r) => r.ethos_index !== null).map((r) => r.ethos_index as number)),
+    best: bestRecording(rows)?.id ?? null,
     schedule: skillStates(rows, NOW),
     traits: rows.map((r) => readTraitsFromRow(r)),
     gains: rows.map((r) => repTraitGain(r)),
     week: weekView(rows, NOW),
     achievements: achievements(rows),
-    insights: insights(rows),
     bests: personalBests(rows, take().metrics, 900),
     celebrates: [celebrates(rows, 2, 900), celebrates(rows, 2, 600)],
   };
@@ -164,11 +163,8 @@ describe("a recording stored before #422 keeps its numbers", () => {
     const row = ROWS[2];
     const out = readAll(ROWS);
     const stored = row.dimensions!.tier1.pause;
-    expect(out.moved.find((m) => m.key === "index")!.series).toEqual(ROWS.map((r) => r.ethos_index));
-    expect(out.skills.find((m) => m.key === "pause")!.series).toEqual(
-      // Out of 100 since #471: the stored score itself, never rejudged.
-      ROWS.map(() => Math.round(stored))
-    );
+    expect(out.line).toEqual(ethosLine(ROWS.map((r) => r.ethos_index as number)));
+    expect(out.best).toBe([...ROWS].sort((a, b) => (b.ethos_index as number) - (a.ethos_index as number))[0].id);
     expect(out.schedule.find((s) => s.skill === "pause")!.score).toBe(stored);
     expect(out.bests.find((b) => b.headline === "Best Ethos yet")?.detail).toBe(`900, past your ${row.ethos_index}`);
     expect(out.celebrates).toEqual([true, false]);
@@ -238,11 +234,7 @@ describe("a recording stored before #476 keeps its numbers", () => {
 
   it("reads its stored Pause score, Index and pause kinds on every path", () => {
     const out = readAll(STORED);
-    expect(out.moved.find((m) => m.key === "index")!.series).toEqual(STORED.map((r) => r.ethos_index));
-    expect(out.skills.find((m) => m.key === "pause")!.series).toEqual(
-      // Out of 100 since #471: the stored score itself, never rejudged.
-      STORED.map(() => 26)
-    );
+    expect(out.line).toEqual(ethosLine(STORED.map((r) => r.ethos_index as number)));
     expect(out.schedule.find((s) => s.skill === "pause")!.score).toBe(26);
     // The Pausing trait counts the kinds it stored, 4 before a sentence,
     // not the 6 the same words would be given now.

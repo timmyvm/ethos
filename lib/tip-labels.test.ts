@@ -22,7 +22,6 @@ import type { RepRow } from "@/lib/client-data";
 import type { CoachOutput } from "@/lib/coach";
 import { DIMENSION_NAME, dimensionRows, rowsHeadline, STRONG_PHRASE } from "@/lib/dimension-rows";
 import { glanceLine, lessonDone } from "@/lib/glance";
-import { insights } from "@/lib/insights";
 import { computeMetrics, type Pause, type RepMetrics } from "@/lib/metrics";
 import { otherKey, PAUSE_MARK_WORDS, PAUSE_WHY_WORDS } from "@/lib/pause-mark";
 import { filledMoments, reportJudged, type JudgedPause, type PauseVerdict } from "@/lib/pause-quality";
@@ -339,13 +338,6 @@ function plainSweepLines(): string[] {
   }
   const prior = [sweepTake({ filler_count: 5, pauses: [P(2, "pre", "landing")] })];
   for (const b of personalBests(prior, { ...clean, fillersPerMin: 1, heldPauses: 6 } as RepMetrics, 900)) add(b.headline, b.detail);
-
-  /* The Log's patterns. */
-  const takes = [
-    ...Array.from({ length: 4 }, () => sweepTake({ wpm: 110, pauses: [] })),
-    ...Array.from({ length: 5 }, () => sweepTake({ wpm: 150, pauses: [P(2, "pre", "landing"), P(9, "pre", "landing")] })),
-  ];
-  for (const i of [...insights(takes), ...insights(Array.from({ length: 8 }, () => sweepTake({ wpm: 185 })))]) add(i.headline, i.detail);
 
   /* A lesson's page, the practice titles and each trait's own words. */
   for (const l of LESSONS) add(l.title, l.blurb);

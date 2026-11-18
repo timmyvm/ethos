@@ -1,16 +1,13 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { TRAITS } from "@/content/traits";
-import type { RepRow } from "./client-data";
 import {
   ALL_FILLERS,
   ALL_FILLERS_PER_MIN,
   PAUSES_PER_RECORDING,
   WORDS_A_MINUTE,
-  movedRows,
   pausesBetween,
-  presenceRow,
-} from "./log";
+} from "./metric-labels";
 
 /*
  * One trait, one unit (E32). A row or a card label that reads as a
@@ -37,55 +34,15 @@ function rateOf(label: string): string | null {
   return RATE.test(label) ? "a minute" : null;
 }
 
-/** A Log row as one line: its name and its unit (#495). */
-const said = (r: { label: string; unit?: string }) => (r.unit ? `${r.label} ${r.unit}` : r.label);
-
-/** A take long enough to be measured (lib/trait-readings.ts `measured`). */
-const SAID =
-  "The best part of my week was a long walk by the river with my sister after work on Friday, talking about nothing much.";
-
-function rep(over: Partial<RepRow>): RepRow {
-  return {
-    id: "r",
-    lesson_id: "f1",
-    created_at: "2026-10-04T09:00:00Z",
-    duration_s: 60,
-    transcript: SAID,
-    wpm: 140,
-    filler_count: 4,
-    fillers: [],
-    pauses: [],
-    stars: 1,
-    focus: null,
-    strength: null,
-    supply: null,
-    ethos_index: 512,
-    audio_path: null,
-    dimensions: null,
-    mode: "daily",
-    mods: [],
-    xp_multiplier: 1,
-    boss_topic_id: null,
-    accuracy: null,
-    capture_mode: "video",
-    delivery_metrics: null,
-    presence_score: 60,
-    delivery_moments: null,
-    ...over,
-  } as RepRow;
-}
-
 /** Every string literal the results' Since day one card draws as a label. */
 function comparisonCardLabels(): string[] {
   const src = readFileSync("components/ComparisonCard.tsx", "utf8");
   return [...src.matchAll(/(?:label|fillers|wpm|pause): "([^"]+)"/g)].map((m) => m[1]);
 }
 
-const reps = [rep({}), rep({ created_at: "2026-10-29T09:00:00Z", filler_count: 2 })];
-/* The Log's rows carry their unit apart since #495, and are held by name
-   below; these are the labels that still say a measure in one line. */
+/* The labels that say a measure in one line. The Log's What moved rows,
+   which set each name over its unit (#495), went with #506. */
 const labels = [
-  presenceRow(reps)!.label,
   ALL_FILLERS_PER_MIN,
   PAUSES_PER_RECORDING,
   WORDS_A_MINUTE,
@@ -94,9 +51,10 @@ const labels = [
 
 describe("a label that names a trait prints that trait's unit", () => {
   it("finds the labels it holds to the rule", () => {
-    // Presence, the three one-line labels, and the card's rows. (You's
-    // Day 1 vs now card and its shared picture went on 12 Nov, #458.)
-    expect(labels.length).toBeGreaterThanOrEqual(5);
+    // The three one-line labels and the card's rows. (You's Day 1 vs now
+    // card and its shared picture went on 12 Nov, #458; the Log's What
+    // moved rows with #506.)
+    expect(labels.length).toBeGreaterThanOrEqual(4);
   });
 
   for (const label of labels) {
@@ -109,21 +67,14 @@ describe("a label that names a trait prints that trait's unit", () => {
     });
   }
 
-  it("a Log row named for a trait wears the trait's own unit, in its words (#495)", () => {
-    for (const row of movedRows(reps)) {
-      const trait = TRAITS.find((t) => t.name === row.label);
-      if (trait) expect(row.unit, row.label).toBe(trait.unit);
-    }
-    // The pace row is the Pace trait's own number.
-    const pace = movedRows(reps).find((r) => r.key === "wpm")!;
-    expect([pace.label, pace.unit]).toEqual(["Pace", TRAITS.find((t) => t.id === "pace")!.unit]);
+  it("pace is said in the Pace trait's own unit, in its words (#495)", () => {
+    expect(WORDS_A_MINUTE.toLowerCase()).toBe(TRAITS.find((t) => t.id === "pace")!.unit);
   });
 
   it("calls the every-filler rate All fillers a minute, everywhere it is printed", () => {
     // Timothy, 31 October (E32): one label wherever the rate is printed;
     // its unit in words since #495.
     expect(ALL_FILLERS_PER_MIN).toBe("All fillers a minute");
-    expect(said(movedRows(reps).find((r) => r.key === "fillers")!)).toBe(ALL_FILLERS_PER_MIN);
     // The results' Since day one card prints the same number, so it
     // borrows the same label.
     const comparison = readFileSync("components/ComparisonCard.tsx", "utf8");
@@ -138,10 +89,6 @@ describe("a label that names a trait prints that trait's unit", () => {
 
 describe("the bare word Fillers means the trait (E32)", () => {
   it("never labels the every-filler rate or count", () => {
-    // The Log's insights say the rate by its label.
-    const insights = readFileSync("lib/insights.ts", "utf8");
-    expect(insights).not.toMatch(/`Fillers stay|fillers a minute in that window/);
-    expect(insights.match(/\$\{ALL_FILLERS_PER_MIN\}/g)?.length).toBe(2);
     // The Index's Fillers row runs on the every-filler rate, so its
     // detail names the rate by its label.
     const dims = readFileSync("components/DimensionList.tsx", "utf8");
@@ -171,14 +118,6 @@ describe("one recording's pauses between sentences (#495)", () => {
     expect(pausesBetween(worse)).toBe(2);
   });
 
-  it("is the Log's row, read off stored pauses, so old rows read the same rule", () => {
-    const rows = movedRows([rep({ pauses: [] }), rep({ created_at: "2026-10-29T09:00:00Z", pauses })]);
-    const row = rows.find((r) => r.key === "held")!;
-    expect([row.label, row.unit]).toEqual(["Pauses between sentences", "in a recording"]);
-    expect(row.then).toBe("0");
-    expect(row.now).toBe("2");
-  });
-
   it("reads Pauses between sentences in a recording wherever two recordings are compared", () => {
     expect(PAUSES_PER_RECORDING).toBe("Pauses between sentences in a recording");
     const src = readFileSync("components/ComparisonCard.tsx", "utf8");
@@ -189,8 +128,8 @@ describe("one recording's pauses between sentences (#495)", () => {
 });
 
 describe("a unit is said in words (#495)", () => {
-  it("no Log row and no compared label prints a slash unit or wpm", () => {
-    const shown = [...movedRows(reps).map(said), ...labels];
+  it("no compared label prints a slash unit or wpm", () => {
+    const shown = labels;
     for (const l of shown) expect(l, l).not.toMatch(/\/ ?min\b|\/ ?100|\bwpm\b|\/ recording/i);
   });
 });

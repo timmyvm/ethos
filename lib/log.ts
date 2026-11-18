@@ -1,154 +1,46 @@
 /**
- * The log's "What moved" table (#217).
+ * The Log, read (#17, #217; made simple in #506).
  *
- * One row grammar for every metric on the summary screen: what it is,
- * what it was on day one, what it is now, how much it moved, and the
- * series behind it. Pure arithmetic over stored reps (#30), so the page
- * only lays rows out and never decides what a number means.
+ * Pure reads over stored recordings for the Log and the stored
+ * recording's page: what a recording is called (`recordingName`, the
+ * lesson or the game) and what it was about (`recordingTopic`, the row's
+ * title since #506), which trait it practised (`recordingTrait`), the
+ * Ethos line on the Log's stage (`ethosLine`, `linePath`), the all-time
+ * best (`bestRecording`) and a row's day in words (`dayWords`). Nothing
+ * here decides what a number means: every point drawn and every number
+ * printed is a stored Ethos.
+ *
+ * What moved (#217) went with #506 (Timothy, 18 Nov: "what am I even
+ * looking at ... no one's gonna really consume that"): its three
+ * measures and their Day 1, Now and Change columns, the trend
+ * sparklines, the filler heatmap, the insight and the Premium skill and
+ * Presence trendlines. A recording's own numbers stay on its own page;
+ * each trait's latest reading stays on Lessons and You.
  */
 
 import type { RepRow } from "./client-data";
-import { lessonById } from "@/content/lessons";
+import { lessonById, lessonFor } from "@/content/lessons";
 import { pathItemById } from "@/content/path";
+import type { Pool } from "@/content/portfolio";
 import { TRAIT, type TraitId } from "@/content/traits";
+import { COLD_TOPICS } from "./cold-topics";
 import { DRILLS } from "./drills";
-import { gameOfLessonId } from "./games";
-import { HOSTILE_TAKE_ID } from "./hostile";
+import { gameOfLessonId, questionById } from "./games";
+import { HOSTILE_PROMPTS, HOSTILE_TAKE_ID, hostileRecordOf } from "./hostile";
 import { parsePracticeId } from "./lesson-progress";
-import { DIMENSION_NAME } from "./dimension-rows";
 import { measured } from "./trait-readings";
 import { topicById } from "./topics";
-import { TRAITS, type TraitKey } from "./traits";
-import { ALL_FILLERS_RATE, PACE_RATE, PAUSES_IN_RECORDING, pausesBetween, type Measure } from "./metric-labels";
+import { UNKNOWN_POOL } from "./pool";
 
-/** The pace band the results walk already names (RepResult). */
+/** The pace band the results walk already names (RepResult, Hostile). */
 export const WPM_ZONE = { low: 130, high: 160 } as const;
 
-/** The Log's measures: the every-filler rate, pace, one recording's pauses between sentences. */
-export {
-  ALL_FILLERS,
-  ALL_FILLERS_PER_MIN,
-  ALL_FILLERS_RATE,
-  PACE_RATE,
-  PAUSES_IN_RECORDING,
-  PAUSES_PER_RECORDING,
-  WORDS_A_MINUTE,
-  pausesBetween,
-} from "./metric-labels";
-
-export type Direction = "up" | "down" | "flat";
-
-export interface MovedRow {
-  key: string;
-  /** What is measured, its first line ("All fillers"). */
-  label: string;
-  /** What it is measured against, in words, its second line ("a minute"); none on a score. */
-  unit?: string;
-  /** Day-one value, formatted. Null before there is one. */
-  then: string | null;
-  /** Latest value, formatted. Null before there is one. */
-  now: string | null;
-  /** The printed change, never left for the reader to subtract. */
-  change: string | null;
-  /** Which way the change wears its colour (#195). */
-  direction: Direction;
-  /** The raw series, oldest first, for the trend track. */
-  series: number[];
-  /** True when lower is better, so the track draws in quiet stone. */
-  invert: boolean;
-}
-
-function fpm(r: RepRow): number {
-  return r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : 0;
-}
-
-/* Pauses between sentences only (#495): every pause of 0.8s or more
-   counted the ones mid-sentence too, the fault the results name. */
-function between(r: RepRow): number {
-  return pausesBetween(r.pauses);
-}
-
-function fmt(v: number, decimals = 0): string {
-  return v.toFixed(decimals);
-}
-
-/** "▲ +131", "▼ 3.3": the sign is the arrow, the number is the size. */
-function signed(delta: number, decimals = 0): string {
-  const size = fmt(Math.abs(delta), decimals);
-  return delta >= 0 ? `▲ +${size}` : `▼ ${size}`;
-}
-
-function endpoints(
-  key: string,
-  measure: string | Measure,
-  series: number[],
-  opts: { decimals?: number; invert?: boolean } = {}
-): MovedRow {
-  const { decimals = 0, invert = false } = opts;
-  const named = typeof measure === "string" ? { label: measure } : { label: measure.name, unit: measure.unit };
-  if (series.length === 0) {
-    return { key, ...named, then: null, now: null, change: null, direction: "flat", series, invert };
-  }
-  const first = series[0];
-  const last = series[series.length - 1];
-  const delta = Math.round((last - first) * 10 ** decimals) / 10 ** decimals;
-  const moved = series.length > 1 && delta !== 0;
-  const better = invert ? delta < 0 : delta > 0;
-  return {
-    key,
-    ...named,
-    then: fmt(first, decimals),
-    now: fmt(last, decimals),
-    change: moved ? signed(delta, decimals) : null,
-    direction: moved ? (better ? "up" : "down") : "flat",
-    series,
-    invert,
-  };
-}
-
 /**
- * Pace is the one metric with a zone rather than a direction, and the
- * zone is printed so the colour is inferable from the row (#217): "in
- * 130 to 160" is sage, "over 160" or "under 130" is rust. A distance to a
- * target the reader cannot see is not a change anyone can check.
- */
-function paceRow(series: number[]): MovedRow {
-  const base = endpoints("wpm", PACE_RATE, series);
-  if (base.now === null) return base;
-  const last = series[series.length - 1];
-  if (last > WPM_ZONE.high) {
-    return { ...base, change: `over ${WPM_ZONE.high}`, direction: "down" };
-  }
-  if (last < WPM_ZONE.low) {
-    return { ...base, change: `under ${WPM_ZONE.low}`, direction: "down" };
-  }
-  return { ...base, change: `in ${WPM_ZONE.low} to ${WPM_ZONE.high}`, direction: "up" };
-}
-
-/**
- * A trailing mean over the last `n` values (log-23): each point is the
- * average of itself and the n - 1 before it, so the first points
- * average what exists. Same length as the series and the same first
- * value, so a smoothed trend still starts at the Day 1 number printed
- * beside it. Per-recording pace and pauses are noisy enough that,
- * at 2px a recording in a 44px track, the raw line reads as hatching.
- */
-export function rolling(series: number[], n: number): number[] {
-  const size = Math.max(1, Math.floor(n));
-  let sum = 0;
-  return series.map((v, i) => {
-    sum += v;
-    if (i >= size) sum -= series[i - size];
-    return sum / Math.min(i + 1, size);
-  });
-}
-
-/**
- * Day 1 vs now (ComparisonCard): the first and the latest
- * recordings that measured something, by the rule What moved reads its
- * three measurements with. A take too short to score is stored with no
- * fillers and no pauses, and as "now" it printed fillers 9.3 to 0.0 in
- * green (regression review, edges F5). Null under two.
+ * Day 1 vs now (ComparisonCard, the results' Since day one): the first
+ * and the latest recordings that measured something. A take too short
+ * to score is stored with no fillers and no pauses, and as "now" it
+ * printed fillers 9.3 to 0.0 in green (regression review, edges F5).
+ * Null under two.
  */
 export function sinceDayOne(reps: RepRow[]): { first: RepRow; last: RepRow } | null {
   const kept = reps.filter(measured);
@@ -156,66 +48,12 @@ export function sinceDayOne(reps: RepRow[]): { first: RepRow; last: RepRow } | n
 }
 
 /**
- * The four rows everyone sees, oldest recording first. The three
- * measurements read only recordings that measured something: a one-word
- * take printed pace 128 to 7 and fillers 9.3 to 0.0 here. The
- * Index row is already the scored ones.
- */
-export function movedRows(reps: RepRow[]): MovedRow[] {
-  const index = reps
-    .filter((r) => r.ethos_index !== null)
-    .map((r) => r.ethos_index as number);
-  const kept = reps.filter(measured);
-  return [
-    endpoints("index", "Ethos Index", index),
-    endpoints("fillers", ALL_FILLERS_RATE, kept.map(fpm), { decimals: 1, invert: true }),
-    paceRow(kept.map((r) => r.wpm)),
-    endpoints("held", PAUSES_IN_RECORDING, kept.map(between)),
-  ];
-}
-
-/** Presence has its own history (#69): only video recordings carry it. */
-export function presenceRow(reps: RepRow[]): MovedRow | null {
-  const series = reps
-    .filter((r) => r.presence_score !== null)
-    .map((r) => r.presence_score as number);
-  if (series.length === 0) return null;
-  return endpoints("presence", "Presence", series);
-}
-
-/**
- * One row per Index dimension (#200), out of 100, the one scale the
- * results' and a stored recording's rows speak since #471 (it was the
- * weighted points, 99/150 beside 33/50), under the skill's name the
- * rows print (DIMENSION_NAME: "Filler control", never "Fillers", whose
- * rising number read as more fillers). Skips recordings that never
- * carried it, and takes too short to score, whose stored dimensions made
- * no Index.
- */
-export function skillRows(reps: RepRow[]): MovedRow[] {
-  return TRAITS.map((t) => {
-    const series: number[] = [];
-    for (const r of reps) {
-      const d = r.dimensions;
-      if (!d || !measured(r)) continue;
-      const tier1 = d.tier1 as Partial<Record<TraitKey, number>>;
-      const tier2 = d.tier2 as Partial<Record<TraitKey, { score: number }>> | null;
-      const raw = tier1[t.key] ?? tier2?.[t.key]?.score;
-      if (typeof raw === "number" && Number.isFinite(raw)) {
-        series.push(Math.max(0, Math.min(100, Math.round(raw))));
-      }
-    }
-    return endpoints(t.key, DIMENSION_NAME[t.key], series);
-  }).filter((row) => row.series.length >= 2);
-}
-
-/**
- * What a recording is called in its row. A stored `lesson_id` is one of
- * six shapes: a lesson's practice (`lesson:<id>:<n>`), a path item
- * (`pause-1-3`), a road lesson (`f1`), a game (`game:<id>:<q>`), a boss
- * topic (`boss:<id>`) or Hostile Q&A's take (`hostile-take`). Only the
- * road lesson used to resolve, so every recording made from Today or a
- * lesson was called "Recording", and Hostile's still was (map 2.4).
+ * What a recording is called by its lesson or game. A stored `lesson_id`
+ * is one of six shapes: a lesson's practice (`lesson:<id>:<n>`), a path
+ * item (`pause-1-3`), a road lesson (`f1`), a game (`game:<id>:<q>`), a
+ * boss topic (`boss:<id>`) or Hostile Q&A's take (`hostile-take`). Only
+ * the road lesson used to resolve, so every recording made from Today or
+ * a lesson was called "Recording", and Hostile's still was (map 2.4).
  *
  * A game round measured on the server (`round`, lib/round.ts) names its
  * level, "Q&A, level 2": the ladder is per level, so the row says which
@@ -248,6 +86,82 @@ export function recordingName(
   return r.mode === "boss" ? "Boss" : "Recording";
 }
 
+/**
+ * Two road lessons open on how to speak rather than what about ("Hold
+ * one full second of silence, then answer: what's a rule you live by?",
+ * "No think time. Your topic is the last object you touched. Go."), so
+ * their first sentence is not their topic. Every other road lesson's is.
+ */
+const DRILL_TOPIC: Record<string, string> = {
+  h3: "A rule you live by",
+  t3: "The last object you touched",
+};
+
+/**
+ * A road lesson's prompt names its topic, then says how ("Argue that one
+ * everyday habit is underrated. Full stop, one beat, next sentence."):
+ * the topic is its first sentence, a title's full stop dropped (#454),
+ * a question keeping its mark.
+ */
+function firstSentence(prompt: string): string {
+  const end = /[.?!](?=\s|$)/.exec(prompt);
+  const first = end ? prompt.slice(0, end.index + 1) : prompt;
+  return first.replace(/\.$/, "").trim();
+}
+
+/**
+ * What a recording was about, the Log's row title since #506: a person
+ * finds a recording by what they talked about ("Whether being busy is a
+ * choice"), and the lesson's name ("Punctuate with silence") stays on
+ * the recording's own page. Read from the stored `lesson_id` alone, so it
+ * is the topic the recorder showed:
+ *
+ *  - a lesson's practice: its topic in this person's pool (#492: the
+ *    recorder resolves it through `lessonFor` with the phone's pool);
+ *  - Today's practice or a spun topic (`topic:<id>`): the topic;
+ *  - a path item: its topic;
+ *  - a road lesson: its prompt's first sentence (DRILL_TOPIC for two);
+ *  - the weekly boss: its Cold Topic;
+ *  - a game round: the question drawn;
+ *  - Hostile Q&A: the claim argued, from its stored verdict;
+ *  - anything else (a trait's walk, a recording older than its id's
+ *    shape): `recordingName`, never an empty or raw id.
+ */
+export function recordingTopic(
+  r: Pick<RepRow, "lesson_id" | "mode"> & { round?: unknown },
+  pool: Pool = UNKNOWN_POOL
+): string {
+  const id = r.lesson_id;
+  const practice = parsePracticeId(id);
+  const lesson = practice ? lessonById(practice.lessonId) : null;
+  if (lesson && practice) {
+    const prompt = lessonFor(lesson, pool).practices[practice.practice - 1]?.prompt;
+    if (prompt) return prompt;
+  }
+  if (id?.startsWith("topic:")) {
+    const topic = topicById(id.slice("topic:".length));
+    if (topic) return topic.prompt;
+  }
+  const item = pathItemById(id);
+  const itemTopic = item ? topicById(item.topicId) : null;
+  if (itemTopic) return itemTopic.prompt;
+  const drill = id ? DRILLS.find((d) => d.id === id) : null;
+  if (drill) return DRILL_TOPIC[drill.id] ?? firstSentence(drill.prompt);
+  if (id?.startsWith("boss:")) {
+    const cold = COLD_TOPICS.find((t) => t.id === id.slice("boss:".length));
+    if (cold) return cold.title;
+  }
+  const game = gameOfLessonId(id);
+  const question = game ? questionById(game, id?.split(":")[2]) : null;
+  if (question) return question.prompt;
+  if (id === HOSTILE_TAKE_ID) {
+    const record = hostileRecordOf(r.round);
+    const claim = record ? HOSTILE_PROMPTS.find((p) => p.id === record.claimId)?.claim : null;
+    if (claim) return claim;
+  }
+  return recordingName({ lesson_id: id, mode: r.mode, round: (r.round ?? null) as { game?: unknown; level?: unknown } | null });
+}
+
 /** The trait of a trait's walk (`practice:trait-pause`, lib/rep-config.ts), or null. */
 function traitWalk(id: string | null): TraitId | null {
   const m = id?.match(/^practice:trait-(\w+)$/);
@@ -262,11 +176,11 @@ const UNIT_TRAIT: Record<string, TraitId> = {
 };
 
 /**
- * The trait a recording practised, so its row can wear that trait's
- * tone (`[data-trait]`) the way the lesson does on /lessons. Null for a
- * game, a boss, a free recording and the road's Structure, Compression
- * and Thinking Under Fire units: those practise no one trait, and a
- * tone they did not earn would teach the wrong colour.
+ * The trait a recording practised, so its page can wear that trait's
+ * chip the way the lesson does on /lessons. Null for a game, a boss, a
+ * free recording and the road's Structure, Compression and Thinking
+ * Under Fire units: those practise no one trait, and a tone they did not
+ * earn would teach the wrong colour.
  */
 export function recordingTrait(r: Pick<RepRow, "lesson_id">): TraitId | null {
   const id = r.lesson_id;
@@ -281,17 +195,120 @@ export function recordingTrait(r: Pick<RepRow, "lesson_id">): TraitId | null {
   return drill ? (UNIT_TRAIT[drill.unit] ?? null) : null;
 }
 
-/** The trait a "What moved" row measures, by its key, or null. */
-export function rowTrait(key: string): TraitId | null {
-  const byRow: Record<string, TraitId> = {
-    fillers: "fillers",
-    wpm: "pace",
-    held: "pause",
-    // The Premium skill rows carry the Index dimension's own key.
-    pause: "pause",
-    repairs: "repairs",
-    pace: "pace",
-    range: "range",
-  };
-  return byRow[key] ?? null;
+/**
+ * The narrowest stretch of Ethos the stage's line is drawn on (#506,
+ * from the next-move design). Fitted to its own range, 611 to 662 ran
+ * corner to corner and a 51-point rise read as a cliff; a small dip
+ * would have read as a crash. On at least 100 points, a rise looks its
+ * size and a flat run looks flat.
+ */
+export const LINE_SPAN = 100;
+
+/**
+ * The stage's line (#506): one point per scored recording, oldest
+ * first, as [x, y] in the unit square (x 0 to 1 left to right, y 0 at
+ * the top). Null under two scored recordings: one number is no line.
+ *
+ * Smoothed so a recording's ups and downs read as a direction: each
+ * point is the mean of itself and up to two either side, the window
+ * shrinking at the ends, so the first point IS the first Ethos and the
+ * last IS today's. The ring and the dot then sit on the two numbers the
+ * stage's change subtracts, and the line ends where the number printed
+ * over it is, whatever the history (a trailing mean ended 10 points
+ * over 662 on the tour's account). Drawn on at least LINE_SPAN points,
+ * centred on its own range.
+ */
+export function ethosLine(series: readonly number[]): [number, number][] | null {
+  const n = series.length;
+  if (n < 2) return null;
+  const smooth = series.map((_, i) => {
+    const w = Math.min(2, i, n - 1 - i);
+    const slice = series.slice(i - w, i + w + 1);
+    return slice.reduce((a, b) => a + b, 0) / slice.length;
+  });
+  const lo = Math.min(...smooth);
+  const hi = Math.max(...smooth);
+  const span = Math.max(LINE_SPAN, hi - lo);
+  const floor = (lo + hi) / 2 - span / 2;
+  return smooth.map((v, i) => [i / (n - 1), 1 - (v - floor) / span]);
+}
+
+/**
+ * A monotone curve through points in px (Fritsch and Carlson): it never
+ * swings past a point's value between two points, so the line shows no
+ * high or low that no recording had.
+ */
+export function linePath(pts: readonly [number, number][]): string {
+  const n = pts.length;
+  if (n === 0) return "";
+  const f = (v: number) => v.toFixed(1);
+  if (n === 1) return `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  const dx: number[] = [];
+  const m: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = pts[i + 1][0] - pts[i][0];
+    m[i] = dx[i] === 0 ? 0 : (pts[i + 1][1] - pts[i][1]) / dx[i];
+  }
+  const t: number[] = [m[0]];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+  t[n - 1] = m[n - 2];
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) {
+      t[i] = 0;
+      t[i + 1] = 0;
+      continue;
+    }
+    const a = t[i] / m[i];
+    const b = t[i + 1] / m[i];
+    const s = a * a + b * b;
+    if (s > 9) {
+      const k = 3 / Math.sqrt(s);
+      t[i] = k * a * m[i];
+      t[i + 1] = k * b * m[i];
+    }
+  }
+  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C${f(pts[i][0] + h)} ${f(pts[i][1] + t[i] * h)} ${f(pts[i + 1][0] - h)} ${f(pts[i + 1][1] - t[i + 1] * h)} ${f(pts[i + 1][0])} ${f(pts[i + 1][1])}`;
+  }
+  return d;
+}
+
+/**
+ * The all-time best (#506, the house's best grammar, #421): the
+ * recording with the highest Ethos over every recording the account
+ * holds (the spine, not the free plan's seven days), the first to reach
+ * it when two tie, since that one set it. Null under two scored
+ * recordings: a best of one is only the number.
+ */
+export function bestRecording<T extends { created_at: string; ethos_index: number | null }>(
+  oldestFirst: readonly T[]
+): T | null {
+  let best: T | null = null;
+  let scored = 0;
+  for (const r of oldestFirst) {
+    if (r.ethos_index === null) continue;
+    scored += 1;
+    if (best === null || r.ethos_index > (best.ethos_index as number)) best = r;
+  }
+  return scored >= 2 ? best : null;
+}
+
+/**
+ * A row's day in words (#506): "Today", "Yesterday", then the weekday
+ * and the date ("Sun 15 Nov"), on the phone's own calendar.
+ */
+export function dayWords(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const back = Math.round((day(now) - day(d)) / 86_400_000);
+  if (back === 0) return "Today";
+  if (back === 1) return "Yesterday";
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    ...(d.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
 }

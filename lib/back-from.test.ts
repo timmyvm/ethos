@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { backFrom, fromParam, withFrom } from "./back-from";
 import { introHref } from "./path";
-import { waitingRows } from "./log-waiting";
 
 /**
  * D18: a back control names its parent. The two screens more than one
@@ -33,9 +32,6 @@ describe("a back names the screen it returns to", () => {
 
   it("the doors into the teaching screen say who opened it", () => {
     expect(introHref("filler", [], "f2", "log")).toBe("/lesson/filler?lesson=f2&from=log");
-    for (const row of waitingRows(3, { intros: true })) {
-      expect(row.href).toMatch(/from=log$/);
-    }
     expect(readFileSync("app/page.tsx", "utf8")).toMatch(/introHref\([^)]*"today"\)/);
     expect(readFileSync("app/welcome/page.tsx", "utf8")).toMatch(/introHref\([^)]*"today"\)/);
   });

@@ -113,9 +113,14 @@ const settled = async (page) => {
   const { context, page, asked, errors } = await open();
   await page.goto(`${BASE}/`);
   await page.waitForSelector("main");
+  // Once its numbers are drawn and the phone is idle, Today reads You's
+  // XP into what the visit holds (#508, lib/warm-you.ts).
+  const xpRead = page.waitForRequest((r) => r.url().includes("/rest/v1/xp_events"), { timeout: 15000 }).then(() => true, () => false);
   const coldBones = await bones(page);
   ok("a cold open of Today still shows its skeleton first", coldBones > 0, `${coldBones} bones`);
   await settled(page);
+  ok("Today, once drawn, reads You's XP for it (#508)", await xpRead);
+  await sleep(LATENCY * 3 + 300);
 
   for (const round of [1, 2]) {
     for (const tab of TABS) {
@@ -133,12 +138,11 @@ const settled = async (page) => {
         await page.screenshot({ path: `${SHOTS}held-${TAG}-${round}-${tab.name.toLowerCase()}.png` });
       }
       /* Held is only what was read. You is the one screen that reads the
-         XP, so on its first visit the level's lines wait for it (and say
-         so with their bones); everything else on it, and every other tab,
-         was read by a screen before it. */
-      const firstYou = round === 1 && tab.name === "You";
-      if (firstYou) ok("You, first visit: only the XP's lines wait", n > 0 && n <= 8, `${n} bones`);
-      else ok(`${tab.name}, visit ${round}: opens on its numbers, no skeleton`, n === 0, `${n} bones`);
+         XP, and Today now reads it for You once its own numbers are drawn
+         (#508 fix 12; until #508 You's level lines waited on their first
+         visit), so every tab, You's first visit too, was read by a screen
+         before it. */
+      ok(`${tab.name}, visit ${round}: opens on its numbers, no skeleton`, n === 0, `${n} bones`);
       ok(`${tab.name}, visit ${round}: nothing replays its arrival`, moving === 0, `${moving} arriving`);
       await sleep(LATENCY * 3 + 300);
       if (round === 2) {

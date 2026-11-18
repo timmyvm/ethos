@@ -73,6 +73,8 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
   const [stuck, setStuck] = useState<{ item: SayItem; undo: boolean } | null>(null);
   const [said, setSaid] = useState("");
   const leaving = useRef(new Map<string, Promise<boolean>>());
+  /** Where the keyboard goes once a removed row's sheet has closed: the row after it, as #435's list did. */
+  const refocus = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -93,6 +95,11 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
     setRead((r) => (r ? { ...r, items: r.items.map((i) => (i.swap.key === key ? { ...i, state: { ...i.state, hidden } } : i)) } : r));
 
   const remove = async (item: SayItem) => {
+    /* The opener the sheet would hand focus back to is the row going
+       off: the next row on screen takes it (the one before, at the end). */
+    const rows = read ? (({ nowSay, learning }) => [...nowSay, ...learning].map((v) => v.swap.key))(sayLists(read.items, today)) : [];
+    const at = rows.indexOf(item.swap.key);
+    refocus.current = at < 0 ? null : (rows[at + 1] ?? rows[at - 1] ?? "");
     setStuck(null);
     mark(item.swap.key, true);
     setSaid("");
@@ -165,7 +172,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
         </div>
       </div>
 
-      <h1 className="font-display mt-4 text-center text-title">Say it better</h1>
+      <h1 tabIndex={-1} className="font-display mt-4 text-center text-title outline-none">Say it better</h1>
       <p role="status" className="sr-only">
         {said}
       </p>
@@ -282,6 +289,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
                         aria-haspopup="dialog"
                         aria-label={`Instead of ${v.swap.said}, ${v.swap.better}. You now say it, ${count}.`}
                         onClick={() => setOpen(v)}
+                        data-say-row={v.swap.key}
                         className={`press-row ${ROW}`}
                       >
                         <SwapPair
@@ -314,6 +322,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
                         aria-haspopup="dialog"
                         aria-label={`Instead of ${v.swap.said}, ${v.swap.better}. ${when}.`}
                         onClick={() => setOpen(v)}
+                        data-say-row={v.swap.key}
                         className={`press-row ${ROW}`}
                       >
                         <SwapPair
@@ -338,7 +347,17 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
           item={open}
           today={today}
           next={nextTestDay(open)}
-          onClose={() => setOpen(null)}
+          onClose={() => {
+            setOpen(null);
+            const key = refocus.current;
+            refocus.current = null;
+            if (key === null) return;
+            /* After the sheet has unmounted and handed focus to its opener, which has gone. */
+            setTimeout(() => {
+              const to = key ? document.querySelector<HTMLElement>(`[data-say-row="${CSS.escape(key)}"]`) : null;
+              (to ?? document.querySelector<HTMLElement>("main h1"))?.focus({ preventScroll: true });
+            }, 0);
+          }}
           onRemove={() => void remove(open)}
         />
       )}

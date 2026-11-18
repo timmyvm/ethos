@@ -1,13 +1,16 @@
 /**
- * The undo toast on Your words, in a real browser (#435).
+ * The undo toast on Say it better, in a real browser (#435, #507).
  *
- * A removal acts at once and offers itself back for six seconds. This
- * walks what that promises: the row leaves and the toast says so as a
- * status; Undo puts the same row (its id, its date) back in its own
- * place; the offer lapses by itself; a second removal replaces the
- * first's offer; Ctrl+Z undoes from the keyboard and never from inside
- * a field; an undo tapped before its removal has answered never
- * overtakes it; and a removal or an undo that fails says so with a retry.
+ * A removal acts at once and offers itself back for six seconds. It is
+ * made from a swap's sheet: Remove closes the sheet, the row leaves and
+ * the toast says so as a status. This walks what that promises: Undo
+ * puts the same swap (its id, its date) back in its own place; the offer
+ * lapses by itself; a second removal replaces the first's offer; the
+ * keyboard lands on the next row and Ctrl+Z undoes, never from inside a
+ * field; an undo tapped before its removal has answered never overtakes
+ * it; a removal or an undo that fails says so with a retry; and a coach's
+ * pair, which has no row of its own to take off, is hidden and shown
+ * again through the test's table.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -15,7 +18,7 @@
  *     node scripts/check-undo.mjs
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
-import { SAVED_ROWS, json, savedWordsMode, seed, session, supabaseRoute } from "./look-fixtures.mjs";
+import { SAY_SAVED, json, sayMode, savedWordsMode, seed, session, supabaseRoute } from "./look-fixtures.mjs";
 
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3123";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -29,6 +32,8 @@ const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 /** What the table does to a write: refuse it, or hold it. */
 const mode = { removeFails: false, restoreFails: false, removeDelay: 0 };
 const wire = [];
+/** "very cold → freezing", saved from a transcript: a row of saved_words. */
+const FREEZING = SAY_SAVED[0].id;
 
 async function open() {
   const context = await browser.newContext({
@@ -39,7 +44,7 @@ async function open() {
     const req = route.request();
     const url = new URL(req.url());
     if (url.pathname.startsWith("/rest/v1/saved_words") && req.method() !== "GET" && req.method() !== "OPTIONS") {
-      wire.push(`${req.method()} ${url.searchParams.get("id") ?? (req.postDataJSON?.()?.id ?? "")}`);
+      wire.push(`${req.method()} ${(url.searchParams.get("id") ?? (req.postDataJSON?.()?.id ?? "")).replace(/^eq\./, "")}`);
       if (req.method() === "DELETE") {
         if (mode.removeDelay) await sleep(mode.removeDelay);
         if (mode.removeFails) return route.fulfill(json({ code: "XX000", message: "check: refused" }, 500));
@@ -48,6 +53,7 @@ async function open() {
     }
     return supabaseRoute(route);
   });
+  await context.route("**/api/audio**", (route) => route.fulfill(json({ error: "Not here." }, 404)));
   await context.addInitScript(seed, { theme: "light", session });
   await context.addInitScript(() => {
     const css = document.createElement("style");
@@ -56,17 +62,28 @@ async function open() {
   });
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("PAGEERROR", e.message.slice(0, 160)));
-  savedWordsMode.rows = SAVED_ROWS.map((r) => ({ ...r }));
+  Object.assign(sayMode, { on: true, dry: false, empty: false, table: "ok", written: [] });
+  savedWordsMode.rows = SAY_SAVED.map((r) => ({ ...r }));
+  savedWordsMode.fail = false;
   Object.assign(mode, { removeFails: false, restoreFails: false, removeDelay: 0 });
   wire.length = 0;
-  await page.goto(`${BASE}/words`);
-  await page.waitForSelector("main ul li");
+  await page.goto(`${BASE}/say`);
+  await page.waitForSelector("[data-say-list='learning'] [data-say-row]", { timeout: 30000 });
   await sleep(500);
   return { context, page };
 }
 
-const list = (page) => page.evaluate(() => [...document.querySelectorAll("main ul li .you-word")].map((el) => el.textContent));
-const removeBtn = (page, word) => page.locator(`main ul li button[aria-label^="Remove ${word} "]`);
+/** The better phrases a list shows, top to bottom. */
+const list = (page, which) =>
+  page.evaluate((w) => [...document.querySelectorAll(`[data-say-list='${w}'] .you-word`)].map((el) => el.textContent.trim()), which);
+const row = (page, better) => page.locator("[data-say-row]").filter({ has: page.locator(".you-word", { hasText: new RegExp(`^${better}$`) }) });
+/** Open a swap's sheet from its row, and Remove from it. */
+async function removeFromSheet(page, better) {
+  await row(page, better).click();
+  await page.waitForSelector("[data-say-remove]");
+  await sleep(500);
+  await page.locator("[data-say-remove]").click();
+}
 const toast = (page) =>
   page.evaluate(() => {
     const t = document.querySelector(".toast");
@@ -76,14 +93,15 @@ const toast = (page) =>
 // ---- 1. remove, then undo ---------------------------------------------------
 {
   const { context, page } = await open();
-  await removeBtn(page, "freezing").click();
+  const before = await list(page, "learning");
+  await removeFromSheet(page, "freezing");
   await page.waitForSelector(".toast");
   const t = await toast(page);
-  ok("a removal is off the list at once", !(await list(page)).includes("freezing"));
+  ok("Remove closes the sheet and the swap is off the list at once", (await page.locator("[data-say-sheet]").count()) === 0 || !(await list(page, "learning")).includes("freezing"));
+  await sleep(600);
+  ok("the sheet has gone and so has the row", (await page.locator("[data-say-sheet]").count()) === 0 && !(await list(page, "learning")).includes("freezing"), (await list(page, "learning")).join("|"));
   ok("the toast is a status and says what left", t?.role === "status" && t.text === "freezing removed", JSON.stringify(t));
-  ok("no dialog asked first", (await page.locator('[role="dialog"], [role="alertdialog"]').count()) === 0);
-  // Measured at rest: the toast rises from 12px under its place at 0.98.
-  await sleep(500);
+  ok("no dialog asked first", (await page.locator('[role="alertdialog"]').count()) === 0);
   const box = await page.evaluate(() => {
     const a = document.querySelector(".toast-action");
     const hit = getComputedStyle(a, "::after");
@@ -95,9 +113,13 @@ const toast = (page) =>
   ok("Undo is a 44px target, and the toast floats over the tab bar inside the column", box.hitH >= 44 && box.hitW >= 44 && box.after && box.gap >= 8 && box.inColumn, JSON.stringify(box));
   await page.locator(".toast-action").click();
   await sleep(500);
-  const back = await list(page);
-  ok("Undo puts the row back in its own place", back.join("|") === "problem|freezing|landed|shake things up|crowds", back.join("|"));
-  ok("the same row went back: its id and its date", wire.join(" | ") === "DELETE eq.sw-2 | POST sw-2" && savedWordsMode.rows.find((r) => r.id === "sw-2")?.created_at === SAVED_ROWS[1].created_at, wire.join(" | "));
+  const back = await list(page, "learning");
+  ok("Undo puts the swap back in its own place", back.join("|") === before.join("|"), `${back.join("|")} (was ${before.join("|")})`);
+  ok(
+    "the same row went back: its id and its date",
+    wire.join(" | ") === `DELETE ${FREEZING} | POST ${FREEZING}` && savedWordsMode.rows.find((r) => r.id === FREEZING)?.created_at === SAY_SAVED[0].created_at,
+    wire.join(" | ")
+  );
   ok("the toast is gone once taken", (await toast(page)) === null);
   ok("the return is announced", (await page.locator("main p[role='status'].sr-only").textContent()) === "freezing is back");
   await context.close();
@@ -106,35 +128,41 @@ const toast = (page) =>
 // ---- 2. it lapses by itself, and a second removal replaces the first --------
 {
   const { context, page } = await open();
-  await removeBtn(page, "freezing").click();
+  await removeFromSheet(page, "freezing");
   await page.waitForSelector(".toast");
   await sleep(1500);
-  await removeBtn(page, "landed").click();
+  await removeFromSheet(page, "landed");
   await sleep(300);
   const t = await toast(page);
   ok("a second removal replaces the offer: one toast, the newest", (await page.locator(".toast").count()) === 1 && t?.text === "landed removed", JSON.stringify(t));
-  await sleep(4700);
+  await sleep(4200);
   ok("still offered just short of six seconds", (await toast(page)) !== null);
-  await sleep(1800);
+  await sleep(2300);
   ok("gone by itself after six", (await toast(page)) === null);
-  ok("what lapsed stays removed", (await list(page)).join("|") === "problem|shake things up|crowds" && savedWordsMode.rows.length === 3);
+  ok(
+    "what lapsed stays removed",
+    !(await list(page, "learning")).includes("freezing") && !(await list(page, "now")).includes("landed") && savedWordsMode.rows.length === 1,
+    `${savedWordsMode.rows.length} saved`
+  );
   await context.close();
 }
 
 // ---- 3. the keyboard --------------------------------------------------------
 {
   const { context, page } = await open();
-  const btn = removeBtn(page, "freezing");
-  await btn.focus();
+  await row(page, "freezing").focus();
+  await page.keyboard.press("Enter");
+  await page.waitForSelector("[data-say-remove]");
+  await sleep(500);
+  await page.locator("[data-say-remove]").focus();
   await page.keyboard.press("Enter");
   await page.waitForSelector(".toast");
-  const focused = await page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
-  ok("the keyboard stays in the list, on the next row's button", focused === "Remove landed instead of got", String(focused));
-  // A beat, as a hand takes: the toast learns the keyboard's name after it mounts.
-  await sleep(200);
+  await sleep(700);
+  const focused = await page.evaluate(() => document.activeElement?.querySelector?.(".you-word")?.textContent?.trim() ?? document.activeElement?.tagName);
+  ok("the keyboard lands on the next row once the sheet has gone", focused === "heavy rain", String(focused));
   await page.keyboard.press("Control+z");
   await sleep(500);
-  ok("Ctrl+Z undoes", (await list(page)).includes("freezing") && (await toast(page)) === null);
+  ok("Ctrl+Z undoes", (await list(page, "learning")).includes("freezing") && (await toast(page)) === null);
   await context.close();
 }
 
@@ -142,13 +170,17 @@ const toast = (page) =>
 {
   const { context, page } = await open();
   mode.removeDelay = 900;
-  await removeBtn(page, "freezing").click();
+  await removeFromSheet(page, "freezing");
   await page.waitForSelector(".toast");
   await page.locator(".toast-action").click();
   await sleep(200);
-  ok("the row is back on screen before the removal has answered", (await list(page)).includes("freezing"));
+  ok("the swap is back on screen before the removal has answered", (await list(page, "learning")).includes("freezing"));
   await sleep(1500);
-  ok("the put-back was sent after the removal landed, and the row is stored", wire.join(" | ") === "DELETE eq.sw-2 | POST sw-2" && savedWordsMode.rows.some((r) => r.id === "sw-2"), wire.join(" | "));
+  ok(
+    "the put-back was sent after the removal landed, and the row is stored",
+    wire.join(" | ") === `DELETE ${FREEZING} | POST ${FREEZING}` && savedWordsMode.rows.some((r) => r.id === FREEZING),
+    wire.join(" | ")
+  );
   await context.close();
 }
 
@@ -156,10 +188,14 @@ const toast = (page) =>
 {
   const { context, page } = await open();
   mode.removeFails = true;
-  await removeBtn(page, "freezing").click();
-  await sleep(800);
+  await removeFromSheet(page, "freezing");
+  await sleep(1000);
   const line = await page.locator("main [role='alert']").first().textContent().catch(() => "");
-  ok("a removal that fails puts the row back and says so, with a retry", (await list(page)).includes("freezing") && /freezing didn't come off the list\./.test(line ?? "") && /Try again/.test(line ?? ""), String(line));
+  ok(
+    "a removal that fails puts the swap back and says so, with a retry",
+    (await list(page, "learning")).includes("freezing") && /freezing didn't come off the list\./.test(line ?? "") && /Try again/.test(line ?? ""),
+    String(line)
+  );
   ok("and its offer is withdrawn", (await toast(page)) === null);
   await context.close();
 }
@@ -168,34 +204,33 @@ const toast = (page) =>
 {
   const { context, page } = await open();
   mode.restoreFails = true;
-  await removeBtn(page, "freezing").click();
+  await removeFromSheet(page, "freezing");
   await page.waitForSelector(".toast");
   await sleep(300);
   await page.locator(".toast-action").click();
   await sleep(800);
   const line = await page.locator("main [role='alert']").first().textContent().catch(() => "");
-  ok("an undo that fails takes the row off again and says so", !(await list(page)).includes("freezing") && /freezing didn't come back\./.test(line ?? ""), String(line));
+  ok("an undo that fails takes the swap off again and says so", !(await list(page, "learning")).includes("freezing") && /freezing didn't come back\./.test(line ?? ""), String(line));
   mode.restoreFails = false;
   await page.locator("main [role='alert'] button").first().click();
   await sleep(600);
-  ok("its Try again puts it back", (await list(page)).includes("freezing") && savedWordsMode.rows.some((r) => r.id === "sw-2"));
+  ok("its Try again puts it back", (await list(page, "learning")).includes("freezing") && savedWordsMode.rows.some((r) => r.id === FREEZING));
   await context.close();
 }
 
-// ---- 7. the last row ---------------------------------------------------------
+// ---- 7. a coach's pair: hidden through the test's table, and back -----------
 {
   const { context, page } = await open();
-  savedWordsMode.rows = [{ ...SAVED_ROWS[0] }];
-  await page.goto(`${BASE}/words`);
-  await page.waitForSelector("main ul li");
-  await sleep(400);
-  await removeBtn(page, "problem").click();
+  await removeFromSheet(page, "heavy rain");
   await page.waitForSelector(".toast");
   await sleep(500);
-  ok("taking off the last row shows the empty page with the offer still standing", (await page.locator("main ul li").count()) === 0 && (await toast(page))?.text === "problem removed");
+  const off = sayMode.written.filter((w) => /^c:/.test(w.swap ?? "")).pop();
+  ok("a coach's pair comes off the list and its state says hidden", !(await list(page, "learning")).includes("heavy rain") && off?.hidden === true, JSON.stringify(off));
   await page.locator(".toast-action").click();
-  await sleep(600);
-  ok("and Undo brings the list back", (await list(page)).join("|") === "problem");
+  await sleep(700);
+  const on = sayMode.written.filter((w) => /^c:/.test(w.swap ?? "")).pop();
+  ok("Undo shows it again, same place, its test day kept", (await list(page, "learning")).includes("heavy rain") && on?.hidden === false && on?.due === off?.due, JSON.stringify(on));
+  ok("the coach's own row was never touched", !wire.some((w) => w.startsWith("DELETE") && !w.includes(FREEZING)));
   await context.close();
 }
 

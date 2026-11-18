@@ -585,7 +585,9 @@ export async function coachRep(
   metrics: RepMetrics,
   tier1: Tier1Scores,
   anchors: Tier2Anchors,
-  deadline?: number
+  deadline?: number,
+  /** Told each attempt as it starts: the route's stage log counts them (#508). */
+  onAttempt?: (attempt: number) => void
 ): Promise<CoachOutput | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
 
@@ -601,6 +603,7 @@ export async function coachRep(
       console.warn(`[coach] out of time before attempt ${attempt}`);
       return null;
     }
+    onAttempt?.(attempt);
     // One signal covers the SDK's own retries too, which a timeout would not.
     const signal = left === null ? undefined : AbortSignal.timeout(left);
     let response: Anthropic.Beta.BetaMessage;

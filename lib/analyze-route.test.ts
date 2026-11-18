@@ -1784,3 +1784,67 @@ describe("a take as Whisper returns it (#476)", () => {
     ).toBeNull();
   });
 });
+
+/*
+ * One line a take with each stage's time (#508): read in production
+ * before the speed audit's fixes 15, 16 and 20 are chosen between.
+ * Nothing personal: no transcript, no user id, no client id.
+ */
+describe("the stage log", () => {
+  function stageLines(spy: { mock: { calls: unknown[][] } }) {
+    return spy.mock.calls
+      .map((c) => String(c[0]))
+      .filter((l) => l.includes('"evt":"analyze.stages"'))
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
+  }
+
+  it("writes one line for a stored take, with Whisper's, the coach's and the save's times, and nothing personal", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-secret-7", anonymous: false });
+    vi.mocked(saveRep).mockResolvedValue({ id: "rep-9", audioPath: null, duplicate: false });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    onTestFinished(() => spy.mockRestore());
+    const form = audioForm();
+    form.append("clientId", "1792-f1-secretkey");
+    const res = await post(form);
+    expect(res.status).toBe(200);
+    const lines = stageLines(spy);
+    expect(lines).toHaveLength(1);
+    const [line] = lines;
+    expect(line).toMatchObject({ status: 200, duplicate: false, mode: "daily" });
+    for (const k of ["upload_ms", "gate_ms", "whisper_ms", "coach_ms", "save_ms", "total_ms"]) {
+      expect(typeof line[k], k).toBe("number");
+    }
+    expect(line.audio_kb).toBe(0);
+    expect(line.take_s).toBe(60);
+    const text = JSON.stringify(line);
+    expect(text).not.toMatch(/user-secret-7|secretkey|rep-9|Ethos which measures|Tim/);
+  });
+
+  it("counts the coach's attempts", async () => {
+    coachedFixture();
+    vi.mocked(coachRep).mockImplementation(async (...args: Parameters<typeof coachRep>) => {
+      args[5]?.(1);
+      args[5]?.(2);
+      return null;
+    });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    onTestFinished(() => spy.mockRestore());
+    await post(audioForm());
+    expect(stageLines(spy)[0].coach_attempts).toBe(2);
+  });
+
+  it("writes one line for a turned-away take too, with no Whisper time", async () => {
+    vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: false, window: "hour", retryAfterS: 60 });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    onTestFinished(() => {
+      spy.mockRestore();
+      vi.mocked(consumeRateLimit).mockResolvedValue({ allowed: true, window: null, retryAfterS: 0 });
+    });
+    const res = await post(audioForm());
+    expect(res.status).toBe(429);
+    const lines = stageLines(spy);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ status: 429, whisper_ms: null, coach_ms: null });
+  });
+});

@@ -134,7 +134,7 @@ import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
 import { dayOf, heardIn, nextTestOn, proofIn, stateOf, usesOf, type Swap, type SwapStates } from "@/lib/say";
 import { fetchSay, fetchSwapsForProof, markHeard, type SayItem } from "@/lib/say-store";
 import { SwapSheet } from "@/components/say/SwapSheet";
-import { proofLeads } from "@/lib/sound-recipes";
+import { proofLeads, withProof } from "@/lib/sound-recipes";
 import {
   backLabel,
   defaultBack,
@@ -698,6 +698,13 @@ function RepScreen() {
    */
   const [levelUp, setLevelUp] = useState<LevelUpView | null>(null);
   /**
+   * The take's rewards are worked out (the level-up, the bests), or their
+   * read failed: Say it better's proof claims the glance's top moment only
+   * then, so a level-up read after the stars still has its fanfare
+   * (lib/sound-recipes.ts withProof, the #509 review).
+   */
+  const [rewardsIn, setRewardsIn] = useState(false);
+  /**
    * The first take under #476's pause rules, set beside one scored
    * before them (#491): one line under the delta saying the jump is
    * partly the rule's. Read off the history captured before the take,
@@ -1183,6 +1190,7 @@ function RepScreen() {
                 : null
             );
           }
+          setRewardsIn(true);
           // The next take on this screen (Retake, Go again, Practice N
           // of 3, Next lesson, Another round all keep it mounted) is
           // measured against the history that now holds this one, not
@@ -1205,7 +1213,8 @@ function RepScreen() {
         })
         .catch(() => {
           // Unread, nothing is owed: a streak the screen could not read
-          // back is never celebrated.
+          // back is never celebrated. The proof's moment no longer waits.
+          if (live()) setRewardsIn(true);
         });
     } catch (e) {
       // Another recording is on screen now; the outbox copy (if held)
@@ -1784,6 +1793,7 @@ function RepScreen() {
     setResult(null);
     setBests([]);
     setLevelUp(null);
+    setRewardsIn(false);
     setRulesNoteNow(null);
     setClosing(null);
     // A streak's moment still owed stays owed (#480): the retake's exit plays it.
@@ -1859,6 +1869,7 @@ function RepScreen() {
     setPresence(null);
     setBests([]);
     setLevelUp(null);
+    setRewardsIn(false);
     setRulesNoteNow(null);
     setClosing(null);
     setEarnedNow(false);
@@ -2048,6 +2059,7 @@ function RepScreen() {
           config={config}
           bests={bests}
           levelUp={levelUp}
+          rewardsIn={rewardsIn}
           rulesNote={rulesNoteNow}
           closing={closing}
           earned={earnedNow}
@@ -2903,6 +2915,7 @@ function Results({
   config,
   bests,
   levelUp,
+  rewardsIn,
   rulesNote: rulesNoteFor,
   closing,
   earned,
@@ -2936,6 +2949,8 @@ function Results({
   bests: RewardMoment[];
   /** The levels this recording crossed (#498): the earned line under the ladder. */
   levelUp: LevelUpView | null;
+  /** The level-up and the bests are worked out, or their read failed (lib/sound-recipes.ts withProof). */
+  rewardsIn: boolean;
   /** The first take under #476 beside one scored before it (#491): its line under the delta. */
   rulesNote: RulesNote | null;
   closing: RewardMoment | null;
@@ -3649,6 +3664,9 @@ function Results({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token?.key]);
   const swapOpen = swapAsked && swapItem !== null;
+  /* Its sound and Demos's cheer wait for the take's other rewards: a
+     level-up read after the stars keeps its fanfare (the #509 review). */
+  const win = withProof(sounds, !!token, rewardsIn);
   const shown = fit.short && cueSaid ? cueSaid.lineShort : said;
   const glance: GlanceView = {
     parts: shown.parts,
@@ -3970,12 +3988,12 @@ function Results({
                 /* A lesson's ending is a moment too: he celebrates it. So
                    is a swap proved, when no bigger moment owns the glance
                    (#509, proofLeads): the same rank its sound plays at. */
-                celebrate={earned || !!lessonLine || proofLeads({ ...sounds, proof: !!token, stars: result.metrics.stars })}
+                celebrate={earned || !!lessonLine || proofLeads({ ...win, stars: result.metrics.stars })}
                 /* The token's height comes from the bands, never from
                    Demos (#509): he takes his share first beside it. */
                 moment={bigMoment || !!token}
                 take={take}
-                sounds={{ ...sounds, proof: !!token }}
+                sounds={win}
               />
             </div>
           )}

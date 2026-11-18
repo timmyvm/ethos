@@ -497,6 +497,21 @@ export function topMoment(win: GlanceWin): SoundId | null {
 }
 
 /**
+ * The glance's win with its proof (the #509 review): a swap proved claims
+ * the take's top moment only once the take's other rewards are worked
+ * out. A level-up and a best are read after the stored row lands, often
+ * after the stars; a proof that took the top slot from the first frame
+ * played the hand won there, and the level-up that landed a beat later
+ * found its slot played (a slot never plays twice), so the bigger moment
+ * went silent and Demos cheered the smaller one. Until the rewards are
+ * in, the proof claims nothing; once they are, the slot goes to the
+ * biggest, at its time or at once if that has passed (`CueRunner`).
+ */
+export function withProof<W extends Omit<GlanceWin, "proof" | "stars">>(win: W, proved: boolean, rewardsIn: boolean): W & { proof: boolean } {
+  return { ...win, proof: proved && rewardsIn };
+}
+
+/**
  * The proof is the take's own moment (#509): it is on the glance and no
  * bigger one owns it (the boss, a level, a lesson, a best), so its sound
  * plays and Demos cheers as the token lands. Where a bigger moment owns

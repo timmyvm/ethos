@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { DEFAULT_PREFS } from "./prefs";
+import { CueRunner } from "./sound";
 import {
   PAYOUT_LEAD_MS,
   PITCH,
@@ -11,6 +13,7 @@ import {
   glanceCues,
   hostileWon,
   proofLeads,
+  withProof,
   recipe,
   recipeLength,
   seeded,
@@ -287,5 +290,69 @@ describe("a swap proved (#509)", () => {
     for (const win of [{ stars: 1, proof: true }, { stars: 3, proof: true, best: true }, { stars: 2, proof: true, level: true }]) {
       if (proofLeads(win)) expect(topMoment(win)).toBe("round");
     }
+  });
+});
+
+/*
+ * The #509 review: a level-up and a best are worked out after the stored
+ * row lands, often after the stars. The proof took the top slot from the
+ * first frame, so on a slow read its hand won played there, and the
+ * level-up that landed a beat later found its slot played (a slot never
+ * plays twice): the bigger moment went silent and Demos cheered the
+ * smaller one (probe: Pace crossing to 3 with the reads held 2.5 s, the
+ * round at 913 ms and no fanfare; without the proof the fanfare at 2476).
+ */
+describe("a swap proved waits for the take's other rewards (#509 review)", () => {
+  const clock = { landAfter: 600, starStep: 120, starMs: 300, reduced: false };
+  /* Every cue on a fake clock: which sounds played, in order. */
+  function glance(early: Parameters<typeof glanceCues>[0], late: Parameters<typeof glanceCues>[0], lateAt: number) {
+    let now = 0;
+    const timers: { at: number; fn: () => void; live: boolean }[] = [];
+    const played: string[] = [];
+    const r = new CueRunner(
+      (c, delay) => {
+        const t = { at: now + delay, fn: () => void played.push(c.sound), live: true };
+        timers.push(t);
+        return () => void (t.live = false);
+      },
+      () => now
+    );
+    const advance = (to: number) => {
+      for (const t of timers.sort((a, b) => a.at - b.at)) if (t.live && t.at <= to) (t.live = false), t.fn();
+      now = to;
+    };
+    r.run(glanceCues(early, clock));
+    advance(lateAt);
+    r.run(glanceCues(late, clock));
+    advance(lateAt + 5000);
+    return played;
+  }
+  const base = { stars: 2, lessonDone: false, best: false, roundWon: false, boss: false };
+
+  it("a level-up read after the stars still plays its fanfare, the proof's hand won never in its place", () => {
+    // The stars' moment is at 600 + 120 + 300: the level-up's read lands at 2500.
+    const before = withProof({ ...base, level: false }, true, false);
+    const after = withProof({ ...base, level: true }, true, true);
+    expect(glance(before, after, 2500)).toEqual(["star-1", "star-2", "level"]);
+    // What it did: the proof claimed the slot from the first frame.
+    expect(glance({ ...base, level: false, proof: true }, { ...base, level: true, proof: true }, 2500)).toEqual(["star-1", "star-2", "round"]);
+  });
+
+  it("plays the hand won once the rewards are in and nothing bigger came, at its time or at once if that has passed", () => {
+    expect(glance(withProof({ ...base, level: false }, true, true), withProof({ ...base, level: false }, true, true), 100)).toEqual(["star-1", "star-2", "round"]);
+    expect(glance(withProof({ ...base, level: false }, true, false), withProof({ ...base, level: false }, true, true), 2500)).toEqual(["star-1", "star-2", "round"]);
+    // No proof: nothing claims the slot.
+    expect(withProof({ ...base, level: false }, false, true).proof).toBe(false);
+  });
+
+  it("is what the glance sounds and Demos cheers: the results pass the gated win to both", () => {
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    const results = page.slice(page.indexOf("function Results("));
+    expect(results).toMatch(/const win = withProof\(sounds, !!token, rewardsIn\)/);
+    expect(results).toMatch(/proofLeads\(\{ \.\.\.win, stars: result\.metrics\.stars \}\)/);
+    expect(results).toMatch(/sounds=\{win\}/);
+    // The screen says when they are in: after the level-up is worked out, or when its read fails.
+    expect(page).toMatch(/setLevelUp\([\s\S]{0,600}?\n\s*\}\n\s*setRewardsIn\(true\);/);
+    expect(page).toMatch(/\.catch\(\(\) => \{[\s\S]{0,200}?setRewardsIn\(true\)/);
   });
 });

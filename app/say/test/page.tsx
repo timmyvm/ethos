@@ -24,6 +24,7 @@ import {
   phraseAt,
   saidOn,
   sayLists,
+  SAY_LIMITED,
   type LineCheck,
   type TestResult,
   type TimedWord,
@@ -39,7 +40,7 @@ const LINE_MAX_S = 15;
 const RING_R = 56;
 const RING_C = 2 * Math.PI * RING_R;
 
-type Phase = "ask" | "recording" | "checking" | "said" | "missed" | "shown" | "unheard" | "blocked" | "offline" | "failed";
+type Phase = "ask" | "recording" | "checking" | "said" | "missed" | "shown" | "unheard" | "blocked" | "offline" | "failed" | "limited";
 const ANSWERED: ReadonlySet<Phase> = new Set(["said", "missed", "shown"]);
 
 /**
@@ -157,6 +158,8 @@ export default function SayTest() {
           body: form,
         });
         if (res.status === 502) return setPhase("unheard");
+        /* The room is spent: say when, rather than a retry that fails again. */
+        if (res.status === 429) return setPhase("limited");
         if (!res.ok) return setPhase("failed");
         const body = (await res.json()) as LineCheck;
         if (!body.text.trim()) return setPhase("unheard");
@@ -449,7 +452,9 @@ export default function SayTest() {
                       ? "You're offline. Show it instead, or say it once you're back."
                       : phase === "failed"
                         ? "That didn't go through. Try again."
-                        : "Out loud, the whole sentence."}
+                        : phase === "limited"
+                          ? SAY_LIMITED
+                          : "Out loud, the whole sentence."}
             </p>
           </>
         )}

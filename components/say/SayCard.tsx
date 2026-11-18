@@ -10,7 +10,7 @@ import { heldReps } from "@/lib/client-data";
 import { todayHref } from "@/lib/home";
 import { readable } from "@/lib/load";
 import { poolHere } from "@/lib/pool";
-import { dayOf, nextDue, nextTestLine, sayLists, testLabel } from "@/lib/say";
+import { dayOf, emptyLine, nextDue, nextTestLine, sayLists, testLabel } from "@/lib/say";
 import { fetchSay, heldSay, type SayRead } from "@/lib/say-store";
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useWarm } from "@/lib/use-warm";
@@ -76,7 +76,7 @@ export function SayCard({ quiet = false }: { quiet?: boolean }) {
         </div>
       ) : lists.m === 0 ? (
         <div className="arrive">
-          <p className="mt-1.5 max-w-[24ch] text-body text-pretty text-stone-500">Your first one comes from today&apos;s recording.</p>
+          <p className="mt-1.5 max-w-[24ch] text-body text-pretty text-stone-500">{emptyLine(read!.items.length > 0)}</p>
           <Link href={todayHref(heldReps() ?? [], new Date(), poolHere())} className={`${tap} mt-5`}>
             Today&apos;s practice
           </Link>

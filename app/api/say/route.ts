@@ -30,7 +30,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAuthHeader } from "@/lib/db";
 import { GUEST_CEILING, clientIp, consumeRateLimit } from "@/lib/rate-limit";
-import { SAY_AUDIO_BYTES, checkLine, cleanPhrase } from "@/lib/say";
+import { SAY_AUDIO_BYTES, SAY_LIMITED, checkLine, cleanPhrase } from "@/lib/say";
 import { transcribe } from "@/lib/transcribe";
 
 export const runtime = "nodejs";
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   const verdict = shared.allowed && auth.user.anonymous ? await consumeRateLimit(GUEST_CEILING, "guestall") : shared;
   if (!verdict.allowed) {
     return json(
-      { error: "That's a lot of lines for now. Try again later.", retryAfterS: verdict.retryAfterS },
+      { error: SAY_LIMITED, retryAfterS: verdict.retryAfterS },
       429,
       { "Retry-After": String(verdict.retryAfterS) }
     );

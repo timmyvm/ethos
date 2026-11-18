@@ -17,6 +17,7 @@ import {
   addDays,
   backLine,
   dayOf,
+  emptyLine,
   nextDue,
   nextTestLine,
   sayLists,
@@ -220,7 +221,7 @@ export default function SayItBetter({ searchParams }: { searchParams: Promise<{ 
            comes from. */
         <div className="arrive flex flex-col">
           <p className="mx-auto mt-2 max-w-[30ch] text-center text-read text-pretty text-stone-600">
-            Your first one comes from today&apos;s recording.
+            {emptyLine(items.length > 0)}
           </p>
           <Link href={practice()} className={`${ACTION_CLASS} mt-5`}>
             Today&apos;s practice

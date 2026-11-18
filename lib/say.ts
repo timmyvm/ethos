@@ -621,6 +621,15 @@ export function chipDay(at: string, now: Date = new Date()): string {
   return `${d.getDate()} ${MONTH[d.getMonth()]}`;
 }
 
+/**
+ * The empty page's one line (and You's card): a new account's first, or,
+ * once every one was taken off, the next. Never "first" to someone who
+ * had a list.
+ */
+export function emptyLine(hadAny: boolean): string {
+  return hadAny ? "Your next one comes from today's recording." : "Your first one comes from today's recording.";
+}
+
 /** The test's one tap: "Test 3". */
 export function testLabel(n: number): string {
   return `Test ${n}`;
@@ -635,6 +644,9 @@ export function endLine(said: number, of: number): string {
 
 
 /* ---- the test's one line (/api/say) --------------------------------------- */
+
+/** What the test says when its room is spent (/api/say's 429): when to come back, never "try again" at once. */
+export const SAY_LIMITED = "That's a lot of lines for now. Try again later.";
 
 /** The longest phrase the check takes: the coach's said side (lib/upgrade.ts UPGRADE_LIMITS). */
 export const SAY_PHRASE_CHARS = 60;

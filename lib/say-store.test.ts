@@ -101,15 +101,15 @@ beforeEach(() => {
   h.window = new Set();
   // The word save came first, from an old recording; the coach said the same pair later.
   h.words = [
-    { id: W1.slice(2), word: "very cold", instead: "freezing", sentence: "It was very cold out.", rep_id: "old-rep", created_at: "2026-11-12T09:00:00.000Z" },
+    { id: W1.slice(2), word: "very cold", instead: "freezing", sentence: "It was very cold out.", rep_id: "old-take", created_at: "2026-11-12T09:00:00.000Z" },
   ];
-  h.pairs = [{ id: C1.slice(2), original: "very cold", upgrade: "freezing", rep_id: "new-rep", created_at: "2026-11-14T09:00:00.000Z" }];
+  h.pairs = [{ id: C1.slice(2), original: "very cold", upgrade: "freezing", rep_id: "new-take", created_at: "2026-11-14T09:00:00.000Z" }];
   h.reps = [
-    { id: "old-rep", created_at: "2026-10-01T09:00:00.000Z", transcript: "It was very cold out." },
-    { id: "new-rep", created_at: "2026-11-14T08:59:00.000Z", transcript: "Honestly very cold again." },
+    { id: "old-take", created_at: "2026-10-01T09:00:00.000Z", transcript: "It was very cold out." },
+    { id: "new-take", created_at: "2026-11-14T08:59:00.000Z", transcript: "Honestly very cold again." },
     { id: "later", created_at: "2026-11-16T09:00:00.000Z", transcript: "It was freezing." },
   ];
-  h.window = new Set(["new-rep", "later"]);
+  h.window = new Set(["new-take", "later"]);
 });
 afterEach(() => {
   delete g.localStorage;
@@ -121,7 +121,7 @@ describe("a pair saved both ways", () => {
     expect(read.items).toHaveLength(1);
     const [item] = read.items;
     expect(item.swap.key).toBe(W1);
-    // "new-rep" is where the coach's row came from: never a later use.
+    // "new-take" is where the coach's row came from: never a later use.
     expect(item.uses.map((u) => u.repId)).toEqual(["later"]);
     // The old recording is past the newest-first read; it is read by its id.
     expect(item.saidOn).toBe("2026-10-01T09:00:00.000Z");
@@ -150,7 +150,7 @@ describe("a pair saved both ways", () => {
     h.upserts = [];
     await restoreSwap(placed);
     expect(h.restored).toEqual([
-      { id: W1.slice(2), word: "very cold", instead: "freezing", sentence: "It was very cold out.", rep_id: "old-rep", created_at: "2026-11-12T09:00:00.000Z" },
+      { id: W1.slice(2), word: "very cold", instead: "freezing", sentence: "It was very cold out.", rep_id: "old-take", created_at: "2026-11-12T09:00:00.000Z" },
     ]);
     expect(h.upserts.filter((r) => r.swap === C1).map((r) => [r.hidden, r.step])).toEqual([[false, 2]]);
     expect(sayLists(heldSay()!.items, "2026-11-18").m).toBe(1);

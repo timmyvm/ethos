@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   DUE_A_DAY,
+  SAY_LIMITED,
   afterTest,
+  emptyLine,
   checkLine,
   freshState,
   markIn,
@@ -197,5 +199,16 @@ describe("the proof line never costs Demos's cue", () => {
       expect(fit.words).toBeLessThanOrEqual(Math.max(budget, without.words));
     }
     expect(fitGlanceProof(p, tight - 1, proof).proof).toBeNull();
+  });
+});
+
+describe("the lines a list taken off reads", () => {
+  it("never calls the next one the first to someone who had a list", () => {
+    expect(emptyLine(false)).toBe("Your first one comes from today's recording.");
+    expect(emptyLine(true)).toBe("Your next one comes from today's recording.");
+    for (const l of [emptyLine(false), emptyLine(true), SAY_LIMITED, nextTestLine("2026-11-18", "2026-11-18")]) {
+      expect(l).not.toMatch(/—|–/);
+      expect(l).not.toMatch(/\b(gym|workout|drill|reps?|training|lexicon)\b/i);
+    }
   });
 });

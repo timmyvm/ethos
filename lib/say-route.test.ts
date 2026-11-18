@@ -54,7 +54,7 @@ vi.mock("@/lib/transcribe", () => ({
 
 import { POST } from "@/app/api/say/route";
 import { LIMITS } from "@/lib/rate-limit";
-import { SAY_AUDIO_BYTES } from "@/lib/say";
+import { SAY_AUDIO_BYTES, SAY_LIMITED } from "@/lib/say";
 
 const ME = "6f1c2b9e-0d4a-4c1e-9a77-3b2f5e8d1c40";
 
@@ -138,6 +138,8 @@ describe("POST /api/say", () => {
     const res = await line();
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBe("900");
+    // The walk shows these words as they are: when to come back.
+    expect(((await res.json()) as { error: string }).error).toBe(SAY_LIMITED);
     expect(h.transcribed).toBe(0);
   });
 

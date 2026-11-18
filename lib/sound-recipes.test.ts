@@ -259,3 +259,15 @@ describe("Hostile Q&A and the setting", () => {
     expect(DEFAULT_PREFS.sound).toBe(true);
   });
 });
+
+/* TEMPORARY (18 Nov, lib/proof-variant.ts): the proof's sound in the moment map. */
+describe("the proof's sound (TEMPORARY)", () => {
+  it("plays the round's hand won, under every bigger moment, or first in variant C", () => {
+    expect(topMoment({ stars: 2, proof: true })).toBe("round");
+    expect(topMoment({ stars: 2, proof: true, level: true })).toBe("level");
+    expect(topMoment({ stars: 2, proof: true, best: true })).toBe("best");
+    expect(topMoment({ stars: 2, proof: true, level: true, proofFirst: true })).toBe("round");
+    expect(topMoment({ stars: 2, proof: true, boss: true, proofFirst: true })).toBe("boss");
+    expect(topMoment({ stars: 0, proof: true, proofFirst: true })).toBeNull();
+  });
+});

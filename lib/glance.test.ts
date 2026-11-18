@@ -9,6 +9,9 @@ import {
   fittedEarned,
   fitGlance,
   fitGlanceProof,
+  fitGlanceProofEarned,
+  GLANCE_WORDS_PROOF,
+  proofGlance,
   GLANCE_WORDS,
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
@@ -861,5 +864,63 @@ describe("what plays on when the sheet closes (the #427 review)", () => {
     expect(playsOnAfterSheet(null, moment)).toBe(false);
     expect(playsOnAfterSheet({ from: 19, until: 21.9 }, moment)).toBe(false);
     expect(playsOnAfterSheet({ from: 1.68, until: 4.18 }, null)).toBe(false);
+  });
+});
+
+/* TEMPORARY (18 Nov, lib/proof-variant.ts): the proof line's designs A and C. */
+describe("the proof's designs (TEMPORARY, lib/proof-variant.ts)", () => {
+  const goals = starGoals(62);
+  const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Done for today", "Retake", ...goals];
+  const budget = starsBudget(GLANCE_WORDS, goals);
+  const common = { key: "c:1", said: "the thing is", better: "the point is", at: 11.3, end: 12.4 };
+  const longest = { key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 };
+  const words = (p: typeof common) => ({ full: proofWords(p, "full"), short: proofWords(p, "short") });
+  /* An ordinary returning take: yesterday's cue answered, tomorrow's set. */
+  const carried = {
+    fixed,
+    line: "“um” 2, down from 5. 0:02",
+    lineShort: "“um” 2, down from 5.",
+    cue: "Tomorrow: pause where “like” was.",
+    cueShort: "Pause where “like” was.",
+    earned: null,
+  };
+  const levelUp = levelUpLine([{ key: "pace", from: 2, to: 3, paid: 93 }], () => "Pace")!;
+
+  it("A: never waits, shown whole, and costs the glance nothing", () => {
+    for (const p of [carried, { ...carried, earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) }]) {
+      const base = fitGlance(p, budget);
+      const a = fitGlanceProofEarned(p, budget, words(common));
+      expect(a.proof).toBe("full");
+      expect({ cue: a.cue, earned: a.earned, short: a.short }).toEqual({ cue: base.cue, earned: base.earned, short: base.short });
+      expect(a.words).toBe(base.words + 7);
+    }
+    // The live design waits on the same glance: the problem A answers.
+    expect(fitGlance(carried, budget).words).toBe(budget);
+    expect(fitGlanceProof(carried, budget, words(common)).proof).toBeNull();
+    expect(countWords(words(common).full)).toBe(7);
+    expect(GLANCE_WORDS_PROOF).toBeGreaterThanOrEqual(countWords(words(common).full));
+  });
+
+  it("A: a pair too long for its allowance drops the struck phrase first", () => {
+    expect(countWords(words(longest).full)).toBeGreaterThan(GLANCE_WORDS_PROOF);
+    const a = fitGlanceProofEarned(carried, budget, words(longest));
+    expect(a.proof).toBe("short");
+    expect(a.words).toBeLessThanOrEqual(budget + countWords(words(longest).short));
+    expect(fitGlanceProofEarned(carried, budget, null)).toEqual({ ...fitGlance(carried, budget), proof: null });
+  });
+
+  it("C: Demos says it, the chip after the phrase it plays, and no cue", () => {
+    const c = proofGlance(common);
+    expect(c.sentence).toBe("Instead of “the thing is”, you said “the point is” 0:11");
+    expect(countWords(c.sentence)).toBe(11);
+    expect(c.cue).toBeNull();
+    expect(c.parts.at(-1)).toEqual({ kind: "moment" });
+    expect(c.parts[1]).toEqual({ kind: "text", text: "“the point is”", earned: true });
+    expect(c.moment).toMatchObject({ clock: "0:11", label: "0:11, play where you said it" });
+    expect(c.moment!.from).toBeCloseTo(10.3);
+    expect(c.moment!.until).toBeCloseTo(13.9);
+    // In the carried cue's place it costs about what the answer and the cue did.
+    const was = countWords([carried.line, carried.cue].join(" "));
+    expect(Math.abs(countWords(c.sentence) - was)).toBeLessThanOrEqual(2);
   });
 });

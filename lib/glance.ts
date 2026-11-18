@@ -719,6 +719,60 @@ export function fitGlanceProof(
   return { ...base, proof: null };
 }
 
+/*
+ * TEMPORARY (18 Nov, the proof line's three designs, lib/proof-variant.ts):
+ * variant A's fit and variant C's line. The builder keeps the winner's
+ * and deletes the rest.
+ */
+
+/**
+ * Variant A: the proof is an earned moment, like a level-up, and never
+ * waits. Its words ride on the ceiling up to their own allowance, as
+ * the reminder ask's do (GLANCE_WORDS_ASK), so nothing else on the glance
+ * gives way to it: "the thing is → ✓ the point is 0:14" is 7. A pair
+ * #429 lets through at its longest (eight words said, six better) is 15.
+ */
+export const GLANCE_WORDS_PROOF = 12;
+
+/**
+ * Variant A's fit: whole wherever its words fit the allowance, the
+ * struck phrase dropped only for a pair too long for it; the rest of the
+ * glance is fitted exactly as it would be without the proof, because the
+ * allowance grows the ceiling by the proof's own words. Only a short line
+ * still over the allowance takes the rest from the ceiling, as any line
+ * does.
+ */
+export function fitGlanceProofEarned(
+  p: Parameters<typeof fitGlance>[0],
+  budget: number,
+  proof: { full: string; short: string } | null
+): ReturnType<typeof fitGlance> & { proof: "full" | "short" | null } {
+  if (!proof) return { ...fitGlance(p, budget), proof: null };
+  const form: "full" | "short" = countWords(proof.full) <= GLANCE_WORDS_PROOF ? "full" : "short";
+  const text = form === "full" ? proof.full : proof.short;
+  const f = fitGlance({ ...p, fixed: [...p.fixed, text] }, budget + Math.min(GLANCE_WORDS_PROOF, countWords(text)));
+  return { ...f, proof: form };
+}
+
+/**
+ * Variant C: Demos says the proof in the carried cue's place, "Instead
+ * of “the thing is”, you said “the point is” ▶0:14". The better phrase is
+ * the one earned thing in it, so sage, and the chip comes straight after
+ * it, bound to the words it plays (the #427 review), so the sentence
+ * ends on the chip and takes no full stop. No cue: tomorrow's waits a day.
+ */
+export function proofGlance(p: { said: string; better: string; at: number; end: number }): GlanceLine {
+  const moment = windowAt(p.at, 1, p.end + 1.5, "%, play where you said it");
+  const before = `Instead of “${p.said}”, you said `;
+  const better = `“${p.better}”`;
+  return {
+    parts: [{ kind: "text", text: before }, { kind: "text", text: better, earned: true }, { kind: "moment" }],
+    sentence: `${before}${better} ${moment.clock}`,
+    moment,
+    cue: null,
+  };
+}
+
 /**
  * What is behind the door, in order (DECISIONS #427, its review): "Every
  * number", one flat scroll. A game's round card first (moved off the

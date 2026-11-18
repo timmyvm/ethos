@@ -455,6 +455,14 @@ export type GlanceWin = {
   roundWon?: boolean;
   /** The week's boss, scored. */
   boss?: boolean;
+  /**
+   * TEMPORARY (lib/proof-variant.ts): Say it better's proof is on the
+   * glance. It plays `round`, the kit's hand won ("ding, DING, five
+   * coins"), under every bigger moment.
+   */
+  proof?: boolean;
+  /** Variant C: the proof is Demos's moment, so it ranks over everything but the boss. */
+  proofFirst?: boolean;
 };
 
 /** The glance's clock, from RepResult. */
@@ -482,9 +490,11 @@ export const PAYOUT_LEAD_MS = 700;
 export function topMoment(win: GlanceWin): SoundId | null {
   if (win.stars <= 0) return null;
   if (win.boss) return "boss";
+  if (win.proof && win.proofFirst) return "round";
   if (win.level) return "level";
   if (win.lessonDone) return "lesson";
   if (win.best) return "best";
+  if (win.proof) return "round";
   if (win.roundWon) return "round";
   return null;
 }

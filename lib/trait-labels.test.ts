@@ -193,4 +193,13 @@ describe("a unit is said in words (#495)", () => {
     const shown = [...movedRows(reps).map(said), ...labels];
     for (const l of shown) expect(l, l).not.toMatch(/\/ ?min\b|\/ ?100|\bwpm\b|\/ recording/i);
   });
+
+  /* The review of #495: Presence's gesture rate read "per minute" beside
+     its own moments' "4 gestures a minute". One rate, one spelling. */
+  it("Presence's gesture rate says a minute, as its moments do", () => {
+    const card = readFileSync("components/PresenceCard.tsx", "utf8");
+    expect(card).toMatch(/label="Gestures"[\s\S]{0,80}note="a minute"/);
+    expect(card).not.toMatch(/"per minute"/);
+    expect(readFileSync("lib/presence.ts", "utf8")).toMatch(/gestures a minute/);
+  });
 });

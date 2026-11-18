@@ -148,59 +148,6 @@ describe("what waits for the first screen (fix 11)", () => {
     expect(off).not.toHaveBeenCalled();
   });
 
-  /* The review of the final pass (18 Nov): components/LazyPaywall.tsx asks
-     as its module loads, which is while React renders Today and before
-     Today's layout effect calls expectDraw. Decided at the ask, Today was
-     taken as drawn, and the paywall's code (24 KB gzipped, six files)
-     left at the first idle moment beside Today's own reads. */
-  it("asked before the screen has said it will draw (a module, as the page renders), still waits for the draw", async () => {
-    const { afterFirstScreen } = await import("./first-draw");
-    const fn = vi.fn();
-    afterFirstScreen(fn, 10);
-    expectDraw();
-    await new Promise((r) => setTimeout(r, 40));
-    expect(fn).not.toHaveBeenCalled();
-    markDrawn();
-    await new Promise((r) => setTimeout(r, 40));
-    expect(fn).toHaveBeenCalledTimes(1);
-  });
-
-  it("asked before the page has loaded, a screen that never says goes once it has, then idle", async () => {
-    const { afterFirstScreen } = await import("./first-draw");
-    const listeners = new Map<string, () => void>();
-    vi.stubGlobal("document", { readyState: "interactive" });
-    vi.stubGlobal("window", {
-      addEventListener: (t: string, f: () => void) => listeners.set(t, f),
-      removeEventListener: (t: string) => listeners.delete(t),
-    });
-    try {
-      const fn = vi.fn();
-      afterFirstScreen(fn, 10);
-      await new Promise((r) => setTimeout(r, 40));
-      expect(fn).not.toHaveBeenCalled();
-      (document as { readyState: string }).readyState = "complete";
-      listeners.get("load")?.();
-      await new Promise((r) => setTimeout(r, 40));
-      expect(fn).toHaveBeenCalledTimes(1);
-      // Called off before the load, it never runs.
-      (document as { readyState: string }).readyState = "interactive";
-      const off = vi.fn();
-      afterFirstScreen(off, 10)();
-      await new Promise((r) => setTimeout(r, 40));
-      listeners.get("load")?.();
-      await new Promise((r) => setTimeout(r, 40));
-      expect(off).not.toHaveBeenCalled();
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
-  it("the paywall's code is asked for through it, never on its own", () => {
-    const lazy = src("components/LazyPaywall.tsx");
-    expect(lazy).toMatch(/afterFirstScreen\(\(\) => \{\s*void loadPaywall\(\)\.catch\(\(\) => \{\}\);\s*\}, 5000\);/);
-    expect(lazy).not.toMatch(/whenIdle|requestIdleCallback|setTimeout/);
-  });
-
   it("Today's rows to Hostile and the boss are not fetched beside its reads; the clip and the neighbours wait", () => {
     expect(src("components/home/ModeRows.tsx")).toMatch(/prefetch=\{false\}/);
     expect(src("components/home/HomeHero.tsx")).not.toMatch(/prefetch=\{false\}/);

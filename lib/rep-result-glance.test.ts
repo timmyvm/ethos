@@ -96,11 +96,7 @@ describe("the glance", () => {
         text: "Pace reached level 3, Structure level 2 and 1 more",
         tone: "earned",
         levelUp: {
-          named: [
-            { key: "pace", name: "Pace", to: 3 },
-            { key: "structure", name: "Structure", to: 2 },
-          ],
-          more: 1,
+          pieces: [{ key: "pace", name: "Pace" }, " reached level 3", ", ", { key: "structure", name: "Structure" }, " level 2 and 1 more"],
         },
       },
     };
@@ -110,6 +106,17 @@ describe("the glance", () => {
     expect(out).toContain('<span aria-hidden="true" data-trait="pace" class="mr-1.5 inline-flex align-[0.08em]"><span class="trait-dot"></span></span>Pace');
     expect(out).toMatch(/<span aria-hidden="true" class="mr-1\.5 inline-flex align-\[0\.08em\]"><span class="size-2 shrink-0 rounded-\[2px\] bg-stone-200"><\/span><\/span>Structure/);
     expect(out.match(/<p data-earned="true" class="([^"]*)"/)?.[1]).toContain("text-sage-700");
+  });
+  it("draws the short form the budget kept, its one trait still marked (#498 review)", () => {
+    const up: GlanceView = {
+      ...view,
+      earned: { text: "Pace: level 3", tone: "earned", levelUp: { pieces: [{ key: "pace", name: "Pace" }, ": level 3"] } },
+    };
+    const out = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: up }));
+    // The name's span closes on the colon: no space between them on the screen.
+    expect(out).toContain("Pace</span>: level 3");
+    expect(out.match(/data-trait="pace"/g)).toHaveLength(1);
+    expect(visible(out)).not.toContain("reached");
   });
   it("draws the moment as text, never a dead button, when nothing can play it", () => {
     expect(html).toContain("data-glance-chip");

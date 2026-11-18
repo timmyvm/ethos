@@ -232,30 +232,51 @@ export function levelUps(
   return out.map(({ key, from, to, paid }) => ({ key, from, to, paid }));
 }
 
-/** The level-up moment as the glance draws it: the named traits, each to wear its colour, and the rest counted. */
-export interface LevelUpView {
-  /** In words, every part: "Pace reached level 3, Variety level 3 and 3 more". */
+/**
+ * One piece of the moment's words: plain words, or a trait's name, which
+ * the glance draws behind the trait's 8px colour mark (DESIGN rule 6).
+ */
+export type LevelUpPiece = string | { key: TraitKey; name: string };
+
+/** One way of saying the moment: its words, and the same words in pieces. */
+export interface LevelUpForm {
   text: string;
-  /** What stays when the glance's budget cuts the tail: the first alone. Null when it is already alone. */
-  short: string | null;
-  /** The traits named, biggest first, at most two. */
-  named: { key: TraitKey; name: string; to: number }[];
-  /** How many more crossed than are named. */
-  more: number;
+  pieces: LevelUpPiece[];
 }
+
+/** The level-up moment as the glance draws it. */
+export interface LevelUpView {
+  /**
+   * Every way the glance may say it, longest first, each with fewer
+   * words than the one before: "Pace reached level 3, Variety level 3
+   * and 3 more", then "Pace reached level 3", then "Pace: level 3". The
+   * glance takes the longest that fits its budget, and the last gives up
+   * the verb so a level-up can stand beside Demos's cue (the #498
+   * review: one is crossed on most of a new account's recordings, and
+   * the cue is the take's coaching).
+   */
+  forms: LevelUpForm[];
+  /** How many traits crossed, named or not. */
+  count: number;
+}
+
+const wordsOf = (pieces: LevelUpPiece[]) => pieces.map((p) => (typeof p === "string" ? p : p.name)).join("");
 
 /**
  * The level-up moment, in words: at most two named, biggest first, the
  * rest counted. "Pace reached level 3", "Pace reached level 3, Pausing
- * level 2", "Pace reached level 3, Variety level 3 and 3 more". Null for
- * none: a recording that crossed nothing lights nothing.
+ * level 2", "Pace reached level 3, Variety level 3 and 3 more", each
+ * with its shorter forms after it. Null for none: a recording that
+ * crossed nothing lights nothing.
  */
 export function levelUpLine(ups: readonly LevelUp[], nameOf: (key: TraitKey) => string): LevelUpView | null {
   if (ups.length === 0) return null;
-  const named = ups.slice(0, 2).map((u) => ({ key: u.key, name: nameOf(u.key), to: u.to }));
-  const more = ups.length - named.length;
-  const [first, second] = named;
-  const head = `${first.name} reached level ${first.to}`;
-  if (!second) return { text: head, short: null, named, more };
-  return { text: `${head}, ${second.name} level ${second.to}${more > 0 ? ` and ${more} more` : ""}`, short: head, named, more };
+  const trait = (u: LevelUp): LevelUpPiece => ({ key: u.key, name: nameOf(u.key) });
+  const [first, second] = ups;
+  const more = ups.length - (second ? 2 : 1);
+  const head: LevelUpPiece[] = [trait(first), ` reached level ${first.to}`];
+  const all: LevelUpPiece[][] = [];
+  if (second) all.push([...head, ", ", trait(second), ` level ${second.to}${more > 0 ? ` and ${more} more` : ""}`]);
+  all.push(head, [trait(first), `: level ${first.to}`]);
+  return { forms: all.map((pieces) => ({ text: wordsOf(pieces), pieces })), count: ups.length };
 }

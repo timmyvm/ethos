@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { countWords } from "./glance";
 import type { Tier1Scores } from "./index-score";
 import {
   LEVEL_STEP,
@@ -14,6 +15,7 @@ import {
   xpFor,
   xpLine,
   type TraitKey,
+  type LevelUpView,
   type TraitLevel,
   type TraitRep,
 } from "./traits";
@@ -340,9 +342,12 @@ const NAME: Record<TraitKey, string> = {
   confidence: "Steadiness",
 };
 const nameOf = (k: TraitKey) => NAME[k];
+/** The most words a trait's name takes ("Filler control"): the shortest form is the name and two. */
+const NAME_WORDS = Math.max(...Object.values(NAME).map((n) => n.split(" ").length));
 const five = (k: TraitKey) => FIVE.includes(k);
 /** Before and after one recording, under the same rule. */
 const moment = (history: TraitRep[], take = LIVE, shown = five) => levelUps(traitLevels(history), traitLevels([...history, take]), shown);
+const texts = (view: LevelUpView | null) => view?.forms.map((f) => f.text) ?? null;
 
 describe("levelUps: what one recording crossed", () => {
   it("names the first recording's levels: Pace and Pausing to 1, biggest payment first", () => {
@@ -351,21 +356,24 @@ describe("levelUps: what one recording crossed", () => {
       { key: "pace", from: 0, to: 1, paid: 93 },
       { key: "pause", from: 0, to: 1, paid: 72 },
     ]);
+    const pace = { key: "pace", name: "Pace" };
     expect(levelUpLine(ups, nameOf)).toEqual({
-      text: "Pace reached level 1, Pausing level 1",
-      short: "Pace reached level 1",
-      named: [
-        { key: "pace", name: "Pace", to: 1 },
-        { key: "pause", name: "Pausing", to: 1 },
+      forms: [
+        {
+          text: "Pace reached level 1, Pausing level 1",
+          pieces: [pace, " reached level 1", ", ", { key: "pause", name: "Pausing" }, " level 1"],
+        },
+        { text: "Pace reached level 1", pieces: [pace, " reached level 1"] },
+        { text: "Pace: level 1", pieces: [pace, ": level 1"] },
       ],
-      more: 0,
+      count: 2,
     });
   });
 
   it("names one level crossed alone", () => {
     const ups = moment(flat(4, { pace: 95, pause: 55, fillers: 75, repairs: 25, range: 58 }));
     expect(ups).toEqual([{ key: "pace", from: 2, to: 3, paid: 93 }]);
-    expect(levelUpLine(ups, nameOf)).toMatchObject({ text: "Pace reached level 3", short: null, more: 0 });
+    expect(texts(levelUpLine(ups, nameOf))).toEqual(["Pace reached level 3", "Pace: level 3"]);
   });
 
   it("names two, the higher level first", () => {
@@ -374,7 +382,7 @@ describe("levelUps: what one recording crossed", () => {
       ["pace", 3],
       ["pause", 2],
     ]);
-    expect(levelUpLine(ups, nameOf)?.text).toBe("Pace reached level 3, Pausing level 2");
+    expect(texts(levelUpLine(ups, nameOf))).toEqual(["Pace reached level 3, Pausing level 2", "Pace reached level 3", "Pace: level 3"]);
   });
 
   it("names two of five and counts the rest", () => {
@@ -386,15 +394,26 @@ describe("levelUps: what one recording crossed", () => {
       ["fillers", 2],
       ["repairs", 1],
     ]);
-    expect(levelUpLine(ups, nameOf)).toMatchObject({
-      text: "Pace reached level 3, Variety level 3 and 3 more",
-      short: "Pace reached level 3",
-      named: [
-        { key: "pace", to: 3 },
-        { key: "range", to: 3 },
-      ],
-      more: 3,
-    });
+    const view = levelUpLine(ups, nameOf);
+    expect(texts(view)).toEqual(["Pace reached level 3, Variety level 3 and 3 more", "Pace reached level 3", "Pace: level 3"]);
+    expect(view?.count).toBe(5);
+    expect(view?.forms[0].pieces.filter((p) => typeof p !== "string")).toEqual([
+      { key: "pace", name: "Pace" },
+      { key: "range", name: "Variety" },
+    ]);
+  });
+
+  it("says it in fewer words each form, the last only the name and two words, and its pieces are its words (#498 review)", () => {
+    const r = seeded(4982);
+    for (let i = 0; i < 300; i++) {
+      const h = Array.from({ length: 1 + Math.floor(r() * 12) }, () => randomTake(r));
+      const view = levelUpLine(levelUps(traitLevels(h.slice(0, -1)), traitLevels(h)), nameOf);
+      if (!view) continue;
+      const counts = view.forms.map((f) => countWords(f.text));
+      for (let k = 1; k < counts.length; k++) expect(counts[k]).toBeLessThan(counts[k - 1]);
+      expect(counts.at(-1)).toBeLessThanOrEqual(NAME_WORDS + 2);
+      for (const f of view.forms) expect(f.pieces.map((p) => (typeof p === "string" ? p : p.name)).join("")).toBe(f.text);
+    }
   });
 
   it("crosses at most one level a trait: a recording pays at most 100, and every level past the first costs 140 or more", () => {

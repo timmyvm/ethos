@@ -736,7 +736,7 @@ body {
  *     text-terracotta-700`).
  *   Unlayered (as they always were): .section-head, .section-head-aside,
  *     .label-data, .label-micro, .large-title*, .elev-*, .today-earned,
- *     and the deep materials .card-score, .card-stage, .card-premium.
+ *     and the deep materials .card-stage, .card-premium.
  *     Unlayered CSS beats every layer, so a utility needs v4's important
  *     modifier (`text-sage-700!`) against these, and only these.
  */
@@ -927,7 +927,7 @@ body {
    any coloured card is since #459 (`.tap-tonal`): plum-500 at 16% on
    white for the pill, the sheet's own plum for its word (11.3:1), the
    two as hexes for the reason the surface is one. It was a terracotta
-   button on the plum. Unlayered, like `.card-score`, its sibling
+   button on the plum. Unlayered, like `.card-stage`, its sibling
    material: its `background` beats the dark `.card` sheen even if both
    classes land on one element. */
 .card-premium {
@@ -1063,33 +1063,11 @@ body {
 }
 
 /*
- * The score card's material: deep sage in both themes (#165 — the
- * second focal point is sage, restored with the palette in #203). In
- * dark the ground closes in on it, so it gets a hairline in the
- * sage-dim step instead.
- *
- * Level 1 since system-11 (it was level 2, #240). Two level-2 masses on
- * Today, the floor card and this, competed with the one tap in the
- * squint test; the deep sage material already sets it apart, so it
- * takes a card's shadow (SYSTEM.md §4's score-card row) and the floor
- * card is Today's one lifted thing. (The paywall sheet that wore this
- * material moves to `.card-premium`, practice-tab-4.)
- */
-.card-score {
-  background: var(--color-sage-900);
-  border: 1px solid transparent;
-  box-shadow: var(--shadow-1);
-}
-
-:root[data-theme="dark"] .card-score {
-  border-color: var(--color-sage-300);
-}
-
-/*
- * The other deep material: the pause bar and the comparison card. On
- * cream it separates itself; on the dark ground #120e0b against #1a1410
- * is 1.6:1, which is a panel you have to go looking for. Same trick as
- * the score card, one step of cream.
+ * The deep material: the pause bar and the comparison card. On cream it
+ * separates itself; on the dark ground #120e0b against #1a1410 is
+ * 1.6:1, which is a panel you have to go looking for, so dark steps it
+ * up (below). The Log's deep sage score card that shared it went with
+ * the stage (#391, #506).
  */
 .card-stage {
   background: var(--color-stage);
@@ -2677,24 +2655,6 @@ summary::-webkit-details-marker {
 /* The intro pager: the active dot is a pill that stretches along the
    row as the page changes (STATE.md's open item, "the active dot
    slides along the row"). */
-/* intro-a-6: the resting dots are doors (buttons), so they take ink at
-   half (3.2:1 on white, 4.9:1 on the dark ground) where sand was 1.3;
-   the active pill stays ink and is told apart by its 26px. The stretch
-   is the base spring, critically damped: a tap threw nothing. */
-.intro-dot {
-  height: 8px;
-  width: 8px;
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--color-ink) 50%, transparent);
-  transition:
-    width var(--spring-base-duration) var(--spring-base),
-    background-color var(--duration-base) var(--ease-out);
-}
-.intro-dot[data-on] {
-  width: 26px;
-  background: var(--color-ink);
-}
-
 /* The plan's month as numbered steps on a hairline rail (D49, D06): a
    28px surface disc with an ink numeral at 15/800. The sun, sky and
    coral discs meant nothing, so the numbers carry it. */
@@ -2733,7 +2693,7 @@ summary::-webkit-details-marker {
 :root[data-motion="reduce"] :is(.demos-pop-ground, .ground-idle, .ground-bob, .ground-breath, .ground-sway, .ground-tilt) {
   animation: none;
 }
-:root[data-motion="reduce"] :is(.intro-progress > div, .intro-dot) {
+:root[data-motion="reduce"] .intro-progress > div {
   transition: none;
 }
 /* ============ end of the introduction's colour and staging ============ */

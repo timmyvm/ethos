@@ -5,9 +5,10 @@
  *
  * Shoots the Log's Daily side as a phone sees it: the first screen, the
  * screen scrolled down to the list, and the whole page; its Games side;
- * a stored recording opened from it; and four more accounts the tour's
- * three weeks never show: one whose Ethos fell since it started, one with
- * a single recording, one with none, and the page while it loads.
+ * a stored recording opened from it; and more accounts the tour's three
+ * weeks never show: one whose Ethos fell since it started, one with a
+ * single recording, a hundred on Premium (the list's foot, and its count
+ * against its rows), one with none, and the page while it loads.
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 3973
  *   LOOK_BASE=http://localhost:3973 node scripts/look-log-simple.mjs before
@@ -60,6 +61,9 @@ const like = (i, n, index, lesson = "h4") => ({
 const FALLING = [690, 684, 677, 681, 669, 662, 655, 648, 641].map((v, i, all) => like(i, all.length - i, v));
 /* One recording, scored. */
 const SINGLE = [like(0, 1, 604, "lesson:the-landing:1")];
+/* A hundred recordings on Premium (#506 review): past the newest 90 whole
+   reads, every one is listed and opens. */
+const HUNDRED = Array.from({ length: 100 }, (_, i) => like(i, 100 - i, 560 + i, ["h4", "lesson:the-landing:1", "f1"][i % 3]));
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
 
@@ -165,6 +169,21 @@ async function shoot(theme, [width, height], scenes) {
     await snap("single");
     repsMode.rows = null;
   });
+  await scene("hundred", async () => {
+    repsMode.rows = HUNDRED;
+    resetPlan("code");
+    await go("/history?view=daily");
+    const n = await page.evaluate(() => ({
+      head: document.querySelector("#log-recordings .section-head-count")?.textContent,
+      rows: document.querySelectorAll('main a[href^="/rep/"]').length,
+    }));
+    console.log(`list  hundred-${size}-${theme}: head ${n.head}, ${n.rows} rows${String(n.rows) === n.head ? "" : " MISMATCH"}`);
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }));
+    await sleep(700);
+    await snap("hundred-end");
+    resetPlan();
+    repsMode.rows = null;
+  });
   await scene("empty", async () => {
     repsMode.rows = [];
     await go("/history?view=daily");
@@ -182,7 +201,7 @@ async function shoot(theme, [width, height], scenes) {
   await context.close();
 }
 
-const ALL = ["daily", "games", "recording", "falling", "single", "empty", "loading"];
+const ALL = ["daily", "games", "recording", "falling", "single", "hundred", "empty", "loading"];
 for (const theme of ["light", "dark"]) {
   await shoot(theme, [390, 844], ALL);
   await shoot(theme, [320, 568], ["daily", "games", "empty"]);

@@ -1,0 +1,74 @@
+{
+  "trait 390x844-light": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 390x844-light": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "A listener hears a sentence restart the way they hear an um, and it costs more.",
+      "A wrong word is no reason to restart the sentence. Finishing the weaker sentence beats abandoning it."
+    ],
+    "labels": []
+  },
+  "trait 390x844-dark": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 390x844-dark": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "A listener hears a sentence restart the way they hear an um, and it costs more.",
+      "A wrong word is no reason to restart the sentence. Finishing the weaker sentence beats abandoning it."
+    ],
+    "labels": []
+  },
+  "trait 320x568-light": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 320x568-light": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "A listener hears a sentence restart the way they hear an um, and it costs more.",
+      "A wrong word is no reason to restart the sentence. Finishing the weaker sentence beats abandoning it."
+    ],
+    "labels": []
+  },
+  "trait 320x568-dark": {
+    "text": [
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "Fewer sentence restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 320x568-dark": {
+    "text": [
+      "Sentence restarts",
+      "sentence restarts in 100 words",
+      "Sentence restarts",
+      "A listener hears a sentence restart the way they hear an um, and it costs more.",
+      "A wrong word is no reason to restart the sentence. Finishing the weaker sentence beats abandoning it."
+    ],
+    "labels": []
+  }
+}

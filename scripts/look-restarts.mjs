@@ -9,7 +9,7 @@
  * Scenes (shots in docs/look/restarts/<phase>/<scene>-<view>.png):
  *   lessons      /lessons at the trait's section head
  *   trait        /practice/repairs, its head and ring
- *   trait-why    the same page at its teaching (what, why, the distinction)
+ *   trait-why    the same page's next step: why it matters, the distinction
  *   lesson       /lessons/finish-it: its chip, title and "Your number"
  *   glance       a Finish it anyway practice's glance, three in 62s
  *   sheet-row    "Every number", the rows' headline and the trait's row open
@@ -179,8 +179,14 @@ async function trait(v) {
   await settled(page);
   await shoot(page, "trait", v);
   if (want("trait-why")) {
+    /* The teaching is the page's next step, not further down it (the
+       review of #502: this shot was the head again): "Why it matters"
+       opens the why and the distinction. */
+    await page.getByRole("button", { name: "Why it matters" }).click();
+    await page.waitForSelector("main h2.detail-head", { timeout: 10000 });
+    await sleep(900);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-    await sleep(600);
+    await sleep(500);
     await shoot(page, "trait-why", v);
   }
   await ctx.close();

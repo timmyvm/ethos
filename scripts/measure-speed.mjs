@@ -881,12 +881,22 @@ if (want("room")) {
 }
 
 if (want("upload")) {
-  // A take as this Chromium records it: 10 s of the fake mic, the default
-  // settings the recorder uses (app/rep/page.tsx) and a speech bitrate.
+  // A take as this Chromium records it: 10 s of the fake mic, as the
+  // recorder records it (lib/speech-recorder.ts: its bitrate, read off
+  // the source, so "as shipped" follows the app), the browser's default
+  // and a lower speech bitrate beside it.
+  const shippedBps = (() => {
+    try {
+      const m = readFileSync(join(ROOT, "lib", "speech-recorder.ts"), "utf8").match(/SPEECH_BITS_PER_SECOND = ([\d_]+)/);
+      return m ? Number(m[1].replace(/_/g, "")) : null;
+    } catch {
+      return null;
+    }
+  })();
   const context = await newContext();
   const { page } = await newPage(context);
   await page.goto(BASE + "/settings/help", { waitUntil: "load" }).catch(() => {});
-  const sizes = await page.evaluate(async () => {
+  const sizes = await page.evaluate(async (shippedBps) => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const take = (opts) =>
       new Promise((resolve) => {
@@ -898,12 +908,13 @@ if (want("upload")) {
         setTimeout(() => rec.stop(), 10000);
       });
     const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : undefined;
-    const asShipped = await take(mime ? { mimeType: mime } : undefined);
+    const browserDefault = await take(mime ? { mimeType: mime } : undefined);
+    const asShipped = shippedBps ? await take({ ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: shippedBps }) : browserDefault;
     const speech32 = await take({ ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 32000 });
     const speech24 = await take({ ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 24000 });
     stream.getTracks().forEach((t) => t.stop());
-    return { asShipped, speech32, speech24 };
-  });
+    return { asShipped, browserDefault, speech32, speech24 };
+  }, shippedBps);
   await context.close();
   const per60 = (b) => Math.round((b / 10) * 60);
   const upMs = (b) => (Number.isFinite(P.upBps) ? Math.round((b / P.upBps) * 1000 + P.rtt) : 0);

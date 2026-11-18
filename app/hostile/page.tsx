@@ -40,6 +40,7 @@ import { buzz, prefersReducedMotion } from "@/lib/prefs";
 import { playSound, unlockSound } from "@/lib/sound";
 import { hostileWon } from "@/lib/sound-recipes";
 import { holdAwake } from "@/lib/wake-lock";
+import { speechRecorderOptions } from "@/lib/speech-recorder";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 
 /**
@@ -430,13 +431,8 @@ export default function HostilePage() {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
-      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : undefined;
-      const recorder = new MediaRecorder(
-        stream,
-        mime ? { mimeType: mime } : undefined
-      );
+      // Speech at 32 kbps (#508), as the daily take records.
+      const recorder = new MediaRecorder(stream, speechRecorderOptions());
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);

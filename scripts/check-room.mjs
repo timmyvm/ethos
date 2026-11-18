@@ -298,7 +298,8 @@ if (want("speaking")) {
     ok(`"${line}" streams in chunks`, partial.length >= 1 && r.bubble.includes(line), `${partial.length} partials`);
   }
   const said = r.said.filter((s) => s !== "");
-  const want = [LINES[0], "Your turn", LINES[1], LINES[2], "Your turn", LINES[3], "That was alright.", "What if that was real?"];
+  /* And the guide's line after Timothy's (#501): what Ethos is for. */
+  const want = [LINES[0], "Your turn", LINES[1], LINES[2], "Your turn", LINES[3], "That was alright.", "What if that was real?", "Let's get you ready for it."];
   ok("a screen reader hears every line once, in order", JSON.stringify(said) === JSON.stringify(want), JSON.stringify(said));
   ok("every chunk pops", r.pops.length >= 16, `${r.pops.length} pops`);
   ok("and nothing pops while the mic is open", r.pops.every((p) => !p.mic), `${r.pops.filter((p) => p.mic).length} over an open mic`);
@@ -580,9 +581,16 @@ if (want("places")) {
     await browser.close();
   }
   {
-    /* Left on the third question of the old walk (step 5, no mark). */
+    /* Left on the third question of the old walk (step 5, no mark): the
+       goal, which went with #501, so the question in its place. */
     const { browser, page } = await seed({ answers: { name: "Tim", ageBand: "19-22", pains: [] }, step: 5, done: false, synced: false });
-    ok("places: a walk left on the old third question comes back to it", (await room(page)) === null && /What do you want this for\?/.test((await heading(page)) ?? ""), await heading(page));
+    ok("places: a walk left on the old third question comes back to its place, the question after it", (await room(page)) === null && /What do you notice when you talk\?/.test((await heading(page)) ?? ""), await heading(page));
+    await browser.close();
+  }
+  {
+    /* Left on the beat of the room's walk (layout 2, step 7): the hour. */
+    const { browser, page } = await seed({ answers: { name: "Tim", pains: [] }, step: 7, done: false, synced: false, walk: 2 });
+    ok("places: a walk left on the beat, which went (#501), comes back on the hour", (await room(page)) === null && /When do you want your minute\?/.test((await heading(page)) ?? ""), await heading(page));
     await browser.close();
   }
   {

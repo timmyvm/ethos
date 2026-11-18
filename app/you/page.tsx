@@ -63,6 +63,7 @@ import { useStill, useWarm } from "@/lib/use-warm";
 import { barLabel, bestFlame, levelLine, reachLine, streakFlame, xpStanding, type Flame } from "@/lib/xp";
 import { readable, readFailure, withTimeout } from "@/lib/load";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
+import { ROAD_INVITE, ROAD_INVITE_STEP } from "@/lib/onboarding";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { buildPortfolio } from "@/lib/portfolio";
 import { traitForSaid } from "@/lib/lesson-up-next";
@@ -1333,11 +1334,11 @@ const ROAD_CARD = "card press mt-7 flex min-h-11 items-center gap-3 p-4 text-lef
 function RoadCard({ state }: { state: OnboardingState }) {
   if (!state.done) {
     return (
-      <Link href="/welcome?step=ageBand" className={ROAD_CARD}>
+      <Link href={`/welcome?step=${ROAD_INVITE_STEP}`} className={ROAD_CARD}>
         <span className="min-w-0 flex-1">
           <span className="eyebrow block">The road</span>
           <span className="font-display mt-0.5 block text-row">
-            Five questions, then a first month.
+            {ROAD_INVITE}
           </span>
         </span>
         <Disclosure />

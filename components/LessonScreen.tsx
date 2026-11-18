@@ -12,8 +12,9 @@ import {
 } from "react";
 import type { Tone } from "@/components/DemosArt";
 import { IconBack, IconChevron } from "@/components/Icon";
-import { Says, SaysGhost } from "@/components/Says";
+import { SaysGhost } from "@/components/Says";
 import { SpeechBubble } from "@/components/SpeechBubble";
+import { motionReduced, Talker, TalkLines } from "@/components/Talk";
 import { TipStrip } from "@/components/rep/TipStrip";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import type { TraitId } from "@/content/traits";
@@ -334,6 +335,7 @@ export function LessonScreen({
   trait,
   replies,
   announce,
+  replyLive = false,
   backLabel = "Back",
   ...body
 }: LessonBodyProps & {
@@ -350,6 +352,12 @@ export function LessonScreen({
    * screen reader hears it once the field is finished, not per keystroke.
    */
   announce?: string;
+  /**
+   * The reply follows a hand as it types (the name, #501 review): it is
+   * there whole with every key, with no pop, no blip and no bump, so
+   * typing never flickers his bubble or ticks under each letter.
+   */
+  replyLive?: boolean;
   /**
    * The trait this screen is about (practice-detail-6). Sets
    * `data-trait` on <main>, so everything on the screen can wear that
@@ -679,6 +687,8 @@ export function LessonScreen({
               reply={body.reply}
               replies={replies}
               announce={announce}
+              replyLive={replyLive}
+              gesture={arrived.current.gesture}
             />
           ) : (
             <>
@@ -910,11 +920,15 @@ function StageScreen({
 }
 
 /**
- * Demos speaking (#288). The words wait for the screen's own slide
- * (`arrive-x`, 200ms) so two entrances never run at once, then land a
- * word at a time; a reply swapped into a bubble already on screen
- * starts at once. The `key` on each line is what replays the landing
- * when the text changes.
+ * Demos speaking (#288, #501). His bubble pops up from its tail as the
+ * screen arrives, and his words land a word at a time with a blip under
+ * each while he bobs (components/Talk.tsx); a tap anywhere finishes the
+ * line. The words wait for the screen's own slide (200ms) so two
+ * entrances never run at once, unless a swipe brought the page in, when
+ * they come with it; a reply swapped into a bubble already on screen
+ * starts at once, and the bubble gives a small bump to say it changed.
+ * The `key` on each thing said is what replays the landing when the text
+ * changes.
  *
  * The question stays in the document as a hidden heading while a reply
  * is showing, so the screen's name never changes under a screen reader
@@ -933,6 +947,8 @@ function DemosSpeech({
   reply,
   replies,
   announce,
+  replyLive = false,
+  gesture = false,
 }: {
   mode: "above" | "beside";
   art?: ReactNode;
@@ -942,9 +958,27 @@ function DemosSpeech({
   reply?: string;
   replies?: string[];
   announce?: string;
+  /** The reply follows the keys being typed: whole, silent, no bump. */
+  replyLive?: boolean;
+  /** The page came in by a swipe or an arrow key: the words come with it. */
+  gesture?: boolean;
 }) {
-  const lead = reply ? 0 : 200;
+  const lead = reply || gesture ? 0 : 200;
   const live = mode === "beside";
+  const [talking, setTalking] = useState(false);
+  /* A reply landing in the bubble already on screen bumps it once. */
+  const bubble = useRef<HTMLDivElement>(null);
+  const lastReply = useRef(reply);
+  useEffect(() => {
+    if (lastReply.current === reply) return;
+    lastReply.current = reply;
+    const el = bubble.current;
+    if (!el || !reply || replyLive || typeof el.animate !== "function" || motionReduced()) return;
+    el.animate([{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], {
+      duration: 280,
+      easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    });
+  }, [reply, replyLive]);
   /* B12: every other reply this question can give, as ghosts in the same
      cell at no height, so the bubble rests at the widest from the first
      frame and only its height answers the line being said (the coin
@@ -966,6 +1000,7 @@ function DemosSpeech({
   const ghosts = held.map((r) => (
     <SaysGhost key={r} text={r} className="h-0 overflow-hidden text-balance [grid-area:1/1]" />
   ));
+  const said = [title, ...(line ? [line] : [])];
   const words = reply ? (
     <div className="grid">
       {ghosts}
@@ -973,24 +1008,37 @@ function DemosSpeech({
         <SaysGhost text={title} className="text-balance" />
         {line && <SaysGhost text={line} className={lineClass} />}
       </div>
-      <Says
-        key={reply}
-        text={reply}
-        lead={lead}
-        ariaHidden={live}
-        className="self-center text-balance [grid-area:1/1]"
-      />
+      <div className="self-center [grid-area:1/1]">
+        <TalkLines
+          key={reply}
+          lines={[reply]}
+          lead={lead}
+          instant={replyLive}
+          ariaHidden={live}
+          classes={["text-balance"]}
+          onTalking={setTalking}
+        />
+      </div>
       <h1 className="sr-only">{title}</h1>
     </div>
   ) : (
     <div className="grid">
       {ghosts}
       <div className="[grid-area:1/1]">
-        <Says key={title} as="h1" text={title} lead={lead} className="text-balance" />
-        {line && <Says key={line} text={line} lead={lead + 120} className={lineClass} />}
+        <TalkLines
+          key={said.join("\n")}
+          lines={said}
+          lead={lead}
+          firstAs="h1"
+          classes={["text-balance", lineClass]}
+          onTalking={setTalking}
+        />
       </div>
     </div>
   );
+  /* The bubble's entrance: up from its tail on a spring, as the page
+     arrives. A swiped page is already moving, so its bubble is there. */
+  const pop = gesture ? "" : mode === "beside" ? "talk-bubble talk-bubble-left" : "talk-bubble talk-bubble-down";
 
   if (mode === "above" && stage) {
     /* The stage: his bubble at the top of a coloured room, and him
@@ -1004,26 +1052,28 @@ function DemosSpeech({
       <div
         className={`intro-stage tone-${stage} flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-5 pt-5`}
       >
-        <SpeechBubble
-          tail="down"
-          voice="lead"
-          className="intro-stage-bubble w-full max-w-[320px] shrink-0 text-center"
-        >
-          {words}
-        </SpeechBubble>
-        <div className="demos-fit mt-4 w-full flex-1">
-          <div className="demos-fit-room">{art}</div>
+        <div ref={bubble} className={`w-full max-w-[320px] shrink-0 ${pop}`}>
+          <SpeechBubble tail="down" voice="lead" className="intro-stage-bubble w-full text-center">
+            {words}
+          </SpeechBubble>
         </div>
+        <Talker talking={talking} className="demos-fit mt-4 w-full flex-1">
+          <div className="demos-fit-room">{art}</div>
+        </Talker>
       </div>
     );
   }
   if (mode === "above") {
     return (
       <>
-        <SpeechBubble tail="down" className="max-w-[330px] self-center text-center">
-          {words}
-        </SpeechBubble>
-        <div className="mt-6">{art}</div>
+        <div ref={bubble} className={`max-w-[330px] self-center ${pop}`}>
+          <SpeechBubble tail="down" className="text-center">
+            {words}
+          </SpeechBubble>
+        </div>
+        <Talker talking={talking} className="mt-6">
+          {art}
+        </Talker>
       </>
     );
   }
@@ -1032,10 +1082,14 @@ function DemosSpeech({
      wider of question and reply. */
   return (
     <div className="mt-6 flex items-start gap-3">
-      <div className="shrink-0">{art}</div>
-      <SpeechBubble tail="left" voice="lead" className="min-w-0">
-        {words}
-      </SpeechBubble>
+      <Talker talking={talking} className="shrink-0">
+        {art}
+      </Talker>
+      <div ref={bubble} className={`min-w-0 ${pop}`}>
+        <SpeechBubble tail="left" voice="lead">
+          {words}
+        </SpeechBubble>
+      </div>
       <p className="sr-only" aria-live="polite" aria-atomic="true">
         {(announce === undefined ? reply : announce) ?? ""}
       </p>

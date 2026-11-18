@@ -25,7 +25,6 @@ import {
   IconWave,
   IconWaveFlat,
 } from "@/components/Icon";
-import { SAID_AFTER_MS } from "@/components/Says";
 import { LessonScreen } from "@/components/LessonScreen";
 import { attemptStartedOn, readOAuthAttempt, sessionState } from "@/lib/auth";
 import { useGoogleSignIn } from "@/lib/use-oauth-return";
@@ -58,11 +57,13 @@ import {
   NAME_FIELD,
   PLAN_COPY,
   QUESTIONS,
+  ACCOUNT_LINE,
   roomDue,
   storedAccount,
-  WELCOME_BEAT,
   type QuestionId,
 } from "@/lib/onboarding";
+import { setAudioSession } from "@/lib/audio-session";
+import { closeIntroSound, playPick, unlockIntroSound } from "@/lib/intro-sound";
 import { introDue, introHref, nextLesson, UNITS } from "@/lib/path";
 import { Room } from "@/components/room/Room";
 import { buildPortfolio } from "@/lib/portfolio";
@@ -76,11 +77,19 @@ import { INPUT_ANSWER_CLASS } from "@/lib/ui";
 import { useRovingRadio } from "@/lib/use-roving-radio";
 
 /**
- * The walk (DECISIONS #133, #232, #249, #475): the room (a scripted
- * interview, components/room/Room.tsx) for a first run, seven
- * questions, and the plan built from the answers. A way back on every
- * question, Skip on every one, no account, no quiz wall (#11): the mic
- * is never more than a tap away, and a refresh lands where it left off.
+ * The walk (DECISIONS #133, #232, #249, #475, #501): the room (a scripted
+ * interview, components/room/Room.tsx) for a first run, five questions,
+ * the plan built from the answers, and the account ask. A way back on
+ * every question, Skip on every one, no quiz wall (#11): the mic is never
+ * more than a tap away, and a refresh lands where it left off.
+ *
+ * #501 (Timothy, 18 Nov: "it needs more pop in the text sound ... It
+ * needs a better guide"): Demos's lines pop in a word at a time with a
+ * blip under each, and he bobs while he says them (components/Talk.tsx,
+ * lib/intro-sound.ts); a picked answer clicks; one bar runs from the name
+ * to the account ask; and each screen's second line says what happens
+ * next or what to tap. The goal, the place and the beat went
+ * (lib/onboarding.ts says why).
  *
  * The three screens that said the thing ("Hey. I know why you're
  * here.") went with #475: the room puts you in the thing instead.
@@ -100,7 +109,6 @@ import { useRovingRadio } from "@/lib/use-roving-radio";
 type Step =
   | { kind: "room" }
   | { kind: "question"; id: QuestionId }
-  | { kind: "beat" }
   | { kind: "plan" }
   | { kind: "account" };
 
@@ -116,15 +124,10 @@ const STEPS: Step[] = [
    */
   { kind: "room" },
   /*
-   * The beat sits before the hour (#288): six questions, then Demos
-   * alone with one line, then the seventh. It is not a question, so
-   * the bar does not move for it and the count stays seven.
+   * The beat that stood before the hour (#288) went with #501: its line
+   * is the hour's own second line now, said where the hour is chosen.
    */
-  ...QUESTIONS.flatMap((q): Step[] =>
-    q.id === "time"
-      ? [{ kind: "beat" }, { kind: "question", id: q.id }]
-      : [{ kind: "question", id: q.id }]
-  ),
+  ...QUESTIONS.map((q): Step => ({ kind: "question", id: q.id })),
   { kind: "plan" },
   /*
    * The account ask (#277). Last, after the plan, because the plan is
@@ -141,27 +144,32 @@ const FIRST_QUESTION = 1;
 /* The walk's resting place. A finished walk opens here, not on the
    account screen behind it. */
 const PLAN = STEPS.findIndex((s) => s.kind === "plan");
-
-/** The beat's pose: he is telling you something, arcs and all. */
-const BEAT_POSE: Pose = "speaking";
 /*
- * The colour of each screen (the swipe-and-pop round). The beat stands
- * him on a stage in its own tone; the questions give his head a coin in
- * a tone and the answers' glyphs their tiles. The speaking pose never
+ * The bar (#501): one fill from the name to the account ask, every step
+ * after the room counted, and full only at the first recording, which
+ * is where the walk is going. The questions are 1 to 5, the plan 6, the
+ * account ask 7.
+ */
+const BAR_STEPS = LAST;
+
+/*
+ * The colour of each screen (the swipe-and-pop round): the questions
+ * give his head a coin in a tone and the answers' glyphs their inks, and
+ * the five walk sun, sky, mint, sun, sky so no two in a row match (#501;
+ * the goal and the place, which went, keep theirs for a deep link). The speaking pose never
  * stands on sun, because his arcs are amber, and he never stands on
  * coral, which is his own fur colour (the review of this round: in
  * dark, coral was rust brown and he vanished into it). Coral stays on
  * the small things, the glyph tiles and the plan steps.
  */
-const BEAT_TONE: Tone = "mint";
 const QUESTION_TONES: Record<QuestionId, Tone> = {
   name: "sun",
   ageBand: "sky",
   goal: "mint",
-  pains: "sun",
-  level: "sky",
+  pains: "mint",
+  level: "sun",
   context: "mint",
-  time: "sun",
+  time: "sky",
 };
 /**
  * The glyphs' inks walk these row by row (#300, pop with colour): the
@@ -343,13 +351,11 @@ function Walk() {
         ? "speaking"
         : after.kind === "question"
           ? QUESTION_POSES[after.id]
-          : after.kind === "beat"
-            ? BEAT_POSE
-            : /* intro-b-21: the account ask says hello, so the plan's
-                 clipboard is not shown twice in a row. */
-              after.kind === "account"
-              ? "hello"
-              : "clipboard";
+          : /* intro-b-21: the account ask says hello, so the plan's
+               clipboard is not shown twice in a row. */
+            after.kind === "account"
+            ? "hello"
+            : "clipboard";
     preloadPose(pose);
   }, [i]);
 
@@ -368,6 +374,40 @@ function Walk() {
     }
   }, [ready, step, answers]);
 
+  /*
+   * The walk's sound (#501, lib/intro-sound.ts): the first tap anywhere
+   * on /welcome makes and unlocks the one audio context the walk talks
+   * through, the room's door included; every tap after wakes it if the
+   * phone paused it. Capture, so it runs inside the tap itself, before
+   * whatever the tap does.
+   */
+  useEffect(() => {
+    const unlock = () => void unlockIntroSound();
+    const kinds = ["pointerdown", "touchend", "click", "keydown"] as const;
+    kinds.forEach((k) => window.addEventListener(k, unlock, true));
+    return () => kinds.forEach((k) => window.removeEventListener(k, unlock, true));
+  }, []);
+  /*
+   * Off the room, the walk asks for the "ambient" session: its blips mix
+   * with whatever else is playing and an iPhone's silent switch silences
+   * them. The room asks for its own around its mic. Leaving the walk
+   * hands the choice back to the browser, before anything records.
+   */
+  const onRoom = ready && step.kind === "room";
+  useEffect(() => {
+    if (!ready || onRoom) return;
+    setAudioSession("ambient");
+  }, [ready, onRoom]);
+  useEffect(
+    () => () => {
+      setAudioSession("auto");
+      /* And its one context closes (#501 review): nothing after the
+         walk plays through it, and an open one keeps the audio awake. */
+      closeIntroSound();
+    },
+    []
+  );
+
   if (!ready) return <main className="px-5 pt-7" />;
 
   const go = (n: number) => {
@@ -383,6 +423,8 @@ function Walk() {
     const next = { ...answers, ...patch };
     setAnswers(next);
     writeOnboarding({ answers: next });
+    /* A tapped answer clicks (#501); the name, typed, does not click per key. */
+    if (patch.name === undefined) playPick();
     /*
      * The hour is a device preference, so it applies the moment it is
      * chosen rather than waiting for the plan: picking "Evening" and
@@ -402,42 +444,10 @@ function Walk() {
     return <Room signedIn={signedIn} onDone={() => go(i + 1)} onSkip={() => go(i + 1)} />;
   }
 
-  if (step.kind === "beat") {
-    return (
-      <LessonScreen
-        center
-        speech="above"
-        stage={BEAT_TONE}
-        stepKey={i}
-        travel={travel}
-        swipe={{ next: () => go(i + 1), back: () => go(i - 1) }}
-        onBack={() => go(i - 1)}
-        /* The beat is no question, so it has no Skip, but it holds
-           Skip's width so the bar keeps one length from q6 to q7. */
-        header={<WalkBar n={QUESTIONS.length - 1} of={QUESTIONS.length} />}
-        title={WELCOME_BEAT.title}
-        line={WELCOME_BEAT.line}
-        art={
-          <IntroDemos
-            pose={BEAT_POSE}
-            size={300}
-            fit
-            pop
-            grounded
-            halo={{ tone: BEAT_TONE, kind: "stage" }}
-            greetAfterMs={SAID_AFTER_MS}
-          />
-        }
-        action={{ label: "Next", onPress: () => go(i + 1) }}
-      />
-    );
-  }
-
   if (step.kind === "question") {
     const q = QUESTIONS.find((x) => x.id === step.id)!;
-    /* By the question's own place in the seven, not the step's index:
-       the beat sits between the sixth and the seventh. */
-    const n = QUESTIONS.findIndex((x) => x.id === step.id) + 1;
+    /* The step's place after the room: the questions are 1 to 5. */
+    const n = i;
     const picked = has(answers, step.id);
     /* The name goes back to the room only where the room was (#475). */
     const back = i > FIRST_QUESTION || roomOn ? () => go(i - 1) : undefined;
@@ -450,9 +460,7 @@ function Walk() {
            advance. The screen rubber-bands and Skip stays the way past. */
         swipe={{ next: picked ? () => go(i + 1) : undefined, back }}
         onBack={back}
-        header={
-          <WalkBar n={n} of={QUESTIONS.length} onSkip={() => go(i + 1)} />
-        }
+        header={<WalkBar n={n} of={BAR_STEPS} onSkip={() => go(i + 1)} />}
         title={q.title}
         line={q.line}
         reply={replyFor(answers, step.id)}
@@ -462,6 +470,10 @@ function Walk() {
         announce={
           step.id === "name" ? (heardName ? NAME_REPLY(heardName) : "") : undefined
         }
+        /* #501 review: while the name is being typed his reply follows
+           each key whole and silent; it is said, with its pop and blips,
+           only where the name was already settled (coming back to it). */
+        replyLive={step.id === "name" && answers.name !== heardName}
         /* D19: his coin scales with the room, 96 to 140 (135 at
            390x844), where it was a fixed 84. */
         shelfFollows={step.id === "name"}
@@ -473,8 +485,10 @@ function Walk() {
               fit
               pop
               halo={{ tone: QUESTION_TONES[step.id], kind: "coin" }}
+              /* He talks while his line lands (#501), and nods when an
+                 answer moves something; the greeting nod after his words
+                 went, because his talking is the greeting now. */
               nodKey={nodKey(answers, step.id, heardName)}
-              greetAfterMs={SAID_AFTER_MS}
             />
           </div>
         }
@@ -513,11 +527,22 @@ function Walk() {
         onBack={() => go(i - 1)}
         floor={floor}
         name={answers.name}
+        bar={<WalkBar n={i} of={BAR_STEPS} />}
       />
     );
   }
 
   const plan = buildPortfolio(answers);
+  /*
+   * What he says (#501). The goal named the headline; with the goal gone
+   * from the walk, his line to them, in their name and their words, is
+   * what he leads with, and the guide under it says what Next does and
+   * what comes after. Someone who set a goal (in Settings, or before
+   * #501) keeps its headline over his line, as before. Editing from You
+   * has nowhere next to name.
+   */
+  const guide = editing ? undefined : needsAccount === false ? PLAN_COPY.start : PLAN_COPY.next;
+  const goalSet = answers.goal !== null;
   return (
     <LessonScreen
       stepKey={i}
@@ -529,6 +554,8 @@ function Walk() {
         back: () => go(i - 1),
       }}
       onBack={() => go(i - 1)}
+      /* The bar runs on to the plan and the account ask (#501). */
+      header={editing ? undefined : <WalkBar n={i} of={BAR_STEPS} />}
       /*
        * The plan speaks (intro-b-11): Demos says the headline and his
        * line to them from the same bubble every question used, so the
@@ -538,10 +565,8 @@ function Walk() {
        * idle clip would play; the introduction plays none, notes1).
        */
       speech="beside"
-      title={plan.headline}
-      /* His line to them, in their name and their words, in place of
-         the template's old "Built from what you told me." */
-      line={plan.opening}
+      title={goalSet ? plan.headline : plan.opening}
+      line={goalSet ? plan.opening : guide}
       grow
       controls={
         <>
@@ -550,13 +575,7 @@ function Walk() {
         </>
       }
       art={
-        <IntroDemos
-          pose="clipboard"
-          size={120}
-          pop
-          halo={{ tone: "sun", kind: "coin" }}
-          greetAfterMs={SAID_AFTER_MS}
-        />
+        <IntroDemos pose="clipboard" size={120} pop halo={{ tone: "sun", kind: "coin" }} />
       }
       /*
        * Editing from /you leaves the way it came. Otherwise the plan
@@ -611,12 +630,15 @@ function AccountStep({
   onBack,
   floor,
   name,
+  bar,
 }: {
   stepKey: number;
   travel: "next" | "back";
   onBack: () => void;
   floor: string;
   name: string | null;
+  /** The walk's bar, one step from full (#501). */
+  bar?: ReactNode;
 }) {
   /* The same hook as /signup: the button comes back when they do,
      whether or not Google finished (lib/use-oauth-return.ts). */
@@ -630,8 +652,9 @@ function AccountStep({
       travel={travel}
       swipe={{ back: onBack }}
       onBack={onBack}
+      header={bar}
       title={name ? `Keep this, ${name}.` : "Keep this."}
-      line="Your plan and every number you're about to make, on any phone you open."
+      line={ACCOUNT_LINE}
       /* intro-b-13: the title and the line share his axis. He says
          hello (intro-b-21): the plan's clipboard was one screen ago.
          D19, D49: he stands at 240 on the intro's sky stage, which takes
@@ -769,14 +792,18 @@ function nodKey(a: Answers, id: QuestionId, heardName: string | null): string {
 }
 
 /**
- * Where you are in the questions (#288): one bar that fills, no count.
+ * Where you are in the walk (#288, #501): one bar that fills, no count.
  *
  * Seven segments and "2 of 7" told you the walk was seven long before
  * you had answered one; a bar a quarter full says the same without the
  * number, which is the reference's own move. The fill is full width and
  * clipped to `--p` on the base spring (A3's hook, intro-a-20), so the
  * gradient holds still under the clip as the bar grows; this element
- * persists from one question to the next, so it grows from where it was.
+ * persists from one step to the next, so it grows from where it was.
+ *
+ * Since #501 it runs past the questions to the plan and the account ask,
+ * so the end is in sight on every screen, and it is full only at the
+ * first recording, the thing the walk is for.
  */
 function Progress({ n, of }: { n: number; of: number }) {
   return (
@@ -785,11 +812,11 @@ function Progress({ n, of }: { n: number; of: number }) {
       aria-valuemin={0}
       aria-valuemax={of}
       aria-valuenow={n}
-      aria-label={`Question ${n} of ${of}`}
+      aria-label={`Step ${n} of ${of}`}
       className="intro-progress w-full min-w-0 flex-1"
     >
-      {/* intro-b-4: the plan is the walk's last step, so the drawn bar
-          counts it and no question shows a finished bar. */}
+      {/* intro-b-4, #501: the first recording is the walk's end, so the
+          drawn bar counts it and no step before it shows a full bar. */}
       <div style={{ "--p": n / (of + 1) } as React.CSSProperties} />
     </div>
   );
@@ -798,9 +825,9 @@ function Progress({ n, of }: { n: number; of: number }) {
 /**
  * The walk's top row after Back (M20, Duolingo 13-question-list-dark):
  * the bar, then Skip, the way past a question without an answer, as a
- * text link with a 44px hit. Its place is held on the beat, which has
- * nothing to skip, so the bar is one length from the first question to
- * the last.
+ * text link with a 44px hit. Its place is held on the plan and the
+ * account ask, which have nothing to skip, so the bar is one length from
+ * the name to the last step.
  */
 function WalkBar({ n, of, onSkip }: { n: number; of: number; onSkip?: () => void }) {
   return (

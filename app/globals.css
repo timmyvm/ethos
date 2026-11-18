@@ -1878,6 +1878,83 @@ body::after {
 :root[data-motion="reduce"] .says-word {
   animation: none;
 }
+/*
+ * Demos talking in the introduction (#501, components/Talk.tsx): each
+ * word waits invisible in its place, then springs up into it as it is
+ * said, a little past full size and back, from its own baseline. A blip
+ * sounds under each (lib/intro-sound.ts). Script decides when, by
+ * `data-on`; the words are laid out from the first frame, so the bubble
+ * never grows under them. Reduced motion: each word is simply there.
+ */
+@keyframes talk-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.6);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-0.04em) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.says-word.talk-word {
+  opacity: 0;
+  animation: none;
+  transform-origin: 50% 80%;
+  /* A word longer than the bubble (a long name at 320) breaks inside its
+     box instead of running out past the bubble's edge (#501 review). */
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.says-word.talk-word[data-on] {
+  opacity: 1;
+  animation: talk-pop 300ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+:root[data-motion="reduce"] .says-word.talk-word[data-on] {
+  animation: none;
+}
+/* A line that follows the keys (the typed name's reply, #501 review) is
+   simply there: re-popped on every key, its words shrank and spread
+   under the typing. */
+.says-word.talk-word[data-on][data-still] {
+  animation: none;
+}
+/* His bubble arriving with the page (#501): up from its tail on a
+   spring with a little overshoot, after the slide has started, so the
+   bubble lands just before its first word. */
+@keyframes talk-bubble-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.talk-bubble {
+  animation: talk-bubble-in 380ms cubic-bezier(0.25, 1, 0.5, 1) 90ms backwards;
+}
+.talk-bubble-left {
+  transform-origin: 0 29px;
+}
+.talk-bubble-down {
+  transform-origin: 50% 100%;
+}
+:root[data-motion="reduce"] .talk-bubble {
+  animation: fade-in var(--duration-fast) var(--ease-out) backwards;
+}
+.demos-talk {
+  transform-origin: 50% 100%;
+}
+
 /* intro-a-1: the line he is NOT saying right now, kept for its size.
    The bubble stacks his question and his reply in one grid cell, so it
    is as tall as the taller and the answers under it never move; the one
@@ -7599,6 +7676,25 @@ html[data-test-tile] .test-tile-slot {
   margin-top: 4px;
   font-size: 15px;
 }
+/* Demos on the door (#501): his coin and his bubble over the hold,
+   saying what is behind the glass. The coin is the questions' coin,
+   smaller; the bubble is his one bubble. */
+.room-guide {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.room-guide-coin {
+  position: relative;
+  width: clamp(64px, 10vh, 84px);
+  height: clamp(64px, 10vh, 84px);
+  flex: none;
+}
+.room-guide-say {
+  margin-top: 4px;
+}
 
 /*
  * Hold to step in. Frosted glass with white words at rest, the way a
@@ -7723,13 +7819,24 @@ html[data-test-tile] .test-tile-slot {
   transform: scaleY(calc(0.16 + var(--l, 0) * 0.84));
   transition: transform 70ms linear;
 }
-.room-turn-label {
+.room-turn-words {
+  display: flex;
   min-width: 0;
   flex: 1;
+  flex-direction: column;
+}
+.room-turn-label {
+  min-width: 0;
   font-family: var(--font-display-face), sans-serif;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.012em;
+}
+/* Under "Your turn" (#501): what to do, and the tap that ends it. */
+.room-turn-hint {
+  font-size: 13px;
+  line-height: 18px;
+  color: rgb(255 255 255 / 0.72);
 }
 .room-tap {
   position: relative;

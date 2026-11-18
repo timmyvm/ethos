@@ -152,13 +152,19 @@ ok("transition default is 120ms", /^(120ms|0?\.12s)$/.test(rootVars.dflt), rootV
 ok("--duration-base is 200ms", /^(200ms|0?\.2s)$/.test(rootVars.base), rootVars.base);
 // The walk is a swipe carousel (25 Sep): a step slides in from the side it
 // came from, `.step-in-next` forward and `.step-in-back` back, on the sheet spring.
+/* Since #497 an account whose introduction is not finished opens on the
+   room too; Not now is its way on to the name. */
+if (await page.locator("[data-room-hold]").count()) {
+  await page.getByRole("button", { name: "Not now", exact: true }).click();
+  await page.waitForSelector("main .step-in-next");
+}
 let a = await anim(page, "main .step-in-next");
 ok("welcome step arrives from the right, on the sheet spring", a.name === "step-in-next" && a.easing.startsWith("linear("), `${a.name} ${a.duration} ${a.easing.slice(0, 20)}`);
 await sleep(400);
 /* Restarted means it began after the tap, measured against the tap's
    own pointerdown rather than a wall-clock limit: under load the
    click's own wait pushed a fresh arrival past a fixed 150ms (R7). */
-/* A signed-in browser opens on the name (#475), whose Next waits for one. */
+/* The name, whose Next waits for one. */
 await page.getByLabel("Your name").fill("Tim");
 await sleep(200);
 await page.evaluate(() => {

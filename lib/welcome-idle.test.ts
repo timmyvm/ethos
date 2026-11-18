@@ -54,7 +54,7 @@ describe("the introduction's Demos, rendered", () => {
 describe("the introduction's Demos", () => {
   it("is drawn through one wrapper that turns the idle clip off", () => {
     const wrapper = readFileSync("components/IntroDemos.tsx", "utf8");
-    expect(wrapper).toMatch(/<DemosArt \{\.\.\.props\} idle=\{false\} \/>/);
+    expect(wrapper).toMatch(/<DemosArt \{\.\.\.props\} idle=\{false\} talkLayer \/>/);
     for (const file of [welcome, room]) {
       expect(file).toMatch(/import \{ IntroDemos \} from "@\/components\/IntroDemos"/);
     }
@@ -62,9 +62,10 @@ describe("the introduction's Demos", () => {
 
   it("has no Demos that skips the wrapper", () => {
     for (const file of [welcome, room]) expect(file.match(/<DemosArt\b/g) ?? []).toHaveLength(0);
-    /* The beat, the questions, the plan and the account ask; and the room's ending. */
-    expect((welcome.match(/<IntroDemos\b/g) ?? []).length).toBeGreaterThanOrEqual(4);
-    expect((room.match(/<IntroDemos\b/g) ?? []).length).toBe(1);
+    /* The questions, the plan and the account ask (the beat went with
+       #501); and the room's door (#501) and its ending. */
+    expect((welcome.match(/<IntroDemos\b/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((room.match(/<IntroDemos\b/g) ?? []).length).toBe(2);
   });
 
   it("never mounts the clip itself", () => {

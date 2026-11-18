@@ -91,7 +91,9 @@ export const INTERVIEW: RoomScript = {
     },
   ],
   verdict: { alright: "That was alright.", horrible: "That was horrible." },
-  after: ["What if that was real?"],
+  /* Timothy's line, then the guide's (#501): what Ethos is for, said by
+     the one who will do it, before Next takes them to it. */
+  after: ["What if that was real?", "Let's get you ready for it."],
   /* Claude's line, not Timothy's: said plainly, one sentence, no
      fragment (COPY-RULES), true whether the phone said no or has no mic. */
   noMic: "I couldn't hear you, so let's get you set up.",
@@ -102,6 +104,12 @@ export const ROOM_SCRIPTS = { interview: INTERVIEW } as const;
 
 /** The flow's own words, around the script. */
 export const ROOM_COPY = {
+  /**
+   * Demos on the door (#501, the guide): what is behind the glass and
+   * what you will do in it, before anything asks for a mic. Jonathan, a
+   * tester: "we don't even know what we're doing here."
+   */
+  guide: "Let's start with a practice interview. Answer him out loud.",
   /** The one tap on the door: holding it is the gesture the asks ride on. */
   hold: "Hold to step in",
   /** The quiet way past the scene, on a train or in a library. */
@@ -112,6 +120,8 @@ export const ROOM_COPY = {
   signIn: "Sign in",
   /** The listening cue while the mic is open. */
   yourTurn: "Your turn",
+  /** Under it (#501): what to do, and the tap that ends it. */
+  turnHint: "Talk out loud, then tap Done.",
   /** Ends your turn early. */
   done: "Done",
   /** From Demos's last line into the questions. */

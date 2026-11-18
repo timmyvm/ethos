@@ -56,7 +56,7 @@ describe("Increase Contrast restates the neutrals (#448)", () => {
   });
 });
 
-describe("a lesson's own screen draws the 560 cut, and it is shell (#448)", () => {
+describe("a lesson's own screen draws the 560 cut (#448), cached on first view (#508)", () => {
   const small = [...sw.matchAll(/"\/lessons\/([a-z0-9-]+)\.webp"/g)].map((m) => m[1]);
   const large = [...sw.matchAll(/"\/lessons\/large\/([a-z0-9-]+)\.webp"/g)].map((m) => m[1]);
 
@@ -66,10 +66,13 @@ describe("a lesson's own screen draws the 560 cut, and it is shell (#448)", () =
     expect(page).not.toContain("src={lesson.art}");
   });
 
-  it("every lesson in the shell has its large cut there too, and on disk", () => {
+  it("every lesson in the shell has its large cut on disk, kept by the worker the first time it is drawn", () => {
     expect(small.length).toBeGreaterThanOrEqual(15);
-    expect([...large].sort()).toEqual([...small].sort());
-    for (const name of large) expect(existsSync(`public/lessons/large/${name}.webp`), name).toBe(true);
+    // The fifteen large cuts are 280 KB a first open's link does not need (#508).
+    expect(large).toEqual([]);
+    for (const name of small) expect(existsSync(`public/lessons/large/${name}.webp`), name).toBe(true);
+    // The asset rule caches a .webp the first time it is asked for.
+    expect(sw).toMatch(/const isAsset = \/\\\.\(webp\|png\|svg\|woff2\?\|css\|js\)\$\/\.test\(url\.pathname\);/);
   });
 });
 

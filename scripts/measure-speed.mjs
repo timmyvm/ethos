@@ -24,7 +24,8 @@
  *            (the same screen opened again with the worker installed)
  *   sw       the service worker's install (bytes, time) and an open offline
  *   tabs     Today, Log, You, Lessons, Practice and back, tap to painted
- *   doors    Today to a trait, Lessons to a lesson, the Log to a recording
+ *   doors    Today's Start to the recorder, Today to a trait, Lessons to a
+ *            lesson, the Log to a recording
  *   open     Today as the installed app opens it: the splash, then Today
  *   room     /welcome on a first open, and "/" (start_url) to the room
  *   upload   what a 60 s take weighs as Chromium records it, and the
@@ -779,6 +780,7 @@ if (want("doors")) {
   // The doors off the tabs a day goes through: a trait from Today, a lesson
   // from Lessons, a recording from the Log. Warm, as the tabs are.
   const DOORS = [
+    ["Today > Start", "/", "main a.home-start"],
     ["Today > trait", "/", 'main a[href^="/practice/"]'],
     ["Lessons > lesson", "/lessons", 'main a[href^="/lessons/"]'],
     ["Log > recording", "/history", 'main a[href^="/rep/"]'],

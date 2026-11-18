@@ -365,10 +365,10 @@ export const RECIPES: Record<Exclude<SoundId, "tick">, Recipe> = {
     gain: 0.85,
     wet: 0.24,
     notes: [
-      note("bell", PITCH.D6, 0, 0.28, 0.35),
-      note("bell", PITCH["F#6"], 0.07, 0.28, 0.35),
-      note("bell", PITCH.A6, 0.14, 0.3, 0.35),
-      note("glass", PITCH.D7, 0.21, 0.3, 1.1),
+      note("bell", PITCH.D6, 0, 0.24, 0.35),
+      note("bell", PITCH["F#6"], 0.07, 0.24, 0.35),
+      note("bell", PITCH.A6, 0.14, 0.26, 0.35),
+      note("glass", PITCH.D7, 0.21, 0.26, 1.1),
       ...chord("pad", [PITCH.D5, PITCH.A5], 0.21, 0.1, 1.0),
     ],
     hiss: [SHIMMER(0.2, 0.8, 0.03)],
@@ -379,7 +379,7 @@ export const RECIPES: Record<Exclude<SoundId, "tick">, Recipe> = {
     wet: 0.3,
     notes: [
       note("sweep", PITCH.D5, 0, 0.18, 0.3, { attack: 0.02, glide: 2 }),
-      note("glass", PITCH.D6, 0.26, 0.34, 1.2),
+      note("glass", PITCH.D6, 0.26, 0.3, 1.2),
       note("glass", PITCH.A6, 0.29, 0.18, 1.0),
       note("bell", PITCH["F#6"], 0.32, 0.14, 0.8),
     ],

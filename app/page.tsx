@@ -167,6 +167,9 @@ export default function Home() {
       const kept = heldFreezes();
       setStreak(kept?.streak ?? computeStreak(all.map((r) => new Date(r.created_at))));
       streakKept.current = kept !== null;
+      // A streak the freezes reconciled last open is the one that stays:
+      // the splash need not wait for them again (a day's turn can still move it).
+      if (kept !== null) setStreakSettled(true);
     }
     const plan = heldPremium();
     if (plan !== null) setPremium(plan);

@@ -67,6 +67,8 @@ describe("the splash lands on a drawn Today", () => {
     // Drawn once the read has landed and the freezes have settled the streak (or the read failed).
     expect(today).toMatch(/if \(!failed && \(reps === null \|\| !streakSettled\)\) return;\s*markDrawn\(\);/);
     expect(today).toMatch(/if \(!sync\.ok\) \{\s*setStreakSettled\(true\);\s*return;\s*\}\s*setStreak\(sync\.data\.streak\);\s*setStreakSettled\(true\);/);
+    // A streak kept reconciled from the last open (lib/held.ts rule 4) is settled at once.
+    expect(today).toMatch(/streakKept\.current = kept !== null;[\s\S]{0,200}if \(kept !== null\) setStreakSettled\(true\);/);
     expect(today).toMatch(/router\.replace\("\/welcome"\);[\s\S]{0,120}markDrawn\(\);/);
     const lift = src("components/SplashLift.tsx");
     expect(lift).toMatch(/drawExpected\(\)/);

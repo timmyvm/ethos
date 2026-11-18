@@ -146,7 +146,7 @@ describe("POST /api/say", () => {
   it("takes a short line only, and only with a phrase to listen for", async () => {
     expect((await line({ bytes: SAY_AUDIO_BYTES + 1 })).status).toBe(413);
     expect((await line({ better: null })).status).toBe(400);
-    expect((await line({ better: "x".repeat(61) })).status).toBe(400);
+    expect((await line({ better: "x".repeat(121) })).status).toBe(400);
     expect((await line({ type: "text/html" })).status).toBe(415);
     expect(h.transcribed).toBe(0);
   });

@@ -5,6 +5,7 @@ import {
   afterTest,
   backLine,
   chipDay,
+  cleanPhrase,
   coachSwap,
   dueToday,
   endLine,
@@ -331,3 +332,13 @@ describe("the words on the page", () => {
     }
   });
 });
+
+describe("a long better phrase from before #429 (18 Nov)", () => {
+  it("is still a phrase the test can check: production holds one of 71 characters", () => {
+    const better = "make the most of every chance you get to speak in front of other people";
+    expect(better.length).toBeGreaterThan(60);
+    expect(cleanPhrase(better)).toBe(better);
+    expect(cleanPhrase("x ".repeat(80))).toBeNull();
+  });
+});
+

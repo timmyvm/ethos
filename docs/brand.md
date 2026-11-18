@@ -125,8 +125,9 @@ Hard rules:
 ## Locked business decisions (reference)
 
 - **Model: freemium** (Duolingo / Elevate pattern).
-  Free: the daily loop, every measured metric, one judged read a day.
-  Paid: unlimited judged reads, the Presence readout, full history
+  Free: the daily loop, every measured metric, 3 scored recordings a
+  day, fresh each day (#514).
+  Paid: every recording scored, the Presence readout, full history
   with per-dimension trendlines, the full lexicon, the boss library.
   Pricing decided (DECISIONS #197): A$14.99 monthly / A$79.99 annual.
   Details in mechanics.md.

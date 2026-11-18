@@ -34,6 +34,12 @@ user-facing string.
   `lib/copy.test.ts`). The artifact is a recording, the path unit is a
   lesson, the habit is practice, and time does the rest ("since last
   time"). Identifiers and routes keep the word; nobody reads them aloud.
+- **The free plan is counted in scored recordings** (#514): "3 scored
+  recordings a day free", "(free: 3 a day)", "Ethos score back
+  tomorrow". A scored recording is one with its Ethos score; a fourth
+  take still has every measured number, so the allowance is never said
+  as "judged", "analysis" or "reads". The number is `DAILY_GRANT`,
+  written through `lib/allowance-copy.ts`, never typed.
 
 ## Placement: explain at the moment it matters, or not at all
 

@@ -45,7 +45,16 @@
  * 7. Both of the card's taps, Start and Another topic, stand clear of
  *    the tab bar at 320x568, 375x667 and 320x692 (#500: Another topic
  *    stood under the bar at 320x568), and at 320x568 and 375x667 under
- *    an installed SE's 20px status bar.
+ *    an installed SE's 20px status bar, each by 4px at least.
+ * 7b. Whatever the day's topic is (the final pass of 19 Nov: on a day
+ *    whose topic ran three lines, Another topic ended at 500 under a bar
+ *    at 490, on production too). At each of 7's phones every topic in
+ *    lib/topics.ts, which every lesson's practice and every road's place
+ *    draws from, is set in the card as HomeHero sets it (its size steps
+ *    at LONG_TOPIC and LONGER_TOPIC, read from the source), and both
+ *    taps stand clear of the bar for each, by 7's own 4px. And the
+ *    roulette it opens: its way back, in Another topic's place, clear of
+ *    the bar by the same 4px, with every topic inside the reel's window.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -65,6 +74,13 @@ const ok = (name, pass, detail = "") => {
 };
 
 /* Every label a tactic can wear on the card, read from its source. */
+/* Every topic the card can show (lib/topics.ts; the lessons and the road
+   draw theirs from it), and the lengths where its size steps down. */
+const TOPIC_SRC = readFileSync(new URL("../lib/topics.ts", import.meta.url), "utf8");
+const TOPICS = [...TOPIC_SRC.matchAll(/\{ id: "(t\d+)", prompt: "([^"]+)"/g)].map((m) => ({ id: m[1], prompt: m[2] }));
+const LONG_AT = Number(/export const LONG_TOPIC = (\d+);/.exec(TOPIC_SRC)?.[1]);
+const LONGER_AT = Number(/export const LONGER_TOPIC = (\d+);/.exec(TOPIC_SRC)?.[1]);
+if (TOPICS.length < 300 || !LONG_AT || !LONGER_AT) throw new Error("lib/topics.ts changed shape: the walk cannot read it");
 const labels = [
   ...readFileSync(new URL("../lib/tip-labels.ts", import.meta.url), "utf8").matchAll(
     /:\s*\[(?:"([^"]+)"|'([^']+)'),\s*"\w+"\]/g
@@ -563,10 +579,74 @@ extraReps.length = 0;
       `${width}x${height}${top ? ` under a ${top}px status bar` : ""}: Start and Another topic both stand clear of the tab bar`,
       /* 4 clear at least: the card's sum aims at 8, and a tap flush on
          the glass's edge reads as under it. Under an installed SE's
-         status bar the card is at its content's floor (321 at 320x568),
-         so there it only has to stand over the bar: open in #500's review. */
-      at.start <= at.bar - (top ? 0 : 4) && at.another <= at.bar - (top ? 0 : 4),
+         status bar too since the final pass of 19 Nov, which closed
+         #500's review: on a short phone the topic is a step down and the
+         object 100px tall, so the card fits there with every topic (7b). */
+      at.start <= at.bar - 4 && at.another <= at.bar - 4,
       `Start ends ${Math.round(at.start)}, Another topic ${Math.round(at.another)}, bar ${Math.round(at.bar)}`
+    );
+    // 7b: every topic the card can show, not only today's.
+    await page.waitForSelector(".home-hero:not([data-family='none']) #home-topic", { timeout: 15000 });
+    const walk = await page.evaluate(
+      ({ topics, longAt, longerAt, margin }) => {
+        const h2 = document.querySelector("#home-topic");
+        const span = h2.querySelector("span");
+        const was = { text: span.textContent, long: h2.getAttribute("data-long"), longer: h2.getAttribute("data-longer") };
+        const out = [];
+        for (const t of topics) {
+          span.textContent = t.prompt;
+          if (t.prompt.length > longAt) h2.setAttribute("data-long", "true");
+          else h2.removeAttribute("data-long");
+          if (t.prompt.length > longerAt) h2.setAttribute("data-longer", "true");
+          else h2.removeAttribute("data-longer");
+          const bar = document.querySelector("nav .nav-glass").getBoundingClientRect().top;
+          const start = document.querySelector("main .home-start").getBoundingClientRect().bottom;
+          const another = document.querySelector("main .home-another").getBoundingClientRect().bottom;
+          const lines = Math.round(span.getBoundingClientRect().height / parseFloat(getComputedStyle(h2).lineHeight));
+          out.push({ id: t.id, another: Math.round(another), clear: start <= bar - margin && another <= bar - margin, lines, bar: Math.round(bar) });
+        }
+        span.textContent = was.text;
+        for (const [k, v] of [["data-long", was.long], ["data-longer", was.longer]]) {
+          if (v === null) h2.removeAttribute(k);
+          else h2.setAttribute(k, v);
+        }
+        return out;
+      },
+      { topics: TOPICS, longAt: LONG_AT, longerAt: LONGER_AT, margin: 4 }
+    );
+    const under = walk.filter((w) => !w.clear);
+    const lowest = walk.reduce((a, b) => (b.another > a.another ? b : a));
+    ok(
+      `${width}x${height}${top ? ` under a ${top}px status bar` : ""}: with each of the ${walk.length} topics in the card, Start and Another topic stand clear of the tab bar`,
+      walk.length === TOPICS.length && under.length === 0,
+      under.length
+        ? `${under.length} under it: ${under.slice(0, 6).map((u) => `${u.id} (${u.lines} lines) ends ${u.another}`).join(", ")}; bar ${lowest.bar}`
+        : `the lowest, ${lowest.id} in ${lowest.lines} lines, ends ${lowest.another}; bar ${lowest.bar}`
+    );
+    /* The roulette in the same card: its way back stands where Another
+       topic stood, and the reel's window holds every topic. */
+    await page.click("main .home-another");
+    await page.waitForSelector("main .home-reel span.block", { timeout: 10000 });
+    await sleep(1800);
+    const reel = await page.evaluate((topics) => {
+      const win = document.querySelector("main .home-reel");
+      const cell = win.querySelector("span.block");
+      const was = cell.textContent;
+      const over = topics.filter((t) => {
+        cell.textContent = t.prompt;
+        return cell.getBoundingClientRect().height > win.getBoundingClientRect().height + 1;
+      });
+      cell.textContent = was;
+      return {
+        back: document.querySelector("main .home-another")?.getBoundingClientRect().bottom ?? Infinity,
+        bar: document.querySelector("nav .nav-glass").getBoundingClientRect().top,
+        over: over.map((t) => t.id),
+      };
+    }, TOPICS);
+    ok(
+      `${width}x${height}${top ? ` under a ${top}px status bar` : ""}: the roulette's way back stands clear of the tab bar, and every topic fits the reel`,
+      reel.back <= reel.bar - 4 && reel.over.length === 0,
+      `the way back ends ${Math.round(reel.back)}, bar ${Math.round(reel.bar)}${reel.over.length ? `; over the window: ${reel.over.slice(0, 6).join(", ")}` : ""}`
     );
     await context.close();
   }

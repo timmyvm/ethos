@@ -143,6 +143,10 @@ describe("every object stands in the card's zone, by its visible box", () => {
   const narrowAt = home.indexOf("@media (max-width: 359px) {\n  .home-hero {");
   const narrow = home.slice(narrowAt, home.indexOf("\n}\n", narrowAt));
   const narrowZone = (name: string) => narrow.match(new RegExp(`--zone-${name}:\\s*([^;]+);`))?.[1] ?? null;
+  /* A short phone (320x568, the final pass of 19 Nov): the object 100px tall, the topic a step down. */
+  const shortAt = home.indexOf("@media (max-width: 359px) and (max-height: 640px) {");
+  const short = home.slice(shortAt, home.indexOf("\n}\n", shortAt));
+  const shortZone = (name: string) => short.match(new RegExp(`--zone-${name}:\\s*([^;]+);`))?.[1] ?? null;
 
   it("reads a box for every lesson, and the card's zone from the CSS", () => {
     expect(Object.keys(ART_BOUNDS).sort()).toEqual(LESSONS.map((l) => l.id).sort());
@@ -163,16 +167,30 @@ describe("every object stands in the card's zone, by its visible box", () => {
     });
   });
 
-  for (const [width, rise, words] of [
-    [320, 22, 0.56],
-    [390, 48, 0.52],
+  it("on a short phone the object stands 100px tall and the topic takes the size a step down", () => {
+    expect(shortAt).toBeGreaterThan(narrowAt);
+    expect(shortZone("b")).toBe("calc(var(--zone-t) + 100px)");
+    expect(short).toMatch(/\.home-display \{\s*font-size: 8\.8vw;/);
+    expect(short).toMatch(/\.home-display\[data-long\] \{\s*font-size: 7\.4vw;/);
+    // The roulette's reel in the same card, a step down too.
+    expect(short).toMatch(/\.home-display\.home-reel \{\s*--reel-fs: min\(1\.75rem, 9\.4cqw\);/);
+    // The sizes are the scale's own steps (34's and 28's at 320), never a new one.
+    expect(home).toMatch(/\.home-display\[data-long\] \{\s*font-size: min\(2\.125rem, 8\.8vw\);/);
+    expect(home).toMatch(/\.home-display\[data-longer\] \{\s*font-size: min\(1\.75rem, 7\.4vw\);/);
+  });
+
+  for (const [width, rise, words, shortPhone] of [
+    [320, 22, 0.56, false],
+    [320, 22, 0.56, true],
+    [390, 48, 0.52, false],
   ] as const) {
-    it(`at ${width}: all fifteen rise ${rise}px, clear the words by 12px, end above the topic, inside the card`, () => {
+    it(`at ${width}${shortPhone ? " on a short phone" : ""}: all fifteen rise ${rise}px, clear the words by 12px, end above the topic, inside the card`, () => {
       const content = width - 40 - 40; // the column's gutters, then the card's padding
       const card = content + 40;
       const small = width < 360;
       const t = at(zone("t"), content);
-      const zoneOf = (n: string) => (small && narrowZone(n) ? narrowZone(n)! : zone(n));
+      const zoneOf = (n: string) =>
+        shortPhone && shortZone(n) ? shortZone(n)! : small && narrowZone(n) ? narrowZone(n)! : zone(n);
       const [l, r, b] = ["l", "r", "b"].map((n) => at(zoneOf(n), content, { "zone-t": t }));
       const column = 20 + words * content;
       expect(t).toBeCloseTo(-rise, 0);
@@ -185,7 +203,7 @@ describe("every object stands in the card's zone, by its visible box", () => {
         expect(left - column + 1e-6, `${id} clear of the words`).toBeGreaterThanOrEqual(12);
         expect(left + s * box["--art-w"], `${id} inside the card`).toBeLessThanOrEqual(card - 8);
         expect(t + s * box["--art-h"] - 1e-6, `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
-        if (small) expect(s * box["--art-h"], `${id} at 120px at most`).toBeLessThanOrEqual(120.01);
+        if (small) expect(s * box["--art-h"], `${id} at ${shortPhone ? 100 : 120}px at most`).toBeLessThanOrEqual((shortPhone ? 100 : 120) + 0.01);
       }
     });
   }

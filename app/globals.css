@@ -6446,6 +6446,36 @@ summary::-webkit-details-marker {
   font-size: min(1.75rem, 7.4vw);
   letter-spacing: -0.012em;
 }
+/* A short phone (an SE, 320x568; the final pass of 19 Nov). Under the
+   header and over the tab bar the card has 302 to 322px, not its 376,
+   and a topic of three lines at 10.2vw stood Another topic under the bar
+   (500 under a bar at 490 with an installed SE's 20px status bar; one of
+   four lines at 533), on half the days of the year. Here the topic takes
+   the size one step down the scale it already has (the 34 step's 8.8vw,
+   and the 28 step's 7.4vw, which stays the floor), and the object stands
+   100px tall, not 120, so the words column and the topic rise 20px. With
+   every topic in lib/topics.ts, Start and Another topic stand at least
+   10px over the bar (scripts/check-today.mjs 7b). 360 wide or 641 tall
+   and up is unchanged. */
+@media (max-width: 359px) and (max-height: 640px) {
+  .home-hero {
+    --zone-b: calc(var(--zone-t) + 100px);
+  }
+  .home-display {
+    font-size: 8.8vw;
+    line-height: 1.06;
+    letter-spacing: -0.012em;
+  }
+  .home-display[data-long] {
+    font-size: 7.4vw;
+  }
+  /* The roulette's reel in the same card a step down too (9.4cqw, 22.6px
+     at 320): every prompt still fits its four lines, and its way back,
+     in Another topic's place, stands clear of the bar as well. */
+  .home-display.home-reel {
+    --reel-fs: min(1.75rem, 9.4cqw);
+  }
+}
 /* TipLine on the card: its glyph, its cue and its open sentence in the
    card's ink. */
 .home-hero .tip-glyph,

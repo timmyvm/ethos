@@ -65,6 +65,7 @@ import { readable, readFailure, withTimeout } from "@/lib/load";
 import { cleanName, MAX_NAME, readOnboarding, type OnboardingState } from "@/lib/answers";
 import { syncOnboarding } from "@/lib/answers-sync";
 import { buildPortfolio } from "@/lib/portfolio";
+import { traitForSaid } from "@/lib/lesson-up-next";
 import {
   computeStreak,
   type StreakState,
@@ -1325,8 +1326,9 @@ const ROAD_CARD = "card press mt-7 flex min-h-11 items-center gap-3 p-4 text-lef
  * stars to the unit's gate ("Pace Control opens in 4 stars") until #486,
  * which took the total of every lesson's stars off every screen
  * (Timothy, 16 Nov: "Total stars is a useless feature"): a count to a
- * gate is that total by another name. The caption names the unit
- * (check-onboarding reads it).
+ * gate is that total by another name. The caption names the trait as
+ * Lessons heads its section (#493; it named the road's unit, which no
+ * tab lists), and check-onboarding reads it.
  */
 function RoadCard({ state }: { state: OnboardingState }) {
   if (!state.done) {
@@ -1343,6 +1345,7 @@ function RoadCard({ state }: { state: OnboardingState }) {
     );
   }
   const plan = buildPortfolio(state.answers);
+  const trait = traitForSaid(plan.focus?.said);
   return (
     <Link href="/welcome?step=plan" className={ROAD_CARD}>
       <span className="min-w-0 flex-1">
@@ -1352,9 +1355,16 @@ function RoadCard({ state }: { state: OnboardingState }) {
         <span className="font-display mt-0.5 block truncate text-row">
           {asTitle(plan.headline)}
         </span>
-        <span className="mt-0.5 block truncate text-caption tabular-nums text-stone-500">
-          {plan.focus ? plan.focus.unitName : "The road, one unit at a time"}
-        </span>
+        {/* What it is for, as Lessons names it (#493): the trait's own
+            section there, its swatch and its name. It named the road's
+            unit ("Filler Elimination"), which no tab shows. A pain no
+            trait measures (trailing off, rambling) says nothing here. */}
+        {trait && (
+          <span data-trait={trait} className="mt-0.5 flex items-center gap-2 text-caption text-stone-500">
+            <span aria-hidden className="trait-dot" />
+            <span className="truncate">{TRAIT[trait].name}</span>
+          </span>
+        )}
       </span>
       <Disclosure />
     </Link>

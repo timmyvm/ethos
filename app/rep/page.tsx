@@ -97,7 +97,9 @@ import {
   proMomentDue,
   proMomentShown,
 } from "@/lib/pro-moment";
-import { nextLesson, starsByLesson } from "@/lib/path";
+import { starsByLesson } from "@/lib/path";
+import { EthosScore } from "@/components/ui/EthosScore";
+import { wayOn as wayOnFor } from "@/lib/way-on";
 import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
   loadPose,
@@ -140,7 +142,6 @@ import {
 import { playCelebration, unlockSfx } from "@/lib/sfx";
 import { holdAwake } from "@/lib/wake-lock";
 import { computeStreak } from "@/lib/streak";
-import { nextDrill } from "@/lib/drills";
 import {
   askedIdsFrom,
   clampLevel,
@@ -3001,16 +3002,6 @@ function Results({
   useEffect(() => {
     stopTake();
   }, [askingFelt, stopTake]);
-  // One answer to "what next": the path's (DECISIONS #220). Home's
-  // floor and the road read nextLesson, so the debrief does too. Before
-  // the history lands, or once every lesson holds three stars, the
-  // rotation stands in.
-  const pathNext =
-    spineNow.length > 0
-      ? nextLesson(starsByLesson(spineNow))?.lesson
-      : undefined;
-  const next = pathNext ?? nextDrill(config.lessonId);
-  const again = next.id === config.lessonId;
   // `game:<gameId>:<questionId>` — a game rep keeps its game identity
   // through the debrief (#194).
   const game = config.lessonId.startsWith("game:")
@@ -3429,38 +3420,31 @@ function Results({
       : "Measured, not judged."
     : null;
   /* The way on, the same in the shelf and the sheet's foot: its words and
-     where it goes. A lesson's ending names the next lesson, Lessons' Up
-     next; the header's back is the way to this one. */
+     where it goes (lib/way-on.ts). A lesson's ending names the next
+     lesson, Lessons' Up next; the header's back is the way to this one.
+     A take with no lesson and no game is done for today and leaves for
+     Today, so the streak's moment plays (#493: it named the old road's
+     next drill, a lesson the Lessons tab does not list). */
   const lessonBack = lesson ? (backTo ?? `/lessons/${lesson.id}`) : null;
-  const wayOn: { label: string; go: () => void } = game
-    ? { label: `Another round: ${game.name}`, go: () => anotherRound() }
-    : lesson && nextInLesson
-      ? {
-          label: `Practice ${nextInLesson} of ${lesson.practices.length}`,
-          go: () => exit(repHref({ lesson: lesson.id, q: String(nextInLesson), back: lessonBack ?? undefined }), { leaves: false }),
-        }
-      : lesson && missingPractice !== null
-        ? {
-            label: `Practice ${missingPractice} of ${lesson.practices.length}`,
-            go: () => exit(repHref({ lesson: lesson.id, q: String(missingPractice), back: lessonBack ?? undefined }), { leaves: false }),
-          }
-        : lesson
-          ? upNext
-            ? { label: `Next lesson: ${upNext.title}`, go: () => exit(`/lessons/${upNext.id}`, { leaves: true }) }
-            : { label: "Done for today", go: () => exit("/", { leaves: true }) }
-          : returnIsPrimary && backTo
-            ? { label: "Back to the lesson", go: () => exit(backTo, { leaves: true }) }
-            : {
-                label: `${again ? "Go again" : "Next lesson"}: ${next.title}`,
-                go: () => exit(repHref({ lesson: next.id }), { leaves: true }),
-              };
+  const onward = wayOnFor({
+    game,
+    lesson,
+    nextInLesson,
+    missingPractice,
+    upNext,
+    lessonBack,
+    backTo: returnIsPrimary ? backTo : null,
+  });
+  const wayOn: { label: string; go: () => void } =
+    onward.kind === "round"
+      ? { label: onward.label, go: () => anotherRound() }
+      : { label: onward.label, go: () => exit(onward.href, { leaves: onward.leaves }) };
   /* A take too short to score: the one tap is Retake, so it does what
      Demos just asked, and the way on is the quiet link (the review: the
-     tap moved on while he said "Give it 60 to 90 seconds"). On Go again
-     the two are one. */
-  const retakeFirst = !scorable && !again;
+     tap moved on while he said "Give it 60 to 90 seconds"). */
+  const retakeFirst = !scorable;
   const primaryLabel = retakeFirst ? "Retake" : wayOn.label;
-  const quietLabel = again ? null : retakeFirst ? wayOn.label : "Retake";
+  const quietLabel = retakeFirst ? wayOn.label : "Retake";
   /* The ending's one quiet line under Retake: the streak's next day. */
   const comeBack = lessonEnd && missingPractice === null ? comeBackLine(streakNow) : null;
 
@@ -3492,7 +3476,7 @@ function Results({
         ...scoreWords,
         SHEET_NAME,
         primaryLabel,
-        quietLabel ?? "",
+        quietLabel,
         comeBack ?? "",
         testerWords,
         reminder.words,
@@ -3883,20 +3867,18 @@ function Results({
             <>
               {primary("shelf")}
               {/* recording-22: Retake is the quiet tap under the one tap,
-                  never a second primary, and hides on Go again (#220). On
-                  a take too short to score the two trade places. */}
-              {quietLabel && (
-                <div className="mt-1 flex justify-center">
-                  <button
-                    type="button"
-                    data-quiet-action
-                    onClick={retakeFirst ? wayOn.go : onRetake}
-                    className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
-                  >
-                    {quietLabel}
-                  </button>
-                </div>
-              )}
+                  never a second primary. On a take too short to score the
+                  two trade places. */}
+              <div className="mt-1 flex justify-center">
+                <button
+                  type="button"
+                  data-quiet-action
+                  onClick={retakeFirst ? wayOn.go : onRetake}
+                  className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
+                >
+                  {quietLabel}
+                </button>
+              </div>
               {/* A lesson's ending points at coming back, one quiet line,
                   its height held until the streak is read. */}
               {lessonEnd && missingPractice === null && (
@@ -3986,15 +3968,14 @@ function SaveGate({
       <div className="eyebrow">Before you go</div>
 
       <div className="flex flex-1 flex-col justify-center">
+        {/* The Ethos number as every screen draws it (#493), under its
+            eyebrow; it read "/1000 · your baseline", and the title under
+            it already says this is day 1. */}
         {index !== null && (
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-num-hero tabular-nums">
-              {index}
-            </span>
-            <span className="text-link font-normal text-stone-500">
-              /1000{moment === "rep1" && " · your baseline"}
-            </span>
-          </div>
+          <>
+            <p className="eyebrow">Your Ethos</p>
+            <EthosScore value={index} size="hero" className="mt-1" />
+          </>
         )}
         <h1 className="font-display mt-4 text-title">
           {moment === "rep1"

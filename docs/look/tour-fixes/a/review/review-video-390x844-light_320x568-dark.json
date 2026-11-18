@@ -1,0 +1,168 @@
+{
+  "tag": "review",
+  "variant": "video",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 24,
+          "wordsNoTranscript": 24,
+          "wordsNoRound": 24,
+          "numbers": 5,
+          "text": "Today's practice 665 /1000 ▲ 3 since last time Presence 720 “um” 2 times. Tomorrow: pause where “um” was. Every number Done for today Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-glance-s0.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 288,
+          "wordsNoTranscript": 167,
+          "wordsNoRound": 288,
+          "numbers": 29,
+          "text": "Every number Done Demos's read AI-generated feedback What went well Held the pause before ‘the mistake people make’. Say this instead a week nobody could really do an impossible week It says the same in fewer words. Hear it back filler between sentences mid-sentence 0:00 um 0:02 like 0:07 um 0:10 you know 0:15 Your scores Length 62s, target 60 to 90s You spoke at a good pace and paused between sentences. Filler control has the most room to grow. Pausing Strong 72 3 pauses between sentences. Filler control Okay 55 Restart control Okay 66 Pace Strong 93 Variety Okay 66 Structure Okay 64 Credibility Okay 58 Engagement Okay 61 Steadiness Okay 66 720 your Presence /1000 ▲ 40 since last video Delivery 0:21, eyes down for 3 seconds. Eye line 71% head up, facing Gestures 6 per minute Posture 0.08 drift, lower is steadier What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 pauses between sentences Each one after a full sentence. Done for today",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-sheet-s0.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-sheet-s1.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-sheet-s2.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-sheet-s3.png"
+          ],
+          "screens": 4
+        },
+        {
+          "maxBand": 48,
+          "band": [
+            680,
+            728
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 87,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 87,
+          "numbers": 22,
+          "text": "6 Wednesday 18 November Hi, Timothy Today's practice About 70 seconds Whether you should let a kid win at games Start Another topic Hostile Q&A Cash should disappear Argue either side Weekly boss The Great Vowel Shift Read it, explain it Today This week Pausing 1.8 /min 18th Today's line 1.8 /min Over it on 5 of your last 6. Clean run 46 s Of 65s. Best 53s. Variety 62 /100 words 68th Pace 155 wpm 72nd Fillers 0.7 /100 words 93rd Restarts 0.8 /100 words 93rd",
+          "scrollH": 1490,
+          "innerH": 844,
+          "taps": 0,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-exit-tap-s0.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-exit-tap-s1.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-exit-tap-s2.png",
+            "docs/look/tour-fixes/a/review/review-video-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1.77
+        }
+      ],
+      "tapLiveMs": 6
+    },
+    {
+      "size": "320x568-dark",
+      "beats": [
+        {
+          "maxBand": 57,
+          "band": [
+            231,
+            287
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 24,
+          "wordsNoTranscript": 24,
+          "wordsNoRound": 24,
+          "numbers": 5,
+          "text": "Today's practice 665 /1000 ▲ 3 since last time Presence 720 “um” 2 times. Tomorrow: pause where “um” was. Every number Done for today Retake",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "glance",
+          "files": [
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-glance-s0.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 288,
+          "wordsNoTranscript": 167,
+          "wordsNoRound": 288,
+          "numbers": 29,
+          "text": "Every number Done Demos's read AI-generated feedback What went well Held the pause before ‘the mistake people make’. Say this instead a week nobody could really do an impossible week It says the same in fewer words. Hear it back filler between sentences mid-sentence 0:00 um 0:02 like 0:07 um 0:10 you know 0:15 Your scores Length 62s, target 60 to 90s You spoke at a good pace and paused between sentences. Filler control has the most room to grow. Pausing Strong 72 3 pauses between sentences. Filler control Okay 55 Restart control Okay 66 Pace Strong 93 Variety Okay 66 Structure Okay 64 Credibility Okay 58 Engagement Okay 61 Steadiness Okay 66 720 your Presence /1000 ▲ 40 since last video Delivery 0:21, eyes down for 3 seconds. Eye line 71% head up, facing Gestures 6 per minute Posture 0.08 drift, lower is steadier What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 pauses between sentences Each one after a full sentence. Done for today",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s0.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s1.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s2.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s3.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s4.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s5.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-sheet-s6.png"
+          ],
+          "screens": 7
+        },
+        {
+          "maxBand": 58,
+          "band": [
+            257,
+            315
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 87,
+          "wordsNoTranscript": 87,
+          "wordsNoRound": 87,
+          "numbers": 22,
+          "text": "6 Wednesday 18 November Hi, Timothy Today's practice About 70 seconds Whether you should let a kid win at games Start Another topic Hostile Q&A Cash should disappear Argue either side Weekly boss The Great Vowel Shift Read it, explain it Today This week Pausing 1.8 /min 18th Today's line 1.8 /min Over it on 5 of your last 6. Clean run 46 s Of 65s. Best 53s. Variety 62 /100 words 68th Pace 155 wpm 72nd Fillers 0.7 /100 words 93rd Restarts 0.8 /100 words 93rd",
+          "scrollH": 1502,
+          "innerH": 568,
+          "taps": 0,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-exit-tap-s0.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-exit-tap-s1.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-exit-tap-s2.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-exit-tap-s3.png",
+            "docs/look/tour-fixes/a/review/review-video-320x568-dark-exit-tap-full.png"
+          ],
+          "screens": 2.64
+        }
+      ],
+      "tapLiveMs": 6
+    }
+  ]
+}

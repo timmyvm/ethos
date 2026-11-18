@@ -252,6 +252,47 @@ for (const theme of ["dark", "light"]) {
   await context.close();
 }
 
+// ---- 5. the results sheet's head stays at every height (#493) ---------------
+// Under 640pt it took the paywall's rule and scrolled away with the body,
+// Done with it: on an SE the way out was gone past the first row.
+for (const [width, height] of [[320, 568], [390, 844]]) {
+  const { context, page } = await open({ width, height });
+  await page.goto(`${BASE}/rep?lesson=h4`);
+  await page.waitForSelector('button[data-record="start"]', { timeout: 20000 });
+  await sleep(700);
+  await page.click('button[data-record="start"]', { force: true });
+  await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 15000 });
+  await sleep(2800);
+  await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+  await page.waitForSelector("main [data-glance-door]", { timeout: 20000 });
+  await sleep(1500);
+  await page.locator("main [data-glance-door]").click();
+  await page.waitForSelector("[data-whole-recording]", { timeout: 4000 });
+  await sleep(900);
+  const at = await page.evaluate(async () => {
+    const sheet = document.querySelector("[data-whole-recording]");
+    const done = sheet.querySelector('[data-look="sheet-done"]');
+    const scroll = sheet.querySelector("[data-sheet-scroll]");
+    const before = done.getBoundingClientRect();
+    scroll.scrollTop = scroll.scrollHeight;
+    await new Promise((r) => setTimeout(r, 300));
+    const after = done.getBoundingClientRect();
+    return {
+      inHead: !!done.closest("[data-sheet-head]"),
+      moved: Math.round(Math.abs(after.top - before.top)),
+      top: Math.round(after.top - sheet.getBoundingClientRect().top),
+      h: Math.round(after.height),
+      scrolled: scroll.scrollTop > 0,
+    };
+  });
+  ok(
+    `${width}x${height}: the sheet's head and Done stay put while its body scrolls`,
+    at.inHead && at.scrolled && at.moved === 0 && at.top < 64 && at.h >= 44,
+    JSON.stringify(at)
+  );
+  await context.close();
+}
+
 await browser.close();
 const failed = findings.filter((f) => !f.pass);
 console.log(`\n${findings.length - failed.length}/${findings.length} passed`);

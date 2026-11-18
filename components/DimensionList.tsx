@@ -305,10 +305,12 @@ function RowDetails({
         className="relative block cursor-pointer select-none list-none after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] [&::-webkit-details-marker]:hidden"
       >
         <span className="flex min-h-6 items-baseline gap-3">
-          {/* A 3px slot on every row, the tone swatch on the five
-              measured ones, so the nine names share one left edge. */}
+          {/* An 8px slot on every row, the trait's swatch on the five
+              measured ones (`.trait-dot`, the square the Log, You and
+              Lessons draw; #493: it was a 3x14 tick of its own), blank
+              on the four, so the nine names share one left edge. */}
           <span className="flex min-w-0 flex-1 items-baseline gap-2">
-            <span aria-hidden className={`h-3.5 w-[3px] shrink-0 self-center ${trait ? "tone-fill" : ""}`} />
+            <span aria-hidden className={`size-2 shrink-0 self-center ${trait ? "trait-dot" : ""}`} />
             <span className="font-display min-w-0 truncate text-row font-bold">{row.name}</span>
           </span>
           {scored && (
@@ -329,7 +331,7 @@ function RowDetails({
         {/* The bar, the row's width from its name to its number: sage
             where the row is Strong (earned), the plain neutral where it
             is not. Never terracotta: that is the screen's one tap. */}
-        <span aria-hidden className="mt-2 ml-[11px] mr-[26px] block h-1.5 overflow-hidden bg-sand">
+        <span aria-hidden className="mt-2 ml-4 mr-[26px] block h-1.5 overflow-hidden bg-sand">
           <span
             data-bar
             className={`block h-full ${strong ? "bg-sage-600" : "bg-bar-plain"} ${fill ? "fill" : ""}`}
@@ -341,7 +343,7 @@ function RowDetails({
           <details> doesn't render it, so it plays on every open and
           never on the page's load. */}
       {detail && (
-        <div className="reveal mt-2 pl-[11px] text-caption leading-relaxed text-stone-500">
+        <div className="reveal mt-2 pl-4 text-caption leading-relaxed text-stone-500">
           {detail.detail}
           {trend && <div data-trend className="mt-1 text-stone-600">{trend}</div>}
           {detail.moments}

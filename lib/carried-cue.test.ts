@@ -205,13 +205,15 @@ describe("its words: what to do instead", () => {
   ];
   it("says the filler's replacement is a pause (plan section 9, idea 5)", () => {
     expect(cueSentence({ kind: "filler", word: "like" })).toBe("Tomorrow: pause where “like” was.");
-    expect(cueSentence({ kind: "filler", word: "like" }, true)).toBe("Tomorrow: a pause instead.");
+    /* #493, the morning tour: "Tomorrow: a pause instead." was vaguer than
+       its own short form. The line says the word every time. */
+    expect(cueSentence({ kind: "filler", word: "um" })).toBe("Tomorrow: pause where “um” was.");
     expect(cueTitle({ kind: "filler", word: "like" })).toBe("Pause where “like” was");
     expect(cueShortSentence({ kind: "filler", word: "like" })).toBe("Pause where “like” was.");
   });
   it("every cue is one short sentence, no dash, a title without a stop", () => {
     for (const c of all) {
-      for (const s of [cueSentence(c), cueSentence(c, true)]) {
+      for (const s of [cueSentence(c)]) {
         expect(s).toMatch(/^Tomorrow: [a-z“].*\.$/);
         expect(countWords(s)).toBeLessThanOrEqual(7);
         expect(s).not.toMatch(/[—–]/);
@@ -382,8 +384,9 @@ describe("the next day's answer, first on the glance", () => {
   it("a short form is still a sentence: a misplaced pause keeps its noun (the #477 review)", () => {
     expect(a(1, 3, true, "searching", null).short.sentence).toBe("1 misplaced pause, down from 3.");
     expect(a(0, 3, true, "searching", null).short.sentence).toBe("No misplaced pauses, down from 3.");
-    /* With no shorter line, a full glance gives up "Tomorrow:" and keeps the cue. */
-    const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Next lesson: The steady state", "Retake"];
+    /* With no shorter line, a full glance gives up "Tomorrow:" and keeps the
+       cue: here a way on of five words, as a lesson's ending has. */
+    const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Next lesson: Pause between sentences", "Retake"];
     const line = a(1, 3, true, "searching", null);
     const fit = fitGlance({
       fixed,
@@ -410,7 +413,7 @@ describe("the next day's answer, first on the glance", () => {
     const kept = carryCue({ before: state(cue({ from: 2, last: 2 })), take: take(), today: TODAY, at: AT });
     const k = cueGlance(kept, take())!;
     expect(k.line.sentence).toBe("“um” 2 times again.");
-    expect(k.cue).toBe("Tomorrow: a pause instead.");
+    expect(k.cue).toBe("Tomorrow: pause where “um” was.");
     expect(k.held).toBe(false);
   });
 
@@ -418,7 +421,7 @@ describe("the next day's answer, first on the glance", () => {
     const s = carryCue({ before: null, take: take(), today: TODAY, at: AT });
     const g = cueGlance(s, take())!;
     expect(g.line.sentence).toBe("“um” 2 times, first 0:02");
-    expect(g.cue).toBe("Tomorrow: a pause instead.");
+    expect(g.cue).toBe("Tomorrow: pause where “um” was.");
     expect(g.cueShort).toBe("Pause where “um” was.");
   });
 
@@ -428,9 +431,10 @@ describe("the next day's answer, first on the glance", () => {
 
   it("fits the glance's 25 words on the daily practice, the cue kept", () => {
     /* scripts/look-sticks.mjs's daily glance: the header, the score and its
-       delta, the door, the way on and Retake are 16 of the 25. */
-    const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Next lesson: The steady state", "Retake"];
-    expect(countWords(fixed.join(" "))).toBe(16);
+       delta, the door, the way on ("Done for today" since #493) and Retake
+       are 14 of the 25. */
+    const fixed = ["Today's practice", "665", "/1000", "▲ 3 since last time", "Every number", "Done for today", "Retake"];
+    expect(countWords(fixed.join(" "))).toBe(14);
     const cases: [CueState | null, Partial<RepMetrics>][] = [
       [null, {}],
       [state(cue()), { fillers: ums(2) }],
@@ -447,7 +451,7 @@ describe("the next day's answer, first on the glance", () => {
       kept.push(fit.cue ?? "");
     }
     /* The look fixture's three glances keep "Tomorrow:": set, held, carried. */
-    expect(kept.slice(0, 3)).toEqual(["Tomorrow: a pause instead.", "Tomorrow: pause, then finish.", "Tomorrow: a pause instead."]);
+    expect(kept.slice(0, 3)).toEqual(["Tomorrow: pause where “um” was.", "Tomorrow: pause, then finish.", "Tomorrow: pause where “um” was."]);
   });
 });
 

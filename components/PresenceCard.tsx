@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CountUp } from "@/components/CountUp";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Disclosure } from "@/components/ui/Disclosure";
 import type { DeliveryMetrics, DeliveryMoment } from "@/lib/presence";
-import { TrendMark } from "@/components/ui/TrendMark";
+import { Trend } from "@/components/ui/TrendMark";
+import { EthosScore, OUT_OF } from "@/components/ui/EthosScore";
 
 /**
  * Presence on the results screen (decisions 11 Aug, §1–§2).
@@ -33,54 +33,47 @@ export function PresenceScore({
 }) {
   const delta = previous !== null ? score - previous : null;
 
+  /* The other number out of 1000, drawn as the Ethos number is (#493
+     review): "Your Presence" as an eyebrow over the score line, the
+     change under it. It read "720 your Presence /1000", the label beside
+     the number that #493 took off the Ethos number. */
   if (!premium) {
     return (
       <button
         onClick={onUpgrade}
-        className="press card flex w-full items-baseline gap-3.5 p-4 text-left"
+        className="press card flex w-full flex-col p-4 text-left"
       >
-        <div className="font-display text-num-l text-stone-400">
-          ···
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <div className="text-body font-semibold">
-              your Presence{" "}
-              <span className="font-normal text-stone-500">/1000</span>
-            </div>
-            {/* The ellipsis stays a placeholder rather than becoming a
-                mark: what the tier is goes in the chip, and the number
-                is still shown to be there (#73, #280). */}
-            <PremiumMark variant="chip" />
-          </div>
-          <div className="text-caption text-stone-500">
-            Measured on this device. Tap to read it.
-          </div>
-        </div>
+        <span className="flex w-full items-baseline justify-between gap-2">
+          <span className="eyebrow">Your Presence</span>
+          {/* The ellipsis stays a placeholder rather than becoming a
+              mark: what the tier is goes in the chip, and the number
+              is still shown to be there (#73, #280). */}
+          <PremiumMark variant="chip" />
+        </span>
+        <span className="mt-1 flex items-baseline gap-1">
+          <span className="font-display text-num-l font-extrabold text-stone-400">···</span>
+          <span className="whitespace-nowrap text-body font-normal text-stone-500">{OUT_OF}</span>
+        </span>
+        <span className="mt-1 text-caption text-stone-500">
+          Measured on this device. Tap to read it.
+        </span>
       </button>
     );
   }
 
   return (
-    <div className="flex items-baseline gap-3.5">
-      <CountUp
-        value={score}
-        className="font-display text-num-hero tabular-nums"
-      />
-      <div>
-        <div className="text-body font-semibold">
-          your Presence <span className="font-normal text-stone-500">/1000</span>
-        </div>
-        {delta !== null && delta !== 0 && (
-          <div
-            className={`text-caption font-semibold ${
-              delta > 0 ? "text-sage-700" : "text-stone-500"
-            }`}
-          >
-            <TrendMark up={delta > 0} /> {Math.abs(delta)} since last video
-          </div>
-        )}
-      </div>
+    <div>
+      <p className="eyebrow">Your Presence</p>
+      <EthosScore value={score} size="hero" count className="mt-1" />
+      {delta !== null && delta !== 0 && (
+        <p
+          className={`font-display mt-1 text-link font-bold tabular-nums ${
+            delta > 0 ? "text-sage-700" : "text-stone-500"
+          }`}
+        >
+          <Trend delta={delta} against="since last video" />
+        </p>
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { Fragment, useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
-import { SwapFrom, SwapTo, TrendMark } from "@/components/ui/TrendMark";
+import { SwapFrom, SwapTo, Trend } from "@/components/ui/TrendMark";
+import { EthosScore } from "@/components/ui/EthosScore";
 import { AccuracyCard } from "@/components/AccuracyCard";
-import { CountUp } from "@/components/CountUp";
 import { DemosArt, preloadPose } from "@/components/DemosArt";
 import { DimensionList } from "@/components/DimensionList";
 import { InteractiveTranscript } from "@/components/InteractiveTranscript";
@@ -603,17 +603,13 @@ export function RepResult({
                     landAfterMs={landAfter}
                   />
                 </span>
-                <div
-                  className={`${round ? "mt-3" : "mt-6"} flex items-baseline justify-center gap-1 ${
-                    counting ? "" : "invisible"
-                  }`}
-                >
-                  <span className="sr-only">Ethos</span>
-                  <span data-score className="font-display text-num-xl tabular-nums">
-                    {counting ? <CountUp value={ethosIndex} /> : ethosIndex}
-                  </span>
-                  <span className="text-body font-normal text-stone-500">/1000</span>
-                </div>
+                <EthosScore
+                  value={ethosIndex}
+                  size="xl"
+                  count={counting}
+                  srLabel="Your Ethos"
+                  className={`${round ? "mt-3" : "mt-6"} justify-center ${counting ? "" : "invisible"}`}
+                />
                 <Delta
                   delta={delta}
                   baseline={baseline}
@@ -650,23 +646,19 @@ export function RepResult({
             )}
           </div>
         ) : ethosIndex !== null ? (
-          /* A stored recording (the Log) and an upload: the number at
-             the hero size, its label beside it, the stars at the end. */
+          /* A stored recording (the Log) and an upload: "Your Ethos" over
+             the number at the hero size, as the Log's stage draws it
+             (#493: it read "616 your Ethos /1000"), the stars at the
+             row's end and the change under it. */
           <>
-            <div className="mt-5 flex items-baseline gap-3.5">
-              <span data-score className="font-display text-num-hero tabular-nums">
-                <CountUp value={ethosIndex} />
-              </span>
-              <div className="min-w-0">
-                <div className="text-body font-semibold">
-                  your Ethos <span className="font-normal text-stone-500">/1000</span>
-                </div>
-                <Delta delta={delta} baseline={baseline} boss={topic !== null} small />
-              </div>
-              <span className="ml-auto self-center">
+            <p className="eyebrow mt-5">Your Ethos</p>
+            <div className="mt-1 flex items-center gap-3">
+              <EthosScore value={ethosIndex} size="hero" count />
+              <span className="ml-auto">
                 <Stars n={m.stars} size={22} land={live} landAfterMs={COUNT_MS} />
               </span>
             </div>
+            <Delta delta={delta} baseline={baseline} boss={topic !== null} small className="mt-1" />
             {/* An upload that is the first take under #476 (#491): the
                 glance's line, under the number and its delta, once. */}
             {rulesNote && delta !== null && (
@@ -1028,11 +1020,12 @@ function Delta({
   small?: boolean;
   className?: string;
 }) {
-  const size = small ? "text-caption font-semibold" : "font-display text-body font-bold";
+  /* Small is under a 56 hero, the Log stage's change line: 13/700. */
+  const size = small ? "font-display text-link font-bold" : "font-display text-body font-bold";
   if (delta !== null && delta !== 0) {
     return (
-      <p className={`${size} ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
-        <TrendMark up={delta > 0} /> {Math.abs(delta)} {boss ? "on last week's boss" : "since last time"}
+      <p className={`${size} tabular-nums ${delta > 0 ? "text-sage-700" : "text-rust"} ${className}`}>
+        <Trend delta={delta} against={boss ? "on last week's boss" : "since last time"} />
       </p>
     );
   }
@@ -1325,17 +1318,13 @@ function Glance({
         {ethosIndex !== null ? (
           <>
             {stars(m.stars, landAfter)}
-            <div
-              className={`mt-4 flex items-baseline justify-center gap-1 [@media(max-height:700px)]:mt-2 ${
-                counting ? "" : "invisible"
-              }`}
-            >
-              <span className="sr-only">Ethos</span>
-              <span data-score className="font-display text-num-xl tabular-nums">
-                {counting ? <CountUp value={ethosIndex} /> : ethosIndex}
-              </span>
-              <span className="text-body font-normal text-stone-500">/1000</span>
-            </div>
+            <EthosScore
+              value={ethosIndex}
+              size="xl"
+              count={counting}
+              srLabel="Your Ethos"
+              className={`mt-4 justify-center [@media(max-height:700px)]:mt-2 ${counting ? "" : "invisible"}`}
+            />
             {/* "▲ 3 since last time", the words on the screen (the review:
                 a bare "▲ 3" said nothing about what it was against). */}
             <Delta delta={delta} baseline={baseline} boss={boss} className={`mt-1 ${counting ? "" : "invisible"}`} />
@@ -1374,7 +1363,7 @@ function Glance({
             {view.earned.delta ? (
               <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
                 {" "}
-                <TrendMark up={view.earned.delta > 0} /> {Math.abs(view.earned.delta)}
+                <Trend delta={view.earned.delta} />
               </span>
             ) : null}
           </p>

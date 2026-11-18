@@ -403,20 +403,14 @@ const SAID: Partial<Record<CueKind, string>> = {
   slow: "keep sentences moving",
 };
 
-/** The shorter instruction where the line before it already names the thing. */
-const NAMED: Partial<Record<CueKind, string>> = {
-  filler: "a pause instead",
-  restarts: "a pause instead",
-  repeat: "find another word",
-};
-
 /**
- * The glance's cue: "Tomorrow: pause where “like” was." Where Demos's
- * line has just named the filler, the restart or the word, it says only
- * what goes in its place: "Tomorrow: a pause instead."
+ * The glance's cue: "Tomorrow: pause where “like” was." It says the word
+ * even where Demos's line has just named it (#493, the morning tour):
+ * "Tomorrow: a pause instead." was vaguer than its own short form, and
+ * "instead" made the reader go back a line to find what it replaced.
  */
-export function cueSentence(cue: Pick<Cue, "kind" | "word">, named = false): string {
-  const say = (named && NAMED[cue.kind]) || SAID[cue.kind] || lowerFirst(cueTitle(cue));
+export function cueSentence(cue: Pick<Cue, "kind" | "word">): string {
+  const say = SAID[cue.kind] || lowerFirst(cueTitle(cue));
   return `Tomorrow: ${say}.`;
 }
 
@@ -555,28 +549,26 @@ export interface CueGlance {
 
 /**
  * The glance's line and cue on a take that carries one (#477): the answer
- * to yesterday's cue first, then the cue to carry ("Tomorrow: a pause
- * instead." where the same cue goes on, the whole cue where a new one
- * starts); or, on any other carrying take, the cue's evidence and the
- * cue. Null where there is nothing to carry or answer, and the glance
- * keeps its own line about the practice's trait.
+ * to yesterday's cue first, then the cue to carry, whole, the word said
+ * ("Tomorrow: pause where “um” was.", #493); or, on any other carrying
+ * take, the cue's evidence and the cue. Null where there is nothing to
+ * carry or answer, and the glance keeps its own line about the
+ * practice's trait.
  */
 export function cueGlance(step: CueStep, take: CueTake): CueGlance | null {
   if (step.answer) {
     const a = answerLine(step.answer);
-    const same = !!step.cue && !step.fresh;
     return {
       line: a.line,
       lineShort: a.short,
-      cue: step.cue ? cueSentence(step.cue, same) : null,
+      cue: step.cue ? cueSentence(step.cue) : null,
       cueShort: step.cue ? cueShortSentence(step.cue) : null,
       held: step.answer.held,
     };
   }
   if (!step.cue) return null;
   const e = cueEvidence(step.cue, take);
-  const named = measure(step.cue, take) > 0;
-  return { line: e.line, lineShort: e.short, cue: cueSentence(step.cue, named), cueShort: cueShortSentence(step.cue), held: false };
+  return { line: e.line, lineShort: e.short, cue: cueSentence(step.cue), cueShort: cueShortSentence(step.cue), held: false };
 }
 
 /* ---- the warm-up -------------------------------------------------------- */

@@ -24,8 +24,9 @@
  *            (the same screen opened again with the worker installed)
  *   sw       the service worker's install (bytes, time) and an open offline
  *   tabs     Today, Log, You, Lessons, Practice and back, tap to painted
- *   doors    Today's Start to the recorder, Today to a trait, Lessons to a
- *            lesson, the Log to a recording
+ *   doors    Today's Start to the recorder, Today to Hostile Q&A (its row
+ *            under the card since #500, which took the trait tiles), Lessons
+ *            to a lesson, the Log to a recording
  *   open     Today as the installed app opens it: the splash, then Today
  *   room     /welcome on a first open, and "/" (start_url) to the room
  *   upload   what a 60 s take weighs as Chromium records it, and the
@@ -777,11 +778,13 @@ if (want("tabs")) {
 }
 
 if (want("doors")) {
-  // The doors off the tabs a day goes through: a trait from Today, a lesson
-  // from Lessons, a recording from the Log. Warm, as the tabs are.
+  // The doors off the tabs a day goes through: a game from Today, a lesson
+  // from Lessons, a recording from the Log. Warm, as the tabs are. Today's
+  // trait tiles went with #500 and "Today > trait" timed nothing (its href
+  // came back null): a door no longer on the screen now stops the run.
   const DOORS = [
     ["Today > Start", "/", "main a.home-start"],
-    ["Today > trait", "/", 'main a[href^="/practice/"]'],
+    ["Today > Hostile Q&A", "/", 'main a[href^="/hostile"]'],
     ["Lessons > lesson", "/lessons", 'main a[href^="/lessons/"]'],
     ["Log > recording", "/history", 'main a[href^="/rep/"]'],
   ];
@@ -798,6 +801,7 @@ if (want("doors")) {
       link.phase(phase);
       const t0 = now();
       const href = await page.evaluate(([s]) => window.__speedTap(null, s), [sel]);
+      if (!href) throw new Error(`doors: "${name}" found no ${sel} on ${from}, so it would time nothing`);
       await page.waitForFunction(() => window.__speed.ready !== null, null, { timeout: 20000, polling: 50 }).catch(() => {});
       await link.quiet(800, 10000);
       const m = await page.evaluate(() => ({ ready: window.__speed.ready, tapAt: window.__speed.tapAt }));

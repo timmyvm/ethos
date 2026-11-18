@@ -177,6 +177,13 @@ const menu = (page) =>
   await page.keyboard.press("Alt+2");
   await sleep(400);
   ok("a digit with a modifier is not a tab's key", path(page) === "/you");
+  /* And the other three, in the bar's order (#438), so all five are walked. */
+  for (const [key, href, name] of [["1", "/", "Today"], ["2", "/lessons", "Lessons"], ["3", "/games", "Practice"]]) {
+    await page.keyboard.press(key);
+    await page.waitForURL((u) => new URL(u).pathname === href, { timeout: 8000 }).catch(() => {});
+    ok(`${key} opens ${name}`, path(page) === href, path(page));
+    await sleep(500);
+  }
 
   // Never over a field.
   await page.locator('button[aria-label*="name" i], button:has(svg)').first().waitFor({ timeout: 3000 }).catch(() => {});
@@ -218,6 +225,20 @@ const menu = (page) =>
   await page.keyboard.press("1");
   await sleep(400);
   ok("and no tab by number", path(page) === "/rep");
+  await context.close();
+}
+{
+  /* Say it better's test records a line (#507): it keeps the keyboard as
+     the recorder does (lib/command-keys.ts HELD_SCREENS). */
+  const { context, page } = await open();
+  await go(page, "/say/test", "main");
+  await sleep(600);
+  await page.keyboard.press("Control+k");
+  await sleep(700);
+  ok("Say it better's test keeps the keyboard: no menu", (await menu(page)) === null);
+  await page.keyboard.press("1");
+  await sleep(400);
+  ok("Say it better's test: no tab by number", path(page) === "/say/test", path(page));
   await context.close();
 }
 {

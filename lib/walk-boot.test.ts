@@ -19,7 +19,12 @@ function page(pathname: string, search = "", store: Record<string, string> = {},
   if (splash !== null) attrs.set("data-splash", splash);
   const disk = new Map(Object.entries(store));
   const replaced: string[] = [];
+  /* What the script listens for on the document, by event (the door's early press). */
+  const listening = new Map<string, (e: unknown) => void>();
+  let clock = 0;
+  const win: Record<string, unknown> = {};
   const g = {
+    window: win,
     location: { pathname, search, replace: (u: string) => replaced.push(u) },
     localStorage: {
       get length() {
@@ -36,14 +41,22 @@ function page(pathname: string, search = "", store: Record<string, string> = {},
         removeAttribute: (n: string) => void attrs.delete(n),
       },
       fonts: { ready: Promise.resolve() },
+      addEventListener: (type: string, fn: (e: unknown) => void, capture?: boolean) => {
+        if (capture === true) listening.set(type, fn);
+      },
     },
-    performance: { now: () => 0 },
+    performance: { now: () => clock },
     setTimeout,
     Promise,
   };
   const run = (script: string) =>
     new Function(...Object.keys(g), script)(...Object.values(g));
-  return { run, attrs, replaced, keys: () => [...disk.keys()] };
+  /** A pointer event on the page: on the door's hold, or anywhere else. */
+  const fire = (type: string, at: number, onDoor = true, pointerType = "touch", button = 0) => {
+    clock = at;
+    listening.get(type)?.({ pointerType, button, target: { closest: (sel: string) => (onDoor && sel === "[data-room-hold]" ? {} : null) } });
+  };
+  return { run, attrs, replaced, keys: () => [...disk.keys()], win, fire, listening };
 }
 
 const SESSION = "sb-abcd-auth-token";
@@ -205,6 +218,65 @@ describe("the room's door before React (fix 13)", () => {
     const p = page("/");
     p.run(walkBootScript);
     expect(p.attrs.size).toBe(0);
+    expect(p.listening.size).toBe(0);
+  });
+});
+
+/*
+ * The final pass of 18 Nov: the server draws the door about two seconds
+ * before its code can hold it on a phone (#508's own numbers, 1.1 s and
+ * 3.1 s), and a finger put down in that gap and kept there was lost: the
+ * fill never moved and the lift opened nothing. The head script keeps
+ * the press; the hold (components/room/Room.tsx) takes it up on waking.
+ */
+describe("a press on the door before its code has run", () => {
+  type Press = { down: boolean; at: number; type: string };
+  const press = (p: ReturnType<typeof page>) => p.win.__roomPress as Press | undefined;
+
+  it("is kept from the moment the finger lands, and let go with its lift", () => {
+    const p = page("/welcome");
+    p.run(walkBootScript);
+    p.fire("pointerdown", 1400);
+    expect(press(p)).toEqual({ down: true, at: 1400, type: "touch" });
+    p.fire("pointerup", 1900, false);
+    expect(press(p)?.down).toBe(false);
+    p.fire("pointerdown", 2000);
+    p.fire("pointercancel", 2100, false);
+    expect(press(p)?.down).toBe(false);
+  });
+
+  it("is only a press on the hold: anywhere else, or a mouse's other button, is nothing", () => {
+    const p = page("/welcome");
+    p.run(walkBootScript);
+    p.fire("pointerdown", 1400, false);
+    expect(press(p)?.down).toBe(false);
+    p.fire("pointerdown", 1500, true, "mouse", 2);
+    expect(press(p)?.down).toBe(false);
+    p.fire("pointerdown", 1600, true, "mouse", 0);
+    expect(press(p)).toEqual({ down: true, at: 1600, type: "mouse" });
+  });
+
+  it("stops keeping anything once the door is awake: the hold has its own", () => {
+    const p = page("/welcome");
+    p.run(walkBootScript);
+    p.fire("pointerdown", 1400);
+    p.win.__roomAwake = true;
+    p.fire("pointerup", 3500, false);
+    p.fire("pointerdown", 4000);
+    expect(press(p)).toEqual({ down: true, at: 1400, type: "touch" });
+  });
+
+  it("is never kept on a walk the room is not for", () => {
+    const p = page("/welcome", "?step=plan");
+    p.run(walkBootScript);
+    expect(p.listening.size).toBe(0);
+    expect(press(p)).toBeUndefined();
+  });
+
+  it("is taken up by the hold on waking, filling from when it landed, and only once", () => {
+    const room = readFileSync(path.join(root, "components/room/Room.tsx"), "utf8");
+    expect(room).toMatch(/w\.__roomAwake = true;\s*const early = w\.__roomPress;\s*if \(!early\?\.down \|\| state\.current\.done\) return;\s*early\.down = false;/);
+    expect(room).toMatch(/hold\(early\.at, early\.at, early\.type\);/);
   });
 });
 
@@ -217,6 +289,16 @@ describe("the page", () => {
     expect(walk).toMatch(/if \(!ready\) return <Room signedIn=\{false\} onDone=\{notYet\} onSkip=\{notYet\} \/>;/);
     expect(walk).not.toMatch(/useSearchParams\(/);
     expect(walk).toMatch(/useLayoutEffect\(\(\) => \{\s*const asked = new URLSearchParams\(window\.location\.search\)\.get\("step"\);/);
+  });
+
+  it("holds Demos's bubble back on the server's door, its room kept, and pops it in on waking", () => {
+    // His words land only once the code runs: the server's frame drew an
+    // empty bubble for as long as the door stood before it (18 Nov).
+    const room = readFileSync(path.join(root, "components/room/Room.tsx"), "utf8");
+    expect(room).toMatch(/const awake = useSyncExternalStore\(unchanging, \(\) => true, \(\) => false\);/);
+    expect(room).toMatch(/className=\{`room-guide-say talk-bubble-left min-w-0 \$\{awake \? "talk-bubble" : "invisible"\}`\}/);
+    // The class that pops it in is the awake one alone, so the pop plays when it is seen.
+    expect(room).not.toMatch(/"room-guide-say talk-bubble /);
   });
 
   it("hides the door from a resuming walk and an account's links from its door", () => {

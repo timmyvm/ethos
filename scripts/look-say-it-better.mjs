@@ -12,7 +12,9 @@
  *   PLAYWRIGHT_MODULE=… LOOK_BASE=http://localhost:4031 node scripts/look-say-it-better.mjs [state…]
  *
  * States: you you-dry you-new page page-dry page-new page-fallback sheet
- * undo walk after-test unheard blocked offline glance words. Shots go to
+ * undo walk after-test unheard blocked offline glance glance-ask words
+ * (glance-ask: the day's first take on a phone never asked for reminders,
+ * the ask in the cue's slot with its own words). Shots go to
  * docs/look/say-it-better/after/<state>-<beat>-<w>x<h>-<theme>.png
  * (LOOK_OUT to move them), at 390x844 and 320x568 in both themes
  * (SIZES=390 for one), deviceScaleFactor 2. A JSON report of what each
@@ -32,7 +34,7 @@ import {
   supabaseRoute,
 } from "./look-fixtures.mjs";
 
-const ALL = ["you", "you-dry", "you-new", "page", "page-dry", "page-new", "page-fallback", "sheet", "undo", "walk", "after-test", "unheard", "blocked", "offline", "glance", "words"];
+const ALL = ["you", "you-dry", "you-new", "page", "page-dry", "page-new", "page-fallback", "sheet", "undo", "walk", "after-test", "unheard", "blocked", "offline", "glance", "glance-ask", "words"];
 const STATES = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const BASE = process.env.LOOK_BASE ?? "http://localhost:4031";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/say-it-better/after/", import.meta.url).pathname).replace(/\/?$/, "/");
@@ -291,8 +293,26 @@ async function run(state, size, theme) {
     await context.close();
     return;
   }
-  if (state === "glance") {
+  if (state === "glance" || state === "glance-ask") {
     const { context, page } = await open(state, size, theme);
+    /* Headless Chromium answers "denied" for notifications whatever it is
+       granted, so the shot drew the blocked line in Demos's bubble, a state
+       no phone that was never asked is in (the final pass of 18 Nov). As
+       look-glance.mjs does: "glance" is a day whose reminder ask has had
+       its showing; "glance-ask" the day's first take on a phone never
+       asked, the ask in the cue's slot. */
+    if (state === "glance") {
+      await context.addInitScript(() => {
+        const d = new Date();
+        localStorage.setItem("ethos.reminder.asked", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+      });
+    } else {
+      await context.addInitScript(() => {
+        if (typeof Notification === "undefined") return;
+        Object.defineProperty(Notification, "permission", { get: () => "default" });
+        Notification.requestPermission = () => Promise.resolve("default");
+      });
+    }
     await page.goto(`${BASE}/rep?lesson=h4`);
     await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
     await sleep(1500);
@@ -307,6 +327,7 @@ async function run(state, size, theme) {
       proof: document.querySelector("[data-say-proof]")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
       earned: document.querySelector("[data-earned]")?.textContent?.trim() ?? null,
       cue: document.querySelector("[data-glance-cue]")?.textContent?.trim() ?? null,
+      ask: document.querySelector("main [data-reminder-ask]")?.textContent?.replace(/\s+/g, " ").trim() ?? null,
     })));
     await page.locator("main [data-glance-door]").click();
     await page.waitForSelector('[role="dialog"][aria-label="Every number"]', { timeout: 5000 });

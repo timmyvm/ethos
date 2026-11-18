@@ -649,7 +649,10 @@ export function endLine(said: number, of: number): string {
 export const SAY_LIMITED = "That's a lot of lines for now. Try again later.";
 
 /** The longest phrase the check takes: the coach's said side (lib/upgrade.ts UPGRADE_LIMITS). */
-export const SAY_PHRASE_CHARS = 60;
+/* 120: production holds a coach pair from before #429's 40-character rule
+   whose better phrase is 71 characters (aggregate check, 18 Nov); at 60 its
+   test failed every time. */
+export const SAY_PHRASE_CHARS = 120;
 /** A line said in under fifteen seconds is a few dozen kilobytes; a megabyte is generous. */
 export const SAY_AUDIO_BYTES = 1_000_000;
 

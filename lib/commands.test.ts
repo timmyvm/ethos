@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { LESSONS } from "@/content/lessons";
 import { TRAITS } from "@/content/traits";
-import { COMMANDS, TAB_LABELS, commandsAllowed, findCommands, groupCommands, tabForKey } from "./commands";
+import { COMMANDS, HELD_SCREENS, TAB_LABELS, commandsAllowed, findCommands, groupCommands, tabForKey } from "./commands";
 import { TAB_HREFS } from "./tabs";
 
 const nav = readFileSync("components/Nav.tsx", "utf8");
@@ -133,7 +133,24 @@ describe("where the menu and its keys answer", () => {
     expect(commandsAllowed("/rep/new/extra")).toBe(false);
   });
 
+  it("and the other way round: every screen that keeps the keyboard is one the tab bar leaves (#508's split, the final pass)", () => {
+    const bare = nav.slice(nav.indexOf("const BARE"), nav.indexOf("const DETAIL"));
+    const detail = nav.slice(nav.indexOf("const DETAIL"), nav.indexOf("export function Nav"));
+    const bareRoutes = [...bare.matchAll(/^\s*"(\/[\w-]+)",/gm)].map((m) => m[1]);
+    const detailRoutes = [...detail.matchAll(/^\s*"(\/[\w-]+)",/gm)].map((m) => m[1]);
+    expect(detailRoutes).toContain("/say");
+    for (const held of HELD_SCREENS) {
+      const leftByBar = bareRoutes.includes(held) || detailRoutes.some((d) => held.startsWith(`${d}/`));
+      expect(leftByBar, `${held} keeps the keyboard but the tab bar stays`).toBe(true);
+    }
+    // Say it better's test (#507) keeps it; its page and a lesson keep the bar and the keys.
+    expect(commandsAllowed("/say/test")).toBe(false);
+    expect(commandsAllowed("/say")).toBe(true);
+    expect(commandsAllowed("/lessons/the-cold-open")).toBe(true);
+  });
+
   it("a digit opens its tab, and nothing else is a tab's key", () => {
+    expect(["1", "2", "3", "4", "5"].map(tabForKey)).toEqual(TAB_HREFS);
     expect(tabForKey("1")).toBe("/");
     expect(tabForKey("3")).toBe("/games");
     expect(tabForKey("5")).toBe("/you");

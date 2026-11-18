@@ -52,10 +52,14 @@ import {
   resetReady,
   safeReturnPath,
   signIn,
+  signOut,
   withNext,
   callbackScreen,
 } from "./auth";
 import { EMAIL_ASKED_KEY, emailAskedFor } from "./account-gate";
+import { CUE_KEY, WARMUP_SKIPPED_KEY } from "./cue-keys";
+import { KEPT_STORE } from "./held";
+import { SAY_KEY } from "./say-keys";
 
 describe("password rules", () => {
   it("asks for length, and no composition rule", () => {
@@ -321,6 +325,56 @@ describe("sign-up carries where to come back to", () => {
     fake.anonymous = true;
     await createAccount("a@b.co", "");
     expect(fake.redirects[0].to).toBe("https://speakethos.com/auth/reset?first=1");
+  });
+});
+
+/*
+ * The final pass of 18 Nov: signing out forgot the carried cue and the
+ * numbers kept between opens, and Say it better's copy of its test
+ * (#507, its swaps and the days each was tested) stayed on the phone.
+ * Every way out of an account, in one place: a plain sign-out and a
+ * deleted account (Sign out everywhere is lib/account-settings.test.ts).
+ */
+describe("leaving an account forgets what this phone kept for it", () => {
+  const disk = new Map<string, string>();
+  const kept = () => {
+    disk.clear();
+    disk.set(KEPT_STORE, JSON.stringify({ v: 1, owner: "user-1", items: { profile: { display_name: "Tim" } } }));
+    disk.set(CUE_KEY, JSON.stringify({ uid: "user-1", state: { text: "a sentence of their own words" } }));
+    disk.set(WARMUP_SKIPPED_KEY, "2026-11-18");
+    disk.set(SAY_KEY, JSON.stringify({ uid: "user-1", states: { "c:1": { step: 1, due: "2026-11-20", at: "2026-11-18T08:00:00.000Z" } } }));
+    disk.set("ethos.theme", "dark");
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => disk.get(k) ?? null,
+      setItem: (k: string, v: string) => void disk.set(k, v),
+      removeItem: (k: string) => void disk.delete(k),
+    });
+  };
+  const accountKeys = [KEPT_STORE, CUE_KEY, WARMUP_SKIPPED_KEY, SAY_KEY];
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("a sign-out", async () => {
+    kept();
+    await signOut();
+    for (const k of accountKeys) expect(disk.has(k), k).toBe(false);
+    // The phone's own settings are not the account's.
+    expect(disk.get("ethos.theme")).toBe("dark");
+  });
+
+  it("a deleted account, before the page empties the rest", async () => {
+    kept();
+    vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    expect(await deleteAccount()).toEqual({ ok: true });
+    for (const k of accountKeys) expect(disk.has(k), k).toBe(false);
+  });
+
+  it("a delete that failed keeps them: the account is still here", async () => {
+    kept();
+    vi.stubGlobal("fetch", async () => new Response("", { status: 502 }));
+    expect((await deleteAccount()).ok).toBe(false);
+    for (const k of accountKeys) expect(disk.has(k), k).toBe(true);
   });
 });
 

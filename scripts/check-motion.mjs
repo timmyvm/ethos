@@ -201,17 +201,39 @@ await page.getByRole("button", { name: "Turn up the difficulty" }).click();
 a = await anim(page, ".reveal");
 ok("mod picker reveals out of its row", a.name === "reveal", a.name);
 await sleep(500);
+/* The scrim's material is the dialog's ::before, and only it fades (#415).
+   It is read in the first frame the dialog is on the page, from a watch
+   set before the tap: since #508 the paywall's code is fetched on its
+   first tap when the phone has not yet been idle, so the dialog lands
+   about 300 ms after the click returns, and the harness's own poll then
+   saw it as late as 500 ms on, its 300 ms fade already over (the final
+   pass of 18 Nov). The watch reads the fade while it runs, and that the
+   dialog itself, the sheet's parent, has no fade of its own. */
+await page.evaluate(() => {
+  const t0 = performance.now();
+  const look = () => {
+    const d = document.querySelector("[role=dialog].sheet-scrim");
+    if (d) {
+      const all = d.getAnimations({ subtree: true });
+      window.__scrimSeen = {
+        name: all.find((x) => x.effect?.pseudoElement === "::before")?.animationName ?? null,
+        own: all.filter((x) => x.effect?.target === d && !x.effect?.pseudoElement).map((x) => x.animationName),
+      };
+      return;
+    }
+    if (performance.now() - t0 < 5000) requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
+});
 await page.getByRole("button", { name: /Crowd noise/ }).click();
 await page.waitForSelector("[role=dialog] .sheet-panel");
 a = await anim(page, "[role=dialog] .sheet-panel");
-// The scrim's material is the dialog's ::before, and only it fades (#415).
-const scrim = await page.evaluate(() => {
-  const d = document.querySelector("[role=dialog].sheet-scrim");
-  const a = d?.getAnimations({ subtree: true }).find((x) => x.effect?.pseudoElement === "::before");
-  return { name: a?.animationName ?? null };
-});
+const scrim = await page
+  .waitForFunction(() => window.__scrimSeen, null, { timeout: 2000 })
+  .then((h) => h.jsonValue())
+  .catch(() => ({ name: null, own: [] }));
 ok("sheet rises on the sheet spring", a.name === "sheet-in" && a.easing.startsWith("linear("), `${a.name} ${a.easing.slice(0, 20)}`);
-ok("scrim fades on its own", scrim.name === "fade-in", scrim.name);
+ok("scrim fades on its own", scrim.name === "fade-in" && scrim.own.length === 0, `${scrim.name}; the dialog's own: ${scrim.own.join(",") || "none"}`);
 await sleep(700);
 /* The page keeps its own clock (C2): from the key to the dialog leaving
    the DOM. Timed from the harness, the same exit read 799 to 855ms with

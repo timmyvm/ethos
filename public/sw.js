@@ -18,6 +18,8 @@
  * phone itself at install and never drawn by the app, and the lesson
  * art's large cuts are cached the first time a screen draws one (the
  * asset rule below), so neither is pre-cached; v21 empties v20 of them.
+ * A cut never drawn here is stood in for, offline, by one of the same
+ * lesson the phone holds (lessonStandIn), so no CACHE move.
  * The worker itself registers once the first screen is drawn
  * (components/ServiceWorker.tsx), not beside it.
  */
@@ -52,7 +54,9 @@ const SHELL = [
   /* Each lesson's own screen, Today's card and the recorder draw the
      560 cut (public/lessons/large/, #448), cached on first view rather
      than here (#508): fifteen of them on the first open's link is
-     280 KB for the one or two a day draws. */
+     280 KB for the one or two a day draws. Offline, a cut not yet
+     drawn is answered by the best one of its lesson the phone holds,
+     the thumbnail above at worst (lessonStandIn). */
   "/boss",
   "/hostile",
   "/upload",
@@ -173,6 +177,27 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
+/*
+ * A lesson opened in a tunnel still has its picture (#448), at no cost to
+ * the install (the final pass of 18 Nov). Since v21 the large cuts are not
+ * shell: each is kept the first time a screen draws it (the asset rule
+ * below), and a 3x phone draws Today's object from /lessons/hero/ (#508),
+ * so a lesson never opened on this phone, or opened only from Today, had
+ * no picture offline. A cut the phone has never fetched is answered, with
+ * no network, by the best cut of the same lesson it does hold: the 720,
+ * the 560, then the 360 the shell always holds. Only a lesson's own art;
+ * anything else missing offline fails as it always did.
+ */
+const LESSON_ART = /^\/lessons\/(?:(large|hero)\/)?([\w-]+)\.webp$/;
+
+function lessonStandIn(pathname) {
+  const m = LESSON_ART.exec(pathname);
+  if (!m) return Promise.resolve(undefined);
+  const id = m[2];
+  const cuts = [`/lessons/hero/${id}.webp`, `/lessons/large/${id}.webp`, `/lessons/${id}.webp`].filter((u) => u !== pathname);
+  return cuts.reduce((found, u) => found.then((hit) => hit || caches.match(u)), Promise.resolve(undefined));
+}
+
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
@@ -219,15 +244,17 @@ self.addEventListener("fetch", (e) => {
       caches.match(e.request).then(
         (hit) =>
           hit ||
-          fetch(e.request).then((res) => {
-            // Only a good answer is kept: a 404 or 500 stored here was
-            // served from the cache until the next version.
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(e.request, copy));
-            }
-            return res;
-          })
+          fetch(e.request)
+            .then((res) => {
+              // Only a good answer is kept: a 404 or 500 stored here was
+              // served from the cache until the next version.
+              if (res.ok) {
+                const copy = res.clone();
+                caches.open(CACHE).then((c) => c.put(e.request, copy));
+              }
+              return res;
+            })
+            .catch((err) => lessonStandIn(url.pathname).then((alt) => alt || Promise.reject(err)))
       )
     );
     return;

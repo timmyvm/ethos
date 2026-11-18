@@ -15,7 +15,7 @@
  *      401 and Whisper is never asked.
  *   3. The form: `audio` (the line), `better` (the phrase listened for)
  *      and `said` (the phrase it replaces, so a miss can say "You said
- *      'the thing is'"), each phrase 60 characters at most.
+ *      'the thing is'"), each phrase 120 characters at most (SAY_PHRASE_CHARS).
  *   4. The limiter (lib/rate-limit.ts `say`, per account); a guest also
  *      counts against every guest on its address (`say` again, as the
  *      word sheet does: a new guest session is free to make, and each

@@ -528,6 +528,58 @@ await expectOk("a table made later gives the browser nothing", async () => {
   });
 }
 
+// 0036: Say it better's test (#507). As saved words: the browser reads
+// and writes its own rows and nobody else's, anon has none, an account
+// keeps 2,000 at most (a row already there is written again at the cap),
+// the file runs twice, and the rows go with the account.
+{
+  const swap = (n) => `c:${String(n).padStart(36, "0")}`;
+  const row = (who, n) => `('${who}', '${swap(n)}', current_date + 1)`;
+  await ex(readFileSync(`${DIR}/0036_say_better.sql`, "utf8"));
+  console.log("applied 0036 again");
+  await expectOk("A and B each write a swap of their own to Say it better", async () => {
+    await as("authenticated", A, () => q(`insert into public.say_better (user_id, swap, due) values ${row(A, 1)}`));
+    await as("authenticated", B, () => q(`insert into public.say_better (user_id, swap, due) values ${row(B, 1)}`));
+    return "2 rows";
+  });
+  await expectRefused("A writes a Say it better row as B", () => as("authenticated", A, () =>
+    q(`insert into public.say_better (user_id, swap, due) values ${row(B, 2)}`)));
+  await expectOk("A reads only A's Say it better rows", () => as("authenticated", A, async () => {
+    const r = await q("select user_id from public.say_better");
+    if (r.rows.length !== 1 || r.rows[0].user_id !== A) throw new Error(JSON.stringify(r.rows));
+    return r.rows.length;
+  }));
+  await expectOk("A answers its own test, as the app does (upsert on the key)", () => as("authenticated", A, async () => {
+    const r = await q(`insert into public.say_better (user_id, swap, due, step, last, tested_on) values ('${A}', '${swap(1)}', current_date + 3, 1, 'said', current_date)
+      on conflict (user_id, swap) do update set step = excluded.step, due = excluded.due, last = excluded.last, tested_on = excluded.tested_on returning step`);
+    if (r.rows[0]?.step !== 1) throw new Error(JSON.stringify(r.rows));
+    return "step 1";
+  }));
+  await expectOk("A cannot change or take off B's row", async () => {
+    await as("authenticated", A, () => q(`update public.say_better set hidden = true where user_id = '${B}'`));
+    await as("authenticated", A, () => q(`${DEL} from public.say_better where user_id = '${B}'`));
+    const r = await q(`select hidden from public.say_better where user_id = '${B}'`);
+    if (r.rows.length !== 1 || r.rows[0].hidden !== false) throw new Error(JSON.stringify(r.rows));
+    return "B's row stands";
+  });
+  await expectRefused("A hands its row to B", () => as("authenticated", A, () =>
+    q(`update public.say_better set user_id = '${B}' where user_id = '${A}' returning swap`)));
+  await expectRefused("anon reads Say it better", () => as("anon", null, () => q("select * from public.say_better")));
+  await expectRefused("anon writes Say it better", () => as("anon", null, () =>
+    q(`insert into public.say_better (user_id, swap, due) values ${row(A, 3)}`)));
+  await expectOk("B keeps 2,000 Say it better rows, the 2,001st is refused, and one at the cap is written again", async () => {
+    await as("authenticated", B, () => q(`insert into public.say_better (user_id, swap, due) select '${B}', 'w:' || lpad(g::text, 36, '0'), current_date from generate_series(2, 2000) g`));
+    let refused = false;
+    try { await as("authenticated", B, () => q(`insert into public.say_better (user_id, swap, due) values ${row(B, 2001)}`)); } catch { refused = true; }
+    await as("authenticated", B, () => q(`insert into public.say_better (user_id, swap, due, last) values ('${B}', '${swap(1)}', current_date, 'missed') on conflict (user_id, swap) do update set last = excluded.last`));
+    const r = await q(`select count(*)::int as n, bool_or(last = 'missed') as again from public.say_better where user_id = '${B}'`);
+    if (!refused || r.rows[0].n !== 2000 || !r.rows[0].again) throw new Error(JSON.stringify({ refused, ...r.rows[0] }));
+    return r.rows[0].n;
+  });
+  await expectRefused("A writes a swap named past its shape", () => as("authenticated", A, () =>
+    q(`insert into public.say_better (user_id, swap, due) values ('${A}', 'c:' || repeat('a', 2000000), current_date)`)));
+}
+
 // The account goes: every tester row with it.
 await ex(`${"DEL" + "ETE"} from auth.users where id = '${A}'`);
 await expectOk("A's account removal takes its tester rows", async () => {
@@ -540,7 +592,19 @@ await expectOk("A's account removal takes its saved words, and only its", async 
   if (r.rows[0].a !== 0 || r.rows[0].b !== 1) throw new Error(JSON.stringify(r.rows));
   return JSON.stringify(r.rows[0]);
 });
-const policies = await q("select tablename, policyname, cmd from pg_policies where tablename in ('testers','tester_feedback','tester_events','saved_words') order by 1, 2");
+await expectOk("A's account removal takes its Say it better rows, and only its", async () => {
+  const r = await q(`select (select count(*) from public.say_better where user_id = '${A}')::int as a, (select count(*) from public.say_better where user_id = '${B}')::int as b`);
+  if (r.rows[0].a !== 0 || r.rows[0].b !== 2000) throw new Error(JSON.stringify(r.rows));
+  return JSON.stringify(r.rows[0]);
+});
+await expectOk("Say it better holds four policies, each to the owner, run twice or not", async () => {
+  const r = await q("select cmd, qual, with_check from pg_policies where tablename = 'say_better' order by cmd");
+  const cmds = r.rows.map((p) => p.cmd).join();
+  const owner = r.rows.every((p) => [p.qual, p.with_check].filter(Boolean).every((s) => /auth\.uid\(\).*=\s*user_id/.test(s)));
+  if (cmds !== "DELETE,INSERT,SELECT,UPDATE" || !owner) throw new Error(JSON.stringify(r.rows));
+  return cmds;
+});
+const policies = await q("select tablename, policyname, cmd from pg_policies where tablename in ('testers','tester_feedback','tester_events','saved_words','say_better') order by 1, 2");
 console.log(policies.rows);
 console.log(fails ? `${fails} FAILED` : "all passed");
 process.exit(fails ? 1 : 0);

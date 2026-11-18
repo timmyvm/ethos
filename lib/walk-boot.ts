@@ -33,7 +33,13 @@
  *    the walk resumes on, as it always was;
  *  - `data-room-account` when an account's session is stored: the door's
  *    Sign in and Tester code are hidden before paint (#497), as the room
- *    drops them once React runs.
+ *    drops them once React runs;
+ *  - on a door it drew, a press made before the app's code has run is
+ *    kept (`window.__roomPress`, the final pass of 18 Nov): the door is
+ *    seen about two seconds before it can be held on a phone, and a finger
+ *    put down in that gap and kept there was lost, the fill never moving.
+ *    The hold (components/room/Room.tsx HoldToStep) takes a press still
+ *    down when it wakes and fills from the moment the finger landed.
  *
  * On a door it drew, it also lifts the app-open splash the way
  * components/SplashLift.tsx does (the floor, the fonts, then `out` and
@@ -82,6 +88,19 @@ export const walkBootScript = `
       if (s && typeof s.access_token === 'string' && s.user && s.user.is_anonymous !== true) root.setAttribute('data-room-account', '');
     } catch (e) {}
   }
+  try {
+    var press = window.__roomPress = { down: false, at: 0, type: '' };
+    var awake = function () { return window.__roomAwake === true; };
+    document.addEventListener('pointerdown', function (e) {
+      if (awake() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      var t = e.target;
+      if (!t || !t.closest || !t.closest('[data-room-hold]')) return;
+      press.down = true; press.at = performance.now(); press.type = e.pointerType || 'touch';
+    }, true);
+    var lift = function () { if (!awake()) press.down = false; };
+    document.addEventListener('pointerup', lift, true);
+    document.addEventListener('pointercancel', lift, true);
+  } catch (e) {}
   if (root.getAttribute('data-splash') !== 'on') return;
   var floor = new Promise(function (r) { setTimeout(r, Math.max(0, ${SPLASH_FLOOR_MS} - performance.now())); });
   var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();

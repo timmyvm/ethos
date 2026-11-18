@@ -232,23 +232,30 @@ export function levelUps(
   return out.map(({ key, from, to, paid }) => ({ key, from, to, paid }));
 }
 
+/** The level-up moment as the glance draws it: the named traits, each to wear its colour, and the rest counted. */
+export interface LevelUpView {
+  /** In words, every part: "Pace reached level 3, Variety level 3 and 3 more". */
+  text: string;
+  /** What stays when the glance's budget cuts the tail: the first alone. Null when it is already alone. */
+  short: string | null;
+  /** The traits named, biggest first, at most two. */
+  named: { key: TraitKey; name: string; to: number }[];
+  /** How many more crossed than are named. */
+  more: number;
+}
+
 /**
  * The level-up moment, in words: at most two named, biggest first, the
  * rest counted. "Pace reached level 3", "Pace reached level 3, Pausing
- * level 2", "Pace reached level 3, Variety level 3 and 3 more". `short`
- * is what stays when the glance's budget cuts the tail. Null for none.
+ * level 2", "Pace reached level 3, Variety level 3 and 3 more". Null for
+ * none: a recording that crossed nothing lights nothing.
  */
-export function levelUpLine(
-  ups: readonly LevelUp[],
-  nameOf: (key: TraitKey) => string
-): { text: string; short: string | null } | null {
+export function levelUpLine(ups: readonly LevelUp[], nameOf: (key: TraitKey) => string): LevelUpView | null {
   if (ups.length === 0) return null;
-  const [first, second] = ups;
-  const head = `${nameOf(first.key)} reached level ${first.to}`;
-  if (!second) return { text: head, short: null };
-  const more = ups.length - 2;
-  return {
-    text: `${head}, ${nameOf(second.key)} level ${second.to}${more > 0 ? ` and ${more} more` : ""}`,
-    short: head,
-  };
+  const named = ups.slice(0, 2).map((u) => ({ key: u.key, name: nameOf(u.key), to: u.to }));
+  const more = ups.length - named.length;
+  const [first, second] = named;
+  const head = `${first.name} reached level ${first.to}`;
+  if (!second) return { text: head, short: null, named, more };
+  return { text: `${head}, ${second.name} level ${second.to}${more > 0 ? ` and ${more} more` : ""}`, short: head, named, more };
 }

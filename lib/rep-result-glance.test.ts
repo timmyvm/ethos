@@ -87,6 +87,30 @@ describe("the glance", () => {
     expect(html).not.toContain("leveled");
     expect(html).not.toContain("4 fillers in 62s");
   });
+  /* #498: the levels this recording crossed, in the earned line. */
+  it("names the levels a recording crossed, each trait behind its own colour, in the line's words", () => {
+    const up: GlanceView = {
+      ...view,
+      cue: null,
+      earned: {
+        text: "Pace reached level 3, Structure level 2 and 1 more",
+        tone: "earned",
+        levelUp: {
+          named: [
+            { key: "pace", name: "Pace", to: 3 },
+            { key: "structure", name: "Structure", to: 2 },
+          ],
+          more: 1,
+        },
+      },
+    };
+    const out = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: up }));
+    expect(visible(out)).toContain("Pace reached level 3, Structure level 2 and 1 more");
+    // Pace wears its tone; Structure, which the lessons do not teach, You's stone mark.
+    expect(out).toContain('<span aria-hidden="true" data-trait="pace" class="mr-1.5 inline-flex align-[0.08em]"><span class="trait-dot"></span></span>Pace');
+    expect(out).toMatch(/<span aria-hidden="true" class="mr-1\.5 inline-flex align-\[0\.08em\]"><span class="size-2 shrink-0 rounded-\[2px\] bg-stone-200"><\/span><\/span>Structure/);
+    expect(out.match(/<p data-earned="true" class="([^"]*)"/)?.[1]).toContain("text-sage-700");
+  });
   it("draws the moment as text, never a dead button, when nothing can play it", () => {
     expect(html).toContain("data-glance-chip");
     expect(html).not.toMatch(/<button[^>]*data-glance-chip/);

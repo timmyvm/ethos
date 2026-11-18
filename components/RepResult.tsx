@@ -94,7 +94,17 @@ export interface GlanceView {
   parts: GlancePart[];
   moment: GlanceMoment | null;
   cue: string | null;
-  earned: { text: string; tone: "earned" | "plain"; delta?: number | null } | null;
+  earned: {
+    text: string;
+    tone: "earned" | "plain";
+    delta?: number | null;
+    /**
+     * The level-up moment (#498): the traits the fitted line names, in its
+     * order, so each wears its colour beside its name (DESIGN rule 6), and
+     * how many more it counts. Its words are `text`'s.
+     */
+    levelUp?: { named: { key: string; name: string; to: number }[]; more: number };
+  } | null;
   /**
    * The line answers yesterday's cue and it held (#477): its count is
    * drawn in sage, and a screen reader is told "Held." after it, since a
@@ -1366,11 +1376,11 @@ function Glance({
         {view.earned && (
           <p
             data-earned
-            className={`mt-1 text-body font-semibold ${view.earned.tone === "earned" ? "text-sage-700" : "text-ink"} ${
+            className={`mt-1 text-body font-semibold text-balance ${view.earned.tone === "earned" ? "text-sage-700" : "text-ink"} ${
               counting || ethosIndex === null ? "" : "invisible"
             }`}
           >
-            {view.earned.text}
+            {view.earned.levelUp ? <LevelUpWords {...view.earned.levelUp} /> : view.earned.text}
             {view.earned.delta ? (
               <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
                 {" "}
@@ -1457,5 +1467,34 @@ function Glance({
         </>
       )}
     </div>
+  );
+}
+
+/** The five traits the lessons teach wear a tone; the four the Index only reads take You's stone mark. */
+const TONED_TRAITS = new Set(["pause", "fillers", "repairs", "pace", "range"]);
+
+/**
+ * The level-up moment's words (#498), "Pace reached level 3, Variety
+ * level 3 and 3 more", each named trait behind its 8px mark in its own
+ * colour as You's rows draw it, so the line points at the row it moved.
+ * The marks are drawn, never read: the words say it all.
+ */
+function LevelUpWords({ named, more }: { named: { key: string; name: string; to: number }[]; more: number }) {
+  return (
+    <>
+      {named.map((t, i) => (
+        <Fragment key={t.key}>
+          {i > 0 && ", "}
+          <span className="whitespace-nowrap">
+            <span aria-hidden data-trait={TONED_TRAITS.has(t.key) ? t.key : undefined} className="mr-1.5 inline-flex align-[0.08em]">
+              <span className={TONED_TRAITS.has(t.key) ? "trait-dot" : "size-2 shrink-0 rounded-[2px] bg-stone-200"} />
+            </span>
+            {t.name}
+          </span>
+          {i === 0 ? ` reached level ${t.to}` : ` level ${t.to}`}
+        </Fragment>
+      ))}
+      {more > 0 && ` and ${more} more`}
+    </>
   );
 }

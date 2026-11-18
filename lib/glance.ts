@@ -24,6 +24,7 @@ import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S } from "./pause-quality";
 import { MOST_PAUSES, type RewardMoment } from "./rewards";
 import type { GameRound } from "./round";
 import { clockTenth, decidingCutIn, secs as tenths, type RoundReveal } from "./round-copy";
+import type { LevelUpView } from "./traits";
 import { transcriptPieces, type TranscriptUnit } from "./transcript-words";
 
 /** The glance's ceiling, in words as `countWords` counts them. */
@@ -406,6 +407,8 @@ export function roundGlance(p: { round: GameRound; reveal: RoundReveal; cue: str
 /** The earned slot under the delta: one line, sage when earned, ink when a second score. */
 export interface EarnedLine {
   text: string;
+  /** The level-up moment's traits (#498), so each named one wears its colour; absent on any other line. */
+  levelUp?: LevelUpView;
   /** What stays when the budget cuts its tail ("Best yet"), or null to drop it whole. */
   short: string | null;
   tone: "earned" | "plain";
@@ -432,13 +435,13 @@ const TRAIT_RECORD: Partial<Record<TraitId, string>> = {
 export function earnedLine(p: {
   bests: RewardMoment[];
   ladderMoment?: RewardMoment | null;
-  levelUp?: { text: string; short: string | null } | null;
+  levelUp?: LevelUpView | null;
   trait: TraitId;
   presence?: { score: number; previous: number | null } | null;
   accuracy?: number | null;
 }): EarnedLine | null {
   if (p.ladderMoment) return { text: p.ladderMoment.headline, short: null, tone: "earned" };
-  if (p.levelUp) return { text: p.levelUp.text, short: p.levelUp.short, tone: "earned" };
+  if (p.levelUp) return { text: p.levelUp.text, short: p.levelUp.short, tone: "earned", levelUp: p.levelUp };
   const index = p.bests.find((b) => b.headline === "Best Ethos yet");
   if (index) {
     const past = /past your (\d+)/.exec(index.detail)?.[1];
@@ -459,6 +462,30 @@ export function earnedLine(p: {
   }
   if (typeof p.accuracy === "number") return { text: `Accuracy ${p.accuracy}`, short: null, tone: "plain" };
   return null;
+}
+
+/**
+ * The earned line as the glance draws it, once fitGlance has chosen its
+ * words: those words, and for a level-up (#498) the traits they name, so
+ * each wears its colour: the first alone when the budget cut the tail.
+ */
+export function fittedEarned(
+  earned: EarnedLine | null,
+  text: string | null
+): {
+  text: string;
+  tone: EarnedLine["tone"];
+  delta?: number | null;
+  levelUp?: { named: LevelUpView["named"]; more: number };
+} | null {
+  if (!earned || !text) return null;
+  const up = earned.levelUp;
+  return {
+    text,
+    tone: earned.tone,
+    delta: earned.delta,
+    levelUp: up ? (text === up.text ? { named: up.named, more: up.more } : { named: up.named.slice(0, 1), more: 0 }) : undefined,
+  };
 }
 
 /** What a lesson's ending reads off one practice: a stored row, or the take on screen. */

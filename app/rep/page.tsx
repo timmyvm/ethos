@@ -160,6 +160,7 @@ import {
   comeBackLine,
   cueLead,
   earnedLine,
+  fittedEarned,
   fitGlance,
   askBudget,
   rulesBudget,
@@ -177,7 +178,7 @@ import {
   sheetSections,
 } from "@/lib/glance";
 import { DIMENSION_NAME, fillerTrend, isTraitKey } from "@/lib/dimension-rows";
-import { levelUpLine, levelUps, traitLevels } from "@/lib/traits";
+import { levelUpLine, levelUps, traitLevels, type LevelUpView } from "@/lib/traits";
 import { carryCue, cueDay, cueGlance, warmsUp, type CueState } from "@/lib/carried-cue";
 import { skipWarmup, useCarriedCue, warmupSkipped } from "@/lib/cue-store";
 import { CueWarmup } from "@/components/rep/CueWarmup";
@@ -673,7 +674,7 @@ function RepScreen() {
    * trait levels before it and with it, under the same rule, read off the
    * history captured before the take and the stored row read after it.
    */
-  const [levelUp, setLevelUp] = useState<{ text: string; short: string | null } | null>(null);
+  const [levelUp, setLevelUp] = useState<LevelUpView | null>(null);
   /**
    * The first take under #476's pause rules, set beside one scored
    * before them (#491): one line under the delta saying the jump is
@@ -2910,8 +2911,8 @@ function Results({
   result: AnalyzeResponse;
   config: RepConfig;
   bests: RewardMoment[];
-  /** The levels this recording crossed, in words (#498): the earned line under the ladder. */
-  levelUp: { text: string; short: string | null } | null;
+  /** The levels this recording crossed (#498): the earned line under the ladder. */
+  levelUp: LevelUpView | null;
   /** The first take under #476 beside one scored before it (#491): its line under the delta. */
   rulesNote: RulesNote | null;
   closing: RewardMoment | null;
@@ -3557,7 +3558,7 @@ function Results({
     parts: shown.parts,
     moment: shown.moment,
     cue: fit.cue,
-    earned: earnedNow && fit.earned ? { text: fit.earned, tone: earnedNow.tone, delta: earnedNow.delta } : null,
+    earned: fittedEarned(earnedNow, fit.earned),
     held: cueSaid?.held ?? false,
     rulesNote: rulesNoteText,
   };

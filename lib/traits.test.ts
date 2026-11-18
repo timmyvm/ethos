@@ -351,13 +351,21 @@ describe("levelUps: what one recording crossed", () => {
       { key: "pace", from: 0, to: 1, paid: 93 },
       { key: "pause", from: 0, to: 1, paid: 72 },
     ]);
-    expect(levelUpLine(ups, nameOf)).toEqual({ text: "Pace reached level 1, Pausing level 1", short: "Pace reached level 1" });
+    expect(levelUpLine(ups, nameOf)).toEqual({
+      text: "Pace reached level 1, Pausing level 1",
+      short: "Pace reached level 1",
+      named: [
+        { key: "pace", name: "Pace", to: 1 },
+        { key: "pause", name: "Pausing", to: 1 },
+      ],
+      more: 0,
+    });
   });
 
   it("names one level crossed alone", () => {
     const ups = moment(flat(4, { pace: 95, pause: 55, fillers: 75, repairs: 25, range: 58 }));
     expect(ups).toEqual([{ key: "pace", from: 2, to: 3, paid: 93 }]);
-    expect(levelUpLine(ups, nameOf)).toEqual({ text: "Pace reached level 3", short: null });
+    expect(levelUpLine(ups, nameOf)).toMatchObject({ text: "Pace reached level 3", short: null, more: 0 });
   });
 
   it("names two, the higher level first", () => {
@@ -378,7 +386,15 @@ describe("levelUps: what one recording crossed", () => {
       ["fillers", 2],
       ["repairs", 1],
     ]);
-    expect(levelUpLine(ups, nameOf)).toEqual({ text: "Pace reached level 3, Variety level 3 and 3 more", short: "Pace reached level 3" });
+    expect(levelUpLine(ups, nameOf)).toMatchObject({
+      text: "Pace reached level 3, Variety level 3 and 3 more",
+      short: "Pace reached level 3",
+      named: [
+        { key: "pace", to: 3 },
+        { key: "range", to: 3 },
+      ],
+      more: 3,
+    });
   });
 
   it("crosses at most one level a trait: a recording pays at most 100, and every level past the first costs 140 or more", () => {

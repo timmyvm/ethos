@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { CueRunner, canSound, playSound } from "./sound";
 import { countTicks, xpTicksOwed, type Cue } from "./sound-recipes";
 
@@ -9,11 +9,16 @@ import { countTicks, xpTicksOwed, type Cue } from "./sound-recipes";
  * the first render that has cues, a later read replacing only what has
  * not played (`CueRunner`), and whatever is still waiting dropped when
  * the screen goes. Pass null until the moment starts.
+ *
+ * In the commit, not after the paint: the stars' landings start their
+ * clock with the frame they are drawn in, and a passive effect on a busy
+ * glance ran up to 300ms behind them (LOOK_SOUND=1 measured it), so every
+ * ding came late. A layout effect starts the cues' clock with theirs.
  */
 export function useSoundCues(cues: readonly Cue[] | null): void {
   const runner = useRef<CueRunner | null>(null);
   const key = cues ? cues.map((c) => `${c.slot}:${c.sound}@${c.atMs}`).join("|") : "";
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!cues || cues.length === 0) return;
     if (!runner.current) runner.current = new CueRunner();
     runner.current.run(cues);

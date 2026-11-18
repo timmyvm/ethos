@@ -74,12 +74,17 @@ export function StreakMoment({
 
   /* The sound starts as the flame lights; the haptic lands with the roll.
      Its own sound whatever else the take played (#505: each moment has
-     one). Mount only: a re-render never rings it again. */
+     one), laid on the audio clock in the commit, where the flame's own
+     clock starts, so a busy first frame cannot pull them apart. Mount
+     only: a re-render never rings it again. */
+  useLayoutEffect(() => {
+    const ring = playSound(moment.milestone ? "streak-milestone" : "streak", { delayS: calm ? 0 : time.lightAt / 1000 });
+    return () => ring?.drop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
-    const ring = setTimeout(() => playSound(moment.milestone ? "streak-milestone" : "streak"), calm ? 0 : time.lightAt);
     const land = calm ? null : setTimeout(() => buzz(30), time.rollAt);
     return () => {
-      clearTimeout(ring);
       if (land) clearTimeout(land);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

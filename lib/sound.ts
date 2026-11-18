@@ -267,8 +267,12 @@ function playHiss(c: BaseAudioContext, h: Hiss, t0: number, noise: AudioBuffer, 
   stops.push(src);
 }
 
-/** A sound that is playing: stop() fades it out in 40ms. */
-export type Playing = { stop: () => void; endsAt: number };
+/**
+ * A sound laid on the clock: stop() fades it out in 40ms (one not yet
+ * started never sounds); drop() stops it only if it has not started, so a
+ * screen left mid-sound lets it ring out.
+ */
+export type Playing = { stop: () => void; drop: () => void; startsAt: number; endsAt: number };
 
 /**
  * Lay a recipe on any context, live or offline, at `t0` on its clock,
@@ -290,7 +294,11 @@ export function renderRecipe(c: BaseAudioContext, r: Recipe, t0: number): Playin
   const endsAt = t0 + recipeLength(r);
   let stopped = false;
   return {
+    startsAt: t0,
     endsAt,
+    drop() {
+      if (c.currentTime < t0) this.stop();
+    },
     stop() {
       if (stopped) return;
       stopped = true;
@@ -333,7 +341,11 @@ export function playSound(id: SoundId, opts: PlayOptions = {}): Playing | null {
   if (!c) return null;
   try {
     ambient();
-    const t0 = Math.max(c.currentTime + 0.01, master(c).born + SETTLE_S) + Math.max(0, opts.delayS ?? 0);
+    /* A sound timed to something on screen leaves early by the output's
+       own lag, so it reaches the ear with the frame it belongs to. */
+    const lag = Math.min(0.15, (c.baseLatency || 0) + ((c as { outputLatency?: number }).outputLatency || 0));
+    const delay = Math.max(0, (opts.delayS ?? 0) - (opts.delayS ? lag : 0));
+    const t0 = Math.max(c.currentTime + 0.01, master(c).born + SETTLE_S) + delay;
     return renderRecipe(c, recipe(id, opts.step ?? 0), t0);
   } catch {
     return null;
@@ -398,7 +410,7 @@ export type Schedule = (c: CueLike, delayMs: number) => () => void;
  */
 const onAudioClock: Schedule = (c, delayMs) => {
   const p = playSound(c.sound, { step: c.step, delayS: delayMs / 1000 });
-  return () => p?.stop();
+  return () => p?.drop();
 };
 const realNow = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
 

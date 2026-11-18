@@ -435,3 +435,32 @@ describe("levelLine and xpLine: what You's rows and sheet say", () => {
     expect(rankedTraits(levels).map((t) => t.key).slice(0, 4)).toEqual(["fillers", "pace", "pause", "range"]);
   });
 });
+
+describe("look-fixtures' LEVEL_MIX, the cameras' fourteen recordings", () => {
+  /* scripts/look-fixtures.mjs LEVEL_TAKES, oldest first. */
+  const MIX = Array.from({ length: 14 }, (_, i) =>
+    rep({
+      pause: 15,
+      fillers: i === 13 ? 74 : 88,
+      repairs: i === 6 ? 40 : 0,
+      pace: 48,
+      range: i === 13 ? 69 : 62,
+      structure: 60,
+      credibility: 55,
+      confidence: 58,
+    })
+  );
+  const levels = traitLevels(MIX);
+
+  it("puts every state a level can be in on You", () => {
+    expect(of(levels, "fillers")).toMatchObject({ level: 5, xp: 1218, into: 168, cost: 420, percent: 40, last: 74 });
+    expect(of(levels, "range")).toMatchObject({ level: 4, into: 175, cost: 350, percent: 50 });
+    expect(of(levels, "pace")).toMatchObject({ level: 3, into: 252, cost: 280, percent: 90 });
+    expect(of(levels, "pause")).toMatchObject({ level: 2, into: 0, percent: 0, last: 15 });
+    expect(of(levels, "repairs")).toMatchObject({ level: 0, into: 40, percent: 57, last: 0 });
+    expect([of(levels, "structure").percent, of(levels, "credibility").percent, of(levels, "confidence").percent]).toEqual([40, 20, 32]);
+    expect(levelLine(of(levels, "engagement")).value).toBe("Not yet");
+    expect(xpLine(of(levels, "fillers"))).toBe("252 XP to level 6. Last recording +74.");
+    expect(rankedTraits(levels).filter((t) => FIVE.includes(t.key)).map((t) => t.key)).toEqual(["fillers", "range", "pace", "pause", "repairs"]);
+  });
+});

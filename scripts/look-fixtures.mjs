@@ -374,43 +374,40 @@ export const extraReps = [];
 export const repsMode = { rows: null };
 
 /*
- * #482: eight recordings that put You's trait levels in every state a
- * level can be in (repsMode.rows = LEVEL_MIX). Oldest first, each a
- * scorable take whose best row levels its trait (lib/traits.ts: 70 or
- * more, 90 counts twice):
+ * #498: fourteen recordings (about production's p90 account) that put
+ * You's trait levels in every state a level can be in under trait XP
+ * (repsMode.rows = LEVEL_MIX). Every take is scorable and pays each trait
+ * its score; level n costs 70 x n (lib/traits.ts):
  *
- *   8 days ago  Filler control 92          Filler control +2
- *   7           Pace 80                    Pace +1
- *   6           Filler control 85          Filler control +1
- *   5           Filler control 93          Filler control +2
- *   4           Pace 82                    Pace +1 (its last)
- *   3           Filler control 80, Pace 76, Follow-through 50
- *                                          Filler control +1 (its last)
- *   2           every row under 70, Filler control 28: nothing levels
- *   yesterday   Pausing 74                 Pausing +1
+ *   Filler control  88 thirteen times, then 74: 1218 XP, level 5, 168
+ *                   of level 6's 420 (40%), last +74
+ *   Variety         62 thirteen times, then 69: 875, level 4, 175 of
+ *                   350 (50%)
+ *   Pace            48 every time: 672, level 3, 252 of 280 (90%)
+ *   Pausing         15 every time: 210, level 2 just reached, its bar
+ *                   empty
+ *   Restart control 0 but one 40: level 0, 40 of 70 (57%), last +0
+ *   Structure 60, Credibility 55, Steadiness 58 each time (Premium's
+ *   rows): levels 4 at 40%, 20% and 32%. Engagement is never read: on
+ *   Premium its row says "Not yet".
  *
- * So Filler control is level 6, its closest since 28 of 70 (40%); Pace
- * level 2, its closest 76 of the 80 Filler control set (95%); Pausing
- * level 1 on the newest take, nothing since (0%); Follow-through and
- * Variety level 0 at 62% and 50%. The coach read three of its four:
- * Engagement is never read, so on Premium its row says "Not yet".
- * lib/traits.test.ts holds the same eight to the same numbers.
+ * lib/traits.test.ts holds the same fourteen to the same numbers.
  */
 const LEVEL_TIER2 = {
   structure: { score: 60, citedMoment: TIER2.structure.citedMoment, improve: TIER2.structure.improve },
   credibility: { score: 55, citedMoment: TIER2.credibility.citedMoment, improve: TIER2.credibility.improve },
   confidence: { score: 58, citedMoment: TIER2.confidence.citedMoment, improve: TIER2.confidence.improve },
 };
-const LEVEL_TAKES = [
-  [8, { pause: 50, fillers: 92, repairs: 30, pace: 60, range: 40 }],
-  [7, { pause: 50, fillers: 60, repairs: 30, pace: 80, range: 40 }],
-  [6, { pause: 50, fillers: 85, repairs: 30, pace: 60, range: 40 }],
-  [5, { pause: 50, fillers: 93, repairs: 30, pace: 60, range: 40 }],
-  [4, { pause: 50, fillers: 60, repairs: 30, pace: 82, range: 40 }],
-  [3, { pause: 50, fillers: 80, repairs: 50, pace: 76, range: 40 }],
-  [2, { pause: 55, fillers: 28, repairs: 30, pace: 60, range: 35 }],
-  [1, { pause: 74, fillers: 20, repairs: 30, pace: 60, range: 35 }],
-];
+const LEVEL_TAKES = Array.from({ length: 14 }, (_, i) => [
+  14 - i,
+  {
+    pause: 15,
+    fillers: i === 13 ? 74 : 88,
+    repairs: i === 6 ? 40 : 0,
+    pace: 48,
+    range: i === 13 ? 69 : 62,
+  },
+]);
 export const LEVEL_MIX = LEVEL_TAKES.map(([n, tier1], i) => {
   const all = { ...tier1, ...Object.fromEntries(Object.entries(LEVEL_TIER2).map(([k, v]) => [k, v.score])) };
   return {

@@ -1,17 +1,18 @@
 /**
- * You's trait levels at their edges (#482's review): LEVEL_MIX and four
- * takes built for the ends of a level's bar, at 390x844 and 320x568,
- * light and dark, and Increase Contrast ("-more"). Prints each row's
- * name as a screen reader is given it, its height, whether the name is
- * cut, the bar's fill in px and the centres of name, value and bar, then
- * shoots the section, clipped.
+ * You's trait levels at their edges, under trait XP (#498; first #482's
+ * review): LEVEL_MIX and two takes built for the ends of a level's bar,
+ * at 390x844 and 320x568, light and dark, and Increase Contrast
+ * ("-more"). Prints each row's name as a screen reader is given it, its
+ * height, whether the name is cut, the bar's fill in px and the centres
+ * of name, value and bar, then shoots the section, clipped.
  *
- *   edges           Filler control 2 at 75%, Pace 1 at 98% (69 alone),
- *                   Pausing 1 at 0% (leveled on the newest take),
- *                   Follow-through 0 at 99% (100, tied with Filler
- *                   control's 100, which leveled), Variety 0 at 57%
- *   levelup-before  the first three takes: Pausing 0 at 71%
- *   levelup-after   the fourth levels it: Pausing 1, its bar empty
+ *   edges           one take: Filler control 69 (level 0 at 98%), Pace
+ *                   70 (level 1, its bar empty), Variety 1 (level 0 at
+ *                   1%), Restart control 0 ("Not yet"), Pausing 100
+ *                   (level 1 at 21%)
+ *   levelup-before  that take alone
+ *   levelup-after   and one more paying Filler control 1: level 1, its
+ *                   bar empty, the rest a little further in
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 3872
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
@@ -19,7 +20,7 @@
  *   SETS=edges PLANS=free SIZES=390x844-dark SHEETS=repairs,Engagement ...
  *
  * SHEETS opens each named trait's sheet (a data-trait key, or the name
- * a row's label starts with) and prints its meter and closest line.
+ * a row's label starts with) and prints its meter and XP line.
  * Shots: OUT, default docs/look/levels/, <tag>-<set>-<plan>-<size>.png.
  */
 import { mkdirSync } from "node:fs";
@@ -39,15 +40,13 @@ const take = (id, n, tier1) => ({
   created_at: new Date(Date.now() - n * 86400000).toISOString(),
   dimensions: { ...tmpl.dimensions, tier1 },
 });
-const E1 = take(1, 5, { pause: 50, fillers: 100, repairs: 100, pace: 60, range: 40 });
-const E2 = take(2, 4, { pause: 50, fillers: 60, repairs: 40, pace: 80, range: 40 });
-const E3 = take(3, 3, { pause: 50, fillers: 50, repairs: 40, pace: 69, range: 40 });
-const E4 = take(4, 1, { pause: 75, fillers: 30, repairs: 30, pace: 40, range: 40 });
+const E1 = take(1, 3, { pause: 100, fillers: 69, repairs: 0, pace: 70, range: 1 });
+const E2 = take(2, 1, { pause: 10, fillers: 1, repairs: 0, pace: 10, range: 10 });
 const SETS = {
   mix: F.LEVEL_MIX,
-  edges: [E1, E2, E3, E4],
-  "levelup-before": [E1, E2, E3],
-  "levelup-after": [E1, E2, E3, E4],
+  edges: [E1],
+  "levelup-before": [E1],
+  "levelup-after": [E1, E2],
 };
 const want = (process.env.SETS ?? "mix,edges,levelup-before,levelup-after").split(",");
 const SIZES = (process.env.SIZES ?? "390x844-light,390x844-dark,320x568-light,320x568-dark,390x844-light-more,390x844-dark-more").split(",");
@@ -119,7 +118,7 @@ for (const set of want) {
             const pb = dlg?.querySelector('[role="progressbar"]');
             return {
               meter: pb ? `${pb.getAttribute("aria-label")} | ${pb.getAttribute("aria-valuetext")}` : dlg?.querySelector("[data-level]")?.textContent,
-              closest: dlg?.querySelector("[data-closest]")?.textContent ?? null,
+              xp: dlg?.querySelector("[data-xp]")?.textContent ?? null,
             };
           });
           console.log(`  sheet ${key}: ${JSON.stringify(d)}`);

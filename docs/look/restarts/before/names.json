@@ -1,0 +1,354 @@
+{
+  "lessons 390x844-light": {
+    "text": [
+      "Restarts",
+      "0.8 restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 390x844-light": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 390x844-light": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 390x844-light": {
+    "text": [
+      "Restarts",
+      "restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 390x844-light": {
+    "text": [
+      "3 restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 390x844-light": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 390x844-light": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 390x844-light": {
+    "text": [
+      "Restart control",
+      "0 restarted phrases in 65 seconds. 0 a minute. 0 restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 390x844-light": {
+    "text": [
+      "Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control"
+    ]
+  },
+  "you-sheet 390x844-light": {
+    "text": [
+      "Restart control",
+      "restarts in 100 words",
+      "Fewer restarts than 93 in 100 speakers",
+      "Each recording adds its Restart control score as XP.",
+      "Practise Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control",
+      "Restart control",
+      "Restart control"
+    ]
+  },
+  "command 390x844-light": {
+    "text": [
+      "Restarts"
+    ],
+    "labels": []
+  },
+  "command-old 390x844-light": {
+    "text": [],
+    "labels": []
+  },
+  "lessons 390x844-dark": {
+    "text": [
+      "Restarts",
+      "0.8 restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 390x844-dark": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 390x844-dark": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 390x844-dark": {
+    "text": [
+      "Restarts",
+      "restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 390x844-dark": {
+    "text": [
+      "3 restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 390x844-dark": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 390x844-dark": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 390x844-dark": {
+    "text": [
+      "Restart control",
+      "0 restarted phrases in 65 seconds. 0 a minute. 0 restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 390x844-dark": {
+    "text": [
+      "Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control"
+    ]
+  },
+  "you-sheet 390x844-dark": {
+    "text": [
+      "Restart control",
+      "restarts in 100 words",
+      "Fewer restarts than 93 in 100 speakers",
+      "Each recording adds its Restart control score as XP.",
+      "Practise Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control",
+      "Restart control",
+      "Restart control"
+    ]
+  },
+  "command 390x844-dark": {
+    "text": [
+      "Restarts"
+    ],
+    "labels": []
+  },
+  "command-old 390x844-dark": {
+    "text": [],
+    "labels": []
+  },
+  "lessons 320x568-light": {
+    "text": [
+      "Restarts",
+      "0.8 restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 320x568-light": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 320x568-light": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 320x568-light": {
+    "text": [
+      "Restarts",
+      "restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 320x568-light": {
+    "text": [
+      "3 restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 320x568-light": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 320x568-light": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 320x568-light": {
+    "text": [
+      "Restart control",
+      "0 restarted phrases in 65 seconds. 0 a minute. 0 restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 320x568-light": {
+    "text": [
+      "Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control"
+    ]
+  },
+  "you-sheet 320x568-light": {
+    "text": [
+      "Restart control",
+      "restarts in 100 words",
+      "Fewer restarts than 93 in 100 speakers",
+      "Each recording adds its Restart control score as XP.",
+      "Practise Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control",
+      "Restart control",
+      "Restart control"
+    ]
+  },
+  "lessons 320x568-dark": {
+    "text": [
+      "Restarts",
+      "0.8 restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "trait 320x568-dark": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "trait-why 320x568-dark": {
+    "text": [
+      "restarts in 100 words",
+      "Restarts",
+      "Fewer restarts than 93 in 100 speakers, against published speech research, not other Ethos users. An estimate for now."
+    ],
+    "labels": []
+  },
+  "lesson 320x568-dark": {
+    "text": [
+      "Restarts",
+      "restarts in 100 words"
+    ],
+    "labels": []
+  },
+  "glance 320x568-dark": {
+    "text": [
+      "3 restarts in 62s."
+    ],
+    "labels": []
+  },
+  "sheet-row 320x568-dark": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "sheet-head 320x568-dark": {
+    "text": [
+      "Restart control",
+      "3 restarted phrases in 62 seconds, about one every 20 seconds.",
+      "↳ Finish the sentence, then say the better one. A restart makes the listener start over with you."
+    ],
+    "labels": []
+  },
+  "ledger 320x568-dark": {
+    "text": [
+      "Restart control",
+      "0 restarted phrases in 65 seconds. 0 a minute. 0 restarts a minute scores 100; 3 scores 0."
+    ],
+    "labels": []
+  },
+  "you-rows 320x568-dark": {
+    "text": [
+      "Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control"
+    ]
+  },
+  "you-sheet 320x568-dark": {
+    "text": [
+      "Restart control",
+      "restarts in 100 words",
+      "Fewer restarts than 93 in 100 speakers",
+      "Each recording adds its Restart control score as XP.",
+      "Practise Restart control"
+    ],
+    "labels": [
+      "Restart control, Level 5, 95% of the way to level 6",
+      "Restart control",
+      "Restart control",
+      "Restart control"
+    ]
+  }
+}

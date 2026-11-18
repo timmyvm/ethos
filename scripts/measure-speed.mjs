@@ -236,6 +236,24 @@ function forward(req, target, body, agent) {
   });
 }
 
+/**
+ * The fixtures answer every read with whole rows; PostgREST answers only
+ * the columns asked for. A plain `select=a,b,c` is applied here, so the
+ * spine's four columns weigh what they would on the wire.
+ */
+function selected(url, body) {
+  const sel = url.searchParams.get("select");
+  if (!sel || /[:()>*]/.test(sel) || typeof body !== "string") return body;
+  try {
+    const cols = sel.split(",").map((c) => c.trim());
+    const pick = (row) => (row && typeof row === "object" ? Object.fromEntries(cols.filter((c) => c in row).map((c) => [c, row[c]])) : row);
+    const data = JSON.parse(body);
+    return JSON.stringify(Array.isArray(data) ? data.map(pick) : pick(data));
+  } catch {
+    return body;
+  }
+}
+
 /** The look loop's Supabase (scripts/look-fixtures.mjs), behind a Playwright-shaped route. */
 function mockSupabase(req, url, body) {
   return new Promise((resolve) => {
@@ -251,7 +269,7 @@ function mockSupabase(req, url, body) {
       fulfill: async (r) => {
         const h = Object.fromEntries(Object.entries(r.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
         if (r.contentType) h["content-type"] = r.contentType;
-        resolve({ status: r.status ?? 200, headers: h, body: Buffer.from(r.body ?? "") });
+        resolve({ status: r.status ?? 200, headers: h, body: Buffer.from(selected(url, r.body ?? "")) });
       },
       continue: async () => resolve({ status: 204, headers: {}, body: Buffer.alloc(0) }),
       abort: async () => resolve({ status: 599, headers: {}, body: Buffer.alloc(0) }),

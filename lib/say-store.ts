@@ -34,6 +34,7 @@ import {
   coachSwap,
   freshState,
   mergeSwaps,
+  partsOf,
   stateOf,
   usesOf,
   wordSwap,
@@ -203,6 +204,17 @@ export async function saveState(key: string, state: SwapState): Promise<boolean>
   return !error;
 }
 
+/**
+ * Keep a swap's state under every key it stands for (a merged swap's rows,
+ * lib/say.ts mergeSwaps), so it holds whichever row is left. True when
+ * the account has all of them.
+ */
+export async function saveSwapState(swap: Swap, state: SwapState): Promise<boolean> {
+  let all = true;
+  for (const key of new Set(partsOf(swap).map((p) => p.key))) all = (await saveState(key, state)) && all;
+  return all;
+}
+
 /* ---- the swaps ----------------------------------------------------------- */
 
 export interface LexiconPair {
@@ -252,6 +264,29 @@ async function readTakes(since: string): Promise<TakeText[]> {
     created_at: r.created_at,
     transcript: r.transcript,
   }));
+}
+
+/**
+ * The recordings swaps came from that the newest-first read did not reach
+ * (a phrase saved from an old recording in the Log): their day is the day
+ * you said it, and a coach pair's sentence is read from their text.
+ */
+async function readTakesById(ids: readonly string[]): Promise<TakeText[]> {
+  const db = supabaseBrowser();
+  const want = [...new Set(ids)];
+  if (!db || want.length === 0) return [];
+  const out: TakeText[] = [];
+  for (let i = 0; i < want.length; i += 100) {
+    const { data, error } = await db
+      .from("reps")
+      .select("id, created_at, transcript")
+      .in("id", want.slice(i, i + 100));
+    if (error) throw error;
+    for (const r of (data as { id: string; created_at: string; transcript: string | null }[] | null) ?? []) {
+      out.push({ id: r.id, created_at: r.created_at, transcript: r.transcript });
+    }
+  }
+  return out;
 }
 
 /** Whisper's timed words for a few recordings, for the moments a screen plays. */
@@ -309,6 +344,10 @@ async function readSay(): Promise<SayRead> {
   const since = new Date(Date.parse(oldest) - 2 * 86_400_000).toISOString();
   const list = await readTakes(since);
   const takes = new Map(list.map((t) => [t.id, t]));
+  /* A source past the newest read is read by its id: "You said, Monday"
+     is the day it was said, never the day it was saved. */
+  const missing = swaps.flatMap((s) => (s.repId && !takes.has(s.repId) ? [s.repId] : []));
+  for (const t of await readTakesById(missing)) takes.set(t.id, t);
   const items: SayItem[] = swaps.map((s) => {
     const source = s.repId ? takes.get(s.repId) : undefined;
     const sentence = s.sentence ?? (source?.transcript ? (saidIn(s.said, source.transcript)?.sentence ?? null) : null);
@@ -322,7 +361,7 @@ async function readSay(): Promise<SayRead> {
     if (i.uses.length > 0 && !i.state.heardAt) {
       const next = { ...i.state, heardAt: i.uses[i.uses.length - 1].createdAt, at: new Date().toISOString() };
       i.state = next;
-      void saveState(i.swap.key, next).catch(() => {});
+      void saveSwapState(i.swap, next).catch(() => {});
     }
   }
   return hold(SAY_READ_KEY, { items, takes }, mark);
@@ -331,35 +370,59 @@ async function readSay(): Promise<SayRead> {
 /* ---- taking one off, and putting it back (#435) -------------------------- */
 
 /**
- * Take a swap off the list. A word sheet save is taken out of its table,
- * as Your words always did; a coach pair stays in its table and is
- * marked off the list, so Undo puts it back as it was.
+ * The read this visit holds, with one swap shown off the list or back on
+ * it, so You's card and the page drawn from it agree with what was just
+ * done (a word save leaves its table; nothing else would tell the held
+ * read until the next one).
  */
-export async function removeSwap(item: SayItem, words: readonly SavedWord[] = []): Promise<void> {
-  if (item.swap.source === "word") {
-    await removeSavedWord(item.swap.id);
-    const row = words.find((w) => w.id === item.swap.id);
-    noteRemoved(row?.word ?? item.swap.said, row?.instead ?? item.swap.better);
-    return;
-  }
-  await saveState(item.swap.key, { ...item.state, hidden: true, at: new Date().toISOString() });
+function holdHidden(key: string, hidden: boolean) {
+  const cached = held<SayRead>(SAY_READ_KEY);
+  if (!cached) return;
+  const item = cached.items.find((i) => i.swap.key === key);
+  if (item) hold(SAY_READ_KEY, withState(cached, key, { ...item.state, hidden }));
 }
 
-/** Undo: the same swap back where it was. */
-export async function restoreSwap(item: SayItem): Promise<void> {
-  if (item.swap.source === "word") {
-    const row: SavedWord = {
-      id: item.swap.id,
-      word: item.swap.said,
-      instead: item.swap.better,
-      sentence: item.swap.sentence,
-      rep_id: item.swap.repId,
-      created_at: item.swap.savedAt,
-    };
-    noteSaved(await restoreSavedWord(row));
-    return;
+/**
+ * Take a swap off the list: every row merged into it (lib/say.ts
+ * mergeSwaps), or the pair saved the other way would come back on the
+ * next read as a new swap. A word sheet save is taken out of its table,
+ * as Your words always did; a coach pair stays in its table and is marked
+ * off the list, its place in the test kept, so Undo puts it back as it
+ * was.
+ */
+export async function removeSwap(item: SayItem, words: readonly SavedWord[] = []): Promise<void> {
+  const off = { ...item.state, hidden: true, at: new Date().toISOString() };
+  for (const part of partsOf(item.swap)) {
+    if (part.source === "word") {
+      await removeSavedWord(part.id);
+      const row = words.find((w) => w.id === part.id);
+      noteRemoved(row?.word ?? part.said, row?.instead ?? part.better);
+    } else {
+      await saveState(part.key, off);
+    }
   }
-  await saveState(item.swap.key, { ...item.state, hidden: false, at: new Date().toISOString() });
+  holdHidden(item.swap.key, true);
+}
+
+/** Undo: the same swap back where it was, every row merged into it with it. */
+export async function restoreSwap(item: SayItem): Promise<void> {
+  const on = { ...item.state, hidden: false, at: new Date().toISOString() };
+  for (const part of partsOf(item.swap)) {
+    if (part.source === "word") {
+      const row: SavedWord = {
+        id: part.id,
+        word: part.said,
+        instead: part.better,
+        sentence: part.sentence,
+        rep_id: part.repId,
+        created_at: part.savedAt,
+      };
+      noteSaved(await restoreSavedWord(row));
+    } else {
+      await saveState(part.key, on);
+    }
+  }
+  holdHidden(item.swap.key, false);
 }
 
 /** For the glance: the swaps and their states, read once a visit. */
@@ -369,7 +432,6 @@ export async function fetchSwapsForProof(): Promise<{ swaps: Swap[]; states: Swa
 }
 
 /** A swap the glance has just shown as proof: heard, so it is said once. */
-export async function markHeard(key: string, states: SwapStates, swap: Swap, at: Date = new Date()): Promise<void> {
-  const base = states[key] ?? freshState(swap);
-  await saveState(key, { ...base, heardAt: at.toISOString(), at: at.toISOString() });
+export async function markHeard(states: SwapStates, swap: Swap, at: Date = new Date()): Promise<void> {
+  await saveSwapState(swap, { ...stateOf(swap, states), heardAt: at.toISOString(), at: at.toISOString() });
 }

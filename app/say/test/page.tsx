@@ -28,7 +28,7 @@ import {
   type TestResult,
   type TimedWord,
 } from "@/lib/say";
-import { fetchSay, fetchTakeWords, heldSay, saveState, type SayItem } from "@/lib/say-store";
+import { fetchSay, fetchTakeWords, heldSay, saveSwapState, type SayItem } from "@/lib/say-store";
 import { sessionToken } from "@/lib/supabase-browser";
 import { ACTION_CLASS, DISABLED_CLASS } from "@/lib/ui";
 import { holdAwake } from "@/lib/wake-lock";
@@ -132,7 +132,7 @@ export default function SayTest() {
       setResults((r) => ({ ...r, [item.swap.key]: result }));
       setPhase(result);
       /* Kept as it is given: on this phone at once, then the account. */
-      void saveState(item.swap.key, afterTest(item.state, result, dayOf(new Date()))).catch(() => {});
+      void saveSwapState(item.swap, afterTest(item.state, result, dayOf(new Date()))).catch(() => {});
     },
     [item]
   );

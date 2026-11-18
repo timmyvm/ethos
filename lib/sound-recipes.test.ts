@@ -10,6 +10,7 @@ import {
   countTicks,
   glanceCues,
   hostileWon,
+  proofLeads,
   recipe,
   recipeLength,
   seeded,
@@ -260,14 +261,31 @@ describe("Hostile Q&A and the setting", () => {
   });
 });
 
-/* TEMPORARY (18 Nov, lib/proof-variant.ts): the proof's sound in the moment map. */
-describe("the proof's sound (TEMPORARY)", () => {
-  it("plays the round's hand won, under every bigger moment, or first in variant C", () => {
+/* Say it better's proof token (#509): the hand won, under every bigger moment. */
+describe("a swap proved (#509)", () => {
+  it("plays the round's hand won, and a level-up, a lesson, a best or the boss outranks it", () => {
     expect(topMoment({ stars: 2, proof: true })).toBe("round");
     expect(topMoment({ stars: 2, proof: true, level: true })).toBe("level");
+    expect(topMoment({ stars: 2, proof: true, lessonDone: true })).toBe("lesson");
     expect(topMoment({ stars: 2, proof: true, best: true })).toBe("best");
-    expect(topMoment({ stars: 2, proof: true, level: true, proofFirst: true })).toBe("round");
-    expect(topMoment({ stars: 2, proof: true, boss: true, proofFirst: true })).toBe("boss");
-    expect(topMoment({ stars: 0, proof: true, proofFirst: true })).toBeNull();
+    expect(topMoment({ stars: 2, proof: true, boss: true })).toBe("boss");
+    // A take with no star plays nothing, the proof included.
+    expect(topMoment({ stars: 0, proof: true })).toBeNull();
+  });
+  it("is one sound: on three stars the hand won comes in over the payout's coins, once", () => {
+    const cues = glanceCues({ stars: 3, proof: true }, { landAfter: 640, starStep: 120, starMs: 380, reduced: false });
+    expect(cues.filter((c) => c.slot === "top")).toEqual([{ sound: "round", atMs: 640 + 240 + 380 + PAYOUT_LEAD_MS, slot: "top" }]);
+  });
+  it("leads (Demos cheers it) only where its sound is the top one", () => {
+    expect(proofLeads({ stars: 2, proof: true })).toBe(true);
+    expect(proofLeads({ stars: 2, proof: true, roundWon: true })).toBe(true);
+    for (const bigger of [{ level: true }, { lessonDone: true }, { best: true }, { boss: true }]) {
+      expect(proofLeads({ stars: 2, proof: true, ...bigger })).toBe(false);
+    }
+    expect(proofLeads({ stars: 0, proof: true })).toBe(false);
+    expect(proofLeads({ stars: 2 })).toBe(false);
+    for (const win of [{ stars: 1, proof: true }, { stars: 3, proof: true, best: true }, { stars: 2, proof: true, level: true }]) {
+      if (proofLeads(win)) expect(topMoment(win)).toBe("round");
+    }
   });
 });

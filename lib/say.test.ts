@@ -15,7 +15,6 @@ import {
   nextDue,
   phraseAt,
   proofIn,
-  proofWords,
   saidBetter,
   saidOn,
   sayLists,
@@ -29,7 +28,7 @@ import {
   type SwapView,
   type TakeText,
 } from "./say";
-import { GLANCE_WORDS, countWords, earnedLine, fitGlanceProof, starsBudget } from "./glance";
+import { GLANCE_WORDS, countWords, earnedLine, fitGlance, fitGlanceProof, proofToken, starsBudget } from "./glance";
 import { levelUpLine } from "./traits";
 import { starGoals } from "./metrics";
 
@@ -236,14 +235,13 @@ describe("the glance's proof line", () => {
     expect(proofIn(swaps, hidden, take)).toBeNull();
   });
 
-  it("counts its words as the ceiling does: the struck phrase, then the better one and its time", () => {
+  it("hands the glance the pair and where it was said: the token's words, the struck phrase and the better one", () => {
     const p = proofIn(swaps, {}, take)!;
-    expect(proofWords(p, "full")).toBe("the thing is → ✓ the point is 0:03");
-    expect(countWords(proofWords(p, "full"))).toBe(7);
-    expect(countWords(proofWords(p, "short"))).toBe(4);
+    expect(proofToken(p)).toMatchObject({ key: "c:1", better: "the point is", said: "the thing is", struck: "always" });
+    expect(proofToken(p).moment.clock).toBe("0:03");
   });
 
-  it("holds the ceiling in the worst case: the goals, a two-trait level-up, Demos's cue and the longest pair", () => {
+  it("holds the ceiling in the worst case and never waits: the goals, a two-trait level-up, Demos's cue and the longest pair", () => {
     // The longest pair #429 lets through: eight words said, six better.
     const longest = { key: "c:9", said: "a week that no person could actually do", better: "a week nobody could survive at all", at: 61, end: 63 };
     const levelUp = levelUpLine(
@@ -264,36 +262,35 @@ describe("the glance's proof line", () => {
       cueShort: "A pause instead.",
     };
     const budget = starsBudget(GLANCE_WORDS, goals);
-    const fit = fitGlanceProof(p, budget, { full: proofWords(longest, "full"), short: proofWords(longest, "short") });
+    const fit = fitGlanceProof(p, budget, longest);
     expect(fit.words).toBeLessThanOrEqual(budget);
-    // Everything at once leaves no room for even the short line: the
-    // level-up, said only here, keeps its place and the proof waits (the
-    // page still counts the recording, and the next take can say it).
-    expect(fit.proof).toBeNull();
+    // Everything at once: #507's line waited here. The token stands, the
+    // level-up keeps its place and the glance is word for word the one
+    // without it; the longest pair's struck phrase is left to the sheet.
+    expect(fit.proof).toMatchObject({ key: "c:9", struck: "never" });
     expect(fit.earned).toMatch(/^Pace/);
-    const drawn = (f: typeof fit, proof: string) =>
-      countWords([...fixed, f.short ? p.lineShort : p.line, f.cue ?? "", f.earned ?? "", proof].join(" "));
-    expect(drawn(fit, "")).toBe(fit.words);
-    // One level crossed, no cue to carry and a common pair: the struck
-    // phrase goes first and the short proof stands, inside the ceiling.
+    const { proof: _proof, ...rest } = fit;
+    expect(rest).toEqual(fitGlance(p, budget));
+    const drawn = (f: typeof fit) => countWords([...fixed, f.short ? p.lineShort : p.line, f.cue ?? "", f.earned ?? ""].join(" "));
+    expect(drawn(fit)).toBe(fit.words);
+    // One level crossed, no cue to carry and a common pair: the token whole.
     const common = { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 };
     const oneUp = levelUpLine([{ key: "pace", from: 2, to: 3, paid: 93 }], () => "Pace")!;
     const lighter = { ...p, cue: null, cueShort: null, lineShort: null, line: "4 fillers.", earned: earnedLine({ bests: [], levelUp: oneUp, trait: "fillers" }) };
-    const fit2 = fitGlanceProof(lighter, budget, { full: proofWords(common, "full"), short: proofWords(common, "short") });
-    expect(fit2.proof).toBe("short");
-    expect(fit2.words).toBeLessThanOrEqual(budget);
-    expect(countWords([...fixed, lighter.line, fit2.earned ?? "", proofWords(common, "short")].join(" "))).toBe(fit2.words);
+    const fit2 = fitGlanceProof(lighter, budget, common);
+    expect(fit2.proof).toMatchObject({ said: "the thing is", struck: "always" });
+    expect(fit2.words).toBe(fitGlance(lighter, budget).words);
   });
 
-  it("keeps the struck phrase where it costs nothing, and drops it before the cue", () => {
+  it("never costs the cue, at any budget, and shows at every one", () => {
     const p = { fixed: ["665", "/1000", "Every number", "Done for today", "Retake"], line: "4 fillers, first 0:02", cue: "Tomorrow: a pause instead.", earned: null };
-    const proof = { full: "the thing is → ✓ the point is 0:14", short: "✓ the point is 0:14" };
-    expect(fitGlanceProof(p, GLANCE_WORDS, proof)).toMatchObject({ proof: "full", cue: "Tomorrow: a pause instead." });
-    // Tight: the full line would cost the cue, so the struck phrase goes and the cue stays.
-    const tight = countWords([...p.fixed, p.line, p.cue, proof.short].join(" "));
-    expect(fitGlanceProof(p, tight, proof)).toMatchObject({ proof: "short", cue: "Tomorrow: a pause instead.", words: tight });
-    // Tighter still: the proof waits rather than pass the ceiling.
-    expect(fitGlanceProof(p, 8, proof).proof).toBeNull();
+    const pair = { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 };
+    for (let budget = 6; budget <= 30; budget++) {
+      const f = fitGlanceProof(p, budget, pair);
+      expect(f.cue).toBe(fitGlance(p, budget).cue);
+      expect(f.words).toBe(fitGlance(p, budget).words);
+      expect(f.proof).not.toBeNull();
+    }
     expect(fitGlanceProof(p, GLANCE_WORDS, null).proof).toBeNull();
   });
 });

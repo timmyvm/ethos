@@ -186,19 +186,16 @@ describe("a merged pair keeps its state whichever row is left", () => {
   });
 });
 
-describe("the proof line never costs Demos's cue", () => {
-  it("waits rather than push the cue off, at every budget", () => {
+describe("the proof token never costs Demos's cue (#509)", () => {
+  it("leaves the glance word for word as it is without it, at every budget, and never waits", () => {
     const p = { fixed: ["665", "/1000", "Every number", "Done for today", "Retake"], line: "4 fillers, first 0:02", cue: "Tomorrow: a pause instead.", earned: null };
-    const proof = { full: "the thing is → ✓ the point is 0:14", short: "✓ the point is 0:14" };
-    const tight = countWords([...p.fixed, p.line, p.cue, proof.short].join(" "));
-    for (let budget = 8; budget <= tight + 6; budget++) {
-      const fit = fitGlanceProof(p, budget, proof);
+    const pair = { key: "c:1", said: "the thing is", better: "the point is", at: 14, end: 15 };
+    for (let budget = 6; budget <= countWords([...p.fixed, p.line, p.cue].join(" ")) + 6; budget++) {
+      const fit = fitGlanceProof(p, budget, pair);
       const without = fitGlanceProof(p, budget, null);
-      expect(fit.cue).toBe(without.cue);
-      expect(fit.earned).toBe(without.earned);
-      expect(fit.words).toBeLessThanOrEqual(Math.max(budget, without.words));
+      expect({ ...fit, proof: null }).toEqual(without);
+      expect(fit.proof?.better).toBe("the point is");
     }
-    expect(fitGlanceProof(p, tight - 1, proof).proof).toBeNull();
   });
 });
 

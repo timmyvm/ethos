@@ -21,13 +21,12 @@ import type { AccuracyResult } from "@/lib/accuracy";
 import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
-import type { GlanceMoment, GlancePart, SheetSection } from "@/lib/glance";
+import { OUTSIDE_CEILING, type GlanceMoment, type GlancePart, type ProofToken, type SheetSection } from "@/lib/glance";
 import type { LevelUpPiece } from "@/lib/traits";
 import { isTraitKey } from "@/lib/dimension-rows";
 import { starGoals, type FillerHit, type RepMetrics, type Word } from "@/lib/metrics";
 import { scoreLine, splitTomorrow } from "@/lib/coach-line";
 import { buzz } from "@/lib/prefs";
-import { Disclosure } from "@/components/ui/Disclosure";
 import { TapTick } from "@/components/ui/TapTick";
 
 /**
@@ -126,20 +125,14 @@ export interface GlanceView {
    */
   rulesNote?: string | null;
   /**
-   * Say it better's proof (#507): this take said a saved swap's better
-   * phrase. "the thing is → ✓ the point is ▶0:14" in sage, its chip
-   * playing that moment; `said` is null where the ceiling cut the struck
-   * phrase (lib/glance.ts fitGlanceProof).
+   * Say it better's proof token (#509, lib/glance.ts proofToken): this
+   * take said a saved swap's better phrase. Under the score, outside the
+   * word ceiling: the check, "the point is" over "the thing is" struck,
+   * and the moment's chip; `open` brings the swap's sheet up over the
+   * results. On its glance it is the one chip that plays: Demos's moment
+   * stands as its time.
    */
-  proof?: { said: string | null; better: string; moment: GlanceMoment } | null;
-  /**
-   * TEMPORARY (lib/proof-variant.ts), variant B: the proof as a piece
-   * under the score, outside the words, the whole piece a door to the
-   * swap's sheet in Say it better and its chip playing the moment.
-   */
-  proofPiece?: { said: string; better: string; moment: GlanceMoment; open: () => void } | null;
-  /** TEMPORARY: the variants' one pulse as the proof's moment lands (a phone with a Vibration API). */
-  proofHaptic?: boolean;
+  proof?: (ProofToken & { open: () => void }) | null;
 }
 
 /** The sheet's body (section "detail"): its sections in order, and those Results draws. */
@@ -386,15 +379,17 @@ export function RepResult({
       : null
   );
   /* When the take's own moment sounds (lib/sound-recipes.ts glanceCues):
-     the stars done, after the payout on three. The proof variants' piece
-     lands and their pulse comes on it (TEMPORARY, lib/proof-variant.ts). */
+     the stars done, after the payout on three. Say it better's proof
+     token lands on it (#509), with one short pulse where the phone can be
+     asked for one (a Vibration API, Haptics on); an iPhone ticks on the
+     token's tap instead (TapTick). */
   const momentAt = reduced ? 0 : starsDone + (m.stars === 3 ? PAYOUT_LEAD_MS : 0);
-  const proofHaptic = glancing && timed && !waiting && !!glance?.proofHaptic;
+  const proofPulse = glancing && timed && !waiting && !!glance?.proof;
   useEffect(() => {
-    if (!proofHaptic) return;
+    if (!proofPulse) return;
     const t = setTimeout(() => buzz(20), momentAt);
     return () => clearTimeout(t);
-  }, [proofHaptic, momentAt]);
+  }, [proofPulse, momentAt]);
   const bubbleAt = timed && !reduced ? starsDone + (celebrate ? 240 : 0) : 0;
   const [celebrating, setCelebrating] = useState(false);
   useEffect(() => {
@@ -1269,11 +1264,14 @@ function Glance({
   tall: boolean;
   /** A moment (a best, the first recording, a lesson's ending, a rung): Demos takes his share first. */
   moment: boolean;
-  /** When the take's own moment sounds, in ms from the glance's first frame (TEMPORARY: the proof piece lands on it). */
+  /** When the take's own moment sounds, in ms from the glance's first frame: the proof token lands on it (#509). */
   landed?: number;
 }) {
+  /* One chip plays on a glance (#427). On a take that proved a swap the
+     proof token's is that one (#509): Demos's moment stands as its time,
+     still traced, as it does where nothing can play it. */
   const chip = view.moment ? (
-    take?.playable ? (
+    take?.playable && !view.proof ? (
       <MomentChip moment={view.moment} take={take} marker="glance" />
     ) : (
       /* Nothing can play it (a lost clip): the time as text, never a dead button (#424). */
@@ -1291,24 +1289,11 @@ function Glance({
     if (p.kind === "moment") return;
     const next = view.parts[i + 1];
     if (p.earned) {
-      /* The count of a carried cue that held (#477): earned, so sage.
-         Followed by the chip (variant C's better phrase, TEMPORARY), the
-         two never wrap apart: the chip plays the words it follows. */
-      const sage = (
-        <span key={i} data-glance-held={view.held ? "" : undefined} className="font-semibold text-sage-700">
+      /* The count of a carried cue that held (#477): earned, so sage. */
+      parts.push(
+        <span key={i} data-glance-held className="font-semibold text-sage-700">
           {p.text}
         </span>
-      );
-      parts.push(
-        next?.kind === "moment" ? (
-          <span key={i} className="whitespace-nowrap">
-            {sage}
-            {"\u00a0"}
-            {chip}
-          </span>
-        ) : (
-          sage
-        )
       );
       return;
     }
@@ -1443,78 +1428,53 @@ function Glance({
             ) : null}
           </p>
         )}
-        {/* Say it better's proof (#507): a saved swap said in this take,
-            found in Whisper's words. Earned, so sage; the struck phrase
-            first to go on a tight glance; its chip plays the moment. */}
+        {/* Say it better's proof token (#509): a saved swap's better
+            phrase said in this take, found in Whisper's words. An object
+            outside the word ceiling (OUTSIDE_CEILING), earned so sage, that
+            lands with the take's moment. Two targets side by side, never
+            one in the other: the door opens the swap's sheet over the
+            results, the chip plays where it was said. */}
         {view.proof && ethosIndex !== null && (
-          <p
-            data-say-proof
-            className={`mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-body font-semibold text-sage-700 ${counting ? "" : "invisible"}`}
-          >
-            {view.proof.said && (
-              <>
-                <span className="font-normal text-stone-400 line-through">
-                  <span className="sr-only">Instead of </span>
-                  {view.proof.said}
-                </span>
-                <span aria-hidden className="text-stone-400">
-                  →
-                </span>
-              </>
-            )}
-            <span className="whitespace-nowrap">
-              <span aria-hidden>✓ </span>
-              <span className="sr-only">You said </span>
-              {view.proof.better}
-              {"\u00a0"}
-              {take?.playable ? (
-                <MomentChip moment={view.proof.moment} take={take} marker="say" />
-              ) : (
-                <span className="tabular-nums">{view.proof.moment.clock}</span>
-              )}
-            </span>
-          </p>
-        )}
-        {/* Variant B (TEMPORARY, lib/proof-variant.ts): the proof as a
-            piece, not a sentence. The better phrase over the struck one
-            beside a sage check, the moment's chip, the door's chevron.
-            It lands with the take's moment, the whole piece opening the
-            swap's sheet in Say it better; the chip sits over the door
-            and plays where it was said. */}
-        {view.proofPiece && ethosIndex !== null && (
-          <div className={`mt-3 max-w-full [@media(max-height:700px)]:mt-2 ${counting ? "" : "invisible"}`}>
+          <div className={`mt-3 flex max-w-full justify-center [@media(max-height:700px)]:mt-2 ${counting ? "" : "invisible"}`}>
             <span className="star-land max-w-full" style={{ "--land-after": `${landed}ms` } as CSSProperties}>
-              <span
-                data-say-piece
-                className="relative flex max-w-full items-center gap-2 rounded-[16px] border border-sage-200 bg-sage-50 py-1.5 pr-2.5 pl-2 text-left"
-              >
+              <span {...{ [OUTSIDE_CEILING]: "" }} className="proof-token">
                 <button
                   type="button"
-                  onClick={view.proofPiece.open}
-                  aria-label={`${view.proofPiece.better}, instead of ${view.proofPiece.said}. Open it in Say it better`}
-                  className="press absolute inset-0 rounded-[16px]"
+                  data-say-token-door
+                  onClick={view.proof.open}
+                  aria-haspopup="dialog"
+                  /* Its words first (rule 10), and the struck phrase as a
+                     screen reader is told one everywhere: "instead of". */
+                  aria-label={`${view.proof.better}, instead of ${view.proof.said}`}
+                  className="proof-door"
                 >
+                  <span aria-hidden className="proof-check">
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m3 7.4 2.6 2.6L11 4.4" />
+                    </svg>
+                  </span>
+                  <span aria-hidden className="flex min-w-0 flex-col">
+                    <span className="proof-better">{view.proof.better}</span>
+                    {view.proof.struck !== "never" && (
+                      <span
+                        data-proof-said={view.proof.struck}
+                        className={`proof-said ${view.proof.struck === "wide" ? "[@media(max-width:374px)]:hidden" : ""}`}
+                      >
+                        {view.proof.said}
+                      </span>
+                    )}
+                  </span>
                   <TapTick />
                 </button>
-                <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-sage-600 text-ground">
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m3 7.4 2.6 2.6L11 4.4" />
-                  </svg>
-                </span>
-                <span aria-hidden className="flex min-w-0 flex-col">
-                  <span className="font-display text-detail leading-[1.15] font-bold text-sage-800 [@media(max-height:600px)]:text-body">
-                    {view.proofPiece.better}
-                  </span>
-                  <span className="text-caption leading-[1.15] font-normal text-stone-500 line-through">{view.proofPiece.said}</span>
-                </span>
-                <span className="relative ml-1 shrink-0 text-caption">
+                <span className="proof-play">
                   {take?.playable ? (
-                    <MomentChip moment={view.proofPiece.moment} take={take} marker="say" />
+                    <MomentChip moment={view.proof.moment} take={take} marker="say" />
                   ) : (
-                    <span className="tabular-nums">{view.proofPiece.moment.clock}</span>
+                    <span data-say-chip className="font-semibold tabular-nums">
+                      {view.proof.moment.clock}
+                    </span>
                   )}
                 </span>
-                <Disclosure />
               </span>
             </span>
           </div>

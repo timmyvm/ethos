@@ -14,12 +14,12 @@ import { todayHref } from "@/lib/home";
 import { readable } from "@/lib/load";
 import { poolHere } from "@/lib/pool";
 import {
-  addDays,
   backLine,
   dayOf,
   emptyLine,
   nextDue,
   nextTestLine,
+  nextTestOn,
   sayLists,
   testLabel,
   timesLine,
@@ -59,12 +59,8 @@ const ROW = "flex min-h-14 w-full items-center gap-3 py-3 text-left text-detail 
  * list here (lib/say.ts mergeSwaps). Free: every swap is earned by
  * speaking, so nothing here is capped (#31's three-entry cap is gone).
  */
-export default function SayItBetter({
-  searchParams,
-}: {
-  searchParams: Promise<{ from?: string | string[]; swap?: string | string[] }>;
-}) {
-  const { from, swap: swapAsked } = use(searchParams);
+export default function SayItBetter({ searchParams }: { searchParams: Promise<{ from?: string | string[] }> }) {
+  const { from } = use(searchParams);
   const back = backOf(from);
   const warm = useWarm();
   const [read, setRead] = useState<SayRead | null>(() => (warm ? heldSay() : null));
@@ -146,23 +142,11 @@ export default function SayItBetter({
     }
   };
 
-  /* TEMPORARY (lib/proof-variant.ts, variant B): the glance's proof piece
-     opens its swap's sheet here, once the list has it. */
-  const askedOpen = useRef(false);
-  useEffect(() => {
-    if (askedOpen.current || typeof swapAsked !== "string" || !read) return;
-    askedOpen.current = true;
-    const item = read.items.find((i) => i.swap.key === swapAsked && !i.state.hidden);
-    if (item) setOpen(item);
-  }, [read, swapAsked]);
-
   const items = read?.items ?? [];
   const lists = sayLists(items, today);
   const empty = read !== null && lists.m === 0;
-  /* The day a swap is next tested: today for one of today's three; one
-     due but past the three waits a day; else the day it comes back. */
-  const nextTestDay = (v: SayItem) =>
-    lists.due.some((d) => d.swap.key === v.swap.key) ? today : v.state.due > today ? v.state.due : addDays(today, 1);
+  /* The day a swap is next tested (lib/say.ts nextTestOn). */
+  const nextTestDay = (v: SayItem) => nextTestOn(items, v, today);
   const practice = () => todayHref(heldReps() ?? [], new Date(), poolHere());
 
   return (

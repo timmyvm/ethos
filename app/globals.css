@@ -3848,6 +3848,176 @@ summary::-webkit-details-marker {
 :root[data-motion="reduce"] .moment-chip:active > .moment-pill {
   transform: none;
 }
+
+/*
+ * Say it better's proof token (#509, components/RepResult.tsx Glance):
+ * under the score on the take that said a saved swap's better phrase.
+ * One card-like object, earned so sage: a pale sage fill with a sage
+ * hairline at the card's radius, so it reads as a thing you won rather
+ * than a pill to tap. Two targets side by side, never one inside the
+ * other: the door (the check, the better phrase over the struck one)
+ * opens the swap's sheet over the results, and the moment's chip, its
+ * own 44pt column at the right end, plays where it was said. Pressing
+ * the door veils and settles the whole token; the chip presses its own
+ * pill. In dark the fill is the sage mixed into the ground, not
+ * sage-50's olive, which read muddy (the judges, 18 Nov).
+ */
+.proof-token {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  border-radius: var(--radius-card);
+  transition: transform var(--spring-snappy-duration) var(--spring-snappy);
+}
+/* The fill is its own layer, so on a short phone it can be drawn inside
+   the token's 44pt targets (below). */
+.proof-token::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--color-sage-50);
+  box-shadow: inset 0 0 0 1px var(--color-sage-200);
+}
+:root[data-theme="dark"] .proof-token::before {
+  background-color: color-mix(in srgb, var(--color-sage-600) 13%, var(--color-ground));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-sage-600) 34%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .proof-token::before {
+    background-color: color-mix(in srgb, var(--color-sage-600) 13%, var(--color-ground));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-sage-600) 34%, transparent);
+  }
+}
+.proof-token:has(> .proof-door:active) {
+  transform: scale(0.98);
+}
+.proof-token:has(> .proof-door:active)::before {
+  background-image: linear-gradient(var(--press-veil), var(--press-veil));
+}
+.proof-token:has(> .proof-door:focus-visible)::before {
+  outline: 2px solid var(--color-terracotta-500);
+  outline-offset: 2px;
+}
+.proof-door {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px 7px 9px;
+  border-radius: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.proof-door:focus-visible {
+  outline: none;
+}
+/* The check: earned, on the sage disc. */
+.proof-check {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--color-sage-600);
+  color: var(--color-ground);
+}
+/* The better phrase, the hero: Outfit 17/700 in sage, at most two lines. */
+.proof-better {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  color: var(--color-sage-800);
+  overflow-wrap: anywhere;
+  /* Two lines split evenly, never one word left alone on the second. */
+  text-wrap: balance;
+}
+/* The phrase it replaced, struck, 3px under it on its own line. */
+.proof-said {
+  overflow: hidden;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--color-stone-600);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-stone-500);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The chip's own column: 44pt wide at least, the chip's 44pt hit height. */
+.proof-play {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 44px;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 8px 10px;
+  font-size: 13px;
+}
+/*
+ * Under 600pt tall (320x568) the glance has no room for a second line:
+ * with a level-up and the reminder ask on it the two-line token pushed
+ * the door under the shelf. The token is one line, the better phrase at
+ * 15 with its end cut if it must be (the door's name and the swap's
+ * sheet hold all of it, the struck phrase too), drawn 30pt tall inside
+ * targets that keep their 44: the fill is inset 7pt top and bottom and
+ * the token gives those 14pt back to the glance.
+ */
+@media (max-height: 600px) {
+  .proof-token {
+    margin-block: -7px;
+  }
+  .proof-token::before {
+    inset: 7px 0;
+  }
+  .proof-door {
+    padding-block: 0;
+    gap: 8px;
+  }
+  .proof-check {
+    width: 20px;
+    height: 20px;
+  }
+  .proof-better {
+    display: block;
+    font-size: 15px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+  }
+  .proof-said {
+    display: none;
+  }
+}
+/* `screen and`, as the XP's: lib/hig-a11y.test.ts reads the neutrals' own
+   Increase Contrast block as the first one spelled without it. */
+@media screen and (prefers-contrast: more) {
+  .proof-token::before,
+  :root[data-theme="dark"] .proof-token::before {
+    box-shadow: inset 0 0 0 1px var(--color-sage-600);
+  }
+}
+:root[data-motion="reduce"] .proof-token {
+  transition: none;
+}
+:root[data-motion="reduce"] .proof-token:has(> .proof-door:active) {
+  transform: none;
+}
 /* The ochre's own deeper arc went with D05: Restarts' tone is #b06f00,
    3.23:1 on sand, so its ring and bar are the tone like the other four
    (lib/today-colour.test.ts). */
@@ -7505,6 +7675,7 @@ html[data-test-tile] .test-tile-slot {
   .home-mode,
   .command-row,
   .command-esc,
+  .proof-token,
   .rounded-control,
   .rounded-card,
   .rounded-sheet,
@@ -7527,7 +7698,9 @@ html[data-test-tile] .test-tile-slot {
   .home-mode::before,
   .test-day-fill,
   .test-day[data-today]::after,
-  .tap-tick {
+  .tap-tick,
+  .proof-door,
+  .proof-token::before {
     corner-shape: inherit;
   }
   .rounded-tap,

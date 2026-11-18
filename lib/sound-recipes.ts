@@ -456,13 +456,11 @@ export type GlanceWin = {
   /** The week's boss, scored. */
   boss?: boolean;
   /**
-   * TEMPORARY (lib/proof-variant.ts): Say it better's proof is on the
-   * glance. It plays `round`, the kit's hand won ("ding, DING, five
-   * coins"), under every bigger moment.
+   * Say it better's proof token is on the glance (#509): a saved swap's
+   * better phrase said in this take. It plays `round`, the kit's hand won
+   * ("ding, DING, five coins"), under every bigger moment.
    */
   proof?: boolean;
-  /** Variant C: the proof is Demos's moment, so it ranks over everything but the boss. */
-  proofFirst?: boolean;
 };
 
 /** The glance's clock, from RepResult. */
@@ -484,19 +482,28 @@ export const PAYOUT_LEAD_MS = 700;
 
 /**
  * The one sound that answers what the take won beyond its stars, the
- * rarest first: the week's boss, a level, a lesson, a best, a round.
- * One, so two fanfares never talk over each other.
+ * rarest first: the week's boss, a level, a lesson, a best, then a swap
+ * proved (#509) or a round won, both the hand won. One, so two fanfares
+ * never talk over each other: a level-up outranks a proof.
  */
 export function topMoment(win: GlanceWin): SoundId | null {
   if (win.stars <= 0) return null;
   if (win.boss) return "boss";
-  if (win.proof && win.proofFirst) return "round";
   if (win.level) return "level";
   if (win.lessonDone) return "lesson";
   if (win.best) return "best";
-  if (win.proof) return "round";
-  if (win.roundWon) return "round";
+  if (win.proof || win.roundWon) return "round";
   return null;
+}
+
+/**
+ * The proof is the take's own moment (#509): it is on the glance and no
+ * bigger one owns it (the boss, a level, a lesson, a best), so its sound
+ * plays and Demos cheers as the token lands. Where a bigger moment owns
+ * the glance the token still lands, quietly.
+ */
+export function proofLeads(win: GlanceWin): boolean {
+  return !!win.proof && win.stars > 0 && !win.boss && !win.level && !win.lessonDone && !win.best;
 }
 
 /**

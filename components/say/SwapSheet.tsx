@@ -16,7 +16,9 @@ const SHOWN_USES = 4;
  * grafted): what you said in your own sentence with its moment, the
  * sentence said better, a dated chip for each later recording that used
  * it, and Remove. Remove closes the sheet and the swap comes off as it
- * goes, with the page's Undo (#435).
+ * goes, with the page's Undo (#435). Opened from the results' proof token
+ * (#509) it has no Remove: the results have no Undo, and a swap just
+ * proved is not one to take off there.
  *
  * The moments need Whisper's timed words, which the page does not read
  * for every recording: they are read here, for this swap's recordings
@@ -34,7 +36,8 @@ export function SwapSheet({
   /** The day of its next test: today when it is one of today's three, else the day it comes back. */
   next: string;
   onClose: () => void;
-  onRemove: () => void;
+  /** Say it better's own sheet; absent over the results. */
+  onRemove?: () => void;
 }) {
   const { swap, state, uses } = item;
   const player = useMoments();
@@ -128,7 +131,7 @@ export function SwapSheet({
           )}
         </section>
 
-        <RemoveButton onRemove={onRemove} onClose={onClose} />
+        {onRemove ? <RemoveButton onRemove={onRemove} onClose={onClose} /> : <div aria-hidden className="h-3" />}
       </div>
     </Overlay>
   );

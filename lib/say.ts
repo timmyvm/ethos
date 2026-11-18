@@ -287,6 +287,16 @@ export interface SayLists<V extends SwapView = SwapView> {
   m: number;
 }
 
+/**
+ * The day a swap is next tested: today for one of today's three; one due
+ * but past the three waits a day; else the day it comes back. Say it
+ * better's sheet says it under "In your recordings" until the swap is said.
+ */
+export function nextTestOn<V extends SwapView>(views: readonly V[], v: V, today: string): string {
+  const due = dueToday(views.filter((x) => !x.state.hidden), today);
+  return due.some((d) => d.swap.key === v.swap.key) ? today : v.state.due > today ? v.state.due : addDays(today, 1);
+}
+
 export function sayLists<V extends SwapView>(views: readonly V[], today: string): SayLists<V> {
   const shown = views.filter((v) => !v.state.hidden);
   const due = dueToday(shown, today);
@@ -513,7 +523,7 @@ export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
 /** Every time across the later recordings: "6 times". */
 export const timesUsed = (uses: readonly SwapUse[]) => uses.reduce((n, u) => n + u.times, 0);
 
-/* ---- the glance's proof line -------------------------------------------- */
+/* ---- the glance's proof token (#509) ------------------------------------- */
 
 /** A saved swap this take used: the moment the count moves. */
 export interface Proof {
@@ -562,15 +572,6 @@ export function proofIn(swaps: readonly Swap[], states: SwapStates, take: ProofT
   return best;
 }
 
-/**
- * The proof line's words as the ceiling counts them: whole, "the thing is
- * → ✓ the point is 0:14", or short, the struck phrase dropped first
- * ("✓ the point is 0:14").
- */
-export function proofWords(p: Proof, form: "full" | "short"): string {
-  const tail = `✓ ${p.better} ${clock(p.at)}`;
-  return form === "full" ? `${p.said} → ${tail}` : tail;
-}
 
 /* ---- the words on the screens ------------------------------------------ */
 

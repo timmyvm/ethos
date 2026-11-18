@@ -13,6 +13,7 @@ import {
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_ASK,
   askBudget,
+  starsBudget,
   glanceLine,
   glanceTrait,
   ladderCue,
@@ -442,6 +443,28 @@ describe("earnedLine", () => {
       words: 25,
       short: true,
     });
+  });
+  it("shortens a level-up before a carried cue's line or its Tomorrow (the 18 Nov merge)", () => {
+    /* look-trait-xp's "one" scene on the merged build: a road take ends on
+       "Done for today" (#493), and the stars' goals ride on the ceiling
+       (#504). "Pace reached level 3" fitted only with the line's chip and
+       "Tomorrow:" both cut; "Pace: level 3" gives up its word first, and
+       then the chip goes before "Tomorrow:" does, #477's order. */
+    const goals = ["20+ words", "Under 12 slips", "Under 4 slips"];
+    const fixed = ["Today's practice", "665", "/1000", "▲ 213 since last time", "Every number", "Done for today", "Retake", ...goals];
+    const f = fitGlance(
+      {
+        fixed,
+        line: "“um” 2 times, first 0:02",
+        cue: "Tomorrow: pause where “um” was.",
+        lineShort: "“um” 2 times.",
+        cueShort: "Pause where “um” was.",
+        earned: earnedLine({ bests: [], levelUp: oneUp, trait: "fillers" }),
+      },
+      starsBudget(GLANCE_WORDS, goals)
+    );
+    expect(f).toMatchObject({ cue: "Tomorrow: pause where “um” was.", earned: "Pace: level 3", short: true });
+    expect(f.words).toBeLessThanOrEqual(starsBudget(GLANCE_WORDS, goals));
   });
   it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
     /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again are 20 words. */

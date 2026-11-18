@@ -716,6 +716,13 @@ export async function billingApiRoute(route) {
  *   LOOK_BEST=1 node scripts/look.mjs best rep-results
  */
 export const BEST = process.env.LOOK_BEST === "1";
+/*
+ * LOOK_ONE_STAR=1: the live recording slips 12 times in its 62 seconds
+ * (eleven fillers and a restart), over the second star's line of 11 a
+ * minute (lib/metrics.ts starsFor, #504), so it earns the first star
+ * alone: the glance with one goal lit and two open. Not with LOOK_BEST.
+ */
+export const ONE_STAR = !BEST && process.env.LOOK_ONE_STAR === "1";
 const dim = (score, moment) => ({ score, citedMoment: moment, improve: "Open with the claim, then the example." });
 const LIVE_TIER1 = BEST
   ? { pause: 92, fillers: 88, repairs: 90, pace: 96, range: 84 }
@@ -762,17 +769,22 @@ const LIVE_FILLERS = (() => {
  * with the line Demos says. It counted 4 fillers and a restart with the
  * third star lit, which no take can earn.
  */
-const LIVE_COUNTED = BEST ? LIVE_FILLERS.filter((f) => f.word === "um") : LIVE_FILLERS;
+const LIVE_COUNTED = BEST
+  ? LIVE_FILLERS.filter((f) => f.word === "um")
+  : ONE_STAR
+    ? /* The take's own four, then seven more ums through its middle. */
+      [...LIVE_FILLERS, ...[9.5, 14, 23.5, 29, 34.5, 46, 52].map((t) => ({ word: "um", t }))].sort((a, b) => a.t - b.t)
+    : LIVE_FILLERS;
 const analyze = {
   transcript: LIVE_TRANSCRIPT,
   words: LIVE_WORDS,
   metrics: {
-    durationS: 62, wordCount: LIVE_WORDS.length, wpm: 145, fillerCount: LIVE_COUNTED.length, fillersPerMin: BEST ? 1.9 : 3.9,
+    durationS: 62, wordCount: LIVE_WORDS.length, wpm: 145, fillerCount: LIVE_COUNTED.length, fillersPerMin: BEST ? 1.9 : ONE_STAR ? 10.6 : 3.9,
     fillers: LIVE_COUNTED,
-    fillerCounts: BEST ? { um: 2 } : { um: 2, like: 1, "you know": 1 }, topFiller: "um",
-    repairCount: BEST ? 0 : 1, repairsPerMin: BEST ? 0 : 1, unvoicedHesitations: 1, disfluenciesPerMin: BEST ? 1.9 : 4.8,
+    fillerCounts: BEST ? { um: 2 } : ONE_STAR ? { um: 9, like: 1, "you know": 1 } : { um: 2, like: 1, "you know": 1 }, topFiller: "um",
+    repairCount: BEST ? 0 : 1, repairsPerMin: BEST ? 0 : 1, unvoicedHesitations: 1, disfluenciesPerMin: BEST ? 1.9 : ONE_STAR ? 11.6 : 4.8,
     pauses: [{ t: 2.1, len: 1.2, kind: "pre", verdict: "opening" }, { t: 20, len: 0.9, kind: "mid" }, { t: 41, len: 1.5, kind: "pre", verdict: "landing" }, { t: 58, len: 1.1, kind: "pre" }],
-    heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: BEST ? 3 : 2,
+    heldPauses: 4, composedPauses: 3, midSentencePauses: 1, stars: BEST ? 3 : ONE_STAR ? 1 : 2,
     substance: { wordCount: LIVE_WORDS.length, distinctRatio: 0.62, repeatShare: 0.05 },
   },
   /* Pace and Variety a few points over the fixture's last recording, so
@@ -780,10 +792,10 @@ const analyze = {
   tier1: LIVE_TIER1,
   anchors: { hedgeCount: 2, restartCount: BEST ? 0 : 1 },
   coach: {
-    focus: BEST ? "Kill \u2018um\u2019. Both your fillers were it." : "Kill \u2018um\u2019. 2 of your 4 fillers.",
+    focus: BEST ? "Kill \u2018um\u2019. Both your fillers were it." : ONE_STAR ? "Kill \u2018um\u2019. 9 of your 11 fillers." : "Kill \u2018um\u2019. 2 of your 4 fillers.",
     strength: "Held the pause before \u2018the mistake people make\u2019.",
     supply: { original: "a week nobody could really do", upgrade: "an impossible week", note: "It says the same in fewer words." },
-    coachLine: BEST ? "2 fillers in 62s. Tomorrow: kill \u2018um\u2019." : "4 fillers in 62s. Tomorrow: kill \u2018um\u2019.",
+    coachLine: BEST ? "2 fillers in 62s. Tomorrow: kill \u2018um\u2019." : ONE_STAR ? "11 fillers in 62s. Tomorrow: kill \u2018um\u2019." : "4 fillers in 62s. Tomorrow: kill \u2018um\u2019.",
     dimensions: LIVE_TIER2,
   },
   ethosIndex: indexOf(LIVE_TIER1, LIVE_TIER2), previousIndex: reps[reps.length - 1].ethos_index, repId: "rep-live", scorable: true,

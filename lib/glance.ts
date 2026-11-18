@@ -649,11 +649,18 @@ export function fitGlance(
     if (p.lineShort) forms.push([p.lineShort, p.cue, true]);
     if (p.cueShort) forms.push([p.line, p.cueShort, false]);
     if (p.lineShort && p.cueShort) forms.push([p.lineShort, p.cueShort, true]);
-    for (const earned of earnedForms) {
-      for (const [line, cue, short] of forms) {
-        const words = total(line, cue, earned);
-        if (words <= budget) return { cue, earned, words, short };
-      }
+    /* Any other earned line keeps #477's order: the line and the cue
+       shorten before its tail goes. A level-up gives up its words before
+       the line or the cue gives up any (#498): its forms are tried inside
+       each of theirs, so "Pace: level 3" is tried before the line loses
+       its chip or the cue its "Tomorrow:" (the 18 Nov merge: "Pace
+       reached level 3" had kept its word while both of theirs went). */
+    const tries: [string | null, [string, string | null, boolean]][] = p.earned?.levelUp
+      ? forms.flatMap((f) => earnedForms.map((e): [string | null, [string, string | null, boolean]] => [e, f]))
+      : earnedForms.flatMap((e) => forms.map((f): [string | null, [string, string | null, boolean]] => [e, f]));
+    for (const [earned, [line, cue, short]] of tries) {
+      const words = total(line, cue, earned);
+      if (words <= budget) return { cue, earned, words, short };
     }
   }
   let cue = p.cue;

@@ -139,3 +139,60 @@ describe("syncFreezes and a failed read", () => {
     expect(db.row).toBe(2);
   });
 });
+
+/*
+ * The reads go together (#508, the speed audit's fix 8): the frozen days,
+ * the freezes bought and the mirror's row have no order between them, and
+ * one after another they were three round trips before the streak chip
+ * settled.
+ */
+describe("the freeze sync's reads", () => {
+  it("leave together, before any of them has answered", async () => {
+    const started: string[] = [];
+    let answered = 0;
+    const slow = <T,>(name: string, value: () => T) => async () => {
+      started.push(`${name}@${answered}`);
+      await new Promise((r) => setTimeout(r, 5));
+      answered += 1;
+      return value();
+    };
+    const cd = await import("./client-data");
+    const spies = [
+      vi.spyOn(cd, "fetchFrozenDays").mockImplementation(slow("frozen", () => [] as Date[])),
+      vi.spyOn(cd, "purchasedFreezes").mockImplementation(slow("purchased", () => 0)),
+      vi.spyOn(cd, "fetchStreakRow").mockImplementation(slow("row", () => ({ freezes_equipped: 0 }))),
+    ];
+    try {
+      await syncFreezes(run(0, 3), day(3, 20));
+      expect(started.sort()).toEqual(["frozen@0", "purchased@0", "row@0"]);
+    } finally {
+      spies.forEach((s) => s.mockRestore());
+    }
+  });
+
+  it("read the mirror's row again only after a rescue wrote it", async () => {
+    // Ten days spoken, yesterday missed: this morning's open rescues it.
+    const reps = run(0, 9);
+    db.row = 1;
+    const cd = await import("./client-data");
+    const rowReads = vi.spyOn(cd, "fetchStreakRow");
+    try {
+      const out = await syncFreezes(reps, day(11, 8));
+      expect(out.rescued).toHaveLength(1);
+      expect(rowReads).toHaveBeenCalledTimes(2);
+      rowReads.mockClear();
+      // The next open has nothing to rescue: one read of the row.
+      await syncFreezes(reps, day(11, 9));
+      expect(rowReads).toHaveBeenCalledTimes(1);
+    } finally {
+      rowReads.mockRestore();
+    }
+  });
+
+  it("a failed read still writes nothing", async () => {
+    db.failFrozenRead = true;
+    db.row = 1;
+    await expect(syncFreezes(run(0, 3), day(3, 20))).rejects.toThrow();
+    expect(db.grants).toEqual([]);
+  });
+});

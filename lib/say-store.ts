@@ -33,6 +33,7 @@ import {
 import {
   coachSwap,
   freshState,
+  heardState,
   mergeSwaps,
   partsOf,
   stateOf,
@@ -432,7 +433,7 @@ export async function fetchSwapsForProof(): Promise<{ swaps: Swap[]; states: Swa
   return { swaps, states };
 }
 
-/** A swap the glance has just shown as proof: heard, so it is said once. */
+/** A swap the glance has just shown as proof: heard, so it is said once (lib/say.ts heardState). */
 export async function markHeard(states: SwapStates, swap: Swap, at: Date = new Date()): Promise<void> {
-  await saveSwapState(swap, { ...stateOf(swap, states), heardAt: at.toISOString(), at: at.toISOString() });
+  await saveSwapState(swap, heardState(swap, states, at));
 }

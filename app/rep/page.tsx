@@ -131,7 +131,7 @@ import { writeSpokeHint } from "@/lib/spoke-hint";
 import { celebrates, type RewardMoment } from "@/lib/rewards";
 import { markRulesNoteTold, rulesNoteForAnswer, rulesNoteShown, rulesNoteTold, type RulesNote } from "@/lib/pause-rules";
 import { GAMES_LOG_HREF, GAMES_LOG_LABEL } from "@/lib/log-view";
-import { dayOf, nextTestOn, proofIn, stateOf, usesOf, type Swap, type SwapStates } from "@/lib/say";
+import { dayOf, heardIn, nextTestOn, proofIn, stateOf, usesOf, type Swap, type SwapStates } from "@/lib/say";
 import { fetchSay, fetchSwapsForProof, markHeard, type SayItem } from "@/lib/say-store";
 import { SwapSheet } from "@/components/say/SwapSheet";
 import { proofLeads } from "@/lib/sound-recipes";
@@ -2068,6 +2068,10 @@ function RepScreen() {
           cueBefore={carried.state}
           onCue={carried.save}
           say={sayData}
+          /* The swap the glance just proved is heard on this screen too:
+             its next take (Retake, Practice 2 of 3, the next lesson) proves
+             from this read, and never proves the same swap twice (#509 review). */
+          onHeard={(swap) => setSayData((d) => (d ? { ...d, states: heardIn(d.states, swap) } : d))}
           startedAt={takeStartedAt.current}
           walkRows={walkRows}
           streakMoment={owedMoment}
@@ -2919,6 +2923,7 @@ function Results({
   cueBefore,
   onCue,
   say,
+  onHeard,
   startedAt,
   walkRows,
   streakMoment: owedStreak,
@@ -2961,6 +2966,8 @@ function Results({
   onCue: (next: CueState) => void;
   /** Say it better's swaps and their state (#507), for the glance's proof token (#509); null until read. */
   say: { swaps: Swap[]; states: SwapStates } | null;
+  /** The swap the token has just shown, heard: the screen's read keeps it for its next take. */
+  onHeard?: (swap: Swap) => void;
   /** When this take started (ms), for the hour the reminder ask offers. */
   startedAt: number;
   /** A game's rows before this round and with it; null until read, or when the read failed. */
@@ -3598,7 +3605,10 @@ function Results({
   useEffect(() => {
     if (!token || !sayAtLanding) return;
     const swap = sayAtLanding.swaps.find((s) => s.key === token.key);
-    if (swap) void markHeard(sayAtLanding.states, swap).catch(() => {});
+    if (swap) {
+      void markHeard(sayAtLanding.states, swap).catch(() => {});
+      onHeard?.(swap);
+    }
     // Once per take: the proof is fixed at the glance's first frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token?.key]);

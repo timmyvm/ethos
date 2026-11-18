@@ -10,6 +10,7 @@ import {
   dueToday,
   endLine,
   freshState,
+  heardIn,
   markIn,
   mergeSwaps,
   nextDue,
@@ -31,6 +32,7 @@ import {
 import { GLANCE_WORDS, countWords, earnedLine, fitGlance, fitGlanceProof, proofToken, starsBudget } from "./glance";
 import { levelUpLine } from "./traits";
 import { starGoals } from "./metrics";
+import { readFileSync } from "node:fs";
 
 const at = (day: string, hour = 18) => new Date(`${day}T${String(hour).padStart(2, "0")}:12:00`).toISOString();
 
@@ -233,6 +235,30 @@ describe("the glance's proof line", () => {
     expect(proofIn(swaps, heard, take)?.key).toBe("c:2");
     const hidden = { "c:1": { ...freshState(swaps[0]), hidden: true }, "c:2": { ...freshState(swaps[1]), hidden: true } };
     expect(proofIn(swaps, hidden, take)).toBeNull();
+  });
+
+  /* The #509 review: the recorder's screen read the swaps once, as it
+     opened, and kept that read for every take on it. A Retake, Practice 2
+     of 3 or the next lesson that said the same phrase proved it again:
+     the token, the round's sound and Demos's cheer on every take. */
+  it("says it once on the same screen too: the next take there (Retake, the next practice) never proves the swap again", () => {
+    const shownAt = new Date(at("2026-11-18", 21));
+    const after = heardIn({}, swaps[0], shownAt);
+    expect(proofIn(swaps, after, take)?.key).toBe("c:2");
+    // Its place in the test is kept: only when it was heard moves.
+    expect(after["c:1"]).toEqual({ ...freshState(swaps[0]), heardAt: shownAt.toISOString(), at: shownAt.toISOString() });
+    // A merged swap is heard under every key it stands for, as markHeard keeps it.
+    const merged = mergeSwaps(
+      [coachSwap({ id: "m1", original: "the thing is", upgrade: "the point is", created_at: at("2026-11-15"), rep_id: null })],
+      [wordSwap({ id: "m2", word: "the thing is", instead: "the point is", sentence: null, rep_id: null, created_at: at("2026-11-16") })]
+    )[0];
+    const both = heardIn({}, merged, shownAt);
+    expect(Object.keys(both).sort()).toEqual(["c:m1", "w:m2"]);
+    expect(proofIn([merged], both, take)).toBeNull();
+    // The screen keeps the mark it shows: the recorder holds the read its next take proves from.
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    expect(page).toMatch(/onHeard=\{\(swap\) => setSayData\(\(d\) => \(d \? \{ \.\.\.d, states: heardIn\(d\.states, swap\) \} : d\)\)\}/);
+    expect(page.slice(page.indexOf("function Results("))).toMatch(/void markHeard\(sayAtLanding\.states, swap\)[\s\S]{0,80}onHeard\?\.\(swap\)/);
   });
 
   it("hands the glance the pair and where it was said: the token's words, the struck phrase and the better one", () => {

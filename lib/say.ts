@@ -572,6 +572,25 @@ export function proofIn(swaps: readonly Swap[], states: SwapStates, take: ProofT
   return best;
 }
 
+/** A swap the glance has shown as proof, heard: its place in the test kept, only when it was heard moves. */
+export function heardState(swap: Swap, states: SwapStates, at: Date = new Date()): SwapState {
+  const iso = at.toISOString();
+  return { ...stateOf(swap, states), heardAt: iso, at: iso };
+}
+
+/**
+ * The test's states with a swap heard under every key it stands for, as
+ * markHeard keeps it (the #509 review). The recorder's screen holds this
+ * for its next take: it read the swaps once, as it opened, so a Retake,
+ * Practice 2 of 3 or the next lesson that said the same phrase proved it
+ * again, token, sound and cheer, on every take.
+ */
+export function heardIn(states: SwapStates, swap: Swap, at: Date = new Date()): SwapStates {
+  const next = heardState(swap, states, at);
+  const out: Record<string, SwapState> = { ...states };
+  for (const p of partsOf(swap)) out[p.key] = next;
+  return out;
+}
 
 /* ---- the words on the screens ------------------------------------------ */
 

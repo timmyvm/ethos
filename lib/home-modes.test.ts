@@ -87,6 +87,10 @@ describe("the weekly boss's tile", () => {
     const done = bossTile({ now: NOW, rows: [ago(20, "boss:dunning-kruger")] });
     expect(done.line).toBe("Done this week");
     expect(done.done).toBe(true);
+    // Done names the topic the take stored, as the Log's row does (#494
+    // review): a Spin or a pick takes another than the week's.
+    expect(weeklyTopic(NOW).id).not.toBe("dunning-kruger");
+    expect(done.subject).toBe(COLD_TOPICS.find((c) => c.id === "dunning-kruger")?.title);
     const last = bossTile({ now: NOW, rows: [ago(24 * 4, "boss:dunning-kruger"), ago(1, HOSTILE_TAKE_ID)] });
     expect(last.line).toBe(BOSS_ASK_LINE);
     expect(last.done).toBe(false);

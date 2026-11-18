@@ -1,5 +1,6 @@
+import { weeklyTopic, type ColdTopic } from "./cold-topics";
 import { weekStart } from "./level";
-import { BOSS_XP_BASE } from "./rep-config";
+import { BOSS_XP_BASE, topicFromLessonId } from "./rep-config";
 
 /**
  * Cold Topic's reading clock (D30). The boss screen counts the reading
@@ -80,6 +81,20 @@ export function takeThisWeek<T extends BossTakeRow>(
   const monday = weekStart(now);
   const inWeek = takesIn(rows, monday, addWeeks(monday, 1));
   return inWeek.find((r) => r.ethos_index !== null) ?? inWeek[0] ?? null;
+}
+
+/**
+ * The topic the boss's card names this week (#494 review): the one the
+ * week's take stored (`boss:<id>`) once it is taken, else the week's own
+ * (`weeklyTopic`). Spin and Pick a topic take another than the week's,
+ * and "Done this week" under the week's topic then named a take the Log's
+ * row, which reads the stored topic, says was on something else.
+ * Practice's stage, Today's tile and a spent week's /boss read it. Rows
+ * unread (null) are the week's own topic.
+ */
+export function bossCardTopic(rows: readonly BossTakeRow[] | null, now: Date = new Date()): ColdTopic {
+  const take = rows ? takeThisWeek(rows, now) : null;
+  return topicFromLessonId(take?.lesson_id ?? null) ?? weeklyTopic(now);
 }
 
 const HOUR_MS = 3_600_000;

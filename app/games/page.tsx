@@ -19,9 +19,8 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { ErrorLine } from "@/components/ui/ErrorState";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { BOSS_DONE_LINE } from "@/lib/boss";
+import { BOSS_DONE_LINE, bossCardTopic } from "@/lib/boss";
 import { dayKey } from "@/lib/challenge";
-import { weeklyTopic } from "@/lib/cold-topics";
 import { BOSS_ASK_LINE, hostileTile } from "@/lib/home-modes";
 import {
   fetchGameRounds,
@@ -218,8 +217,11 @@ export default function GamesPage() {
   const startLabel = bossDone ? "Again" : "Start";
   /* The week's topic is the stage's title (#494, one name and one face
      for the boss): read from the device's clock, so unknown until a
-     cold open has mounted. */
-  const topic = now ? weeklyTopic(now) : null;
+     cold open has mounted. Once the week is taken it is the topic the
+     take stored (`bossCardTopic`, #494 review): a Spin or a pick takes
+     another, and "Done this week" under the week's own named a take
+     the Log's row says was on something else. */
+  const topic = now ? bossCardTopic(rows, now) : null;
   /* Hostile Q&A's tile says what Today's says (lib/home-modes.ts): "3
      free today", "Next in about 5 hours", or on Premium the one rule. */
   const hostile = hostileTile({ now, premium, rows });

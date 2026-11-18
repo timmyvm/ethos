@@ -3,12 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   BOSS_DONE_LINE,
   BOSS_RESEARCH_SECONDS,
+  bossCardTopic,
   bossXpMultiplier,
   lastBossWeek,
   takeThisWeek,
   type BossTakeRow,
 } from "./boss";
 import * as boss from "./boss";
+import { COLD_TOPICS, weeklyTopic } from "./cold-topics";
+import { bossWeekRows } from "./games-log";
+import { bossTile } from "./home-modes";
 import { BOSS_XP_BASE } from "./rep-config";
 
 /*
@@ -109,6 +113,8 @@ describe("the boss card says the boss, not its clocks", () => {
       [
         "BOSS_DONE_LINE",
         "BOSS_RESEARCH_SECONDS",
+        // The topic its card names (#494 review): a topic, never a clock.
+        "bossCardTopic",
         "bossWeekField",
         "bossXpMultiplier",
         "isBossTake",
@@ -173,6 +179,57 @@ describe("this week's take", () => {
     expect(takeThisWeek([{ created_at: at(2026, 10, 3), lesson_id: "topic:t1", ethos_index: 700 }], NOW)).toBeNull();
     expect(takeThisWeek([take(new Date(2026, 10, 1, 23, 59).toISOString(), 650)], NOW)).toBeNull();
     expect(takeThisWeek([take(new Date(2026, 10, 2, 0, 0).toISOString(), 684)], NOW)?.ethos_index).toBe(684);
+  });
+});
+
+/*
+ * #494 review: the week's topic became the card's title on Practice and
+ * /boss, over "Done this week". A Spin or a pick takes another topic, so
+ * the card named the week's topic for a take the Log's row (which reads
+ * the stored topic) says was on something else. A taken week's card
+ * names what its take stored.
+ */
+describe("the topic the boss's card names", () => {
+  const NOW = new Date(2026, 10, 18, 10);
+  const week = weeklyTopic(NOW);
+  const other = COLD_TOPICS.find((t) => t.id !== week.id) as (typeof COLD_TOPICS)[number];
+  const row = (d: number, id: string, ethos_index: number | null = 650): BossTakeRow => ({
+    created_at: new Date(2026, 10, d, 9).toISOString(),
+    lesson_id: `boss:${id}`,
+    ethos_index,
+  });
+
+  it("is the week's own until the week is taken, and while the rows are unread", () => {
+    expect(bossCardTopic([], NOW).id).toBe(week.id);
+    expect(bossCardTopic(null, NOW).id).toBe(week.id);
+    // Last week's take, on whatever topic, is last week's.
+    expect(bossCardTopic([row(15, other.id)], NOW).id).toBe(week.id);
+  });
+
+  it("is the topic the week's take stored, the take See your take opens and the Log's row names", () => {
+    const rows = [row(16, other.id, null), row(17, week.id, 640)];
+    // The week's take is its first scored one: the week's own topic here.
+    expect(bossCardTopic(rows, NOW).id).toBe(week.id);
+    expect(bossCardTopic([row(16, other.id)], NOW).id).toBe(other.id);
+    expect(bossCardTopic([row(16, other.id)], NOW).id).toBe(takeThisWeek([row(16, other.id)], NOW)?.lesson_id?.slice(5));
+    const [logRow] = bossWeekRows([{ id: "x", ...row(16, other.id) }]);
+    expect(bossCardTopic([row(16, other.id)], NOW).title).toBe(logRow.topic);
+  });
+
+  it("falls back to the week's own for a topic this build no longer has", () => {
+    expect(bossCardTopic([row(16, "gone-topic")], NOW).id).toBe(week.id);
+  });
+
+  it("is what Practice's stage, Today's tile and a taken /boss read", () => {
+    const practice = readFileSync("app/games/page.tsx", "utf8");
+    expect(practice).toContain("const topic = now ? bossCardTopic(rows, now) : null;");
+    expect(practice).not.toContain("weeklyTopic(");
+    const lobby = readFileSync("app/boss/page.tsx", "utf8");
+    expect(lobby).toContain("const stored = bossCardTopic(reps, now);");
+    // Never over a Spin or a pick already made.
+    expect(lobby).toContain("setTopic((t) => (t === null || t.id === w.id ? stored : t));");
+    expect(bossTile({ now: NOW, rows: [row(16, other.id)] }).subject).toBe(other.title);
+    expect(bossTile({ now: NOW, rows: [] }).subject).toBe(week.title);
   });
 });
 

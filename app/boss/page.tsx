@@ -14,7 +14,7 @@ import { Disclosure } from "@/components/ui/Disclosure";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { HeroStage } from "@/components/ui/HeroStage";
 import { BackLink } from "@/components/ui/ScreenHeader";
-import { BOSS_DONE_LINE, BOSS_RESEARCH_SECONDS, takeThisWeek } from "@/lib/boss";
+import { BOSS_DONE_LINE, BOSS_RESEARCH_SECONDS, bossCardTopic, takeThisWeek } from "@/lib/boss";
 import { fetchProfile, fetchReps } from "@/lib/client-data";
 import { BOSS_ASK_LINE } from "@/lib/home-modes";
 import { COLD_TOPICS, weeklyTopic, type ColdTopic } from "@/lib/cold-topics";
@@ -129,6 +129,13 @@ export default function BossPage() {
         const take = takeThisWeek(reps, now);
         setTakeId(take?.id ?? null);
         setTaken(take !== null);
+        /* A taken week opens on the topic its take stored, the one
+           Practice's card, Today's tile and the Log's row name under
+           "Done this week" and See your take opens (#494 review): a
+           Spin or a pick takes another than the week's. Unless a Spin
+           or a pick has already moved the title. */
+        const stored = bossCardTopic(reps, now);
+        setTopic((t) => (t === null || t.id === w.id ? stored : t));
       })
       // Unknown, not taken: a failed read never locks the week.
       .catch(() => setTaken(null));

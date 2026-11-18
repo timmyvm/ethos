@@ -285,7 +285,7 @@ describe("CueRunner: a moment's sounds on its clock", () => {
       pending: () => timers.size,
     };
   }
-  const cue = (sound: Cue["sound"], atMs: number, slot = sound): Cue => ({ sound, atMs, slot });
+  const cue = (sound: Cue["sound"], atMs: number, slot: string = sound): Cue => ({ sound, atMs, slot });
 
   it("plays each cue at its time", () => {
     const c = clock();

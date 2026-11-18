@@ -3,7 +3,8 @@
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { expectDraw, markDrawn } from "@/lib/first-draw";
 import {
   IconBubble,
   IconGauge,
@@ -156,6 +157,15 @@ export default function GamesPage() {
   const [now, setNow] = useState<Date | null>(() => (warm ? new Date() : null));
   /* Every game round the ladder reads (lib/client-data.ts). */
   const [rounds, setRounds] = useState<Rounds>(() => (warm ? heldGameRounds() : null));
+  /* Practice says when its ladder is drawn (or failed), so what can wait
+     for the screen does: Demos's idle clip, the tab swipe's neighbours,
+     the worker's install (#508, lib/first-draw.ts). */
+  useLayoutEffect(() => {
+    expectDraw();
+  }, []);
+  useEffect(() => {
+    if (rounds !== null) markDrawn();
+  }, [rounds]);
   /* Demos springs onto the stage on the first visit of the week and
      stands still after that: he appears at moments, never as furniture,
      and a tab you come back to is not a moment. Null until read, so he

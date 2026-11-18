@@ -79,6 +79,29 @@ export function whenIdle(fn: () => void, timeout = 2000): () => void {
   return () => clearTimeout(id);
 }
 
+/**
+ * Runs `fn` once the first screen is drawn and the phone is idle: what
+ * can wait for the screen (#508, the speed audit's fix 11), the tab
+ * swipe's neighbours, Demos's idle clip. A screen that never said it
+ * would announce its draw counts as drawn, so this only ever waits on
+ * one that did. Returns a cancel.
+ */
+export function afterFirstScreen(fn: () => void, timeout = 2000): () => void {
+  let cancelIdle = () => {};
+  const go = () => {
+    cancelIdle = whenIdle(fn, timeout);
+  };
+  if (!expected || drawn) {
+    go();
+    return () => cancelIdle();
+  }
+  const stop = onDrawn(go);
+  return () => {
+    stop();
+    cancelIdle();
+  };
+}
+
 /** Tests only. */
 export function resetDrawn(): void {
   expected = false;

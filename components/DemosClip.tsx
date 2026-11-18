@@ -6,6 +6,7 @@ import { clipSrc, hasClip, restMs, type ClipPose } from "@/lib/idle-clips";
 import { onLayers, underLayer } from "@/lib/overlay-layers";
 import { prefersReducedMotion } from "@/lib/prefs";
 import { autoLite } from "@/lib/graphics";
+import { afterFirstScreen } from "@/lib/first-draw";
 
 export { hasClip, type ClipPose };
 
@@ -170,9 +171,16 @@ export function DemosClip({
     /* The sources go on, and the load starts, the first time he is
        seen (E59): until then the clip has cost no bytes. */
     let loaded = false;
+    let cancelLoad = () => {};
     const load = () => {
       if (loaded) return;
       loaded = true;
+      /* And not before the screen he stands on has drawn its numbers
+         (#508): on Practice the clip's 180 KB went out beside its reads. */
+      cancelLoad = afterFirstScreen(attach);
+    };
+    const attach = () => {
+      if (disposed) return;
       const sources = [
         ["webm", 'video/webm; codecs="vp9"'],
         /* No codecs string: libx264's profile is its own choice, and a
@@ -315,6 +323,7 @@ export function DemosClip({
 
     return () => {
       disposed = true;
+      cancelLoad();
       stopTicking();
       clearTimeout(rest);
       seen.disconnect();

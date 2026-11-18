@@ -33,6 +33,9 @@ export function ModeRows({ tiles }: { tiles: readonly ModeTile[] }) {
         <Link
           key={t.id}
           href={t.href}
+          /* Hostile and the boss can wait: their pages are not fetched
+             beside Today's own reads (#508). Start is the one tap that is. */
+          prefetch={false}
           aria-label={t.label}
           data-mode={t.id}
           className={`home-mode ${t.id === "hostile" ? "tone-coral" : "tone-sky"}`}

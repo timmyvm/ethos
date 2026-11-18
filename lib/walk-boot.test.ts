@@ -133,12 +133,12 @@ describe("the room's door before React (fix 13)", () => {
     ];
     for (const w of walks) {
       for (const search of ["", "?step=plan"]) {
-        const store = w === null ? {} : { [ONBOARDING_KEY]: JSON.stringify(w) };
+        const store: Record<string, string> = w === null ? {} : { [ONBOARDING_KEY]: JSON.stringify(w) };
         const p = page("/welcome", search, store);
         p.run(walkBootScript);
         if (p.attrs.get("data-walk") !== "room") continue;
         // Shown: the walk itself must open on the room.
-        vi.stubGlobal("localStorage", { getItem: (k: string) => (store as Record<string, string>)[k] ?? null });
+        vi.stubGlobal("localStorage", { getItem: (k: string) => store[k] ?? null });
         try {
           const saved = readOnboarding();
           expect(roomDue({ asked: search ? "plan" : null, done: saved.done, step: saved.step }), JSON.stringify(w)).toBe(true);

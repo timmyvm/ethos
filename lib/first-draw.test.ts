@@ -71,3 +71,43 @@ describe("the splash lands on a drawn Today", () => {
     expect(lift).toMatch(/after\(SPLASH_WAIT_CAP_MS\)/);
   });
 });
+
+describe("what waits for the first screen (fix 11)", () => {
+  beforeEach(resetDrawn);
+
+  it("waits for a screen that said it would be drawn, then for idle", async () => {
+    const { afterFirstScreen } = await import("./first-draw");
+    const fn = vi.fn();
+    expectDraw();
+    afterFirstScreen(fn, 10);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(fn).not.toHaveBeenCalled();
+    markDrawn();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs on idle for a screen that never said, and can be called off", async () => {
+    const { afterFirstScreen } = await import("./first-draw");
+    const fn = vi.fn();
+    afterFirstScreen(fn, 10);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(fn).toHaveBeenCalledTimes(1);
+    const off = vi.fn();
+    expectDraw();
+    afterFirstScreen(off, 10)();
+    markDrawn();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(off).not.toHaveBeenCalled();
+  });
+
+  it("Today's rows to Hostile and the boss are not fetched beside its reads; the clip and the neighbours wait", () => {
+    expect(src("components/home/ModeRows.tsx")).toMatch(/prefetch=\{false\}/);
+    expect(src("components/home/HomeHero.tsx")).not.toMatch(/prefetch=\{false\}/);
+    expect(src("components/TabSwipe.tsx")).toMatch(/return afterFirstScreen\(ask, 2500\);/);
+    expect(src("components/DemosClip.tsx")).toMatch(/cancelLoad = afterFirstScreen\(attach\);/);
+    const games = src("app/games/page.tsx");
+    expect(games).toMatch(/useLayoutEffect\(\(\) => \{\s*expectDraw\(\);/);
+    expect(games).toMatch(/if \(rounds !== null\) markDrawn\(\);/);
+  });
+});

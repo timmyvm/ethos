@@ -543,7 +543,7 @@ describe("a line something can miss", () => {
     const week = [10, 12, 15, 18].map((fillers, i) => take(nov(3 + i), { fillers }));
     const worse = buildChallenge([...week, take(nov(12, 9), { fillers: 24 })], now)!;
     expect(worse).toMatchObject({ trait: "fillers", line: 10, closed: false, cleared: { n: 3, of: 4 } });
-    expect(challengeLine(worse)).toBe("16 um or uh per hundred words today. The line is 10.");
+    expect(challengeLine(worse)).toBe("16 um or uh in 100 words today. The line is 10.");
     // A close at the floor fills the ring.
     const better = buildChallenge([...week, take(nov(12, 9), { fillers: 13 })], now)!;
     expect(better).toMatchObject({ closed: true, value: 1 });

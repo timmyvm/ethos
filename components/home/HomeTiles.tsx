@@ -3,39 +3,44 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { CountUp } from "@/components/CountUp";
-import { IconCheck, IconFlag } from "@/components/Icon";
+import { IconCheck, IconFlag, IconWave } from "@/components/Icon";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { TraitGlyph } from "@/components/TraitGlyph";
 import { TRAIT, type TraitId } from "@/content/traits";
 import type { Challenge } from "@/lib/challenge";
 import type { RepRow } from "@/lib/client-data";
-import { SHORT_UNIT, UNIT_EM, cleanRunTile, numEm, traitOrder, wideLine } from "@/lib/home";
+import { RUN_FIRST, RUN_NAME, cleanRunTile, tileUnit, traitOrder, wideLine } from "@/lib/home";
 import { DURATION } from "@/lib/motion";
-import { fmtRaw, measured, ordinal, readTraitsFromRow, type TraitReading } from "@/lib/trait-readings";
+import { fmtRaw, measured, readTraitsFromRow, type TraitReading } from "@/lib/trait-readings";
 
 /**
  * Today's bento (#393, D22 and D23): the card's trait wide, with today's
- * line in its right half; the clean run as one full-width row; then the
- * other four traits, lowest percentile first, each with its emblem, its
- * number big and its percentile under a bar.
+ * line in its right half; the no-filler run as one full-width row; then
+ * the other four traits, lowest percentile first. Since #495 (the
+ * morning tour: "46 s", "Of 65s. Best 53s.", three numbers and a bare
+ * "18th" in one tile) every tile is one number and one plain line a
+ * first-timer reads in two seconds: the trait's number over its unit in
+ * the trait's own words, the run's seconds over what they are. The
+ * percentile bars and their ordinals are gone from the tiles; the trait
+ * page says where you sit, in words.
  *
  * Every tile is the surface step at the tile radius, with no shadow:
  * the card above is the one lifted thing. Flat since #478 (Timothy, 16
  * Nov: "the glow in today traits is bad so lets remove that. fucks w
  * visual hierarchy"): no glass object, no light behind one. A trait's
  * colour is its flat glyph before its name (`TraitGlyph`, the app's
- * line set in the trait's tone) and its bar's fill, never the tile's
- * ground. What is earned (clearing your line, a clean stretch) fills in
- * sage.
+ * line set in the trait's tone), never the tile's ground. What is
+ * earned (clearing your line, a stretch with no filler) is sage: the
+ * line's check and the run's wave.
  *
  * Only the card stands an object (docs/plan-next.md section 1: only the
  * thing to do today glows). Today's line shows once: it lives in the
- * wide tile, where the trait's number already is, as a tick on its bar.
+ * wide tile's right half, beside the trait's number, as one sentence.
  *
- * Unknown is never zero: with no recording a trait prints a dash and an
- * empty trough, and so do today's line (absent under three readings in
- * the week, lib/challenge.ts) and the clean run, so day zero stands the
- * same rows the skeleton held and nothing under the card moves.
+ * Unknown is never zero: with no recording a trait prints a dash, and
+ * so do today's line (absent under three readings in the week,
+ * lib/challenge.ts) and the run, so day zero stands the same rows the
+ * skeleton held and nothing under the card moves.
  */
 export function TodayTiles({
   reps,
@@ -74,7 +79,7 @@ export function TodayTiles({
       <div className="arrive">
         <div className="mt-3 grid grid-cols-2 gap-3">{wide}</div>
         <div className="mt-3">
-          <RunRow head="Clean run" caption="Your longest stretch with no filler." />
+          <RunRow />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">{four}</div>
       </div>
@@ -86,32 +91,47 @@ export function TodayTiles({
        another (the motion layer's stagger). */
     <div className="stagger mt-3 grid grid-cols-2 gap-3 [--stagger-lead:80ms]">
       {wide}
-      {run ? (
-        <CleanRunRow run={run} />
-      ) : (
-        <RunRow head="Clean run" caption="Your longest stretch with no filler." />
-      )}
+      {run ? <CleanRunRow run={run} /> : <RunRow />}
       {four}
     </div>
   );
 }
 
 /**
- * A number and its unit on one line, sharing a baseline. The line's own
- * size is the tile's number size, so its baseline holds whatever the
- * number fits to; the number takes the largest size up to the tile's
- * that leaves its unit room (`.home-num`), so no unit wraps under it.
+ * A tile's number, at the tile's number size, with its unit in words on
+ * the line under it (#495). The unit is the tile's one line: "0.7" over
+ * "um or uh in 100 words". `suffix` is a unit short enough to stand on
+ * the number's baseline, the run's seconds.
  */
-function NumLine({ shown, unit, children }: { shown: string; unit: string; children?: ReactNode }) {
+function NumLine({
+  shown,
+  unit,
+  suffix,
+  children,
+}: {
+  shown: string;
+  unit?: string;
+  suffix?: string;
+  children?: ReactNode;
+}) {
   return (
-    <span
-      aria-hidden
-      className="home-num-line font-display tabular-nums"
-      style={{ "--num-em": numEm(shown), "--unit-em": UNIT_EM[unit] ?? 2 } as CSSProperties}
-    >
-      <span className="home-num">{children ?? shown}</span>
-      <span className="home-unit">{unit}</span>
-    </span>
+    <>
+      <span
+        aria-hidden
+        className="home-num-line font-display tabular-nums"
+        /* The number takes the tile's size; the room sum (.home-num) has
+           no unit beside it now, only the run's "s". */
+        style={{ "--num-em": shown.length * 0.6, "--unit-em": suffix ? 0.5 : 0 } as CSSProperties}
+      >
+        <span className="home-num">{children ?? shown}</span>
+        {suffix && <span className="home-suffix">{suffix}</span>}
+      </span>
+      {unit && (
+        <span aria-hidden className="home-unit-line text-caption text-pretty text-stone-500">
+          {unit}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -128,99 +148,84 @@ function DashLine() {
   );
 }
 
-/** A compact tile's head, in a 28px row like a trait tile's. */
-function CompactHead({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex min-h-7 items-start">
-      <h3 className="eyebrow flex items-start gap-1.5 pt-[5px] text-ink">{children}</h3>
-    </span>
-  );
-}
-
 /**
- * The clean run (#254, #267) as one full-width row (D23): the newest
- * recording's longest stretch with no filler on the left, the bar
- * against that recording's own length and the caption on the right,
- * the best before it as the bar's mark. A door to the Log, where the
- * run and the Index live.
+ * The no-filler run (#254, #267) as one full-width row (D23): its head
+ * with the wave Earned draws, the newest recording's longest stretch
+ * with no filler in seconds, and one sentence saying what it is, with
+ * the best before it (#495). Named apart from You's "Clean run" badge,
+ * which counts fillers a minute. A door to the Log.
  */
 function CleanRunRow({ run }: { run: NonNullable<ReturnType<typeof cleanRunTile>> }) {
   return (
     <Link
       href="/history"
       data-row
-      aria-label={`Clean run: ${run.s} seconds with no filler, of ${run.of}. ${run.caption.replace(/^Of \d+s\. ?/, "")}`}
+      aria-label={`${RUN_NAME}, ${run.s} seconds. ${run.caption}`}
       className="home-tile press col-span-2"
     >
       <span className="home-row">
         <span className="flex flex-col">
-          <CompactHead>Clean run</CompactHead>
+          <RunHead />
           <span className="mt-auto" />
-          <NumLine shown={String(run.s)} unit="s">
+          <NumLine shown={String(run.s)} suffix="s">
             <CountUp value={run.s} durationMs={DURATION.max} />
           </NumLine>
         </span>
-        <span className="flex flex-col justify-end">
-          <span aria-hidden data-marked className="home-bar home-bar-earned block">
-            <i style={{ width: `${(run.s / run.of) * 100}%` }} />
-            {run.best !== null && (
-              <span
-                className="home-bar-mark"
-                style={{ left: `${Math.min(100, (run.best / run.of) * 100)}%` }}
-              />
-            )}
-          </span>
-          <p aria-hidden className="mt-2 text-caption text-pretty text-stone-500">
-            {run.caption}
-          </p>
-        </span>
+        <p aria-hidden className="home-run-line text-caption text-pretty text-stone-500">
+          {run.caption}
+        </p>
       </span>
     </Link>
   );
 }
 
-/**
- * The clean run before there is one: the head, a dash where the number
- * will be, an empty trough and what sets it, at the landed row's height.
- */
-function RunRow({ head, caption }: { head: string; caption: string }) {
+/** The run's head: the wave in earned sage, then its name. */
+function RunHead() {
   return (
-    <section data-row aria-label={`${head}: ${caption}`} className="home-tile col-span-2">
+    <span aria-hidden className="font-display flex min-h-[22px] items-center gap-1.5 text-row">
+      <span className="home-run-glyph">
+        <IconWave size={18} />
+      </span>
+      {RUN_NAME}
+    </span>
+  );
+}
+
+/**
+ * The run before there is one: the head, a dash where the number will
+ * be, and what sets it, at the landed row's height.
+ */
+function RunRow() {
+  return (
+    <section data-row aria-label={`${RUN_NAME}: ${RUN_FIRST}`} className="home-tile col-span-2">
       <span className="home-row">
         <span className="flex flex-col">
-          <CompactHead>{head}</CompactHead>
+          <RunHead />
           <span className="mt-auto" />
           <DashLine />
         </span>
-        <span className="flex flex-col justify-end">
-          <span aria-hidden className="home-bar block" />
-          <p aria-hidden className="mt-2 text-caption text-pretty text-stone-500">
-            {caption}
-          </p>
-        </span>
+        <p aria-hidden className="home-run-line text-caption text-pretty text-stone-500">
+          {RUN_FIRST}
+        </p>
       </span>
     </section>
   );
 }
 
-/** A trait's label for a screen reader: its name, number and percentile. */
+/** A trait's label for a screen reader: its name and its number in its unit, as the tile shows them. */
 function traitLabel(id: TraitId, reading: TraitReading | null): string {
   const t = TRAIT[id];
   if (!reading) return `${t.name}, no reading yet`;
   const raw = fmtRaw(reading.raw);
-  const unit = raw === "1" ? t.unitOne : t.unit;
-  return `${t.name}, ${raw} ${unit}, ${ordinal(reading.percentile)} percentile${
-    reading.quality === "provisional" ? ", an estimate" : ""
-  }`;
+  return `${t.name}, ${raw} ${tileUnit(id, raw)}`;
 }
 
 /**
  * The card's trait, wide (D22, D23): no object, since the card above
  * stands the lesson's. Its left holds the name, the number at the
- * tile's hero size and the percentile bar with its ordinal; its right
- * half holds today's line, the head with its flag (open) or check
- * (closed) and the caption, and the line itself is the ink tick on the
- * bar, at its own percentile on the bar's scale.
+ * tile's hero size and its unit in words; its right half holds today's
+ * line, the head with its flag (open) or check (closed) and one
+ * sentence saying what clears it (#495).
  */
 function WideTile({
   id,
@@ -234,14 +239,9 @@ function WideTile({
   /** No line yet anywhere: under three readings this week. */
   pending: boolean;
 }) {
-  const t = TRAIT[id];
   const raw = reading ? fmtRaw(reading.raw) : null;
   const l = line ? wideLine(line) : null;
-  const lineLabel = l
-    ? ` Today's line, ${l.line} ${t.unit}${
-        l.state === "closed" ? ", cleared" : ""
-      }. ${l.caption}`
-    : "";
+  const lineLabel = l ? ` Today's line${l.state === "closed" ? ", cleared" : ""}: ${l.sentence}` : "";
   return (
     <Link
       href={`/practice/${id}`}
@@ -253,23 +253,16 @@ function WideTile({
       <span className="home-wide">
         <span className="flex min-w-0 flex-col">
           <TraitName id={id} />
-          <span className="mt-auto" />
-          {raw !== null ? <NumLine shown={raw} unit={SHORT_UNIT[id]} /> : <DashLine />}
-          {reading ? (
-            <span aria-hidden className="mt-2.5 flex items-center gap-2.5">
-              <span data-marked={l ? true : undefined} className="home-bar flex-1">
-                <i style={{ width: `${reading.percentile}%` }} />
-                {l && <span className="home-bar-mark" style={{ left: `${l.tick}%` }} />}
-              </span>
-              <span className="font-display shrink-0 text-caption font-bold tabular-nums text-stone-500">
-                {ordinal(reading.percentile)}
-              </span>
-            </span>
+          {raw !== null ? (
+            <NumLine shown={raw} unit={tileUnit(id, raw)} />
           ) : (
-            /* Day zero: what the dash is waiting for, said once, here. */
-            <span aria-hidden className="mt-2.5 text-caption text-pretty text-stone-500">
-              Your first recording reads all five.
-            </span>
+            <>
+              <DashLine />
+              {/* Day zero: what the dash is waiting for, said once, here. */}
+              <span aria-hidden className="home-unit-line text-caption text-pretty text-stone-500">
+                Your first recording reads all five.
+              </span>
+            </>
           )}
         </span>
         {(l || pending) && (
@@ -280,28 +273,14 @@ function WideTile({
                 <span className="home-check">
                   <IconCheck size={13} />
                 </span>
-              ) : l?.state === "open" ? (
+              ) : l ? (
                 <span className="home-flag">
                   <IconFlag size={12} />
                 </span>
               ) : null}
             </span>
-            {/* The line as a number (E24), at the tile's precision with
-                its unit, "1.0 /min": the caption read "Line 1." as a
-                label, and the half stood empty where the number goes.
-                It stands at the foot with its caption under it, as the
-                left half stands its number over its bar, so the two
-                numbers read on one level and the line's words stay
-                together (R2F-07). */}
-            <span className="mt-auto" />
-            {l && (
-              <span className="font-display mt-2 flex items-baseline whitespace-nowrap tabular-nums">
-                <span className="text-num-m font-extrabold">{l.line}</span>
-                <span className="ml-1 text-suffix text-stone-500">{SHORT_UNIT[id]}</span>
-              </span>
-            )}
-            <p className="home-caption mt-1 text-caption text-pretty text-stone-500">
-              {l ? l.caption : "Three recordings set it."}
+            <p className="home-line-sentence text-caption text-pretty text-stone-600">
+              {l ? l.sentence : "Three recordings set it."}
             </p>
           </span>
         )}
@@ -327,9 +306,9 @@ function TraitName({ id }: { id: TraitId }) {
 
 /**
  * One of the other four, flat (#478): its glyph and name, the
- * measurement big with its short unit on its line, the percentile as a
- * bar in its tone with the ordinal beside it. A door to the trait's own
- * page, where the direction and the target live.
+ * measurement big and its unit in words under it (#495). A door to the
+ * trait's own page, where the direction, the target and where you sit
+ * live.
  */
 function TraitTile({ id, reading }: { id: TraitId; reading: TraitReading | null }) {
   const raw = reading ? fmtRaw(reading.raw) : null;
@@ -342,20 +321,7 @@ function TraitTile({ id, reading }: { id: TraitId; reading: TraitReading | null 
       className="home-tile today-trait press"
     >
       <TraitName id={id} />
-      <span className="mt-auto" />
-      {raw !== null ? <NumLine shown={raw} unit={SHORT_UNIT[id]} /> : <DashLine />}
-      {reading ? (
-        <span aria-hidden className="mt-2.5 flex items-center gap-2.5">
-          <span className="home-bar flex-1">
-            <i style={{ width: `${reading.percentile}%` }} />
-          </span>
-          <span className="font-display shrink-0 text-caption font-bold tabular-nums text-stone-500">
-            {ordinal(reading.percentile)}
-          </span>
-        </span>
-      ) : (
-        <span aria-hidden className="home-bar mt-2.5 block" />
-      )}
+      {raw !== null ? <NumLine shown={raw} unit={tileUnit(id, raw)} /> : <DashLine />}
     </Link>
   );
 }
@@ -371,19 +337,21 @@ export function TilesSkeleton() {
       <div data-wide className="home-tile col-span-2">
         <span className="home-wide">
           <span className="flex flex-col">
-            <Skeleton className="h-3 w-20" />
-            <span className="mt-auto" />
-            <span className="home-num-line flex items-center">
-              <Skeleton className="h-11 w-28" />
-            </span>
-            <Skeleton className="mt-3 h-1 w-full" />
-          </span>
-          <span className="home-wide-line">
-            <span className="flex min-h-7 items-start pt-[5px]">
+            <span className="flex min-h-[22px] items-center">
               <Skeleton className="h-3 w-20" />
             </span>
-            <span className="mt-auto" />
-            <span className="home-caption flex items-end pb-1">
+            <span className="home-num-line flex items-center">
+              <Skeleton className="h-11 w-24" />
+            </span>
+            <span className="home-unit-line flex items-start pt-1">
+              <Skeleton className="h-3 w-28" />
+            </span>
+          </span>
+          <span className="home-wide-line">
+            <span className="flex min-h-[22px] items-center">
+              <Skeleton className="h-3 w-20" />
+            </span>
+            <span className="home-line-sentence flex items-start pt-1">
               <Skeleton className="h-3 w-24" />
             </span>
           </span>
@@ -392,30 +360,30 @@ export function TilesSkeleton() {
       <div data-row className="home-tile col-span-2">
         <span className="home-row">
           <span className="flex flex-col">
-            <span className="flex min-h-7 items-start pt-[5px]">
-              <Skeleton className="h-3 w-16" />
+            <span className="flex min-h-[22px] items-center">
+              <Skeleton className="h-3 w-24" />
             </span>
             <span className="mt-auto" />
             <span className="home-num-line flex items-center">
-              <Skeleton className="h-7 w-16" />
+              <Skeleton className="h-7 w-14" />
             </span>
           </span>
-          <span className="flex flex-col justify-end">
-            <Skeleton className="h-1 w-full" />
-            <span className="mt-2 flex items-start pt-1">
-              <Skeleton className="h-3 w-24" />
-            </span>
+          <span className="home-run-line flex items-end pb-1">
+            <Skeleton className="h-3 w-28" />
           </span>
         </span>
       </div>
       {[0, 1, 2, 3].map((i) => (
         <div key={i} data-four className="home-tile">
-          <Skeleton className="h-3 w-20" />
-          <span className="mt-auto" />
-          <span className="home-num-line flex items-center">
-            <Skeleton className="h-7 w-16" />
+          <span className="flex min-h-[22px] items-center">
+            <Skeleton className="h-3 w-20" />
           </span>
-          <Skeleton className="mt-3 h-1 w-full" />
+          <span className="home-num-line flex items-center">
+            <Skeleton className="h-7 w-14" />
+          </span>
+          <span className="home-unit-line flex items-start pt-1">
+            <Skeleton className="h-3 w-20" />
+          </span>
         </div>
       ))}
     </div>

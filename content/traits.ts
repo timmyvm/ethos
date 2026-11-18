@@ -131,8 +131,10 @@ export const TRAITS: TraitDef[] = [
      * Like and you know are still counted and still timestamped on the
      * results screen. They are just not what the ring is drawn from.
      */
-    unit: "um or uh per hundred words",
-    unitOne: "um or uh per hundred words",
+    /* In words, as every unit is (#495): "per hundred words" here and
+       "/100 words" on Today were two spellings of one measure. */
+    unit: "um or uh in 100 words",
+    unitOne: "um or uh in 100 words",
     what: "Um and uh, counted with a timestamp each, against the words around them.",
     why: "Every one is a gap you filled with sound instead of silence.",
     distinction:
@@ -142,7 +144,7 @@ export const TRAITS: TraitDef[] = [
       "Take a breath before each sentence. That's where \"um\" sneaks in.",
       "Need a second to think? Stay quiet instead of saying \"um\".",
     ],
-    move: (n, up) => `${n} ${up ? "more" : "fewer"} per hundred words.`,
+    move: (n, up) => `${n} ${up ? "more" : "fewer"} in 100 words.`,
   },
   {
     id: "repairs",
@@ -154,8 +156,8 @@ export const TRAITS: TraitDef[] = [
     /* Per hundred words, like fillers and for the same reason: the
        published rate (Bortfeld's 1.94) is reported that way, and a
        per-minute count drops when somebody simply speeds up. */
-    unit: "restarts per hundred words",
-    unitOne: "restart per hundred words",
+    unit: "restarts in 100 words",
+    unitOne: "restart in 100 words",
     what: "Sentences you abandoned and began again a different way.",
     why: "A listener hears a restart the way they hear an um, and it costs more.",
     distinction:
@@ -165,7 +167,7 @@ export const TRAITS: TraitDef[] = [
       "Said it wrong? Finish the sentence, then say the right version as a new one.",
       "Know how a sentence ends before you start saying it.",
     ],
-    move: (n, up) => `${n} ${up ? "more" : "fewer"} per hundred words.`,
+    move: (n, up) => `${n} ${up ? "more" : "fewer"} in 100 words.`,
   },
   {
     id: "pace",

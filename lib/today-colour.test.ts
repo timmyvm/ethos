@@ -72,11 +72,13 @@ const light = {
   sand: token(css, "sand"),
   raised: token(css, "raised"),
   ground: token(css, "ground"),
+  surface: token(css, "surface"),
 };
 const dark = {
   sand: token(darkRoot, "sand"),
   raised: token(darkRoot, "raised"),
   ground: token(darkRoot, "ground"),
+  surface: token(darkRoot, "surface"),
 };
 /* The dark card's sheen: raised plus 3% white at its top edge. */
 const sheen = mix("#ffffff", dark.raised, 0.03);
@@ -207,15 +209,16 @@ describe("Today's materials", () => {
   const week = src("components/home/WeekTiles.tsx");
   const hero = src("components/home/HomeHero.tsx");
 
-  it("the traits are tiles on the surface: the trait's glyph, its bar on sand, its name in ink", () => {
+  /* #495: one number and one line a tile. The percentile bar and its
+     ordinal left the tiles; the trait's colour is its glyph alone. */
+  it("the traits are tiles on the surface: the trait's glyph, its name in ink, its unit in words in stone", () => {
     expect(tiles).toMatch(/className="home-tile today-trait press/);
     expect(tiles).not.toMatch(/tone-wash|tone-ink|tone-fill|className=\{`card|className="card/);
     expect(tiles).toContain('<span className="home-trait-glyph">');
     expect(tiles).toContain("<TraitGlyph id={id} size={18} />");
     expect(block(".home-trait-glyph")).toContain("color: var(--tone);");
-    expect(block(".home-bar")).toContain("background: var(--color-sand);");
-    // The fill is the trait's tone (held on sand above).
-    expect(block(".home-bar > i")).toContain("background: var(--tone);");
+    expect(tiles).not.toMatch(/home-bar|ordinal\(/);
+    expect(tiles).toContain('className="home-unit-line text-caption text-pretty text-stone-500"');
   });
 
   /* #478, Timothy 16 Nov: "the glow in today traits is bad so lets remove
@@ -277,12 +280,15 @@ describe("Today's materials", () => {
     }
   });
 
-  it("what is earned fills in the measured sage, 3:1 on sand in both themes", () => {
-    // The clean run's bar; today's line is a tick on its trait's own bar
-    // since D23, and clearing it is the sage check.
-    expect(tiles.match(/home-bar home-bar-earned/g)?.length).toBe(1);
+  it("what is earned is sage: the cleared line's check, the run's wave at 3:1 on the tile, the week's days", () => {
+    // Clearing today's line is the sage check; the no-filler run wears
+    // the wave Earned draws, in sage, never Fillers' tone (#495).
     expect(block(".home-check")).toContain("var(--color-sage-600)");
-    expect(block(".home-bar-earned > i")).toContain("var(--color-sage-600)");
+    expect(tiles).toContain('<span className="home-run-glyph">');
+    expect(block(".home-run-glyph")).toContain("var(--color-sage-600)");
+    expect(block(':root[data-theme="dark"] .home-run-glyph')).toContain("var(--color-sage-700)");
+    expect(ratio(token(css, "sage-600"), light.surface)).toBeGreaterThanOrEqual(3);
+    expect(ratio(token(darkRoot, "sage-700"), dark.surface)).toBeGreaterThanOrEqual(3);
     expect(block(".home-day[data-on]")).toContain("var(--color-sage-600)");
     expect(week).toContain("bg-sage-600");
     expect(ratio(token(css, "sage-600"), light.sand)).toBeGreaterThanOrEqual(3);
@@ -422,7 +428,6 @@ describe("a trait's tone is only ever one of its forms", () => {
     // recording's date is a bare column and the insight has no rule (D33).
     ".log-date[data-trait]::after": "mark",
     ".home-trait-glyph": "mark",
-    ".home-bar > i": "measure",
     // The recording screen's live waveform (S08, D51).
     ".rec-wave": "measure",
     ':root[data-theme="dark"] .rec-wave': "measure",

@@ -224,7 +224,9 @@ for (const width of [320, 360, 375, 390, 430]) {
     return { gaps, sizes, names };
   });
   const tight = log.gaps.filter((g) => g.gap < 4);
-  ok(`Log at ${width}: every head is 11px and 4px or more from the next`, log.gaps.length >= 6 && log.sizes.join() === "11" && tight.length === 0, tight.length ? JSON.stringify(tight) : `${log.gaps.length} pairs, closest ${Math.min(...log.gaps.map((g) => g.gap))}px`);
+  /* Five pairs at least since #495: What moved's (three under 360, where
+     TREND steps out) and the recordings' DATE, LESSON, ETHOS. */
+  ok(`Log at ${width}: every head is 11px and 4px or more from the next`, log.gaps.length >= 5 && log.sizes.join() === "11" && tight.length === 0, tight.length ? JSON.stringify(tight) : `${log.gaps.length} pairs, closest ${Math.min(...log.gaps.map((g) => g.gap))}px`);
   /* The longest name the fixture's Log holds. It was the road's
      "Punctuate with silence" until #493 named a road take Today's
      practice, so the check reads whichever name is longest now. */

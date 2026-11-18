@@ -10,7 +10,7 @@
  */
 
 import type { RepRow } from "./client-data";
-import { ALL_FILLERS_PER_MIN } from "./metric-labels";
+import { ALL_FILLERS_PER_MIN, PAUSES_IN_RECORDING, pausesBetween } from "./metric-labels";
 import { measured } from "./trait-readings";
 
 export interface Insight {
@@ -23,8 +23,12 @@ function fpm(r: RepRow): number {
   return r.duration_s > 0 ? r.filler_count / (r.duration_s / 60) : 0;
 }
 
-function heldPauses(r: RepRow): number {
-  return (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
+/* Pauses between sentences only (#495 review): the Log's insight
+   counted every pause of a second or more, mid-sentence ones included,
+   so "You're pausing more" praised the fault the results name. The
+   count What moved prints, read off the stored pauses. */
+function between(r: RepRow): number {
+  return pausesBetween(r.pauses);
 }
 
 function mean(ns: number[]): number {
@@ -145,14 +149,14 @@ export function insights(all: RepRow[]): Insight[] {
     }
   }
 
-  // 4. Silence
-  const heldRecent = mean(recent.map(heldPauses));
-  const heldEarly = earlier.length ? mean(earlier.map(heldPauses)) : 0;
+  // 4. Silence: the pauses that count, between sentences.
+  const heldRecent = mean(recent.map(between));
+  const heldEarly = earlier.length ? mean(earlier.map(between)) : 0;
   if (earlier.length >= 2 && heldRecent >= heldEarly + 1) {
     out.push({
       id: "silence-up",
-      headline: "You're pausing more",
-      detail: `${heldEarly.toFixed(1)} pauses of a second or more per recording early on, ${heldRecent.toFixed(1)} now.`,
+      headline: "More pauses between sentences",
+      detail: `${heldEarly.toFixed(1)} ${PAUSES_IN_RECORDING.name.toLowerCase()} ${PAUSES_IN_RECORDING.unit} early on, ${heldRecent.toFixed(1)} now.`,
     });
   }
 

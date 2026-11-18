@@ -32,7 +32,6 @@ import {
 import { useRevalidate } from "@/lib/use-revalidate";
 import { useStill, useWarm } from "@/lib/use-warm";
 import { limit } from "@/lib/entitlement";
-import { unitBreak } from "@/lib/metric-labels";
 import { DURATION } from "@/lib/motion";
 import { waitingRows } from "@/lib/log-waiting";
 import { fillerHeatmap, insights } from "@/lib/insights";
@@ -89,25 +88,18 @@ const MOVED_GRID =
    toggling display restarts the line's unroll (`.fill`), and the
    camera's full-page capture caught it part way. */
 const TREND_CELL = "max-[359px]:invisible max-[359px]:absolute";
-/* The date is a bare 40px column, the day over its month (D33), and the
-   number columns are as wide as their heads, so the lesson's name gets
-   the width: "Punctuate with silence" sets on one line at 390. The
-   heads are 11px since #450 (the smallest type an iPhone sets): INDEX
-   is 38.7 and hangs 2.7 into its 4px gap, WPM is 29.9 in its 30, and
-   HELD, 32.8, took its column from 28 to 33, where it had printed over
-   the end of WPM. The 5px came from the name's column, 151 at 390. */
-const RECORD_GRID =
-  "grid grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_8px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_36px_28px_30px_33px_8px] gap-1";
-/* The table while every row waits keeps the old grid (#394), with the
-   Index column at the Go pill's 56px (D11), since a 44px pill in a 44px
-   column is a circle and Record is the only circle. */
-const WAITING_GRID =
-  "grid grid-cols-[40px_minmax(0,1fr)_56px_36px_36px] min-[360px]:grid-cols-[40px_minmax(0,1fr)_56px_36px_36px_36px] gap-1.5";
-/* Under 360px the held column steps out of the recordings table, so a
-   lesson's name wraps between its words: at 320 the column was 87px and
-   "Punctuate" broke inside itself (the fix round). Held pauses are in
-   What moved above and on every recording's own page. */
-const HELD_CELL = "max-[359px]:hidden";
+/* The date is a bare 40px column, the day over its month (D33), then
+   the lesson with its stars, then the Ethos number and the row's
+   chevron. Three more columns stood here, FILL, WPM and HELD (#495, the
+   morning tour): none read in two seconds, HELD counted the
+   mid-sentence pauses the results call a fault, and every one of them
+   is on the recording's own page and tracked over time in What moved
+   above. ETHOS, 41px at the 11px floor, holds its 44. */
+const RECORD_GRID = "grid grid-cols-[40px_minmax(0,1fr)_44px_8px] gap-1.5";
+/* The table while every row waits (#394): the Go pill in the Ethos
+   column, at its 56px (D11), since a 44px pill in a 44px column is a
+   circle and Record is the only circle. */
+const WAITING_GRID = "grid grid-cols-[40px_minmax(0,1fr)_56px] gap-1.5";
 
 /**
  * Which trait an insight is about, so its line wears that trait's tone.
@@ -305,9 +297,6 @@ export default function HistoryPage() {
                 <Skeleton className="mt-2 h-2.5 w-12" />
               </span>
               <Skeleton className="ml-auto h-4 w-9" />
-              <Skeleton className="ml-auto h-3 w-4" />
-              <Skeleton className="ml-auto h-3 w-7" />
-              <Skeleton className={`ml-auto h-3 w-4 ${HELD_CELL}`} />
             </div>
           ))}
         </SkeletonRegion>
@@ -533,12 +522,7 @@ export default function HistoryPage() {
         <div aria-hidden className={`${empty ? WAITING_GRID : RECORD_GRID} mt-3 pb-1.5`}>
           <ColumnHead>date</ColumnHead>
           <ColumnHead>lesson</ColumnHead>
-          <ColumnHead right>index</ColumnHead>
-          <ColumnHead right>fill</ColumnHead>
-          <ColumnHead right>wpm</ColumnHead>
-          <ColumnHead right className={HELD_CELL}>
-            held
-          </ColumnHead>
+          <ColumnHead right>ethos</ColumnHead>
         </div>
 
         {empty
@@ -557,9 +541,8 @@ export default function HistoryPage() {
                 <span className="font-display line-clamp-2 text-row leading-snug">
                   {row.title}
                 </span>
-                {/* Go stands in the Index column, where this lesson's
-                    Index will land once it is recorded; the other
-                    columns keep their dashes. The secondary control
+                {/* Go stands in the Ethos column, where this lesson's
+                    number will land once it is recorded. The secondary control
                     (#234: surface, a rule edge, no shadow), the same
                     three times: three terracotta fills would be three
                     primaries on a screen that has none. */}
@@ -570,36 +553,22 @@ export default function HistoryPage() {
                 >
                   Go
                 </Link>
-                {[0, 1, 2].map((c) => (
-                  <span
-                    key={c}
-                    className={`font-display text-right text-caption font-extrabold tabular-nums ${
-                      c === 2 ? HELD_CELL : ""
-                    }`}
-                  >
-                    {DASH}
-                  </span>
-                ))}
               </div>
             ))
           : newestFirst.map((r) => {
               const d = new Date(r.created_at);
-              const held = (r.pauses ?? []).filter((p) => p.kind !== "beat").length;
               const trait = recordingTrait(r);
               const name = recordingName(r);
-              /* log-21: the row's name, not four bare numbers. The
-                 column heads are hidden from assistive tech, so the
-                 label carries what they said: every number the row
-                 shows (#448; it stopped at the stars, and the fillers,
-                 the pace and the pauses were on screen and unsaid). */
+              /* log-21: the row's name, not bare numbers. The column
+                 heads are hidden from assistive tech, so the label
+                 carries what they said: every number the row shows
+                 (#448), the Ethos number and the stars since #495. */
               const label = `${name}, ${d.toLocaleDateString(undefined, {
                 day: "numeric",
                 month: "long",
               })}, ${
                 r.ethos_index === null ? "not scored" : `Ethos ${r.ethos_index}`
-              }, ${r.stars} of 3 stars, ${r.filler_count} filler${r.filler_count === 1 ? "" : "s"}, ${
-                r.wpm
-              } words a minute, ${held} held pause${held === 1 ? "" : "s"}`;
+              }, ${r.stars} of 3 stars`;
               return (
                 <Link
                   key={r.id}
@@ -636,9 +605,6 @@ export default function HistoryPage() {
                       <CountUp value={r.ethos_index} durationMs={DURATION.max} />
                     )}
                   </span>
-                  <Cell>{r.filler_count}</Cell>
-                  <Cell>{r.wpm}</Cell>
-                  <Cell className={HELD_CELL}>{held}</Cell>
                   {/* The row opens its recording, and says so the way every
                       other row that is a door does (#442, #330's rule). */}
                   <Disclosure className="justify-self-end text-stone-400" />
@@ -743,16 +709,6 @@ function ColumnHead({
   );
 }
 
-function Cell({ children, className = "" }: { children: number; className?: string }) {
-  return (
-    <span
-      className={`font-display text-right text-caption font-extrabold text-stone-600 tabular-nums ${className}`}
-    >
-      {children}
-    </span>
-  );
-}
-
 /**
  * One metric, five cells. Direction wears the colour (#195): sage when
  * the number moved the right way, rust when it didn't, stone when it
@@ -796,26 +752,25 @@ function MetricRow({
         dim ? "text-stone-400" : ""
       }`}
     >
-      <span className="font-display flex min-w-0 items-center gap-1 text-row">
+      <span className="font-display flex min-w-0 items-start gap-1 text-row">
         {/* The trait's swatch, the key the recordings below are
             coloured by. A rectangle, like every mark that is not a
             chip. A row with no trait keeps the slot, blank, so every
-            label in the column starts at the same x. */}
+            label in the column starts at the same x. It sits on the
+            name's first line, which the unit's line hangs under. */}
         <span
           aria-hidden
-          className={`log-swatch ${trait || index ? "" : "log-swatch-blank"}`}
+          className={`log-swatch mt-[5px] ${trait || index ? "" : "log-swatch-blank"}`}
         />
-        {/* Two lines at most, never an ellipsis: at 320px "Fillers /
-            min" beside its chevron cut to "Fillers / ...". The label breaks
-            only just before its unit's slash (unitBreak), and the chevron
-            follows the label's last word rather than the column's edge
-            (the fix round). */}
-        <span className="line-clamp-2 min-w-0 leading-tight">
-          {open === undefined ? (
-            unitBreak(row.label)
-          ) : (
-            <>
-              {unitBreak(row.label)}
+        {/* The measure's name, then its unit in words under it (#495:
+            "All fillers / min", "Words / min" and "Held pauses /
+            recording" were three spellings of per). Never an ellipsis:
+            the name wraps between its words, and the chevron follows
+            its last word rather than the column's edge (the fix round). */}
+        <span className="min-w-0 leading-tight">
+          <span className="block">
+            {row.label}
+            {open !== undefined && (
               <span
                 aria-hidden
                 data-open={open}
@@ -823,7 +778,10 @@ function MetricRow({
               >
                 <IconChevron size={14} />
               </span>
-            </>
+            )}
+          </span>
+          {row.unit && (
+            <span className="font-body mt-0.5 block text-caption font-normal text-stone-500">{row.unit}</span>
           )}
         </span>
       </span>
@@ -865,7 +823,7 @@ function MetricRow({
         <Sparkline
           values={rolling(row.series, 3)}
           labelValues={row.series}
-          label={row.label}
+          label={row.unit ? `${row.label} ${row.unit}` : row.label}
           invert={row.invert}
           height={20}
           bare
@@ -931,6 +889,10 @@ function TeaserRow({
       <span className="flex shrink-0 items-center gap-2.5">
         <span className="text-caption text-stone-400">{note}</span>
         <PremiumMark variant="chip" />
+        {/* The row opens the paywall, and says so as every row that is
+            a door does (#495, the morning tour: it was the Log's one
+            door row with no chevron). */}
+        <Disclosure className="text-stone-400" />
       </span>
     </button>
   );

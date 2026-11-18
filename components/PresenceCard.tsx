@@ -149,10 +149,12 @@ export function PresenceDetail({
           value={`${metrics.eyeLinePct}%`}
           note="head up, facing"
         />
+        {/* A rate in words, as every unit is (#495): "a minute", the
+            way the moments under it say "4 gestures a minute". */}
         <Stat
           label="Gestures"
           value={`${metrics.gestureRate}`}
-          note="per minute"
+          note="a minute"
         />
         <Stat
           label="Posture"

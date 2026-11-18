@@ -8,12 +8,11 @@ import type { Challenge } from "./challenge";
 import type { RepRow } from "./client-data";
 import {
   HOUSE_OBJECT,
-  LINE_MARK,
-  SHORT_UNIT,
+  RUN_FIRST,
+  RUN_NAME,
   TACTIC_OBJECT,
-  UNIT_EM,
   artBox,
-  numEm,
+  tileUnit,
   TRAIT_OBJECT,
   TRAIT_OBJECTS,
   cleanRunTile,
@@ -22,16 +21,13 @@ import {
   heroObject,
   initialOf,
   fmtLine,
-  lineTile,
   objectSrc,
   signed,
   traitOrder,
   weekView,
   wideLine,
 } from "./home";
-import { NORMS } from "@/content/norms";
 import { ART_BOUNDS } from "./lesson-art-bounds";
-import { percentile } from "./percentile";
 import type { TraitReading } from "./trait-readings";
 
 /*
@@ -195,13 +191,16 @@ describe("every object stands in the card's zone, by its visible box", () => {
   }
 });
 
-describe("a number and its unit share a line", () => {
-  it("every short unit has a measured width, and the printed numbers count their digits", () => {
-    for (const u of Object.values(SHORT_UNIT)) expect(UNIT_EM[u], u).toBeGreaterThan(0);
-    expect(UNIT_EM.s).toBeGreaterThan(0);
-    expect(numEm("155")).toBeCloseTo(1.74, 2);
-    expect(numEm("9.8")).toBeCloseTo(1.44, 2);
-    expect(numEm("9.8")).toBeLessThan(numEm("155"));
+describe("a tile's unit is the trait's own, in words (#495)", () => {
+  it("is the unit the trait page and Lessons print, never a short form", () => {
+    for (const t of TRAITS) {
+      expect(tileUnit(t.id, "2.4")).toBe(t.unit);
+      expect(tileUnit(t.id, "1")).toBe(t.unitOne);
+      expect(tileUnit(t.id, "2.4")).not.toMatch(/\/|wpm|per hundred|per minute/);
+    }
+    expect(tileUnit("fillers", "0.7")).toBe("um or uh in 100 words");
+    expect(tileUnit("pace", "155")).toBe("words a minute");
+    expect(tileUnit("pause", "1.8")).toBe("pauses between sentences a minute");
   });
 });
 
@@ -214,10 +213,6 @@ const reading = (id: TraitId, raw: number, percentile = 50): TraitReading => ({
 });
 
 describe("the tiles", () => {
-  it("every trait has a short unit", () => {
-    for (const t of TRAITS) expect(SHORT_UNIT[t.id].length).toBeGreaterThan(0);
-  });
-
   it("puts the card's trait wide and the other four lowest percentile first; the lesson order with none", () => {
     expect(traitOrder([]).map((t) => t.id)).toEqual(TRAITS.map((t) => t.id));
     expect(traitOrder([]).every((t) => t.reading === null)).toBe(true);
@@ -260,52 +255,24 @@ describe("the tiles", () => {
     ...over,
   });
 
-  it("an open line prints the line, an empty bar and how often it was cleared", () => {
-    const t = lineTile(line({}));
-    expect(t).toMatchObject({ shown: 1.8, state: "open", fill: 0, mark: LINE_MARK });
-    expect(t.caption).toBe("Over it on 4 of your last 5.");
-  });
-
-  it("a closed line prints today and fills to the mark or past it", () => {
-    const t = lineTile(line({ today: 2.6, closed: true, value: 1 }));
-    expect(t.state).toBe("closed");
-    expect(t.shown).toBe(2.6);
-    expect(t.fill).toBeGreaterThanOrEqual(LINE_MARK);
-    expect(t.caption).toBe("Over your line of 1.8.");
-    expect(lineTile(line({ today: 1.8, closed: true })).caption).toBe("On your line.");
-  });
-
-  it("a day short of the line stops before the mark and names the line", () => {
-    const t = lineTile(line({ today: 0.9, closed: false }));
-    expect(t.state).toBe("short");
-    expect(t.fill).toBeLessThan(LINE_MARK);
-    expect(t.caption).toBe("Your line is 1.8.");
-  });
-
-  it("fewer-is-better fills the same way", () => {
-    const fewer = lineTile(line({ trait: "fillers", direction: "lower", line: 4, today: 2, closed: true }));
-    expect(fewer.fill).toBeGreaterThanOrEqual(LINE_MARK);
-    expect(fewer.caption).toBe("Under your line of 4.0.");
-  });
-
-  it("today's line in the wide tile is a number, a tick on the bar's own scale, and a caption that never labels it", () => {
-    const open = wideLine(line({}));
-    expect(open).toMatchObject({ state: "open", line: "1.8", caption: "Over it on 4 of your last 5." });
-    // The tick is the line's percentile on the same norm the bar's fill reads.
-    expect(open.tick).toBe(percentile(1.8, NORMS.pause));
-    expect(open.tick).toBeGreaterThanOrEqual(0);
-    expect(open.tick).toBeLessThanOrEqual(100);
-    // The number stands over the caption, so "Line 1.8." left it (E24).
-    for (const c of [line({}), line({ line: 1 }), line({ today: 2.6, closed: true, value: 1 }), line({ today: 0.9 })]) {
-      expect(wideLine(c).caption).not.toMatch(/^Line /);
-    }
-    // Spoken today: lineTile's captions carry the line where needed.
-    expect(wideLine(line({ today: 2.6, closed: true, value: 1 }))).toMatchObject({
-      state: "closed",
-      line: "1.8",
-      caption: "Over your line of 1.8.",
+  /* #495, the morning tour: the wide tile carried the trait's number, the
+     line's number with its unit, a caption about the last six and a bare
+     ordinal. Today's line is one sentence now, under its head. */
+  it("an open line is one sentence saying what clears it, and nothing about the last six", () => {
+    expect(wideLine(line({}))).toEqual({ state: "open", sentence: "Over 1.8 clears it." });
+    expect(wideLine(line({ trait: "fillers", direction: "lower", line: 0.9 }))).toEqual({
+      state: "open",
+      sentence: "Under 0.9 clears it.",
     });
-    expect(wideLine(line({ today: 0.9 }))).toMatchObject({ state: "short", caption: "Your line is 1.8." });
+    expect(wideLine(line({})).sentence).not.toMatch(/last|of your/);
+  });
+
+  it("a day short of the line says the same, and a closed one says what cleared it", () => {
+    expect(wideLine(line({ today: 0.9 }))).toEqual({ state: "short", sentence: "Over 1.8 clears it." });
+    expect(wideLine(line({ today: 2.6, closed: true, value: 1 }))).toEqual({
+      state: "closed",
+      sentence: "Cleared with 2.6 today.",
+    });
   });
 
   it("a line of 1.0 prints 1.0, at the tile's precision, never 1", () => {
@@ -316,10 +283,8 @@ describe("the tiles", () => {
     // From 10 up the tile prints whole numbers, so the line does too.
     expect(fmtLine(145.4)).toBe("145");
     expect(fmtLine(62)).toBe("62");
-    expect(wideLine(line({ line: 1 })).line).toBe("1.0");
-    expect(lineTile(line({ line: 1, today: 1.6, closed: true })).caption).toBe("Over your line of 1.0.");
-    expect(lineTile(line({ line: 1, today: 1.0, closed: true })).caption).toBe("On your line.");
-    expect(lineTile(line({ line: 1, today: 0.6 })).caption).toBe("Your line is 1.0.");
+    expect(wideLine(line({ line: 1 })).sentence).toBe("Over 1.0 clears it.");
+    expect(wideLine(line({ line: 1, today: 1, closed: true })).sentence).toBe("Cleared with 1.0 today.");
   });
 
   /** Enough words to score (`measured`). */
@@ -328,14 +293,23 @@ describe("the tiles", () => {
   const rep = (fillers: number[], duration = 60, transcript = SAID): RepRow =>
     ({ fillers: fillers.map((t) => ({ word: "um", t })), duration_s: duration, transcript }) as RepRow;
 
-  it("the clean run reads the newest recording against its own length and the best before it", () => {
+  /* #495: "46 s" over "Of 65s. Best 53s." was a number and two
+     fragments, and what the number was showed only on day zero. */
+  it("the run reads the newest recording's longest stretch, in one sentence with the best before it", () => {
     expect(cleanRunTile([])).toBeNull();
     const first = cleanRunTile([rep([30])]);
-    expect(first).toMatchObject({ s: 30, of: 60, best: null, newBest: false, caption: "Of 60s." });
+    expect(first).toMatchObject({ s: 30, of: 60, best: null, newBest: false, caption: "Longest in your last recording." });
     const short = cleanRunTile([rep([50]), rep([20], 65)]);
-    expect(short).toMatchObject({ s: 45, of: 65, best: 50, newBest: false, caption: "Of 65s. Best 50s." });
+    expect(short).toMatchObject({ s: 45, best: 50, newBest: false, caption: "Longest in your last recording. Best 50s." });
     const best = cleanRunTile([rep([20]), rep([])]);
-    expect(best).toMatchObject({ s: 60, best: 40, newBest: true, caption: "Of 60s. A new best." });
+    expect(best).toMatchObject({ s: 60, best: 40, newBest: true, caption: "Longest in your last recording, a new best." });
+    for (const t of [first, short, best]) expect(t!.caption).not.toMatch(/^Of /);
+  });
+
+  it("is named apart from You's Clean run badge, which counts fillers a minute", () => {
+    expect(RUN_NAME).toBe("No-filler run");
+    expect(RUN_NAME).not.toBe("Clean run");
+    expect(RUN_FIRST).toBe("Your first recording sets it.");
   });
 
   /* A one-word 8s take read "Clean run 8s, of 8s". */
@@ -352,14 +326,13 @@ describe("the tiles", () => {
   it("a pace line names the zone, never inside one number", () => {
     const pace = (over: Partial<Challenge>) =>
       line({ trait: "pace", direction: "band", line: 100, cleared: { n: 3, of: 4 }, ...over });
-    expect(lineTile(pace({})).caption).toBe("Cleared on 3 of your last 4.");
-    expect(lineTile(pace({ today: 178, closed: true })).caption).toBe("Nearer 130 to 160 than 100.");
-    expect(lineTile(pace({ today: 145, closed: true })).caption).toBe("Inside 130 to 160.");
-    expect(lineTile(pace({ today: 190, closed: true })).caption).toBe("As near 130 to 160 as 100.");
+    expect(wideLine(pace({})).sentence).toBe("Nearer 130 to 160 than 100 clears it.");
+    expect(wideLine(pace({ line: 145 })).sentence).toBe("Inside 130 to 160 clears it.");
+    expect(wideLine(pace({ today: 178, closed: true })).sentence).toBe("Cleared with 178 today.");
     for (const today of [null, 178, 145, 190]) {
-      const caption = lineTile(pace({ today, closed: today !== null })).caption;
-      expect(caption).not.toMatch(/inside (it|your line|\d+\.)/i);
-      expect(caption).not.toMatch(/[\u2013\u2014]/);
+      const sentence = wideLine(pace({ today, closed: today !== null })).sentence;
+      expect(sentence).not.toMatch(/inside (it|your line|\d+\.)|over \d/i);
+      expect(sentence).not.toMatch(/[\u2013\u2014]/);
     }
   });
 });

@@ -480,12 +480,23 @@ if (want("returning")) {
   await browser.close();
 }
 if (want("returning")) {
-  /* A guest (no account) on the door keeps both doors. */
+  /* A guest (no account) on the door keeps its doors: Sign in, and the
+     tester's code until the test is over (#496). */
   const { browser, page } = await open();
   await page.goto(`${BASE}/welcome`);
   await page.waitForSelector("[data-room-hold]");
+  // The door is drawn by the server (#508); the tester's door joins it once React has the page.
+  await page.waitForFunction(() => {
+    const m = document.querySelector("main.room");
+    return !!m && Object.keys(m).some((k) => k.startsWith("__reactFiber"));
+  }, null, { timeout: 15_000 }).catch(() => {});
+  await sleep(300);
   const links = await page.locator("main.room .room-top a").allTextContents();
-  ok("returning: without an account the door keeps Sign in and Tester code", links.length === 2, JSON.stringify(links));
+  ok(
+    TEST_OVER ? "returning: without an account the door keeps Sign in" : "returning: without an account the door keeps Sign in and Tester code",
+    JSON.stringify(links) === JSON.stringify(TEST_OVER ? ["Sign in"] : ["Sign in", "Tester code"]),
+    JSON.stringify(links)
+  );
   await browser.close();
 }
 

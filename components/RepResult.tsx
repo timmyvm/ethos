@@ -22,6 +22,8 @@ import type { CoachOutput } from "@/lib/coach";
 import type { ColdTopic } from "@/lib/cold-topics";
 import type { Tier1Scores, Tier2Anchors } from "@/lib/index-score";
 import type { GlanceMoment, GlancePart, SheetSection } from "@/lib/glance";
+import type { LevelUpPiece } from "@/lib/traits";
+import { isTraitKey } from "@/lib/dimension-rows";
 import { starGoals, type FillerHit, type RepMetrics, type Word } from "@/lib/metrics";
 import { scoreLine, splitTomorrow } from "@/lib/coach-line";
 
@@ -97,7 +99,17 @@ export interface GlanceView {
   parts: GlancePart[];
   moment: GlanceMoment | null;
   cue: string | null;
-  earned: { text: string; tone: "earned" | "plain"; delta?: number | null } | null;
+  earned: {
+    text: string;
+    tone: "earned" | "plain";
+    delta?: number | null;
+    /**
+     * The level-up moment (#498): the fitted line's words in pieces, a
+     * trait's name apart, so each wears its colour beside its name (DESIGN
+     * rule 6). Joined, they are `text`.
+     */
+    levelUp?: { pieces: LevelUpPiece[] };
+  } | null;
   /**
    * The line answers yesterday's cue and it held (#477): its count is
    * drawn in sage, and a screen reader is told "Held." after it, since a
@@ -1365,11 +1377,11 @@ function Glance({
         {view.earned && (
           <p
             data-earned
-            className={`mt-1 text-body font-semibold ${view.earned.tone === "earned" ? "text-sage-700" : "text-ink"} ${
+            className={`mt-1 text-body font-semibold text-balance ${view.earned.tone === "earned" ? "text-sage-700" : "text-ink"} ${
               counting || ethosIndex === null ? "" : "invisible"
             }`}
           >
-            {view.earned.text}
+            {view.earned.levelUp ? <LevelUpWords pieces={view.earned.levelUp.pieces} /> : view.earned.text}
             {view.earned.delta ? (
               <span className={view.earned.delta > 0 ? "text-sage-700" : "text-rust"}>
                 {" "}
@@ -1456,5 +1468,31 @@ function Glance({
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * The level-up moment's words (#498), "Pace reached level 3, Variety
+ * level 3 and 3 more", each named trait behind its 8px mark as You's rows
+ * draw it: its tone for the five the lessons teach, You's stone mark for
+ * the four the Index only reads. The marks are drawn, never read: the
+ * words say it all.
+ */
+function LevelUpWords({ pieces }: { pieces: LevelUpPiece[] }) {
+  return (
+    <>
+      {pieces.map((p, i) => {
+        if (typeof p === "string") return <Fragment key={i}>{p}</Fragment>;
+        const toned = isTraitKey(p.key);
+        return (
+          <span key={i} className="whitespace-nowrap">
+            <span aria-hidden data-trait={toned ? p.key : undefined} className="mr-1.5 inline-flex align-[0.08em]">
+              <span className={toned ? "trait-dot" : "size-2 shrink-0 rounded-[2px] bg-stone-200"} />
+            </span>
+            {p.name}
+          </span>
+        );
+      })}
+    </>
   );
 }

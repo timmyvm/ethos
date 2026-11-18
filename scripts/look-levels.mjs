@@ -1,11 +1,12 @@
 /**
- * You's trait levels, photographed (DECISIONS #482): the rows and a
- * trait's sheet against eight recordings built to show every state a
- * level can be in (look-fixtures.mjs `LEVEL_MIX`, which the three weeks
- * of practice never reach): Filler control level 6 at 40%, Pace level 2
- * at 95%, Pausing level 1 at 0% (it leveled on the newest take),
- * Follow-through and Variety level 0 part of the way, and on Premium
- * (the second pass, all nine rows) Engagement never read: "Not yet".
+ * You's trait levels, photographed (DECISIONS #482, trait XP since
+ * #498): the rows and a trait's sheet against fourteen recordings built
+ * to show every state a level can be in (look-fixtures.mjs `LEVEL_MIX`,
+ * which the three weeks of practice never reach): Filler control level
+ * 5 at 40%, Variety level 4 at 50%, Pace level 3 at 90%, Pausing level 2
+ * just reached (its bar empty), Restart control level 0 at 57%, and on
+ * Premium (the second pass, all nine rows) Engagement never read: "Not
+ * yet".
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 3871
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \

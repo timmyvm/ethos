@@ -89,6 +89,37 @@ describe("the glance", () => {
     expect(html).not.toContain("leveled");
     expect(html).not.toContain("4 fillers in 62s");
   });
+  /* #498: the levels this recording crossed, in the earned line. */
+  it("names the levels a recording crossed, each trait behind its own colour, in the line's words", () => {
+    const up: GlanceView = {
+      ...view,
+      cue: null,
+      earned: {
+        text: "Pace reached level 3, Structure level 2 and 1 more",
+        tone: "earned",
+        levelUp: {
+          pieces: [{ key: "pace", name: "Pace" }, " reached level 3", ", ", { key: "structure", name: "Structure" }, " level 2 and 1 more"],
+        },
+      },
+    };
+    const out = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: up }));
+    expect(visible(out)).toContain("Pace reached level 3, Structure level 2 and 1 more");
+    // Pace wears its tone; Structure, which the lessons do not teach, You's stone mark.
+    expect(out).toContain('<span aria-hidden="true" data-trait="pace" class="mr-1.5 inline-flex align-[0.08em]"><span class="trait-dot"></span></span>Pace');
+    expect(out).toMatch(/<span aria-hidden="true" class="mr-1\.5 inline-flex align-\[0\.08em\]"><span class="size-2 shrink-0 rounded-\[2px\] bg-stone-200"><\/span><\/span>Structure/);
+    expect(out.match(/<p data-earned="true" class="([^"]*)"/)?.[1]).toContain("text-sage-700");
+  });
+  it("draws the short form the budget kept, its one trait still marked (#498 review)", () => {
+    const up: GlanceView = {
+      ...view,
+      earned: { text: "Pace: level 3", tone: "earned", levelUp: { pieces: [{ key: "pace", name: "Pace" }, ": level 3"] } },
+    };
+    const out = renderToStaticMarkup(createElement(RepResult, { result, section: "glance", glance: up }));
+    // The name's span closes on the colon: no space between them on the screen.
+    expect(out).toContain("Pace</span>: level 3");
+    expect(out.match(/data-trait="pace"/g)).toHaveLength(1);
+    expect(visible(out)).not.toContain("reached");
+  });
   it("draws the moment as text, never a dead button, when nothing can play it", () => {
     expect(html).toContain("data-glance-chip");
     expect(html).not.toMatch(/<button[^>]*data-glance-chip/);
@@ -173,8 +204,8 @@ describe("the sheet's body, in order", () => {
   });
 
   it("says no level-up anywhere in the sheet, not even in the row the take levels (#484)", () => {
-    /* A take a gate would score (repTraitGain re-runs the substance gate
-       on the transcript), with Pace at 96: it levels Pace twice on You.
+    /* A take a gate would score (repTraitXp re-runs the substance gate
+       on the transcript), with Pace at 96: it pays Pace 96 XP on You.
        "Leveled twice" stood in that row and failed the two-second test
        on its own: no level is on this screen to read it against. */
     const strong = {

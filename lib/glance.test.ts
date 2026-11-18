@@ -6,8 +6,10 @@ import {
   countWords,
   cueLead,
   earnedLine,
+  fittedEarned,
   fitGlance,
   GLANCE_WORDS,
+  GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_ASK,
   askBudget,
@@ -32,6 +34,7 @@ import { ladderView, roundReveal } from "./round-copy";
 import { computeMetrics, substance, type RepMetrics, type Word } from "./metrics";
 import { heldPauseMarks } from "./pause-mark";
 import { endNote, MOST_PAUSES, type RewardMoment } from "./rewards";
+import { levelUpLine } from "./traits";
 import type { StreakState } from "./streak";
 
 /*
@@ -388,6 +391,93 @@ describe("earnedLine", () => {
     expect(earnedLine({ bests: [round, clean], trait: "fillers" })?.text).toBe("Cleanest recording yet");
     expect(earnedLine({ bests: [round, held], trait: "pause" })?.text).toBe("Most pauses yet");
     expect(earnedLine({ bests: [round, held], trait: "fillers" })?.text).toBe("Best round yet");
+  });
+  /* The moment as lib/traits.ts writes it: Pace to 3 and Pausing to 2. */
+  const levelUp = levelUpLine(
+    [
+      { key: "pace", from: 2, to: 3, paid: 93 },
+      { key: "pause", from: 1, to: 2, paid: 72 },
+    ],
+    (k) => ({ pace: "Pace", pause: "Pausing" })[k as "pace" | "pause"]
+  )!;
+  const oneUp = levelUpLine([{ key: "pace", from: 2, to: 3, paid: 93 }], () => "Pace")!;
+  it("says the levels a recording crossed under the ladder and over a best Index (#498)", () => {
+    expect(earnedLine({ bests: [index, clean], ladderMoment: ladder, levelUp, trait: "fillers" })?.text).toBe("Level 3 is open");
+    expect(earnedLine({ bests: [index, clean], levelUp, trait: "fillers" })).toEqual({
+      text: "Pace reached level 3, Pausing level 2",
+      short: "Pace reached level 3",
+      tone: "earned",
+      levelUp,
+    });
+    expect(earnedLine({ bests: [index], levelUp: null, trait: "fillers" })?.text).toBe("Best yet, past your 690");
+  });
+  it("gives up a level-up's words before the cue, and the cue only when no form of it fits (#498 review)", () => {
+    const fixed = ["The cold open", "665", "/1000", "▲ 3 since last time", "Every number", "Go again", "Retake"];
+    const fit = (words: string[], earned: Parameters<typeof fitGlance>[0]["earned"], extra = {}) =>
+      fitGlance({ fixed: words, line: "4 fillers, first 0:02", cue: "Practice 2: under 4.", earned, ...extra });
+    // 14 fixed and 8 for the line and the cue: "Pace: level 3" is the one form that fits beside them.
+    expect(fit(fixed, earnedLine({ bests: [], levelUp, trait: "fillers" }))).toEqual({
+      cue: "Practice 2: under 4.",
+      earned: "Pace: level 3",
+      words: 25,
+      short: false,
+    });
+    expect(fit(fixed, earnedLine({ bests: [], levelUp: oneUp, trait: "fillers" }))).toMatchObject({ cue: "Practice 2: under 4.", earned: "Pace: level 3" });
+    // A best Index keeps #427's order: the cue goes first, and its tail stays while it fits.
+    expect(fit(fixed, earnedLine({ bests: [index], trait: "fillers" }))).toMatchObject({ cue: null, earned: "Best yet, past your 690" });
+    // With the day's coin there is no room for both: the cue goes, and the longest form that fits stays.
+    const coined = [...fixed, "+1"];
+    expect(fit(coined, earnedLine({ bests: [], levelUp, trait: "fillers" }))).toMatchObject({ cue: null, earned: "Pace reached level 3", words: 23 });
+    // A carried cue (#477) tries its short forms with every form of the level-up before it goes.
+    expect(fit(coined, earnedLine({ bests: [], levelUp, trait: "fillers" }), { lineShort: "4 fillers.", cueShort: "Under 4." })).toEqual({
+      cue: "Practice 2: under 4.",
+      earned: "Pace reached level 3",
+      words: 25,
+      short: true,
+    });
+    const tight = [...coined, "One", "two", "three"];
+    expect(fit(tight, earnedLine({ bests: [], levelUp, trait: "fillers" }), { lineShort: "4 fillers.", cueShort: "Under 4." })).toEqual({
+      cue: "Under 4.",
+      earned: "Pace: level 3",
+      words: 25,
+      short: true,
+    });
+  });
+  it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
+    /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again are 20 words. */
+    const fixed = ["Today's practice", "665", "/1000", "Day 0. Everything after this has a number to beat.", "Every number", "Go again: The baseline"];
+    const f = fitGlance(
+      {
+        fixed,
+        line: "“um” 2 times, first 0:02",
+        cue: "Tomorrow: a pause instead.",
+        lineShort: "“um” 2 times.",
+        cueShort: "A pause instead.",
+        earned: earnedLine({ bests: [], levelUp, trait: "fillers" }),
+      },
+      GLANCE_WORDS_FIRST
+    );
+    // "Pace reached level 3" beside the whole line is 29 against 28: the fallback used to keep it anyway.
+    expect(f).toEqual({ cue: null, earned: "Pace: level 3", words: GLANCE_WORDS_FIRST, short: false });
+    // Over random fixed lengths: whenever any form fits once the cue has gone, the glance is within its budget.
+    for (let extra = 0; extra < 12; extra++) {
+      const words = Array.from({ length: extra }, (_, i) => `w${i}`);
+      const g = fitGlance({ fixed: [...words], line: "4 fillers, first 0:02", cue: "Practice 2: under 4.", earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) });
+      if (countWords([...words, "4 fillers, first 0:02", "Pace: level 3"].join(" ")) <= GLANCE_WORDS) expect(g.words).toBeLessThanOrEqual(GLANCE_WORDS);
+    }
+  });
+  it("draws the fitted form's own pieces, so each trait it names wears its colour", () => {
+    const line = earnedLine({ bests: [], levelUp, trait: "fillers" });
+    expect(fittedEarned(line, "Pace reached level 3")).toEqual({
+      text: "Pace reached level 3",
+      tone: "earned",
+      delta: undefined,
+      levelUp: { pieces: [{ key: "pace", name: "Pace" }, " reached level 3"] },
+    });
+    expect(fittedEarned(line, "Pace: level 3")?.levelUp).toEqual({ pieces: [{ key: "pace", name: "Pace" }, ": level 3"] });
+    expect(fittedEarned(line, "Pace reached level 3, Pausing level 2")?.levelUp?.pieces).toHaveLength(5);
+    expect(fittedEarned(earnedLine({ bests: [index], trait: "fillers" }), "Best yet")?.levelUp).toBeUndefined();
+    expect(fittedEarned(line, null)).toBeNull();
   });
   it("is empty when nothing was earned, and ink for a second score", () => {
     expect(earnedLine({ bests: [], trait: "fillers" })).toBeNull();

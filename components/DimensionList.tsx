@@ -41,8 +41,8 @@ interface Detail {
  * rows share, with the word for how it went beside its number
  * (lib/dimension-rows.ts `band`: Strong from 70, Okay from 50, Work on
  * this under that) and a bar that shows the band: sage where it is
- * Strong, because a Strong row is earned (it is the bar a trait levels
- * at), and a neutral where it is not. A trait named for its fault is
+ * Strong, because a Strong row is earned, and a neutral where it is
+ * not. A trait named for its fault is
  * named for its skill here (Filler control, Restart control), so a high
  * number reads as good on every row. The Index itself is the same
  * number: nothing is rescored.

@@ -43,12 +43,10 @@ import {
   type XpRead,
 } from "@/lib/client-data";
 import {
-  LEVEL_AT,
-  DOUBLE_AT,
-  closestLine,
   levelLine as traitLevelLine,
   rankedTraits,
   traitLevels,
+  xpLine,
   type TraitLevel,
 } from "@/lib/traits";
 import { LevelMeter } from "@/components/ui/LevelMeter";
@@ -853,12 +851,13 @@ export default function YouPage() {
       )}
 
       {/*
-       * Traits (DECISIONS #159): the nine Index dimensions as levels,
-       * best first, derived from the reps on every load. A mirror, not
-       * a currency: they gate nothing and feed nothing. A trait that
-       * hasn't leveled sits dimmed at the bottom, the shelf's grammar
-       * (#153): the position is the claim. Each row opens a sheet with
-       * what it measures and the rule that moves it (#317).
+       * Traits (#498): the nine Index dimensions as levels, filled by
+       * trait XP (every scored recording pays each trait its score),
+       * most XP first, derived from the reps on every load. They gate
+       * nothing and feed nothing. A trait still at "Not yet" sits dimmed
+       * at the bottom, the shelf's grammar (#153): the position is the
+       * claim. Each row opens a sheet with what it measures, the XP
+       * behind its bar and the rule that fills it (#317).
        */}
       <section className="mt-7">
         {/* "Trait levels" (E35): the bare numbers are levels you earned,
@@ -1422,7 +1421,6 @@ function TraitSheet({
   const what = toned ? TRAIT[trait.key as TraitId].what : WHAT[trait.key];
   const reading = sheetReading(trait.key, reps);
   const practise = practiseHref(trait.key, done);
-  const closest = closestLine(trait, (key) => DIMENSION_NAME[key]);
   return (
     <Overlay label={name} onClose={onClose}>
       <div
@@ -1469,20 +1467,18 @@ function TraitSheet({
         )}
         <p className="mt-4 text-read text-stone-800 text-pretty">{what}</p>
         {/* The level as the row printed it, "Level 6" and its bar (#482),
-            then the try the bar is drawn from, so it traces to a number,
-            then the rule that moves it. The rule is the results' own word
-            (#471): a row that reads Strong is a row that can level its
-            trait. */}
+            then the XP the bar is drawn from, so it traces to numbers
+            ("370 XP to level 7. Last recording +45.", #498), then the rule
+            that fills it, under the trait's own name: trait XP is only
+            ever said inside its trait, never added up, so it is never
+            read as the card's purple XP. */}
         <div className="mt-4">
           <LevelMeter name={name} level={trait.level} percent={trait.percent} size="sheet" />
-          {closest && (
-            <p data-closest className="font-display mt-1 text-link tabular-nums text-stone-500">
-              {closest}
-            </p>
-          )}
-          <p className="mt-2 text-caption leading-relaxed text-stone-500 text-pretty">
-            A recording levels it when this is its best row and reads Strong, {LEVEL_AT} or more. From {DOUBLE_AT} it
-            counts twice.
+          <p data-xp className="font-display mt-1 text-link tabular-nums text-stone-500">
+            {xpLine(trait)}
+          </p>
+          <p data-rule className="mt-2 text-caption leading-relaxed text-stone-500 text-pretty">
+            Each recording adds its {name} score as XP.
           </p>
         </div>
         {practise && (

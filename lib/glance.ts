@@ -24,6 +24,7 @@ import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S } from "./pause-quality";
 import { MOST_PAUSES, type RewardMoment } from "./rewards";
 import type { GameRound } from "./round";
 import { clockTenth, decidingCutIn, secs as tenths, type RoundReveal } from "./round-copy";
+import type { LevelUpPiece, LevelUpView } from "./traits";
 import { transcriptPieces, type TranscriptUnit } from "./transcript-words";
 
 /** The glance's ceiling, in words as `countWords` counts them. */
@@ -420,6 +421,12 @@ export function roundGlance(p: { round: GameRound; reveal: RoundReveal; cue: str
 /** The earned slot under the delta: one line, sage when earned, ink when a second score. */
 export interface EarnedLine {
   text: string;
+  /**
+   * The level-up moment (#498): every form it can be said in, longest
+   * first, so the budget takes the longest that fits and each named trait
+   * wears its colour; absent on any other line.
+   */
+  levelUp?: LevelUpView;
   /** What stays when the budget cuts its tail ("Best yet"), or null to drop it whole. */
   short: string | null;
   tone: "earned" | "plain";
@@ -433,21 +440,26 @@ const TRAIT_RECORD: Partial<Record<TraitId, string>> = {
 };
 
 /**
- * The earned line (DECISIONS #427): the slot that held "Pace leveled
- * twice", now only for something earned, first match wins: a game's
- * ladder moment, a new best Index, a record on the practice's own trait,
- * a game's best round. Otherwise a second score in ink: a Premium video
- * take's Presence, a boss's Accuracy. Otherwise nothing, and the slot
- * takes no height. Every record still stands as its card in the sheet.
+ * The earned line (DECISIONS #427): only for something earned, first
+ * match wins: a game's ladder moment, the levels this recording crossed
+ * (#498: "Pace reached level 3, Pausing level 2", lib/traits.ts
+ * `levelUpLine`), a new best Index, a record on the practice's own
+ * trait, a game's best round. Otherwise a second score in ink: a Premium
+ * video take's Presence, a boss's Accuracy. Otherwise nothing, and the
+ * slot takes no height. A level crossed ranks over a best Index because
+ * the glance is the only place it is said, while a best still stands as
+ * its card in the sheet and in Demos's celebrating pose.
  */
 export function earnedLine(p: {
   bests: RewardMoment[];
   ladderMoment?: RewardMoment | null;
+  levelUp?: LevelUpView | null;
   trait: TraitId;
   presence?: { score: number; previous: number | null } | null;
   accuracy?: number | null;
 }): EarnedLine | null {
   if (p.ladderMoment) return { text: p.ladderMoment.headline, short: null, tone: "earned" };
+  if (p.levelUp) return { text: p.levelUp.forms[0].text, short: p.levelUp.forms[1]?.text ?? null, tone: "earned", levelUp: p.levelUp };
   const index = p.bests.find((b) => b.headline === "Best Ethos yet");
   if (index) {
     const past = /past your (\d+)/.exec(index.detail)?.[1];
@@ -468,6 +480,30 @@ export function earnedLine(p: {
   }
   if (typeof p.accuracy === "number") return { text: `Accuracy ${p.accuracy}`, short: null, tone: "plain" };
   return null;
+}
+
+/**
+ * The earned line as the glance draws it, once fitGlance has chosen its
+ * words: those words, and for a level-up (#498) the same words in pieces,
+ * so each trait they name wears its colour.
+ */
+export function fittedEarned(
+  earned: EarnedLine | null,
+  text: string | null
+): {
+  text: string;
+  tone: EarnedLine["tone"];
+  delta?: number | null;
+  levelUp?: { pieces: LevelUpPiece[] };
+} | null {
+  if (!earned || !text) return null;
+  const form = earned.levelUp?.forms.find((f) => f.text === text);
+  return {
+    text,
+    tone: earned.tone,
+    delta: earned.delta,
+    levelUp: form ? { pieces: form.pieces } : undefined,
+  };
 }
 
 /** What a lesson's ending reads off one practice: a stored row, or the take on screen. */
@@ -574,6 +610,13 @@ export function playsOnAfterSheet(
  * after its comma ("Best yet" stays). The score, the line, the door and
  * the tap are in `fixed` and never go.
  *
+ * A level-up (#498) is the one earned line that gives up its words
+ * before the cue does: one is crossed on most of a new account's
+ * recordings, so with #427's order the take's coaching would leave the
+ * glance on most of them (the #498 review). Its shorter forms ("Pace
+ * reached level 3", "Pace: level 3") are tried with the cue first; only
+ * when none fits does the cue go, and then the longest that fits stays.
+ *
  * A carried cue (#477) is what the glance ends on, so where the line and
  * the cue come with shorter forms they are tried before anything goes:
  * the short line (its number, no chip), then the short cue (no
@@ -594,12 +637,18 @@ export function fitGlance(
 ): { cue: string | null; earned: string | null; words: number; short: boolean } {
   const total = (line: string, cue: string | null, earned: string | null) =>
     countWords([...p.fixed, line, cue ?? "", earned ?? "", p.earned?.delta ? `▲ ${Math.abs(p.earned.delta)}` : ""].join(" "));
+  /* The earned line's forms, longest first: a level-up's every form, any
+     other line whole and then with its tail cut. */
+  const earnedForms: (string | null)[] = !p.earned
+    ? [null]
+    : p.earned.levelUp
+      ? p.earned.levelUp.forms.map((f) => f.text)
+      : [p.earned.text, ...(p.earned.short ? [p.earned.short] : [])];
   if (p.lineShort || p.cueShort) {
     const forms: [string, string | null, boolean][] = [[p.line, p.cue, false]];
     if (p.lineShort) forms.push([p.lineShort, p.cue, true]);
     if (p.cueShort) forms.push([p.line, p.cueShort, false]);
     if (p.lineShort && p.cueShort) forms.push([p.lineShort, p.cueShort, true]);
-    const earnedForms = [p.earned?.text ?? null, ...(p.earned?.short ? [p.earned.short] : [])];
     for (const earned of earnedForms) {
       for (const [line, cue, short] of forms) {
         const words = total(line, cue, earned);
@@ -608,9 +657,12 @@ export function fitGlance(
     }
   }
   let cue = p.cue;
-  let earned = p.earned?.text ?? null;
-  if (total(p.line, cue, earned) > budget) cue = null;
-  if (total(p.line, cue, earned) > budget && p.earned?.short) earned = p.earned.short;
+  if (cue && p.earned?.levelUp) {
+    const earned = earnedForms.find((e) => total(p.line, cue, e) <= budget);
+    if (earned !== undefined) return { cue, earned, words: total(p.line, cue, earned), short: false };
+  }
+  if (total(p.line, cue, earnedForms[0]) > budget) cue = null;
+  const earned = earnedForms.find((e) => total(p.line, cue, e) <= budget) ?? earnedForms[earnedForms.length - 1];
   return { cue, earned, words: total(p.line, cue, earned), short: false };
 }
 

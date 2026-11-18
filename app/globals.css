@@ -4110,8 +4110,8 @@ summary::-webkit-details-marker {
 .level-fill {
   display: block;
   height: 100%;
-  /* The bar never reaches 100 (a try that did leveled the trait and
-     emptied it), so it never looks full either: at 98 or 99 the round
+  /* The bar never reaches 100 (XP that fills a level starts the next
+     one, #498), so it never looks full either: at 98 or 99 the round
      end met the track's and the bar read done. A 2px tip of track
      always shows; the number beside it, and the sheet's, stay exact. */
   max-width: calc(100% - 2px);

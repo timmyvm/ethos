@@ -3763,6 +3763,12 @@ summary::-webkit-details-marker {
 .log-stage-empty {
   min-height: max(252px, calc(100svh - 330px));
 }
+/* One recording: the height its list head and one two-line row leave
+   (#506 review), so the first screen ends on the row, not on 200px of
+   ground. */
+.log-stage-lone {
+  min-height: max(252px, calc(100svh - 414px));
+}
 .log-number {
   font-size: var(--text-num-xl);
   line-height: 1;
@@ -3786,13 +3792,16 @@ summary::-webkit-details-marker {
   font-size: 0.6875rem;
   line-height: 1;
 }
-/* The line's band: the stage's width less its padding, under the pill. */
+/* The line's band: the stage's width less its padding, under the pill,
+   its top 16px under the pill's foot, so a ring on a history wider than
+   the 100-point floor never stands against the pill (#506 review: 2px at
+   320x568 on a 200-point fall). */
 .log-chart {
   position: absolute;
   left: 26px;
   right: 30px;
   bottom: 24px;
-  height: 64px;
+  height: 60px;
   z-index: 1;
   pointer-events: none;
   color: var(--stage-ink);
@@ -3867,12 +3876,15 @@ summary::-webkit-details-marker {
   .log-stage-empty {
     min-height: max(204px, calc(100svh - 330px));
   }
+  .log-stage-lone {
+    min-height: max(204px, calc(100svh - 414px));
+  }
   .log-number {
     font-size: var(--text-num-hero);
     letter-spacing: var(--text-num-hero--letter-spacing);
   }
   .log-chart {
-    height: 40px;
+    height: 34px;
     bottom: 20px;
   }
 }

@@ -25,9 +25,15 @@ import { DURATION } from "@/lib/motion";
  * and Demos, the empty state's one moment, the stage taking the spare
  * height); recordings with none scored (a dash, "Your next scored
  * recording starts the line."); one scored recording (the number, "Your
- * next recording starts the line."); two or more (number, pill, line). A fall says ▼ in the same stage ink: a fact, not an
- * alarm, and never rust.
+ * next recording starts the line."); two or more (number, pill, line).
+ * With exactly one recording Demos stands on the stage too, and it takes
+ * the height its one row leaves. A fall says ▼ in the same stage ink: a
+ * fact, not an alarm, and never rust.
  */
+/** The most Demos grows to on a tall empty or first-recording stage, and the height he leaves the number. */
+const DEMOS_MAX = 208;
+const DEMOS_RESERVE = 210;
+
 export function LogStage({
   index,
   first,
@@ -54,16 +60,33 @@ export function LogStage({
   const points = ethosLine(series);
   const delta = points && index !== null && first !== null ? index - first : null;
   const empty = recordings === 0;
+  /* The first recording (#506 review): one row under the stage left
+     about 200px of bare ground at 390x844 (DESIGN 7), and a first
+     recording is one of Demos's moments, so he stands on its floor and
+     the stage takes the spare height, as on the empty Log. */
+  const lone = recordings === 1;
   return (
     <HeroStage
       eyebrow="Your Ethos"
       /* With nothing recorded the stage takes the screen's spare height
          (the empty state's one moment, Demos on its floor), so no band
          of bare ground is left under its one tap (DESIGN 7). */
-      className={`log-stage ${empty ? "log-stage-empty" : ""}`}
+      className={`log-stage ${empty ? "log-stage-empty" : lone ? "log-stage-lone" : ""}`}
       data-look="log-stage"
+      /* He grows with the height the stage takes (132 to DEMOS_MAX), as
+         on the boss's stage, so the room is his and not bare sky. */
+      artGrow={empty || lone ? DEMOS_MAX : undefined}
+      artReserve={DEMOS_RESERVE}
       art={
-        empty ? <DemosArt pose="hello" size={132} grounded halo={{ tone: "sky", kind: "stage" }} /> : undefined
+        empty || lone ? (
+          <DemosArt
+            pose={empty ? "hello" : "celebrate"}
+            size={DEMOS_MAX}
+            fit
+            grounded
+            halo={{ tone: "sky", kind: "stage" }}
+          />
+        ) : undefined
       }
       chart={
         points && delta !== null ? (

@@ -4,7 +4,7 @@
  * `scripts/look.mjs` photographs the app as a returning user sees it,
  * which means its fixture has already finished the walk — so it cannot
  * photograph the walk. This one starts from a genuinely empty browser
- * and taps through all eleven screens, shooting each, and shooting the
+ * and taps through every screen, shooting each, and shooting the
  * answered state of every question that has one, because Demos's reply
  * only exists after a tap and a screen nobody photographed answered is
  * half a screen.
@@ -36,12 +36,9 @@ import { supabaseRoute } from "./look-fixtures.mjs";
 const ANSWERS = [
   { id: "name", type: "text", value: "Tim" },
   { id: "ageBand", type: "row", labels: ["18 to 24"] },
-  { id: "goal", type: "row", labels: ["Think on my feet when asked"] },
+  /* The goal, the place and the beat went with #501. */
   { id: "pains", type: "row", labels: ["I rush", "I ramble"] },
   { id: "level", type: "row", labels: ["A bit, a class or a few talks"] },
-  { id: "context", type: "row", labels: ["Work"] },
-  /* The beat (#288): one screen, no answer, shot once. */
-  { id: "beat", type: "beat" },
   /* The hour is said in the device's own form after mount ("6 pm"),
      so the row is found by its word (intro-b-19). */
   { id: "time", type: "row", labels: [/^Evening/] },

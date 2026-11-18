@@ -76,11 +76,11 @@ export const QUESTIONS: readonly {
   title: string;
   line?: string;
 }[] = [
-  { id: "name", title: "What do I call you?", line: "I'm Demos. A few questions, then you speak for 60 seconds." },
+  { id: "name", title: "What do I call you?", line: "I'm Demos. A few quick questions, then you speak." },
   { id: "ageBand", title: "How old are you?" },
   { id: "pains", title: "What do you notice when you talk?", line: "Pick up to three, or Skip if you're not sure." },
   { id: "level", title: "How much have you practised?" },
-  { id: "time", title: "When do you want your minute?", line: "It takes 60 seconds a day. Pick an hour you'd keep." },
+  { id: "time", title: "When do you want your minute?", line: "It takes 60 seconds. Pick an hour you'd keep." },
 ];
 
 /** The name field's own furniture: it is the one answer you type. */

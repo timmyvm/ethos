@@ -157,7 +157,11 @@ const FROM_LAYOUT_2 = [0, 1, 2, 3, 3, 4, 5, 5, 5, 6, 7] as const;
 export function stepFromStore(step: number, layout: unknown): number {
   if (layout === WALK_LAYOUT) return step;
   const two = layout === 2 ? step : step <= 2 ? 0 : step - 2;
-  return FROM_LAYOUT_2[Math.min(two, FROM_LAYOUT_2.length - 1)];
+  if (two < FROM_LAYOUT_2.length) return FROM_LAYOUT_2[two];
+  /* Past the end stays past the end, never the account ask: a walk that
+     resumes ON the account ask is one a Google attempt left there. */
+  const last = FROM_LAYOUT_2.length - 1;
+  return two - (last - FROM_LAYOUT_2[last]);
 }
 
 export function readOnboarding(): OnboardingState {

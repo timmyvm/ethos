@@ -1,8 +1,8 @@
 /**
  * The introduction, walked in a real browser (DECISIONS #232, #233,
- * #249, #475): the room's door and its Not now (the scene itself is
- * scripts/check-room.mjs), then the questions, one typed answer and six
- * tapped ones,
+ * #249, #475, #501): the room's door and its Not now (the scene itself is
+ * scripts/check-room.mjs), then the five questions, one typed answer and
+ * four tapped ones, each with Demos's guide line where it has one,
  * persistence across a refresh, back, skip, Demos replying where an
  * answer changes something and only nodding where it does not, the plan
  * built from the answers, and what the answers change afterwards (the
@@ -70,6 +70,23 @@ await context.addInitScript(() => {
     };
   }
 });
+/*
+ * The walk's sound (#501): every oscillator the page makes is counted,
+ * so the gate can say a word blipped, a pick clicked, reduced motion
+ * blipped once a line, and Sound off made none.
+ */
+await context.addInitScript(() => {
+  window.__osc = 0;
+  const AC = window.AudioContext;
+  if (AC) {
+    const make = AC.prototype.createOscillator;
+    AC.prototype.createOscillator = function () {
+      window.__osc += 1;
+      return make.call(this);
+    };
+  }
+});
+const osc = () => page.evaluate(() => window.__osc);
 const page = await context.newPage();
 page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 120)));
 const shot = (n) => page.screenshot({ path: `${OUT}${n}.png` });
@@ -111,7 +128,7 @@ const said = (t) => page.locator("main .sr-only", { hasText: new RegExp(`^${esc(
 /* The bubble's live region: what a screen reader hears when he replies. */
 const announced = () => page.$eval('main p.sr-only[aria-live="polite"]', (el) => el.textContent.trim());
 /* Where the one tap stands, per screen: the walk docks it in one shelf,
-   so it must read the same on every question, the beat and the plan. */
+   so it must read the same on every question and the plan. */
 const tops = {};
 const nextTop = async (name) => {
   tops[name] = await page.evaluate(() => {
@@ -171,16 +188,31 @@ ok(
 );
 
 // 1b. Not now goes straight to the questions (on a train, in a library).
+const osc0 = await osc();
 await page.getByRole("button", { name: "Not now" }).click();
 await said("What do I call you?").waitFor();
 ok("Not now goes straight to the questions, the name first", true);
+/* #501: his line lands a word at a time while he talks, with a blip
+   under each word, unlocked by the tap that brought him. */
+const talking = await page.waitForFunction(() => !!document.querySelector("main [data-talking]"), null, { timeout: 1500 }).then(() => true, () => false);
+ok("Demos talks while his line lands (#501)", talking);
+const partway = await page.evaluate(() => {
+  const w = [...document.querySelectorAll("main .talk-word")];
+  return { on: w.filter((x) => x.hasAttribute("data-on")).length, all: w.length };
+});
+ok("his words land one at a time, not all at once", partway.on < partway.all, JSON.stringify(partway));
+await page.waitForFunction(() => !document.querySelector("main [data-talking]"), null, { timeout: 4000 }).catch(() => {});
+const blips = (await osc()) - osc0;
+const said1 = await page.$$eval("main .talk-word", (w) => w.length);
+ok("a blip under every word he says (#501)", blips >= said1, `${blips} blips for ${said1} words`);
 
 // 2. Question 1: the name. The one answer you type, and the one he
 // repeats straight back.
 await said("What do I call you?").waitFor();
 await nextTop("q1");
 const at = async () => page.getByRole("progressbar").getAttribute("aria-valuenow");
-ok("the walk opens on the name, one of seven", (await at()) === "1");
+ok("the walk opens on the name, the first of seven steps", (await at()) === "1");
+ok("and Demos says the shape of the walk (#501)", await said("I'm Demos. A few quick questions, then you speak.").isVisible());
 ok(
   "every question holds Next until answered, the name included (#288)",
   (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
@@ -278,6 +310,27 @@ await swipe(-220, { settle: 60 });
 await page.getByRole("radio", { name: "Under 18" }).tap();
 ok("a tap right after a refused swipe is not swallowed", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
 ok("a tap picks the answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
+{
+  /* A pick clicks (#501): two notes, before his reply's blips. */
+  const before = await osc();
+  await page.getByRole("radio", { name: "18 to 24" }).click();
+  await sleep(40);
+  ok("a picked answer clicks", (await osc()) - before >= 2, String((await osc()) - before));
+  await page.getByRole("radio", { name: "Under 18" }).click();
+  await sleep(300);
+}
+{
+  /* A tap anywhere finishes his line at once (#501). */
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await said("What do I call you?").waitFor();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await sleep(260);
+  const mid = await page.evaluate(() => [...document.querySelectorAll("main .talk-word")].filter((x) => !x.hasAttribute("data-on")).length);
+  await page.mouse.click(200, 640);
+  await sleep(40);
+  const left = await page.evaluate(() => [...document.querySelectorAll("main .talk-word")].filter((x) => !x.hasAttribute("data-on")).length);
+  ok("a tap anywhere finishes his line at once (#501)", left === 0, `${mid} words to come, then ${left}`);
+}
 // Arrow keys inside a set of answers belong to the answers (intro-a-5,
 // intro-b-7): one Tab stop, and the arrows move the choice with the focus.
 const stops = await page.$$eval("main [role=radio]", (els) => els.filter((e) => e.tabIndex === 0).length);
@@ -312,33 +365,12 @@ ok(
 await page.getByRole("button", { name: "Next", exact: true }).click();
 await sleep(300);
 
-// 4. Question 3: goal. It changes only what the PLAN will say, so he
-// nods and says nothing — the screen keeps its own line.
-await said("What do you want this for?").waitFor();
-await nextTop("q3");
-await page.getByRole("radio", { name: "Hold a room when I present" }).click();
-await sleep(250);
-ok(
-  "an answer that only changes the plan gets a nod and the question stays",
-  await said("What do you want this for?").isVisible()
-);
-// Refresh in the middle: it resumes here with the answers kept.
-await page.reload();
-await said("What do you want this for?").waitFor({ timeout: 5000 });
-ok("a refresh resumes on the same question", true);
-ok("the answer survived the refresh", (await page.getByRole("radio", { name: "Hold a room when I present" }).getAttribute("aria-checked")) === "true");
-await shot("06-q-goal");
-// Back goes to age, with the answer still there.
-await page.getByRole("button", { name: "Back", exact: true }).click();
-await said("How old are you?").waitFor();
-ok("back returns to the previous question with its answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
-await page.getByRole("button", { name: "Next", exact: true }).click();
-await said("What do you want this for?").waitFor();
-await page.getByRole("button", { name: "Next", exact: true }).click();
-
-// 5. Question 4: pains, up to three, and he answers the one just tapped.
+// 4. Question 3: what you notice, up to three, and he answers the one
+// just tapped. The goal that stood here went with #501 (Jonathan: "we
+// just want to get better at it"); its line says Skip is fine here.
 await said("What do you notice when you talk?").waitFor();
-await nextTop("q4");
+ok("the question that asks you to know yourself says Skip is fine (#501)", await said("Pick up to three, or Skip if you're not sure.").isVisible());
+await nextTop("q3");
 for (const n of ["I rush", "Um, like, you know", "I freeze on the spot"]) {
   await page.getByRole("checkbox", { name: n }).click();
   await sleep(200);
@@ -355,11 +387,22 @@ ok(
 const fourth = await page.getByRole("checkbox", { name: "I ramble" }).isDisabled();
 ok("a fourth pain is refused", fourth === true);
 await shot("07-q-pains");
+// Refresh in the middle: it resumes here with the answers kept.
+await page.reload();
+await said("What do you notice when you talk?").waitFor({ timeout: 5000 });
+ok("a refresh resumes on the same question", true);
+ok("the answers survived the refresh", (await page.getByRole("checkbox", { name: "I rush" }).getAttribute("aria-checked")) === "true");
+// Back goes to age, with the answer still there.
+await page.getByRole("button", { name: "Back", exact: true }).click();
+await said("How old are you?").waitFor();
+ok("back returns to the previous question with its answer", (await page.getByRole("radio", { name: "Under 18" }).getAttribute("aria-checked")) === "true");
+await page.getByRole("button", { name: "Next", exact: true }).click();
+await said("What do you notice when you talk?").waitFor();
 await page.getByRole("button", { name: "Next", exact: true }).click();
 
-// 6. Question 5: level, which moves two real settings and says which.
+// 5. Question 4: level, which moves two real settings and says which.
 await said("How much have you practised?").waitFor();
-await nextTop("q5");
+await nextTop("q4");
 await page.getByRole("radio", { name: "Often, I present most weeks" }).click();
 await sleep(250);
 ok(
@@ -369,49 +412,38 @@ ok(
 await shot("08-q-level");
 await page.getByRole("button", { name: "Next", exact: true }).click();
 
-// 7. Question 6: optional, skipped.
-await said("Where does it matter most?").waitFor();
-await nextTop("q6");
+// 6. Question 5, the last: the hour. The place and the beat that stood
+// before it went with #501; the beat's line is the hour's own now.
+await said("When do you want your minute?").waitFor();
+await nextTop("q5");
+ok("the beat's line is the hour's (#501)", await said("It takes 60 seconds. Pick an hour you'd keep.").isVisible());
+ok("there is no question about the place, nor a beat, any more", (await page.getByText("Where does it matter most?").count()) === 0 && (await page.getByText("Practice with a set time gets done.").count()) === 0);
+ok("the bar stands at 5 of 7", (await at()) === "5");
 ok(
   "an unanswered question holds Next, and Skip is the way past (#288)",
   (await page.getByRole("button", { name: "Next", exact: true }).isDisabled()) === true
 );
 await page.getByRole("button", { name: "Skip", exact: true }).click();
-
-// 7c. The beat before the hour (#288): Demos alone with one line, no
-// answer to give, and the bar does not move for it.
-await said("Practice with a set time gets done.").waitFor();
-await nextTop("beat");
-ok("a beat breaks the run of questions before the hour is asked", (await page.getByRole("radio").count()) === 0);
-ok("and the bar stays at 6 of 7 across it", (await at()) === "6");
-const grounded = await page.$$eval("main .demos-ground > span, main .demos-halo, main .demos-pop", (els) => els.length);
-ok("Demos stands on a stage with a disc, a shadow and a spring", grounded === 3 && (await page.$$("main .intro-stage")).length === 1, String(grounded));
-const arcs = await page.$$eval("main svg .arc", (els) => els.map((e) => getComputedStyle(e).animationName));
-ok("the speaking pose draws its arcs in code, animated", arcs.length === 3 && arcs.every((a) => a === "arc-in"), arcs.join(","));
-// A short phone: the stage gives up height and Demos shrinks to the room.
+await said("Tim, you said rushing. Now it's a number.").waitFor();
+ok("Skip on the last question is the plan", true);
+await page.getByRole("button", { name: "Back", exact: true }).click();
+await said("When do you want your minute?").waitFor();
+// A short phone: the hour's five rows and its Next still stand on the screen.
 await page.setViewportSize({ width: 375, height: 667 });
 await sleep(400);
-const beatFold = await page.evaluate(() => {
+const hourFold = await page.evaluate(() => {
   const next = [...document.querySelectorAll("main button")].find((b) => b.textContent.trim() === "Next");
-  const demos = document.querySelector("main .demos-fit-room > div");
-  return { next: next ? Math.round(next.getBoundingClientRect().bottom) : 9999, demos: demos ? Math.round(demos.getBoundingClientRect().height) : 0 };
+  return { next: next ? Math.round(next.getBoundingClientRect().bottom) : 9999 };
 });
-ok("on a 667px phone the beat's Next is above the fold", beatFold.next <= 667, JSON.stringify(beatFold));
-ok("and Demos fits the room at a size that still reads", beatFold.demos >= 150, String(beatFold.demos));
+ok("on a 667px phone the hour's Next is above the fold", hourFold.next <= 667, JSON.stringify(hourFold));
 await page.setViewportSize({ width: 390, height: 844 });
 await sleep(300);
 await cdp.send("Emulation.resetPageScaleFactor");
-await shot("08b-beat");
-await page.getByRole("button", { name: "Next", exact: true }).click();
-
-// 8. Question 7: the hour. It writes a preference and asks for nothing.
-await said("When do you want your minute?").waitFor();
-await nextTop("q7");
-ok("the bar stands at 7 of 7", (await at()) === "7");
 /* The hour is said the device's way after mount (intro-b-19), so the
    row is found by its word. */
 await page.getByRole("radio", { name: /^Evening/ }).click();
 await sleep(250);
+ok("an answer that changes nothing he says gets a nod and the question stays", await said("When do you want your minute?").isVisible());
 const hour = await page.evaluate(() => JSON.parse(localStorage.getItem("ethos.prefs") || "{}").reminderHour);
 ok("picking an hour writes it straight to prefs", hour === 18, String(hour));
 ok(
@@ -421,13 +453,13 @@ ok(
 await shot("09-q-time");
 await page.getByRole("button", { name: "Next", exact: true }).click();
 
-// 9. The plan, from the answers, opening in their name and their words.
-await said("Hold the room.").waitFor();
+// 9. The plan, from the answers, opening in their name and their words,
+// and saying what Next does (#501).
+await said("Tim, you said rushing. Now it's a number.").waitFor();
 await nextTop("plan");
-ok(
-  "the plan opens on his line to them, by name",
-  await said("Tim, you said rushing. Now it's a number.").isVisible()
-);
+ok("the plan opens on his line to them, by name", true);
+ok("and says what comes next", await said("Save it next, then you speak for 60 seconds.").isVisible());
+ok("the bar runs on to the plan: 6 of 7", (await at()) === "6");
 /* Each step is a lead and a detail (intro-b-12). */
 const steps = await page.$$eval("main ol li", (els) =>
   els.map((e) => [...e.querySelectorAll(":scope > span:last-child > span")].map((s) => s.textContent.trim()))
@@ -445,10 +477,10 @@ ok(
 const numbersSet = await page.$$eval("main ol li span.tabular-nums.font-display", (els) => els.map((e) => e.textContent));
 ok("the plan's numbers are set as numbers", numbersSet.includes("130 to 160") && numbersSet.includes("60"), numbersSet.join(","));
 const shelf = Object.values(tops);
-ok("Next stands at one height on every question, the beat and the plan", shelf.length === 9 && shelf.every((y) => y !== null && y === shelf[0]), JSON.stringify(tops));
+ok("Next stands at one height on every question and the plan", shelf.length === 6 && shelf.every((y) => y !== null && y === shelf[0]), JSON.stringify(tops));
 const laddered = await page.$eval("main ol", (el) => el.className);
 ok("the plan's lines land one at a time", /stagger/.test(laddered), laddered);
-ok("the boss is the fine print", await page.getByText("Your boss, when you're ready: Cold Topic.").isVisible());
+ok("no boss in the fine print: the goal that picked one is not asked (#501)", (await page.getByText(/Your boss/).count()) === 0);
 const clip = await anim("main img.demos");
 ok("the plan's Demos breathes", clip === "breath", clip);
 await shot("10-plan");
@@ -546,7 +578,7 @@ ok(
 await shot("12-you");
 await page.getByRole("link", { name: /The road/ }).click();
 await page.waitForURL(/step=plan/);
-await said("Hold the room.").waitFor();
+await said("Tim, you said rushing. Now it's a number.").waitFor();
 ok("the plan row reopens the plan with a Done exit", await page.getByRole("link", { name: "Done" }).isVisible());
 await page.getByRole("button", { name: "Back", exact: true }).click();
 await said("When do you want your minute?").waitFor();
@@ -555,7 +587,7 @@ ok("back from the plan reaches the last question", true);
 // 10. Reduced motion stills every loop.
 await page.evaluate(() => localStorage.setItem("ethos.prefs", JSON.stringify({ reducedMotion: true })));
 await page.goto(`${BASE}/welcome?step=plan`);
-await said("Hold the room.").waitFor();
+await said("Tim, you said rushing. Now it's a number.").waitFor();
 const still = await anim("main img.demos");
 ok("under reduced motion the art is still", still === "none", still);
 const nodStilled = await page.evaluate(() => {
@@ -570,6 +602,32 @@ ok("and the nod is stilled with it", nodStilled === "none", nodStilled);
 const stillHeld = await swipe(200, { hold: true });
 ok("under reduced motion a drag does not move the screen", !stillHeld, String(stillHeld));
 ok("but the swipe still steps", (await heading()) === "When do you want your minute?");
+{
+  /* Under reduced motion his line lands whole, and its sound with it:
+     one blip, not one a word (#501). A tap first, to unlock the sound. */
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await said("How much have you practised?").waitFor();
+  await sleep(500);
+  const before = await osc();
+  const words = await page.$$eval("main .talk-word", (w) => ({ all: w.length, on: w.filter((x) => x.hasAttribute("data-on")).length }));
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await said("What do you notice when you talk?").waitFor();
+  await sleep(600);
+  ok("under reduced motion every word is there at once", words.on === words.all, JSON.stringify(words));
+  ok("and the line sounds once", (await osc()) - before === 1, String((await osc()) - before));
+}
+{
+  /* Sound off in Settings: not one blip, not one click (#501). */
+  await page.evaluate(() => localStorage.setItem("ethos.prefs", JSON.stringify({ sound: false })));
+  await page.goto(`${BASE}/welcome?step=ageBand`);
+  await said("How old are you?").waitFor();
+  const before = await osc();
+  await page.getByRole("radio", { name: "25 to 34" }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
+  await said("What do you notice when you talk?").waitFor();
+  await sleep(1500);
+  ok("with Sound off the walk makes no sound", (await osc()) - before === 0, String((await osc()) - before));
+}
 
 await page.close(); await context.close(); await browser.close();
 writeFileSync(OUT + "findings.json", JSON.stringify(findings, null, 2));

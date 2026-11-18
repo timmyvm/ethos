@@ -145,8 +145,10 @@ describe("a walk stored before the room", () => {
 
   it("moves the room's walk (layout 2) to today's", () => {
     expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => stepFromStore(n, 2))).toEqual([0, 1, 2, 3, 3, 4, 5, 5, 5, 6, 7]);
-    /* Past the end is the account ask, never past it. */
-    expect(stepFromStore(14, 2)).toBe(7);
+    /* Past the end stays past the end: never the account ask, which a
+       walk resumes on only when a Google attempt left it there. */
+    expect(stepFromStore(14, 2)).toBe(11);
+    expect(stepFromStore(99, undefined)).toBeGreaterThan(7);
   });
 
   it("puts the pitch's three screens on the room", () => {

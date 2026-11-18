@@ -122,6 +122,10 @@ async function walk(set) {
   let n = 0;
   const shot = async (name, settle = 600) => {
     await sleep(settle);
+    /* Demos finishes what he is saying first (#501): a shot mid-line is
+       the strips' job. */
+    await until(page, () => !document.querySelector("[data-talking]"), null, 4000);
+    await sleep(120);
     n += 1;
     const file = `${OUT}${tag}-${String(n).padStart(2, "0")}-${name}.png`;
     await page.screenshot({ path: file });

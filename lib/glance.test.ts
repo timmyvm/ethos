@@ -9,6 +9,7 @@ import {
   fittedEarned,
   fitGlance,
   GLANCE_WORDS,
+  GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_ASK,
   askBudget,
@@ -441,6 +442,29 @@ describe("earnedLine", () => {
       words: 25,
       short: true,
     });
+  });
+  it("keeps the first recording's glance at its ceiling: the form that fits, never the one past it (#498 review)", () => {
+    /* look-trait-xp's first scene: the header, the Index with "Day 0. ...", the door and Go again are 20 words. */
+    const fixed = ["Today's practice", "665", "/1000", "Day 0. Everything after this has a number to beat.", "Every number", "Go again: The baseline"];
+    const f = fitGlance(
+      {
+        fixed,
+        line: "“um” 2 times, first 0:02",
+        cue: "Tomorrow: a pause instead.",
+        lineShort: "“um” 2 times.",
+        cueShort: "A pause instead.",
+        earned: earnedLine({ bests: [], levelUp, trait: "fillers" }),
+      },
+      GLANCE_WORDS_FIRST
+    );
+    // "Pace reached level 3" beside the whole line is 29 against 28: the fallback used to keep it anyway.
+    expect(f).toEqual({ cue: null, earned: "Pace: level 3", words: GLANCE_WORDS_FIRST, short: false });
+    // Over random fixed lengths: whenever any form fits once the cue has gone, the glance is within its budget.
+    for (let extra = 0; extra < 12; extra++) {
+      const words = Array.from({ length: extra }, (_, i) => `w${i}`);
+      const g = fitGlance({ fixed: [...words], line: "4 fillers, first 0:02", cue: "Practice 2: under 4.", earned: earnedLine({ bests: [], levelUp, trait: "fillers" }) });
+      if (countWords([...words, "4 fillers, first 0:02", "Pace: level 3"].join(" ")) <= GLANCE_WORDS) expect(g.words).toBeLessThanOrEqual(GLANCE_WORDS);
+    }
   });
   it("draws the fitted form's own pieces, so each trait it names wears its colour", () => {
     const line = earnedLine({ bests: [], levelUp, trait: "fillers" });

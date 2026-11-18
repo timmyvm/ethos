@@ -16,9 +16,10 @@
  *   practice  the Practice tab, where Hostile moves from Premium to Free.
  *   boss      /boss, whose Premium card loses its Hostile row.
  *   squint    Today's first screen at 390x844 light, blurred 7px.
- *   phones    Today's first screen at 390x844, 393x852 and 430x932 with
- *             an iPhone's 34px home inset, light (#495: the Today / This
- *             week switch against the tab bar).
+ *   phones    Today's first screen at 375x812, 390x844, 393x852, 402x874
+ *             and 430x932 with an iPhone's 34px home inset, light, and
+ *             390x844 and 402x874 dark (#495 and its review: the Today /
+ *             This week switch against the tab bar).
  *   scrolled  Today scrolled until the card's foot is under the bar,
  *             light and dark (#495: the bar over the coloured card), and
  *             scrolled to the tiles.
@@ -52,11 +53,16 @@ const VIEWS = {
   "375-light": { w: 375, h: 667, theme: "light", inset: 0 },
   "320-light": { w: 320, h: 568, theme: "light", inset: 0 },
 };
-/* The three iPhones of #495's switch, each with its home inset. */
+/* The iPhones of #495's switch, each with its home inset: the three the
+   tour named, and the two its fixed 60px cut (#495 review). */
 const PHONES = {
+  "375x812-light": { w: 375, h: 812, theme: "light", inset: 34 },
   "390x844-light": { w: 390, h: 844, theme: "light", inset: 34 },
   "393x852-light": { w: 393, h: 852, theme: "light", inset: 34 },
+  "402x874-light": { w: 402, h: 874, theme: "light", inset: 34 },
   "430x932-light": { w: 430, h: 932, theme: "light", inset: 34 },
+  "390x844-dark": { w: 390, h: 844, theme: "dark", inset: 34 },
+  "402x874-dark": { w: 402, h: 874, theme: "dark", inset: 34 },
 };
 
 const browser = await chromium.launch({ args: ["--font-render-hinting=none"] });
@@ -170,7 +176,7 @@ if (want("phones")) {
     /* Where the switch stands against the tab bar, printed beside the shot. */
     const at = await page.evaluate(() => {
       const seg = document.querySelector("main .home-seg")?.getBoundingClientRect();
-      const nav = document.querySelector("nav")?.getBoundingClientRect();
+      const nav = document.querySelector("nav .nav-glass")?.getBoundingClientRect();
       return seg && nav ? `switch ${Math.round(seg.top)} to ${Math.round(seg.bottom)}, bar from ${Math.round(nav.top)}` : "none";
     });
     await shot(page, `today-phone-${tag}`);

@@ -3079,9 +3079,6 @@ summary::-webkit-details-marker {
   --tone-wash: #2a1c37;
   --tone-ink: #dcceeb;
 }
-.tone-wash {
-  background: var(--tone-wash);
-}
 .tone-ink {
   color: var(--tone-ink);
 }

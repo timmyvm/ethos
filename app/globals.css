@@ -6408,6 +6408,13 @@ summary::-webkit-details-marker {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   min-height: var(--foot-h);
+  margin-top: var(--foot-gap);
+}
+/* Only straight under the games: after a tester's tile or the freeze's
+   note the foot is past the first screen anyway, and the rows' end is
+   not where it starts. The tester's slot stands between the two in the
+   DOM even when nothing shows (lib/tester-boot.ts). */
+html:not([data-test-tile]) .home-modes + .test-tile-slot + .home-foot {
   margin-top: min(
     max(var(--foot-gap), calc(100svh - var(--rows-end))),
     calc(var(--foot-gap) + max(0px, (var(--foot-h) + var(--foot-gap) - var(--foot-room)) * 1000))
@@ -6415,6 +6422,9 @@ summary::-webkit-details-marker {
 }
 @media (max-width: 359px) {
   .home-foot {
+    /* Two rows of 79 under 360; on every such phone the games run past
+       the first screen, so the foot takes its 24 there. */
+    --rows-end: 730px;
     grid-template-columns: minmax(0, 1fr);
   }
 }

@@ -31,7 +31,8 @@ vi.mock("@/lib/db", () => {
     accruedOn: null,
     usedAt: null,
   })),
-  writeMeterState: vi.fn(async () => {}),
+  // The meter's compare-and-swap (#514 review): lands unless a test's row says otherwise.
+  swapMeterState: vi.fn(async (_u: string, _from: unknown, _to: unknown): Promise<"swapped" | "moved" | "unavailable"> => "swapped"),
   };
 });
 vi.mock("@/lib/rate-limit", async (importOriginal) => ({
@@ -79,8 +80,8 @@ import {
   readMeterState,
   removeRepAudio,
   saveRep,
+  swapMeterState,
   uploadRepAudio,
-  writeMeterState,
 } from "@/lib/db";
 import type { AnalyzeLine } from "@/lib/analyze-stream";
 import { bossWeekField } from "@/lib/boss";
@@ -157,7 +158,8 @@ beforeEach(() => {
   vi.mocked(saveRep).mockResolvedValue(null);
   vi.mocked(findRepByClientId).mockReset();
   vi.mocked(findRepByClientId).mockResolvedValue(null);
-  vi.mocked(writeMeterState).mockClear();
+  vi.mocked(swapMeterState).mockReset();
+  vi.mocked(swapMeterState).mockResolvedValue("swapped");
   // A signed-in account by default: a take with no session is scored and
   // never stored (11 Nov), so the tests that read what was stored need an owner.
   vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "u-0", anonymous: false });
@@ -180,6 +182,23 @@ beforeEach(() => {
   vi.mocked(uploadRepAudio).mockResolvedValue(null);
   vi.mocked(removeRepAudio).mockClear();
 });
+
+/**
+ * The account's meter row as the store keeps it (#514 review): each take
+ * reads what the last one wrote, and a swap lands only on the row it was
+ * read at, as lib/db.ts `swapMeterState` does. Returns the row now.
+ */
+function meterRow(start: MeterState) {
+  let row = start;
+  vi.mocked(readMeterState).mockImplementation(async () => row);
+  vi.mocked(swapMeterState).mockImplementation(async (_u, from, to) => {
+    const f = from as MeterState;
+    if (f.balance !== row.balance || f.accruedOn !== row.accruedOn) return "moved";
+    row = to as MeterState;
+    return "swapped";
+  });
+  return () => row;
+}
 
 /** A rep good enough to be judged, with the coach layer stubbed out. */
 function coachedFixture() {
@@ -711,8 +730,9 @@ describe("judged-analysis metering", () => {
     });
     const body = await (await post(audioForm())).json();
     expect(body.judged).toMatchObject({ ran: true, remaining: 1 });
-    expect(writeMeterState).toHaveBeenCalledWith(
+    expect(swapMeterState).toHaveBeenCalledWith(
       "user-1",
+      expect.objectContaining({ balance: 2 }),
       expect.objectContaining({ balance: 1 })
     );
   });
@@ -721,16 +741,19 @@ describe("judged-analysis metering", () => {
     vi.mocked(transcribe).mockResolvedValue(FIXTURE);
     vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    const row = meterRow({ balance: 2, accruedOn: dateKey(new Date()), usedAt: null });
     const body = await (await post(audioForm())).json();
     expect(body.coach).toBeNull();
-    expect(writeMeterState).not.toHaveBeenCalled();
+    // Claimed before Demos read, and handed back when he did not.
+    expect(swapMeterState).toHaveBeenCalledTimes(2);
+    expect(row().balance).toBe(2);
   });
 
   it("never spends one on a rep with nothing in it", async () => {
     vi.mocked(transcribe).mockResolvedValue(EMPTY_FIXTURE);
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
     await post(audioForm());
-    expect(writeMeterState).not.toHaveBeenCalled();
+    expect(swapMeterState).not.toHaveBeenCalled();
   });
 
   it("does not meter premium at all", async () => {
@@ -744,7 +767,7 @@ describe("judged-analysis metering", () => {
     });
     const body = await (await post(audioForm())).json();
     expect(body.judged).toMatchObject({ ran: true, unlimited: true });
-    expect(writeMeterState).not.toHaveBeenCalled();
+    expect(swapMeterState).not.toHaveBeenCalled();
   });
 
   /*
@@ -753,18 +776,6 @@ describe("judged-analysis metering", () => {
    * row is the store here: each take reads what the last one wrote.
    */
   describe("3 scored recordings a day (#514)", () => {
-    function meterRow(start: MeterState) {
-      let row = start;
-      vi.mocked(readMeterState).mockImplementation(async () => row);
-      vi.mocked(writeMeterState).mockImplementation(async (_u, next) => {
-        row = next;
-      });
-      // The file's other tests write nowhere.
-      onTestFinished(() => {
-        vi.mocked(writeMeterState).mockImplementation(async () => {});
-      });
-      return () => row;
-    }
     const yesterday = () => dateKey(new Date(Date.now() - 24 * 3_600_000));
 
     beforeEach(() => {
@@ -790,8 +801,8 @@ describe("judged-analysis metering", () => {
       // The first three carry the Ethos score; the fourth has none.
       expect(takes.map((t) => t.index)).toEqual([true, true, true, false]);
       expect(row()).toMatchObject({ balance: 0, accruedOn: dateKey(new Date()) });
-      // Three writes, one per scored take; the fourth writes nothing.
-      expect(writeMeterState).toHaveBeenCalledTimes(3);
+      // Three claims, one per scored take; the fourth moves nothing.
+      expect(swapMeterState).toHaveBeenCalledTimes(3);
     });
 
     it("measures the fourth take in full and stores it, so the streak stands", async () => {
@@ -821,6 +832,41 @@ describe("judged-analysis metering", () => {
       for (let i = 0; i < 4; i++) judged.push((await (await post(audioForm())).json()).judged.ran);
       expect(judged).toEqual([true, true, true, false]);
       expect(row().balance).toBe(0);
+    });
+
+    /* The scale audit's M6, wider at 3 a day: the meter was read beside
+       Whisper and written after the coach, so takes sent at once each
+       read the same balance and each got a read. */
+    it("gives two takes sent at once no more reads than the day has left", async () => {
+      const row = meterRow({ balance: 1, accruedOn: dateKey(new Date()), usedAt: null });
+      const bodies = await Promise.all([post(audioForm()), post(audioForm())].map(async (r) => (await r).json()));
+      expect(bodies.map((b) => b.judged.ran).filter(Boolean)).toHaveLength(1);
+      expect(bodies.map((b) => b.judged.capped).filter(Boolean)).toHaveLength(1);
+      expect(row().balance).toBe(0);
+    });
+
+    it("scores three of five takes sent at once on a fresh day, and no more", async () => {
+      const row = meterRow({ balance: 0, accruedOn: yesterday(), usedAt: null });
+      const bodies = await Promise.all(Array.from({ length: 5 }, async () => (await post(audioForm())).json()));
+      expect(bodies.filter((b) => b.judged.ran)).toHaveLength(3);
+      expect(bodies.filter((b) => b.ethosIndex !== null)).toHaveLength(3);
+      expect(vi.mocked(coachRep).mock.calls).toHaveLength(3);
+      expect(row()).toMatchObject({ balance: 0, accruedOn: dateKey(new Date()) });
+    });
+
+    it("costs one read for one take sent twice at once: the send stored second hands its read back", async () => {
+      const row = meterRow({ balance: 3, accruedOn: dateKey(new Date()), usedAt: null });
+      vi.mocked(saveRep)
+        .mockResolvedValueOnce({ id: "rep-1", audioPath: null })
+        .mockResolvedValueOnce({ id: "rep-1", audioPath: null, duplicate: true });
+      const form = () => {
+        const f = audioForm();
+        f.append("clientId", "outbox-1");
+        return f;
+      };
+      const bodies = await Promise.all([post(form()), post(form())].map(async (r) => (await r).json()));
+      expect(bodies.some((b) => b.duplicate === true)).toBe(true);
+      expect(row().balance).toBe(2);
     });
 
     it("never counts a take with nothing in it against the day's 3", async () => {
@@ -1910,19 +1956,33 @@ describe("what does not wait on the words starts beside Whisper (#472)", () => {
     expect(uploadRepAudio).not.toHaveBeenCalled();
   });
 
-  it("writes the spent read before the answer goes, beside the save", async () => {
+  it("claims the read before Demos reads, and Demos waits for the claim (#514 review)", async () => {
     coachedFixture();
-    const write = held<void>();
-    vi.mocked(writeMeterState).mockReturnValueOnce(write.promise);
+    const claim = held<"swapped">();
+    vi.mocked(swapMeterState).mockReturnValueOnce(claim.promise);
+    const answer = post(audioForm());
+    await vi.waitFor(() => expect(swapMeterState).toHaveBeenCalledTimes(1));
+    await tick();
+    expect(coachRep).not.toHaveBeenCalled();
+    claim.release("swapped");
+    expect((await answer).status).toBe(200);
+    expect(coachRep).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands a read the coach failed to deliver back before the answer goes", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
+    const back = held<"swapped">();
+    vi.mocked(swapMeterState).mockResolvedValueOnce("swapped").mockReturnValueOnce(back.promise);
     let answered = false;
     const answer = post(audioForm()).then((r) => {
       answered = true;
       return r;
     });
-    await vi.waitFor(() => expect(writeMeterState).toHaveBeenCalled());
+    await vi.waitFor(() => expect(swapMeterState).toHaveBeenCalledTimes(2));
     await tick();
     expect(answered).toBe(false);
-    write.release();
+    back.release("swapped");
     expect((await answer).status).toBe(200);
   });
 });

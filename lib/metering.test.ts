@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   accrue,
+  claimRead,
+  CLAIM_TRIES,
   DAILY_GRANT,
   dateKey,
+  giveBackRead,
   localDate,
   MAX_BALANCE,
   meter,
   meterStatus,
   type MeterState,
+  type MeterStore,
+  type MeterSwap,
 } from "./metering";
+import { spokenAt } from "./spoken-at";
 
 const FRESH: MeterState = { balance: 3, accruedOn: null, usedAt: null };
 
@@ -187,5 +193,160 @@ describe("local dates", () => {
   it("gives a backwards-forged offset nothing", () => {
     const state: MeterState = { balance: 0, accruedOn: "2026-08-11", usedAt: null };
     expect(accrue(state, "2026-08-10").balance).toBe(0);
+  });
+});
+
+/**
+ * The stored row as lib/db.ts swapMeterState keeps it: a swap lands only
+ * on the balance and day it was read at.
+ */
+function memoryStore(start: MeterState) {
+  let row = start;
+  let swaps = 0;
+  const store: MeterStore = {
+    read: async () => row,
+    swap: async (from, to): Promise<MeterSwap> => {
+      swaps++;
+      if (from.balance !== row.balance || from.accruedOn !== row.accruedOn) return "moved";
+      row = to;
+      return "swapped";
+    },
+  };
+  return { store, row: () => row, swaps: () => swaps };
+}
+
+/*
+ * #514 review, the scale audit's M6: the meter is claimed in the store
+ * before Demos reads, so takes sent at once can never share a read.
+ */
+describe("claiming a read (#514 review)", () => {
+  const now = at(2026, 11, 20, 9);
+
+  it("spends one from the row it read", async () => {
+    const m = memoryStore({ balance: 0, accruedOn: "2026-11-19", usedAt: null });
+    const c = await claimRead({ state: m.row(), now, store: m.store });
+    expect(c).toMatchObject({ claimed: true, decision: { allowed: true, remaining: 2 } });
+    expect(m.row()).toMatchObject({ balance: 2, accruedOn: "2026-11-20" });
+  });
+
+  it("gives takes that all read the same row at once exactly the day's 3", async () => {
+    for (const n of [2, 3, 5, 10]) {
+      const m = memoryStore({ balance: 1, accruedOn: "2026-11-19", usedAt: null });
+      const seen = m.row();
+      // Every take read the row before any of them claimed (the race).
+      const claims = await Promise.all(Array.from({ length: n }, () => claimRead({ state: seen, now, store: m.store })));
+      const won = claims.filter((c) => c.claimed && c.decision.allowed);
+      expect(won, `${n} at once`).toHaveLength(Math.min(n, DAILY_GRANT));
+      // Every take that lost is refused, never let through unclaimed.
+      expect(claims.filter((c) => c.decision.allowed && !c.claimed)).toHaveLength(0);
+      expect(m.row()).toMatchObject({ balance: Math.max(0, DAILY_GRANT - n), accruedOn: "2026-11-20" });
+    }
+  });
+
+  it("reads again and meters what is left after losing the row", async () => {
+    const m = memoryStore({ balance: 1, accruedOn: "2026-11-20", usedAt: null });
+    const stale: MeterState = { balance: 2, accruedOn: "2026-11-20", usedAt: null };
+    const c = await claimRead({ state: stale, now, store: m.store });
+    expect(c).toMatchObject({ claimed: true, decision: { remaining: 0 } });
+    expect(m.row().balance).toBe(0);
+  });
+
+  it("refuses a take that loses the row every time, and never spends past 0", async () => {
+    let n = 0;
+    const store: MeterStore = {
+      read: async () => ({ balance: 3, accruedOn: "2026-11-20", usedAt: `${n++}` }),
+      swap: async () => "moved",
+    };
+    const c = await claimRead({ state: { balance: 3, accruedOn: "2026-11-20", usedAt: null }, now, store });
+    expect(c).toMatchObject({ claimed: false, decision: { allowed: false, remaining: 0 } });
+    expect(n).toBe(CLAIM_TRIES);
+  });
+
+  it("degrades open when the store does not answer, as an unread meter does", async () => {
+    const store: MeterStore = { read: async () => null, swap: async () => "unavailable" };
+    const c = await claimRead({ state: { balance: 2, accruedOn: "2026-11-20", usedAt: null }, now, store });
+    expect(c).toMatchObject({ claimed: false, decision: { allowed: true } });
+    const threw: MeterStore = { read: async () => null, swap: () => Promise.reject(new Error("down")) };
+    expect((await claimRead({ state: { balance: 2, accruedOn: "2026-11-20", usedAt: null }, now, store: threw })).decision.allowed).toBe(true);
+  });
+
+  it("never touches the store for a spent day", async () => {
+    const m = memoryStore({ balance: 0, accruedOn: "2026-11-20", usedAt: null });
+    const c = await claimRead({ state: m.row(), now, store: m.store });
+    expect(c).toMatchObject({ claimed: false, decision: { allowed: false } });
+    expect(m.swaps()).toBe(0);
+  });
+});
+
+describe("handing a read back (#514 review)", () => {
+  it("puts the read back on the day it came from", async () => {
+    const m = memoryStore({ balance: 1, accruedOn: "2026-11-20", usedAt: null });
+    expect(await giveBackRead({ spent: m.row(), store: m.store })).toBe(true);
+    expect(m.row().balance).toBe(2);
+  });
+
+  it("puts it back on top of what other takes spent since", async () => {
+    const spent: MeterState = { balance: 2, accruedOn: "2026-11-20", usedAt: null };
+    const m = memoryStore({ balance: 0, accruedOn: "2026-11-20", usedAt: null });
+    expect(await giveBackRead({ spent, store: m.store })).toBe(true);
+    expect(m.row().balance).toBe(1);
+  });
+
+  it("gives nothing back to a day a newer one has already topped up", async () => {
+    const spent: MeterState = { balance: 0, accruedOn: "2026-11-19", usedAt: null };
+    const m = memoryStore({ balance: 3, accruedOn: "2026-11-20", usedAt: null });
+    expect(await giveBackRead({ spent, store: m.store })).toBe(false);
+    expect(m.row()).toMatchObject({ balance: 3, accruedOn: "2026-11-20" });
+  });
+
+  it("never banks past the day's 3", async () => {
+    const m = memoryStore({ balance: 3, accruedOn: "2026-11-20", usedAt: null });
+    await giveBackRead({ spent: m.row(), store: m.store });
+    expect(m.row().balance).toBe(MAX_BALANCE);
+  });
+});
+
+/*
+ * The offset and the spoken time are the client's word (clamped to 14
+ * hours and to 72 hours back, never ahead). Whatever a client claims, in
+ * whatever order, no day the meter keeps ever scores more than 3, and a
+ * forged offset pulls at most one day's 3 early.
+ */
+describe("what a forged clock can do (#514 review)", () => {
+  it("never scores more than 3 on any meter day, whatever offsets and spoken times arrive", () => {
+    let seed = 514;
+    const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    for (let run = 0; run < 200; run++) {
+      let state: MeterState = run % 2 ? FRESH : { balance: 1, accruedOn: "2026-11-15", usedAt: null };
+      const perDay = new Map<string, number>();
+      let real = Date.UTC(2026, 10, 19, 0);
+      for (let take = 0; take < 60; take++) {
+        real += Math.floor(rand() * 4 * 3_600_000);
+        const said = spokenAt(String(real - Math.floor(rand() * 100 * 3_600_000)), real)!;
+        const offset = Math.round((rand() * 2 - 1) * 20 * 60);
+        const d = meter({ state, now: localDate(said, offset), premium: false });
+        if (d.allowed) {
+          const day = d.state.accruedOn!;
+          perDay.set(day, (perDay.get(day) ?? 0) + 1);
+        }
+        state = d.state;
+      }
+      for (const [day, n] of perDay) expect(n, `run ${run}, ${day}`).toBeLessThanOrEqual(DAILY_GRANT);
+    }
+  });
+
+  it("lets a forward offset pull tomorrow's 3 early once, and then nothing until the day after", () => {
+    // UTC noon on the 19th; a claim of UTC+14 reads 02:00 on the 20th.
+    const noon = new Date(Date.UTC(2026, 10, 19, 12));
+    let state: MeterState = { balance: 0, accruedOn: dateKey(localDate(noon, 0)), usedAt: null };
+    const early = [0, 1, 2, 3].map(() => {
+      const d = meter({ state, now: localDate(noon, -14 * 60), premium: false });
+      state = d.state;
+      return d.allowed;
+    });
+    expect(early).toEqual([true, true, true, false]);
+    // The real 20th then has nothing left: the day was already spent.
+    const next = new Date(Date.UTC(2026, 10, 20, 9));
+    expect(meter({ state, now: localDate(next, 0), premium: false }).allowed).toBe(false);
   });
 });

@@ -13,7 +13,7 @@ import { neutralAudioName } from "./audio-name";
 import type { CoachOutput } from "./coach";
 import { isUnlocked } from "./entitlement";
 import type { Tier1Scores, Tier2Anchors } from "./index-score";
-import { DAILY_GRANT, type MeterState } from "./metering";
+import { DAILY_GRANT, type MeterState, type MeterSwap } from "./metering";
 import { substance, type RepMetrics } from "./metrics";
 import { toRow, type DeliveryMetrics, type DeliveryMoment } from "./presence";
 import type { CaptureMode } from "./prefs";
@@ -199,25 +199,45 @@ export async function readMeterState(
 }
 
 /**
- * Persist the balance after a judged rep. Upserts because an
- * anonymous-first user may not have a profile row until they save
- * progress, and metering can't wait for that.
+ * Move the stored meter from `from` to `to`, only while the row is still
+ * at `from` (lib/metering.ts `claimRead`, `giveBackRead`): the update
+ * lands on the balance and the day it was read at, so of two takes that
+ * read the same row exactly one moves it, the way the reminder sender
+ * claims its day (app/api/push/cron). An anonymous-first account may
+ * have no profile row yet: its first recording puts one in, unless
+ * another take just did.
  */
-export async function writeMeterState(
+export async function swapMeterState(
   userId: string,
-  state: MeterState
-): Promise<void> {
+  from: MeterState,
+  to: MeterState
+): Promise<MeterSwap> {
   const db = supabaseAdmin();
-  if (!db) return;
-  await db.from("profiles").upsert(
-    {
-      user_id: userId,
-      judged_rollover: state.balance,
-      judged_accrued_on: state.accruedOn,
-      judged_analysis_used_at: state.usedAt,
-    },
-    { onConflict: "user_id" }
-  );
+  if (!db) return "unavailable";
+  const row = {
+    judged_rollover: to.balance,
+    judged_accrued_on: to.accruedOn,
+    judged_analysis_used_at: to.usedAt,
+  };
+  const at = db
+    .from("profiles")
+    .update(row)
+    .eq("user_id", userId)
+    .eq("judged_rollover", from.balance);
+  const { data, error } = await (
+    from.accruedOn === null
+      ? at.is("judged_accrued_on", null)
+      : at.eq("judged_accrued_on", from.accruedOn)
+  ).select("user_id");
+  if (error) return "unavailable";
+  if (data && data.length > 0) return "swapped";
+  if (from.accruedOn !== null) return "moved";
+  const { data: made, error: makeError } = await db
+    .from("profiles")
+    .upsert({ user_id: userId, ...row }, { onConflict: "user_id", ignoreDuplicates: true })
+    .select("user_id");
+  if (makeError) return "unavailable";
+  return made && made.length > 0 ? "swapped" : "moved";
 }
 
 /**

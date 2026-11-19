@@ -136,6 +136,75 @@ export function meter(params: {
   return { allowed: true, state: spent, remaining: spent.balance, unlimited: false };
 }
 
+/** What moving the stored meter from one state to another answered. */
+export type MeterSwap = "swapped" | "moved" | "unavailable";
+
+/**
+ * The stored meter, for `claimRead` and `giveBackRead`: `read` answers
+ * the row as it is now (null when it cannot be read), and `swap` moves it
+ * from `from` to `to` only while it is still at `from` ("moved" when
+ * another take changed it first, "unavailable" when the store did not
+ * answer). lib/db.ts `swapMeterState` is the real one.
+ */
+export interface MeterStore {
+  read(): Promise<MeterState | null>;
+  swap(from: MeterState, to: MeterState): Promise<MeterSwap>;
+}
+
+/** How many times one take meters again after another took the row first. */
+export const CLAIM_TRIES = 4;
+
+/**
+ * Spend one of the day's reads in the store BEFORE Demos reads (#514
+ * review; the scale audit's M6). The meter used to be read beside
+ * Whisper and written after the coach, so takes sent at once each read
+ * the same balance and each got a read: 10 at once had 10 reads for one
+ * unit, which 3 a day turned into the whole 30-take limit. A claim is a
+ * compare-and-swap: of two takes that read the same row, one moves it
+ * and the other reads it again and meters what is left, so a day's 3 are
+ * 3 however the takes arrive. A store that does not answer degrades open,
+ * as a meter that cannot be read always has: the read runs and nothing
+ * is spent. A take that loses CLAIM_TRIES times in a row is refused.
+ */
+export async function claimRead(p: {
+  state: MeterState;
+  now: Date;
+  store: MeterStore;
+}): Promise<{ decision: MeterDecision; claimed: boolean }> {
+  let state = p.state;
+  for (let i = 0; i < CLAIM_TRIES; i++) {
+    const decision = meter({ state, now: p.now, premium: false });
+    if (!decision.allowed) return { decision, claimed: false };
+    const answer = await p.store.swap(state, decision.state).catch((): MeterSwap => "unavailable");
+    if (answer === "swapped") return { decision, claimed: true };
+    if (answer === "unavailable") return { decision, claimed: false };
+    const now = await p.store.read().catch(() => null);
+    if (!now) return { decision, claimed: false };
+    state = now;
+  }
+  return { decision: { allowed: false, state, remaining: 0, unlimited: false }, claimed: false };
+}
+
+/**
+ * Hand a claimed read back: Demos never delivered it (the coach failed),
+ * or an earlier send of the same take was stored first. It goes back to
+ * the day it was spent from, never past MAX_BALANCE, and not at all once
+ * a newer day has topped the balance up.
+ */
+export async function giveBackRead(p: { spent: MeterState; store: MeterStore }): Promise<boolean> {
+  let from = p.spent;
+  for (let i = 0; i < CLAIM_TRIES; i++) {
+    const to: MeterState = { ...from, balance: Math.min(MAX_BALANCE, from.balance + 1) };
+    const answer = await p.store.swap(from, to).catch((): MeterSwap => "unavailable");
+    if (answer === "swapped") return true;
+    if (answer === "unavailable") return false;
+    const now = await p.store.read().catch(() => null);
+    if (!now || now.accruedOn !== p.spent.accruedOn) return false;
+    from = now;
+  }
+  return false;
+}
+
 /**
  * What the UI says about the tier without spending anything. Used before
  * the rep (so the record screen can be honest about what's coming back)

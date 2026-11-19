@@ -47,11 +47,19 @@ import {
   readMeterState,
   removeRepAudio,
   saveRep,
+  swapMeterState,
   uploadRepAudio,
-  writeMeterState,
 } from "@/lib/db";
 import { neutralAudioName } from "@/lib/audio-name";
-import { localDate, meter } from "@/lib/metering";
+import {
+  claimRead,
+  giveBackRead,
+  localDate,
+  meter,
+  type MeterDecision,
+  type MeterState,
+  type MeterStore,
+} from "@/lib/metering";
 import {
   GUEST_CEILING,
   GUEST_FULL_COPY,
@@ -730,17 +738,34 @@ async function handleTake(
    * burning one of the day's 3 (#514) on it would be theft.
    */
   const meterState = await meterState$;
-  const decision =
-    scorable && meterState
-      ? meter({
-          state: meterState,
-          // The judged read of the day it was spoken, on the user's own
-          // calendar. accrue never grants for an earlier day, so a
-          // backdated take can only cost that day's read, never mint one.
-          now: localDate(recordedAt ?? new Date(), tzOffset),
-          premium,
-        })
-      : null;
+  // The judged read of the day it was spoken, on the user's own
+  // calendar. accrue never grants for an earlier day, so a backdated
+  // take can only cost that day's read, never mint one.
+  const spokenDay = localDate(recordedAt ?? new Date(), tzOffset);
+  /*
+   * A free account's read is claimed in the store before Demos reads
+   * (#514 review, the scale audit's M6): a compare-and-swap, so takes
+   * sent at once can never share one (lib/metering.ts `claimRead`). One
+   * he never delivers is handed back below. Premium is never metered,
+   * and a take with no session has no row to spend from.
+   */
+  const meterStore: MeterStore | null = userId
+    ? {
+        read: () => readMeterState(userId),
+        swap: (from, to) => swapMeterState(userId, from, to),
+      }
+    : null;
+  let decision: MeterDecision | null = null;
+  let claimed: MeterState | null = null;
+  if (scorable && meterState) {
+    if (meterStore && !premium) {
+      const claim = await claimRead({ state: meterState, now: spokenDay, store: meterStore });
+      decision = claim.decision;
+      if (claim.claimed) claimed = claim.decision.state;
+    } else {
+      decision = meter({ state: meterState, now: spokenDay, premium });
+    }
+  }
   const judgedAllowed = decision?.allowed ?? scorable;
 
   /* The words are in and measured: the wait shows them while Demos reads
@@ -792,12 +817,12 @@ async function handleTake(
   emit({ stage: "saving" });
   clock.mark("saveStart");
 
-  // Only commit the spend once the call has actually happened. An
-  // analysis the user never received must not cost them one. Written
-  // beside the save, and done before the answer goes, as before.
-  const meterWrite =
-    userId && decision && !decision.unlimited && coach
-      ? writeMeterState(userId, decision.state).catch(() => {})
+  // An analysis the user never received must not cost them one: a read
+  // claimed for a coach that failed goes back, beside the save, and is
+  // back before the answer goes.
+  const meterBack: Promise<unknown> =
+    meterStore && claimed && !coach
+      ? giveBackRead({ spent: claimed, store: meterStore }).catch(() => false)
       : Promise.resolve();
 
   // No substance, no Index — not a partial score, no score.
@@ -891,7 +916,12 @@ async function handleTake(
     // Nothing stored and nothing thrown: the audio is stored nowhere.
     if (!saved) spend.audioOwned = false;
     if (saved?.duplicate) {
-      await meterWrite;
+      await meterBack;
+      // An earlier send of this take was stored first and keeps its read;
+      // this send's goes back (one take, one read).
+      if (meterStore && claimed && coach) {
+        await giveBackRead({ spent: claimed, store: meterStore }).catch(() => false);
+      }
       clock.mark("saveEnd");
       clock.duplicate = true;
       return NextResponse.json({ repId: saved.id, duplicate: true });
@@ -902,7 +932,7 @@ async function handleTake(
   } catch {
     repId = null;
   }
-  await meterWrite;
+  await meterBack;
   clock.mark("saveEnd");
 
   const body: AnalyzeResponse = {

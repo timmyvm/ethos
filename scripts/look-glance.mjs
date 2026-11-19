@@ -27,7 +27,10 @@
  * its exit; LOOK_PLAN=code for Premium), daily (Today's card, Pausing),
  * unscored (12 words), game (a Q&A round), game0 (a Q&A round too short
  * to score: no star, no XP, #510), capped (a free account's
- * second take today), tester, best (LOOK_BEST=1), first (LOOK_FRESH=1),
+ * fourth take today, its three scored ones earlier: #514's 3 a day, and
+ * its Premium door opened to the paywall), capped-early (the same on the
+ * account's second day, before the door: its grey line), tester, best
+ * (LOOK_BEST=1), first (LOOK_FRESH=1),
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
  * upload, rules (#491: the first take under #476's pause rules against
  * a stored take scored before them, its note under the delta).
@@ -122,6 +125,7 @@ const bodies = {
   best: () => A,
   first: () => ({ ...A, previousIndex: null }),
   capped: () => ({ ...A, coach: null, ethosIndex: null, judged: { ran: false, unlimited: false, remaining: 0, capped: true } }),
+  "capped-early": () => ({ ...A, coach: null, ethosIndex: null, judged: { ran: false, unlimited: false, remaining: 0, capped: true } }),
   unscored: () => ({
     ...A,
     transcript: "So the thing about habits is, um, they compound. You do",
@@ -166,6 +170,18 @@ const bodies = {
   rules: () => ({ ...A, pauseRules: 476, tier1: { ...A.tier1, pause: 73 }, previousIndex: RULES_PREV, ethosIndex: RULES_PREV + 71 }),
 };
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
+/* capped (#514): a free account's fourth take today, so today already
+   holds its three scored ones (09:12, 09:52, 10:47). capped-early: the
+   same on the account's second day (one take yesterday), so fewer than
+   PRO_MOMENT_DAYS days are spoken and the line under the hero is grey. */
+if (VARIANT.startsWith("capped")) {
+  const at = (min) => new Date(new Date(F.TODAY_REP.created_at).getTime() + min * 60000).toISOString();
+  F.extraReps.push(
+    { ...F.TODAY_REP, id: "capped-2", client_id: "capped-2", created_at: at(40), ethos_index: 671 },
+    { ...F.TODAY_REP, id: "capped-3", client_id: "capped-3", created_at: at(95), ethos_index: 668 }
+  );
+  if (VARIANT === "capped-early") F.repsMode.rows = [{ ...F.TODAY_REP, id: "capped-y", client_id: "capped-y", created_at: at(-24 * 60), ethos_index: 640 }];
+}
 const premium = ["game", "game0", "video"].includes(VARIANT) || process.env.LOOK_PLAN === "code";
 /* lesson3: the lesson's first two practices, taken earlier today, so the
    last practice is the lesson's ending ("Lesson done: 6, 4, 4 fillers"). */
@@ -308,8 +324,8 @@ const report = { tag: TAG, variant: VARIANT, sizes: [] };
 for (const size of SIZES) {
   F.resetPlan(premium ? "code" : "free");
   F.testerMode.tester = VARIANT === "tester";
-  /* The capped take is the day's second: today already holds one. */
-  F.testerMode.today = VARIANT === "capped";
+  /* The capped take is the day's fourth: today already holds three. */
+  F.testerMode.today = VARIANT.startsWith("capped");
   const context = await browser.newContext({
     viewport: { width: size.w, height: size.h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     permissions: ["microphone", "camera", "notifications"], locale: "en-AU", timezoneId: "Australia/Melbourne",
@@ -505,7 +521,7 @@ for (const size of SIZES) {
     await page.goto(`${BASE}/rep?boss=week`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
-  } else if (["daily", "capped", "video", "rules"].includes(VARIANT)) {
+  } else if (["daily", "capped", "capped-early", "video", "rules"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
     await sleep(800);
@@ -582,6 +598,23 @@ for (const size of SIZES) {
     const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : VARIANT === "lesson3" ? 30 : 25;
     await beat("glance", { ceiling });
     console.log(`${at} glance: the tap is live ${tapLiveMs}ms after the first frame`);
+    /* The fourth take's Premium door (#514) opens the paywall, its
+       reason the free allowance and its first benefit the same rule. */
+    if (VARIANT === "capped") {
+      const capDoor = page.locator("main button", { hasText: "Premium" }).first();
+      if ((await capDoor.count()) === 0) fail(`${at}: no Premium door on the fourth take's glance`);
+      else {
+        await capDoor.click();
+        await page.waitForSelector('[role="dialog"] [role="slider"]', { timeout: 8000 }).catch(() => fail(`${at}: the door opened no paywall`));
+        await sleep(1600);
+        await page.screenshot({ path: file("paywall", "s0") });
+        const said = (await page.locator('[role="dialog"]').first().innerText()).replace(/\s+/g, " ");
+        console.log(`${at} paywall: ${said.slice(0, 240)}`);
+        entry.beats.push({ beat: "paywall", text: said, files: [file("paywall", "s0")] });
+        await page.keyboard.press("Escape");
+        await sleep(900);
+      }
+    }
     /* LOOK_LAND holds the clock for its frames, so the tap is timed only without it. */
     if (tapLiveMs > 400 && !LAND) fail(`${at}: the tap took ${tapLiveMs}ms to be live`);
 

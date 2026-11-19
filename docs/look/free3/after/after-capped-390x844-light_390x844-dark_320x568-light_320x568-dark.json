@@ -1,0 +1,366 @@
+{
+  "tag": "after",
+  "variant": "capped",
+  "sizes": [
+    {
+      "size": "390x844-light",
+      "beats": [
+        {
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 33,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 33,
+          "wordsNoRound": 33,
+          "numbers": 6,
+          "text": "Today's practice 20+ words Under 12 slips Under 4 slips 4 fillers Ethos score back tomorrow, or go Premium First filler at 0:02 Next time: under 4. Every number Done for today Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-light-glance-s0.png",
+            "docs/look/free3/after/after-capped-390x844-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "beat": "paywall",
+          "text": "PREMIUM Keep the coaching coming Every recording scored (free: 3 a day) Presence on video, with its moments Your whole history, all nine skills Every word you've earned, kept Speed rush, Interview, more Hostile Q&A Your price drops every month you stay A$ 12.99 1 2 . 9 9 Today Month 1 Month 1 A$12.99, month 2 A$11.99, month 3 A$10.99, month 4 A$9.99, month 5 A$8.99, month 6 A$7.99, month 7 on A$6.99. 12.99 11.99 10.99 9.99 8.99 7.99 6.99 NOV DEC JAN FEB MAR APR MAY+ Renews monthly until you cancel in the app. If a plan ends, the next starts at A$12.99. Start at A$12.99 a month Not yet Money never buys stars, streaks, or scores.",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-light-paywall-s0.png"
+          ]
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 227,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 106,
+          "wordsNoRound": 227,
+          "numbers": 17,
+          "text": "Every number Done Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak. Hear it back filler between sentences mid-sentence 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Your scores Length 62s, target 60 to 90s You spoke at a good pace and paused between sentences. Filler control has the most room to grow. Pausing Strong 72 3 pauses between sentences. Filler control Okay 55 Sentence restarts Okay 66 Pace Strong 93 Variety Okay 66 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 pauses between sentences Each one after a full sentence. Done for today",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-light-sheet-s0.png",
+            "docs/look/free3/after/after-capped-390x844-light-sheet-s1.png",
+            "docs/look/free3/after/after-capped-390x844-light-sheet-s2.png"
+          ],
+          "screens": 3
+        },
+        {
+          "maxBand": 161,
+          "band": [
+            45,
+            206
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 59,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 59,
+          "wordsNoRound": 59,
+          "numbers": 13,
+          "text": "Since day one Day 1 to day 27 All fillers a minute 9.3 → 2.8 Ethos 611 → 668 Words a minute 128 → 155 Pauses between sentences in a recording 1 → 2 25 recordings. Every number measured, none awarded. Free shows the last 7 days and scores 3 recordings a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-light-exit-tap-s0.png",
+            "docs/look/free3/after/after-capped-390x844-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 10
+    },
+    {
+      "size": "390x844-dark",
+      "beats": [
+        {
+          "maxBand": 60,
+          "band": [
+            603,
+            663
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 33,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 33,
+          "wordsNoRound": 33,
+          "numbers": 6,
+          "text": "Today's practice 20+ words Under 12 slips Under 4 slips 4 fillers Ethos score back tomorrow, or go Premium First filler at 0:02 Next time: under 4. Every number Done for today Retake",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-dark-glance-s0.png",
+            "docs/look/free3/after/after-capped-390x844-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "beat": "paywall",
+          "text": "PREMIUM Keep the coaching coming Every recording scored (free: 3 a day) Presence on video, with its moments Your whole history, all nine skills Every word you've earned, kept Speed rush, Interview, more Hostile Q&A Your price drops every month you stay A$ 12.99 1 2 . 9 9 Today Month 1 Month 1 A$12.99, month 2 A$11.99, month 3 A$10.99, month 4 A$9.99, month 5 A$8.99, month 6 A$7.99, month 7 on A$6.99. 12.99 11.99 10.99 9.99 8.99 7.99 6.99 NOV DEC JAN FEB MAR APR MAY+ Renews monthly until you cancel in the app. If a plan ends, the next starts at A$12.99. Start at A$12.99 a month Not yet Money never buys stars, streaks, or scores.",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-dark-paywall-s0.png"
+          ]
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 227,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 106,
+          "wordsNoRound": 227,
+          "numbers": 17,
+          "text": "Every number Done Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak. Hear it back filler between sentences mid-sentence 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Your scores Length 62s, target 60 to 90s You spoke at a good pace and paused between sentences. Filler control has the most room to grow. Pausing Strong 72 3 pauses between sentences. Filler control Okay 55 Sentence restarts Okay 66 Pace Strong 93 Variety Okay 66 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 pauses between sentences Each one after a full sentence. Done for today",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-dark-sheet-s0.png",
+            "docs/look/free3/after/after-capped-390x844-dark-sheet-s1.png",
+            "docs/look/free3/after/after-capped-390x844-dark-sheet-s2.png"
+          ],
+          "screens": 3
+        },
+        {
+          "maxBand": 161,
+          "band": [
+            45,
+            206
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 59,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 59,
+          "wordsNoRound": 59,
+          "numbers": 13,
+          "text": "Since day one Day 1 to day 27 All fillers a minute 9.3 → 2.8 Ethos 611 → 668 Words a minute 128 → 155 Pauses between sentences in a recording 1 → 2 25 recordings. Every number measured, none awarded. Free shows the last 7 days and scores 3 recordings a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 844,
+          "innerH": 844,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/free3/after/after-capped-390x844-dark-exit-tap-s0.png",
+            "docs/look/free3/after/after-capped-390x844-dark-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 15
+    },
+    {
+      "size": "320x568-light",
+      "beats": [
+        {
+          "maxBand": 46,
+          "band": [
+            341,
+            387
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 33,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 33,
+          "wordsNoRound": 33,
+          "numbers": 6,
+          "text": "Today's practice 20+ words Under 12 slips Under 4 slips 4 fillers Ethos score back tomorrow, or go Premium First filler at 0:02 Next time: under 4. Every number Done for today Retake",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-light-glance-s0.png",
+            "docs/look/free3/after/after-capped-320x568-light-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "beat": "paywall",
+          "text": "PREMIUM Keep the coaching coming Every recording scored (free: 3 a day) Presence on video, with its moments Your whole history, all nine skills Every word you've earned, kept Speed rush, Interview, more Hostile Q&A Your price drops every month you stay A$ 12.99 1 2 . 9 9 Today Month 1 Month 1 A$12.99, month 2 A$11.99, month 3 A$10.99, month 4 A$9.99, month 5 A$8.99, month 6 A$7.99, month 7 on A$6.99. 12.99 11.99 10.99 9.99 8.99 7.99 6.99 NOV DEC JAN FEB MAR APR MAY+ Renews monthly until you cancel in the app. If a plan ends, the next starts at A$12.99. Start at A$12.99 a month Not yet Money never buys stars, streaks, or scores.",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-light-paywall-s0.png"
+          ]
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 227,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 106,
+          "wordsNoRound": 227,
+          "numbers": 17,
+          "text": "Every number Done Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak. Hear it back filler between sentences mid-sentence 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Your scores Length 62s, target 60 to 90s You spoke at a good pace and paused between sentences. Filler control has the most room to grow. Pausing Strong 72 3 pauses between sentences. Filler control Okay 55 Sentence restarts Okay 66 Pace Strong 93 Variety Okay 66 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 pauses between sentences Each one after a full sentence. Done for today",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-light-sheet-s0.png",
+            "docs/look/free3/after/after-capped-320x568-light-sheet-s1.png",
+            "docs/look/free3/after/after-capped-320x568-light-sheet-s2.png",
+            "docs/look/free3/after/after-capped-320x568-light-sheet-s3.png",
+            "docs/look/free3/after/after-capped-320x568-light-sheet-s4.png"
+          ],
+          "screens": 5
+        },
+        {
+          "maxBand": 42,
+          "band": [
+            347,
+            389
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 59,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 59,
+          "wordsNoRound": 59,
+          "numbers": 13,
+          "text": "Since day one Day 1 to day 27 All fillers a minute 9.3 → 2.8 Ethos 611 → 668 Words a minute 128 → 155 Pauses between sentences in a recording 1 → 2 25 recordings. Every number measured, none awarded. Free shows the last 7 days and scores 3 recordings a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-light-exit-tap-s0.png",
+            "docs/look/free3/after/after-capped-320x568-light-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 10
+    },
+    {
+      "size": "320x568-dark",
+      "beats": [
+        {
+          "maxBand": 46,
+          "band": [
+            341,
+            387
+          ],
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 33,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 33,
+          "wordsNoRound": 33,
+          "numbers": 6,
+          "text": "Today's practice 20+ words Under 12 slips Under 4 slips 4 fillers Ethos score back tomorrow, or go Premium First filler at 0:02 Next time: under 4. Every number Done for today Retake",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 1,
+          "beat": "glance",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-dark-glance-s0.png",
+            "docs/look/free3/after/after-capped-320x568-dark-glance-full.png"
+          ],
+          "screens": 1
+        },
+        {
+          "beat": "paywall",
+          "text": "PREMIUM Keep the coaching coming Every recording scored (free: 3 a day) Presence on video, with its moments Your whole history, all nine skills Every word you've earned, kept Speed rush, Interview, more Hostile Q&A Your price drops every month you stay A$ 12.99 1 2 . 9 9 Today Month 1 Month 1 A$12.99, month 2 A$11.99, month 3 A$10.99, month 4 A$9.99, month 5 A$8.99, month 6 A$7.99, month 7 on A$6.99. 12.99 11.99 10.99 9.99 8.99 7.99 6.99 NOV DEC JAN FEB MAR APR MAY+ Renews monthly until you cancel in the app. If a plan ends, the next starts at A$12.99. Start at A$12.99 a month Not yet Money never buys stars, streaks, or scores.",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-dark-paywall-s0.png"
+          ]
+        },
+        {
+          "maxBand": 0,
+          "band": null,
+          "doorClear": true,
+          "backDuringFelt": true,
+          "words": 227,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 106,
+          "wordsNoRound": 227,
+          "numbers": 17,
+          "text": "Every number Done Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak. Hear it back filler between sentences mid-sentence 0:02 um 0:02 like 0:07 um 0:10 you know 0:15 Your scores Length 62s, target 60 to 90s You spoke at a good pace and paused between sentences. Filler control has the most room to grow. Pausing Strong 72 3 pauses between sentences. Filler control Okay 55 Sentence restarts Okay 66 Pace Strong 93 Variety Okay 66 What you said 121 words filler vague said 3+ times So the thing about habits is, um, they compound. You do the small version every day and, like, it builds on its own. Um, the mistake people make is waiting to feel ready. You know, ready is a feeling that shows up after you start. I used to think discipline was the whole answer, and I would plan a week nobody could really do, then miss a day and quit the plan instead of the day. What changed was making the habit small enough that missing it felt stupid. Five minutes. Not an hour, just five minutes I can do standing in a kitchen. And the five minutes usually turns into more, but only because it was allowed to be five. 3 pauses between sentences Each one after a full sentence. Done for today",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "sheet",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-dark-sheet-s0.png",
+            "docs/look/free3/after/after-capped-320x568-dark-sheet-s1.png",
+            "docs/look/free3/after/after-capped-320x568-dark-sheet-s2.png",
+            "docs/look/free3/after/after-capped-320x568-dark-sheet-s3.png",
+            "docs/look/free3/after/after-capped-320x568-dark-sheet-s4.png"
+          ],
+          "screens": 5
+        },
+        {
+          "maxBand": 42,
+          "band": [
+            347,
+            389
+          ],
+          "doorClear": null,
+          "backDuringFelt": false,
+          "words": 59,
+          "outsideWords": 0,
+          "outsidePieces": 0,
+          "wordsNoTranscript": 59,
+          "wordsNoRound": 59,
+          "numbers": 13,
+          "text": "Since day one Day 1 to day 27 All fillers a minute 9.3 → 2.8 Ethos 611 → 668 Words a minute 128 → 155 Pauses between sentences in a recording 1 → 2 25 recordings. Every number measured, none awarded. Free shows the last 7 days and scores 3 recordings a day. Premium opens all of it. Keep every number Not now",
+          "scrollH": 568,
+          "innerH": 568,
+          "taps": 1,
+          "chips": 0,
+          "beat": "exit-tap",
+          "files": [
+            "docs/look/free3/after/after-capped-320x568-dark-exit-tap-s0.png",
+            "docs/look/free3/after/after-capped-320x568-dark-exit-tap-full.png"
+          ],
+          "screens": 1
+        }
+      ],
+      "tapLiveMs": 6
+    }
+  ]
+}

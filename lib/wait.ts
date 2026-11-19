@@ -83,8 +83,9 @@ export function waitRows(state: WaitState, { boss = false }: { boss?: boolean } 
   const readState: RowState = e && !e.reads ? "skip" : step("reading", "saving");
   /* A read that is not coming says why in words: the dash beside it is
      a shape, and a shape is never the whole message (DESIGN principle
-     10). Too little speech to judge, or no read left: the Log's "Demos's
-     full read is back tomorrow" (components/RepResult.tsx). */
+     10). Too little speech to judge, or none of the day's 3 left (#514):
+     the sheet's "Your Ethos score and Demos's read are back tomorrow."
+     (lib/allowance-copy.ts CAPPED_SHEET). */
   const skipped = readState === "skip";
   const readLabel = !skipped
     ? "Demos reads it"

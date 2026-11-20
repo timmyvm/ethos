@@ -1,0 +1,142 @@
+/*
+ * The flat icons' tones (workbench only, app/workbench/icons).
+ *
+ * Every layer of components/icons/flat/geometry.ts fills with
+ * `var(--fi-<kind>-<role>)`, so a variant is nothing but these values.
+ * Three tones per colour, hard edges: base, shade (same hue, about 9
+ * points darker in HSL lightness, saturation held), light (20 points or
+ * more lighter, a few degrees warmer). Never a grey mixed in, never a
+ * gradient, never a blur. Lightness is HSL's, the measure Duolingo's own
+ * pairs were read in (#58CC02 to #58A700 is 7.6 points).
+ *
+ * A, studied: the rules at full strength, a bright saturated palette of
+ * its own (no Duolingo hex), the same in both themes, a near-white light.
+ *
+ * B, Ethos: the same drawings in the app's own tokens: the streak's
+ * orange and XP's orchid (both moving with the theme), the earned gold,
+ * the introduction's sky, Sentence restarts' ochre and wash, Pausing's
+ * blue and wash. Its light is a tint, never white.
+ */
+
+.fi {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+/* ---------------------------------- A ---------------------------------- */
+.fi-a {
+  --fi-streak-base: #ff661a; /* hsl(20 100 55) */
+  --fi-streak-shade: #eb4200; /* L 46 */
+  --fi-streak-light: #ffc17a; /* L 74 */
+  --fi-xp-base: #b73ff3; /* hsl(280 88 60) */
+  --fi-xp-shade: #a01ee6; /* L 51 */
+  --fi-xp-light: #eba8ff; /* L 83 */
+  --fi-best-base: #ffb700; /* hsl(43 100 50) */
+  --fi-best-shade: #d68b00; /* L 42 */
+  --fi-best-light: #ffef85; /* L 76 */
+  --fi-freeze-base: #25b9f4; /* hsl(197 90 55) */
+  --fi-freeze-shade: #1097da; /* L 46 */
+  --fi-freeze-light: #b3f2ff; /* L 85 */
+  --fi-target-base: #f24536; /* hsl(5 88 58) */
+  --fi-target-shade: #e32116; /* L 49 */
+  --fi-target-ring: #ffffff;
+  --fi-target-light: #ffb6a3; /* L 82 */
+  --fi-target-dart: #2744a5; /* hsl(226 62 40) */
+  --fi-target-dart-shade: #1f3384; /* L 32 */
+  --fi-hourglass-base: #3463ef; /* hsl(225 85 57) */
+  --fi-hourglass-shade: #1b47da; /* L 48 */
+  --fi-hourglass-glass: #cce4ff; /* L 90 */
+  --fi-hourglass-sand: #ffb914; /* hsl(42 100 54) */
+  --fi-hourglass-light: #ffffff;
+  --fi-hostile-base: #f7614a; /* hsl(8 92 63) */
+  --fi-hostile-shade: #ec3b27; /* L 54 */
+  --fi-hostile-light: #ffc0ad;
+  --fi-hostile-bolt: #ffce1f;
+  --fi-boss-base: #2c9ced; /* hsl(205 84 55) */
+  --fi-boss-shade: #1a7ed1; /* L 46 */
+  --fi-boss-snow: #ffffff;
+  --fi-boss-pole: #1a7ed1;
+  --fi-boss-flag: #f03847;
+}
+.fi-a[data-lit="false"] {
+  --fi-streak-base: #c5c2be;
+  --fi-streak-shade: #b1ada9;
+  --fi-streak-light: #e8e6e3;
+}
+:root[data-theme="dark"] .fi-a[data-lit="false"] {
+  --fi-streak-base: #75706c;
+  --fi-streak-shade: #5f5c58;
+  --fi-streak-light: #96918d;
+}
+
+/* ---------------------------------- B ---------------------------------- */
+.fi-b {
+  --fi-streak-base: var(--streak); /* #ff8a00 */
+  --fi-streak-shade: #d16900;
+  --fi-streak-light: #ffc766;
+  --fi-xp-base: var(--xp); /* #ad22dd */
+  --fi-xp-shade: #8c1cb5;
+  --fi-xp-light: #e289f5;
+  --fi-best-base: var(--color-amber); /* #e0a800, the earned gold */
+  --fi-best-shade: #b38000;
+  --fi-best-light: #ffd83d;
+  --fi-freeze-base: #3ea7e0; /* the sky, at an object's strength */
+  --fi-freeze-shade: #2688c5;
+  --fi-freeze-light: #a8daf5; /* --pop-sky */
+  --fi-target-base: #db8b00; /* Sentence restarts' ochre, lifted */
+  --fi-target-shade: #b06f00; /* its tone */
+  --fi-target-ring: #fff1d1; /* its wash */
+  --fi-target-light: #ffd470;
+  --fi-target-dart: #704800; /* its ink: the object stays one hue family */
+  --fi-target-dart-shade: #5a3a00;
+  --fi-hourglass-base: #2f5fe0; /* Pausing's tone */
+  --fi-hourglass-shade: #1f4bc1;
+  --fi-hourglass-glass: #e6edff; /* its wash */
+  --fi-hourglass-sand: var(--color-amber);
+  --fi-hourglass-light: #ffffff;
+  --fi-hostile-base: #f47052; /* coral at an object's strength */
+  --fi-hostile-shade: #e64e33;
+  --fi-hostile-light: #ffd2c6;
+  --fi-hostile-bolt: #ffd166; /* --pop-sun */
+  --fi-boss-base: #3ea7e0;
+  --fi-boss-shade: #2688c5;
+  --fi-boss-snow: #ffffff;
+  --fi-boss-pole: #2688c5;
+  --fi-boss-flag: #c0432a; /* --pop-coral-ink */
+}
+.fi-b[data-lit="false"] {
+  --fi-streak-base: #c0bdb9;
+  --fi-streak-shade: #aca8a5;
+  --fi-streak-light: #e0dedc;
+}
+:root[data-theme="dark"] .fi-b {
+  --fi-streak-shade: #db7900;
+  --fi-streak-light: #ffcf70;
+  --fi-xp-shade: #b757ea;
+  --fi-xp-light: #edb8ff;
+  --fi-target-ring: #704800; /* its ink, so the rings still alternate on near-black */
+  --fi-target-dart: #f2ddb2; /* its dark ink */
+  --fi-target-dart-shade: #e0c48f;
+}
+:root[data-theme="dark"] .fi-b[data-lit="false"] {
+  --fi-streak-base: #6f6b67;
+  --fi-streak-shade: #5a5753;
+  --fi-streak-light: #918c88;
+}
+
+/* Today's games' rows on the board: under a flat mark the pool is a flat
+   pill, darker than the ground it falls on, never a blurred oval (the
+   studied rule 9). The app's own rows keep their soft pool. */
+.home-mode[data-flat] .home-mode-art::before {
+  left: 22%;
+  right: 22%;
+  height: 8px;
+  top: calc(var(--foot) * var(--mark) - 3px);
+  border-radius: 999px;
+  background: var(--color-sand);
+  z-index: -1;
+}
+:root[data-theme="dark"] .home-mode[data-flat] .home-mode-art::before {
+  background: #050505;
+}

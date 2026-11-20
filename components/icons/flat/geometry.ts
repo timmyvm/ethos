@@ -8,11 +8,22 @@
  * bulging side: between two corners a side is straight, and a corner is
  * one clean arc of the radius it is given (6u at least, tips 6 to 8u).
  *
+ * One exception, the streak's flame. Fire is curves: drawn with straight
+ * sides and 6u tips it read as a mitten from 120px up (round 1, the
+ * campfire), and Ethos shows it at 380 on the streak moment. So the flame
+ * is built from circular arcs only, never a line, every join tangent (a
+ * concave arc where a tongue flicks or a notch opens), and its tips may
+ * be sharper: the main tip 3 to 4u, the side tips about 4u, a notch's
+ * round 4.5u at least. Nothing else in it drops under the method: the
+ * gaps and bands stay 12u, the notches 10 to 12u open.
+ *
  * Each icon is a short stack of named layers: `base` (the silhouette),
  * `shade` (one flat shape in the same hue, clipped inside the
  * silhouette, on the side away from the light), `light` (one small
  * flat shape near the top left, only drawn from 24px up), and where the
- * object needs it a second colour (a target's rings, a dart, sand). A
+ * object needs it a second colour (a target's rings, a dart, sand) or,
+ * for the flame alone, `inner`: one lighter, warmer tongue of the same
+ * family, drawn at every size. A
  * layer names a colour role, never a colour: the role is read from a CSS
  * variable, `--fi-<kind>-<role>` (components/icons/flat/flat-icons.css),
  * so a variant or a theme swaps every tone without touching a path.
@@ -141,79 +152,69 @@ function at(x: number, y: number, deg: number, along: number, across = 0): Pt {
 }
 
 /* ------------------------------------------------------------------ */
-/* The streak: the campfire, a flame of Ethos's own and one rounded     */
-/* polygon. A round foot (a circle of r31 drawn as its own arc), and    */
-/* three tongues that all lean the same way, to the right, as a flame   */
-/* does in a draught: a tall centre tongue, a lick on the left shoulder */
-/* and a lower one on the right. Never an orange teardrop with a yellow */
-/* flame inside it. One hue: the shade a crescent on the foot's lower   */
-/* right, the light a pill on the foot's left.                          */
+/* The streak: a flame of Ethos's own, every side a tangent arc. A round */
+/* foot, the left side one convex sweep up into a tapered lick, a tall  */
+/* centre tongue, and a lower lick on the right that rises out of a     */
+/* deep V and flicks back (the S on its outer side). All three lean     */
+/* right, as a flame does in a draught; their tips stand at y 4, 15 and */
+/* 27, staggered so they never read as a crown.                         */
 /*                                                                      */
-/* Its floor is 20px: at 16 the notches close (nothing draws it under   */
-/* 20; You is 22, Today's chips 20).                                    */
+/* Inside it, one lighter tongue in the same family (amber, never lemon)*/
+/* rises from the foot's lower left along the body's lean and is cut by */
+/* the outline: off-centre, leaning, under half the height. Never the  */
+/* arrangement of an orange flame with a yellow teardrop centred inside */
+/* it. The shade is a crescent on the foot's lower right, the light a   */
+/* pill on the centre tongue's left face.                               */
+/*                                                                      */
+/* Drawn with an arc-only pen (each step one arc of a radius and a      */
+/* turn), solved so the tips and notches land where they are set, then  */
+/* scaled to 88u tall and centred; the numbers below are that drawing,  */
+/* baked. Its floor is 20px (You is 22, Today's chips 20).              */
 /* ------------------------------------------------------------------ */
-const FOOT = { cx: 44, cy: 61, r: 31 };
 
 /**
- * Clockwise on screen. The tips are set past where they are drawn: a
- * round on a 34-degree tip takes some 17u off its point, the same
- * overshoot as the bolt's. Measured, drawn: the left lick's tip (21, 15),
- * the centre's (58, 4), the right lick's (79, 27); the notches 11 and 12u
- * deep from the line between their tips, 17 and 14u open halfway down.
+ * Clockwise from the bottom of the foot, 15 arcs and no line:
+ *  1. A28.6   foot, to the lower left          9. A3.64   main tip (y 4)
+ *  2. A50     left side (one convex sweep)    10. A63.2   centre tongue, right edge (concave)
+ *  3. A64.1   up into the left lick           11. A5.2    right notch, a V (bottom y 44)
+ *  4. A3.9    left tip (y 15)                 12. A26     right lick, inner edge
+ *  5. A20.8   the lick's inner flank, convex  13. A4.16   right tip (y 27)
+ *     for 6u so the lick tapers               14. A45.3   the right lick's S (concave)
+ *  6. A24.4   then concave into the notch     15. A36     foot, right side, back to the bottom
+ *  7. A4.68   left notch, a V (bottom 35,31; 12u open at y 24)
+ *  8. A73.3   centre tongue, left edge
  */
-const FLAME: readonly Pt[] = [
-  [17.46, 1.33], // left lick, tip (34 degrees); its outer side runs down to touch the foot, so it stands upright
-  [32.58, 27.52], // left notch (concave, 69 degrees)
-  [64.35, -11.71], // centre tongue, tip (34 degrees, leaning 22 to the right)
-  [60.05, 37.36], // right notch (concave, 44 degrees)
-  [85.1, 15.59], // right lick, tip (37 degrees, leaning 30 to the right); the straight flank runs down from it
-  // The foot: three corners round its arc, each rounded at exactly its radius, so the bottom is the circle's own.
-  [70.89, 83.97],
-  [39.05, 96.02],
-  [11.79, 75.61],
-];
-const FLAME_R = [6, 6, 7, 6, 6, FOOT.r, FOOT.r, FOOT.r];
+const FLAME_D =
+  "M47.35 92A28.6 28.6 0 0 1 25.66 82.04A49.96 49.96 0 0 1 17.09 67.85A64.08 64.08 0 0 1 18.84 16.7A3.9 3.9 0 0 1 25.76 16.46A20.82 20.82 0 0 1 27.89 21.85A24.44 24.44 0 0 0 30.39 28.21A4.68 4.68 0 0 0 38.79 27.68A73.3 73.3 0 0 1 53.44 5.13A3.64 3.64 0 0 1 59.65 8.36A63.19 63.19 0 0 0 61.35 40.21A5.2 5.2 0 0 0 71.44 39.44A26.04 26.04 0 0 1 75.78 28.64A4.16 4.16 0 0 1 83.25 31.93A45.26 45.26 0 0 0 82.83 49.71A36.05 36.05 0 0 1 47.35 92Z";
 
-/**
- * The region beyond a circle's arc, from angle `a1` clockwise to `a2`
- * (degrees, on screen), closed round the far lower-right corner. Clipped to
- * a silhouette, it is a shade whose inner edge is that arc and whose outer
- * edge is the silhouette's own.
- */
-function beyondArc(c: { cx: number; cy: number; r: number }, a1: number, a2: number): Shape {
-  const p = (a: number): Pt => [c.cx + Math.cos((a * Math.PI) / 180) * c.r, c.cy + Math.sin((a * Math.PI) / 180) * c.r];
-  const [x1, y1] = p(a1);
-  const [x2, y2] = p(a2);
-  const large = a2 - a1 > 180 ? 1 : 0;
-  return {
-    kind: "path",
-    d: `M${fmt(x1)} ${fmt(y1)}A${fmt(c.r)} ${fmt(c.r)} 0 ${large} 1 ${fmt(x2)} ${fmt(y2)}L${fmt(x2)} 120L120 120L120 ${fmt(y1)}Z`,
-  };
-}
+/* The shade's inner edge: one arc of r 94 from the right side just under
+   the right lick (82.5, 36.3) to the foot at (39.3, 90.8), bowed down and
+   to the right so it follows the foot as a crescent, 14u at its widest.
+   Its other sides lie outside the flame. */
+const FLAME_SHADE_D = "M82.5 36.34A93.67 93.67 0 0 1 39.25 90.83L39.25 132.59L130.99 132.59L130.99 36.34Z";
 
-/* The shade's inner edge: a circle that leaves the right flank at y 46
-   (below the right lick, so no tongue and no notch is shaded), runs 13u in
-   from the foot's lower right, and leaves the foot at its 128-degree point,
-   low on the left. One crescent, 13u at its widest. */
-const FLAME_SHADE = { cx: 19.44, cy: 21.44, r: 64.23 };
+/* The inner tongue: its left edge one convex arc (r 50) up to a 3u tip at
+   (35, 49), a short concave flick (r 12.5, 5u) under the tip, then one
+   convex arc (r 25) down to the outline at (28, 84.5). It touches the
+   outline only on the foot's lower left (about 6% of it), 12u clear of the
+   shade and 10.5u of the light. The long arcs and lines past its ends lie
+   outside the flame and are cut by the clip. */
+const FLAME_INNER_D =
+  "M13.2 107.17A416.3 416.3 0 0 1 14.15 85.4A49.96 49.96 0 0 1 33.23 49.52A3.12 3.12 0 0 1 38.2 52.63A12.49 12.49 0 0 0 38.25 58.03A24.98 24.98 0 0 1 25.64 85.7A416.3 416.3 0 0 1 12.69 92.3L12.69 113.86L-29.28 113.86L-29.28 107.17Z";
 
 const streak: FlatIconDef = {
   name: "flame",
-  fit: { scale: 0.972, dx: 0.7, dy: 0.2 },
   layers: [
-    { part: "base", tone: "base", shapes: [poly(FLAME, FLAME_R)] },
-    {
-      part: "shade",
-      tone: "shade",
-      clip: ["base"],
-      shapes: [beyondArc(FLAME_SHADE, 8.48, 99.11)],
-    },
+    { part: "base", tone: "base", shapes: [{ kind: "path", d: FLAME_D }] },
+    { part: "shade", tone: "shade", clip: ["base"], shapes: [{ kind: "path", d: FLAME_SHADE_D }] },
+    { part: "inner", tone: "inner", clip: ["base"], shapes: [{ kind: "path", d: FLAME_INNER_D }] },
     {
       part: "light",
       tone: "light",
       minPx: LIGHT_MIN_PX,
       clip: ["base"],
-      shapes: [{ kind: "pill", cx: 26, cy: 60, w: 12, h: 19, angle: 14 }],
+      // Along the centre tongue's left face, 4u inside the outline at the notch's rim.
+      shapes: [{ kind: "pill", cx: 47.5, cy: 33, w: 12, h: 18, angle: 28 }],
     },
   ],
 };

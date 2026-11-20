@@ -7,7 +7,9 @@
  * points darker in HSL lightness, saturation held), light (20 points or
  * more lighter, a few degrees warmer). Never a grey mixed in, never a
  * gradient, never a blur. Lightness is HSL's, the measure Duolingo's own
- * pairs were read in (#58CC02 to #58A700 is 7.6 points).
+ * pairs were read in (#58CC02 to #58A700 is 7.6 points). The flame alone
+ * has a fourth, `inner`: its inner tongue, between the base and the light,
+ * a few degrees warmer (an amber, never a lemon yellow).
  *
  * A, studied: the rules at full strength, a bright saturated palette of
  * its own (no Duolingo hex), the same in both themes, a near-white light.
@@ -30,6 +32,7 @@
   --fi-streak-base: #ff661a; /* hsl(20 100 55) */
   --fi-streak-shade: #eb4200; /* L 46 */
   --fi-streak-light: #ffc17a; /* L 74 */
+  --fi-streak-inner: #ff9e3d; /* hsl(30 100 62): lighter and warmer than the base, darker than the light */
   --fi-xp-base: #b73ff3; /* hsl(280 88 60) */
   --fi-xp-shade: #a01ee6; /* L 51 */
   --fi-xp-light: #eba8ff; /* L 83 */
@@ -60,15 +63,24 @@
   --fi-boss-pole: #1a7ed1;
   --fi-boss-flag: #f03847;
 }
+/* The unlit streak (Today's open chip, 20px on the surface step). One
+   warm grey ramp, hsl(30 3.5 L): shade 8 points under the base, inner 8
+   over, light 22 over. Light: the base 3:1 or more on the chip (#f4f4f4,
+   and the warmer #efedea), and the whole flame at least 30 darker than the
+   lit one in Greyscale (the app's own unlit rule, lib/stat-icons.test.ts),
+   so A, whose orange is itself a mid grey, goes darker than B. Dark: the
+   base 3:1 on #1c1c1c, dimmer than the lit flame. */
 .fi-a[data-lit="false"] {
-  --fi-streak-base: #c5c2be;
-  --fi-streak-shade: #b1ada9;
-  --fi-streak-light: #e8e6e3;
+  --fi-streak-base: #64615e; /* L 38, 5.6:1 on #f4f4f4 */
+  --fi-streak-shade: #4f4d4a;
+  --fi-streak-inner: #797571;
+  --fi-streak-light: #9d9995;
 }
 :root[data-theme="dark"] .fi-a[data-lit="false"] {
-  --fi-streak-base: #75706c;
-  --fi-streak-shade: #5f5c58;
-  --fi-streak-light: #96918d;
+  --fi-streak-base: #6c6965; /* L 41, 3.1:1 on #1c1c1c */
+  --fi-streak-shade: #575451;
+  --fi-streak-inner: #817d79;
+  --fi-streak-light: #a4a19d;
 }
 
 /* ---------------------------------- B ---------------------------------- */
@@ -76,6 +88,7 @@
   --fi-streak-base: var(--streak); /* #ff8a00 */
   --fi-streak-shade: #d16900;
   --fi-streak-light: #ffc766;
+  --fi-streak-inner: #ffb53d; /* hsl(37 100 62): an amber, never a lemon */
   --fi-xp-base: var(--xp); /* #ad22dd */
   --fi-xp-shade: #8c1cb5;
   --fi-xp-light: #e289f5;
@@ -111,20 +124,23 @@
   --fi-boss-flag: #c0432a; /* --pop-coral-ink */
 }
 .fi-b[data-lit="false"] {
-  --fi-streak-base: #c0bdb9;
-  --fi-streak-shade: #aca8a5;
-  --fi-streak-light: #e0dedc;
+  --fi-streak-base: #797571; /* L 46, 4.2:1 on #f4f4f4 */
+  --fi-streak-shade: #64615e;
+  --fi-streak-inner: #8e8a86; /* 3.1:1: the foot's lower left is drawn in it */
+  --fi-streak-light: #b0adab;
 }
 :root[data-theme="dark"] .fi-b {
   --fi-streak-shade: #db7900;
+  --fi-streak-inner: #ffc247; /* hsl(40 100 64) */
   --fi-streak-light: #ffcf70;
   --fi-xp-shade: #b757ea;
   --fi-xp-light: #edb8ff;
 }
 :root[data-theme="dark"] .fi-b[data-lit="false"] {
-  --fi-streak-base: #6f6b67;
-  --fi-streak-shade: #5a5753;
-  --fi-streak-light: #918c88;
+  --fi-streak-base: #77736f; /* L 45, 3.6:1 on #1c1c1c */
+  --fi-streak-shade: #625e5b;
+  --fi-streak-inner: #8b8783;
+  --fi-streak-light: #aeaba8;
 }
 
 /* Today's games' rows on the board: under a flat mark the pool is a flat

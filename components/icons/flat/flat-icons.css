@@ -13,9 +13,10 @@
  * its own (no Duolingo hex), the same in both themes, a near-white light.
  *
  * B, Ethos: the same drawings in the app's own tokens: the streak's
- * orange and XP's orchid (both moving with the theme), the earned gold,
- * the introduction's sky, Sentence restarts' ochre and wash, Pausing's
- * blue and wash. Its light is a tint, never white.
+ * orange and XP's orchid (both moving with the theme), the earned gold
+ * (the cup, and the target with the sun's wash for its ring), the
+ * introduction's sky, Pausing's blue and wash (the hourglass, and the
+ * target's dart). Its light is a tint, never white.
  */
 
 .fi {
@@ -84,12 +85,16 @@
   --fi-freeze-base: #3ea7e0; /* the sky, at an object's strength */
   --fi-freeze-shade: #2688c5;
   --fi-freeze-light: #a8daf5; /* --pop-sky */
-  --fi-target-base: #db8b00; /* Sentence restarts' ochre, lifted */
-  --fi-target-shade: #b06f00; /* its tone */
-  --fi-target-ring: #fff1d1; /* its wash */
-  --fi-target-light: #ffd470;
-  --fi-target-dart: #704800; /* its ink: the object stays one hue family */
-  --fi-target-dart-shade: #5a3a00;
+  /* The target in the earned gold, its rings split by the sun's wash as A's
+     are by white, and the dart in Pausing's blue, the set's own blue
+     (the hourglass), so it crosses the gold the way A's navy crosses red.
+     The ochre and its ink read brown, and a bone dart on it read as a bone. */
+  --fi-target-base: var(--color-amber); /* #e0a800, hsl(45 100 44) */
+  --fi-target-shade: #b38000; /* the cup's shade, L 35 */
+  --fi-target-ring: #fff1c9; /* --pop-sun-wash */
+  --fi-target-light: #ffd166; /* --pop-sun, L 70 */
+  --fi-target-dart: #2f5fe0; /* Pausing's tone, hsl(224 74 53) */
+  --fi-target-dart-shade: #1f4bc1; /* its shade, L 44 */
   --fi-hourglass-base: #2f5fe0; /* Pausing's tone */
   --fi-hourglass-shade: #1f4bc1;
   --fi-hourglass-glass: #e6edff; /* its wash */
@@ -115,9 +120,6 @@
   --fi-streak-light: #ffcf70;
   --fi-xp-shade: #b757ea;
   --fi-xp-light: #edb8ff;
-  --fi-target-ring: #704800; /* its ink, so the rings still alternate on near-black */
-  --fi-target-dart: #f2ddb2; /* its dark ink */
-  --fi-target-dart-shade: #e0c48f;
 }
 :root[data-theme="dark"] .fi-b[data-lit="false"] {
   --fi-streak-base: #6f6b67;

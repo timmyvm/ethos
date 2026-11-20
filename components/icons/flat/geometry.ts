@@ -141,62 +141,79 @@ function at(x: number, y: number, deg: number, along: number, across = 0): Pt {
 }
 
 /* ------------------------------------------------------------------ */
-/* The streak: a flame of Ethos's own, built from the three primitives: */
-/* a circle for its body, a rounded triangle whose sides are tangent to */
-/* the circle for the main tongue, and a smaller one off the left       */
-/* shoulder for the flick, meeting the tongue in a crisp V. Not a       */
-/* teardrop with an inner flame: one hue, the shade a crescent on the   */
-/* right of the foot, the light a pill on the left of the body.         */
+/* The streak: the campfire, a flame of Ethos's own and one rounded     */
+/* polygon. A round foot (a circle of r31 drawn as its own arc), and    */
+/* three tongues that all lean the same way, to the right, as a flame   */
+/* does in a draught: a tall centre tongue, a lick on the left shoulder */
+/* and a lower one on the right. Never an orange teardrop with a yellow */
+/* flame inside it. One hue: the shade a crescent on the foot's lower   */
+/* right, the light a pill on the foot's left.                          */
+/*                                                                      */
+/* Its floor is 20px: at 16 the notches close (nothing draws it under   */
+/* 20; You is 22, Today's chips 20).                                    */
 /* ------------------------------------------------------------------ */
-const BODY = { cx: 48, cy: 62, r: 30 };
+const FOOT = { cx: 44, cy: 61, r: 31 };
 
-/** The two points where lines from `p` touch the circle, right side first. */
-function tangents(p: Pt, c: { cx: number; cy: number; r: number }): [Pt, Pt] {
-  const dx = c.cx - p[0];
-  const dy = c.cy - p[1];
-  const d = Math.hypot(dx, dy);
-  const toC = Math.atan2(dy, dx);
-  const off = Math.asin(c.r / d);
-  const len = Math.sqrt(d * d - c.r * c.r);
-  const t = (a: number): Pt => [p[0] + Math.cos(a) * len, p[1] + Math.sin(a) * len];
-  return [t(toC - off), t(toC + off)];
+/**
+ * Clockwise on screen. The tips are set past where they are drawn: a
+ * round on a 34-degree tip takes some 17u off its point, the same
+ * overshoot as the bolt's. Measured, drawn: the left lick's tip (21, 15),
+ * the centre's (58, 4), the right lick's (79, 27); the notches 11 and 12u
+ * deep from the line between their tips, 17 and 14u open halfway down.
+ */
+const FLAME: readonly Pt[] = [
+  [17.46, 1.33], // left lick, tip (34 degrees); its outer side runs down to touch the foot, so it stands upright
+  [32.58, 27.52], // left notch (concave, 69 degrees)
+  [64.35, -11.71], // centre tongue, tip (34 degrees, leaning 22 to the right)
+  [60.05, 37.36], // right notch (concave, 44 degrees)
+  [85.1, 15.59], // right lick, tip (37 degrees, leaning 30 to the right); the straight flank runs down from it
+  // The foot: three corners round its arc, each rounded at exactly its radius, so the bottom is the circle's own.
+  [70.89, 83.97],
+  [39.05, 96.02],
+  [11.79, 75.61],
+];
+const FLAME_R = [6, 6, 7, 6, 6, FOOT.r, FOOT.r, FOOT.r];
+
+/**
+ * The region beyond a circle's arc, from angle `a1` clockwise to `a2`
+ * (degrees, on screen), closed round the far lower-right corner. Clipped to
+ * a silhouette, it is a shade whose inner edge is that arc and whose outer
+ * edge is the silhouette's own.
+ */
+function beyondArc(c: { cx: number; cy: number; r: number }, a1: number, a2: number): Shape {
+  const p = (a: number): Pt => [c.cx + Math.cos((a * Math.PI) / 180) * c.r, c.cy + Math.sin((a * Math.PI) / 180) * c.r];
+  const [x1, y1] = p(a1);
+  const [x2, y2] = p(a2);
+  const large = a2 - a1 > 180 ? 1 : 0;
+  return {
+    kind: "path",
+    d: `M${fmt(x1)} ${fmt(y1)}A${fmt(c.r)} ${fmt(c.r)} 0 ${large} 1 ${fmt(x2)} ${fmt(y2)}L${fmt(x2)} 120L120 120L120 ${fmt(y1)}Z`,
+  };
 }
 
-const FLAME_TIP: Pt = [58, 4];
-const [TIP_R, TIP_L] = tangents(FLAME_TIP, BODY);
-/* Set well past where it is drawn: the flick's tip is about 30 degrees, and
-   a 6u round on it takes some 15u off, the same overshoot as the bolt's. */
-const FLICK_TIP: Pt = [6, 4];
-const [, FLICK_OUT] = tangents(FLICK_TIP, BODY);
-const CENTRE: Pt = [BODY.cx, BODY.cy];
+/* The shade's inner edge: a circle that leaves the right flank at y 46
+   (below the right lick, so no tongue and no notch is shaded), runs 13u in
+   from the foot's lower right, and leaves the foot at its 128-degree point,
+   low on the left. One crescent, 13u at its widest. */
+const FLAME_SHADE = { cx: 19.44, cy: 21.44, r: 64.23 };
 
 const streak: FlatIconDef = {
   name: "flame",
-  fit: { scale: 1.044, dx: 3.1, dy: -2.9 },
+  fit: { scale: 0.972, dx: 0.7, dy: 0.2 },
   layers: [
-    {
-      part: "base",
-      tone: "base",
-      shapes: [
-        { kind: "circle", ...BODY },
-        // The main tongue: its sides meet the body where they touch it, so the join is smooth.
-        poly([FLAME_TIP, TIP_R, CENTRE, TIP_L], [6, 0, 0, 0]),
-        // The flick: its outer side touches the body, its inner side dives into it.
-        poly([FLICK_TIP, FLICK_OUT, CENTRE, [38, 54]], [6, 0, 0, 0]),
-      ],
-    },
+    { part: "base", tone: "base", shapes: [poly(FLAME, FLAME_R)] },
     {
       part: "shade",
       tone: "shade",
       clip: ["base"],
-      shapes: [{ kind: "circle", cx: 88, cy: 98, r: 44 }],
+      shapes: [beyondArc(FLAME_SHADE, 8.48, 99.11)],
     },
     {
       part: "light",
       tone: "light",
       minPx: LIGHT_MIN_PX,
       clip: ["base"],
-      shapes: [{ kind: "pill", cx: 24, cy: 52, w: 9, h: 20, angle: -11 }],
+      shapes: [{ kind: "pill", cx: 26, cy: 60, w: 12, h: 19, angle: 14 }],
     },
   ],
 };

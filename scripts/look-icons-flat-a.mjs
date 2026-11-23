@@ -8,6 +8,12 @@
  *   node scripts/look-icons-flat-a.mjs <base-url> <out-dir> [scene ...]
  *   LOOK_SRC=$PWD node scripts/look-icons-flat-a.mjs http://localhost:4112 /tmp/flat-a/after
  *   LOOK_THEMES=light node scripts/look-icons-flat-a.mjs http://localhost:4112 /tmp/flat-a hero
+ *   LOOK_VIEWPORT=320x568 node scripts/look-icons-flat-a.mjs http://localhost:4112 /tmp/flat-a/short hero
+ *
+ * LOOK_VIEWPORT shoots another phone (WIDTHxHEIGHT, still at
+ * deviceScaleFactor 2), and LOOK_NAME greets someone else on Today (the
+ * profile's display name, "Timothy" by default; a long one checks the
+ * greeting against the card's object).
  *
  * The build is a fixture build (scripts/look-stat-icons.mjs's header):
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local NEXT_PUBLIC_SUPABASE_ANON_KEY=anon \
@@ -81,6 +87,11 @@ const BASE = BASE_ARG.replace(/\/$/, "");
 const OUT = resolve(OUT_ARG);
 mkdirSync(OUT, { recursive: true });
 const THEMES = (process.env.LOOK_THEMES ?? "light,dark").split(",");
+const [VW, VH] = (process.env.LOOK_VIEWPORT ?? "390x844").split("x").map(Number);
+if (!(VW > 0 && VH > 0)) {
+  console.error(`LOOK_VIEWPORT is WIDTHxHEIGHT, e.g. 320x568 (got ${process.env.LOOK_VIEWPORT})`);
+  process.exit(2);
+}
 const want = (s) => ONLY.length === 0 || ONLY.includes(s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const failures = [];
@@ -214,7 +225,7 @@ const lexicon = [
   { id: "l5", original: "make a decision about", upgrade: "decide on", created_at: iso(12) },
 ];
 const POSE = "pose_speaking";
-const profile = { display_name: "Timothy", premium: false, premium_until: null, equipped_pose: POSE };
+const profile = { display_name: process.env.LOOK_NAME ?? "Timothy", premium: false, premium_until: null, equipped_pose: POSE };
 const streaks = { freezes_equipped: 1 };
 const streak_freezes = [{ used_on: dateOnly(11) }];
 
@@ -529,7 +540,7 @@ const browser = await chromium.launch({
 
 async function open(theme) {
   const ctx = await browser.newContext({
-    viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    viewport: { width: VW, height: VH }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     locale: "en-AU", timezoneId: MEL, colorScheme: theme, serviceWorkers: "block",
     permissions: ["microphone", "notifications"], reducedMotion: "no-preference",
   });
@@ -643,8 +654,8 @@ async function crop(page, name, theme, sels, pad = 16) {
     if (b) boxes.push(b);
   }
   if (!boxes.length) return fail(`${name}-${theme}: nothing to crop (${[sels].flat().join(", ")})`);
-  const vw = 390;
-  const vh = 844;
+  const vw = VW;
+  const vh = VH;
   const x0 = Math.max(0, Math.min(...boxes.map((b) => b.x)) - pad);
   const y0 = Math.max(0, Math.min(...boxes.map((b) => b.y)) - pad);
   const x1 = Math.min(vw, Math.max(...boxes.map((b) => b.x + b.width)) + pad);

@@ -234,6 +234,9 @@ export default function Home() {
    * before paint: the title steps down from 34 to as small as 26 to keep
    * one line, and a line too long even then gives way to its short form
    * (`greeting`, lib/home.ts): the name by itself, or "Welcome back".
+   * The name alone may step down to 22, so a 14-letter name still stands
+   * whole beside the card's disc; one longer still ends in an ellipsis at
+   * the title's edge (`.home .large-title`), never under the disc.
    * Holds the full line that did not fit.
    */
   const [tooLong, setTooLong] = useState<string | null>(null);
@@ -292,7 +295,7 @@ export default function Home() {
       const alone = fullW * (26 / 34) > room;
       setTooLong(alone ? full : null);
       const natural = alone ? shortW : fullW;
-      if (natural > room) title.style.fontSize = `${Math.max(26, Math.floor(34 * (room / natural)))}px`;
+      if (natural > room) title.style.fontSize = `${Math.max(alone ? 22 : 26, Math.floor(34 * (room / natural)))}px`;
     };
     fit();
     let live = true;

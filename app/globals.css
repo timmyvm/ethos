@@ -6052,7 +6052,7 @@ summary::-webkit-details-marker {
 /* The opening. The bar holds the coin and the chips at rest, so it
    stands 56px: a 44px coin in a 44px bar touched the top of the glass.
    The date sits 16px under it, as on the workbench, and the greeting keeps clear of the
-   object's column from 360 up. */
+   object's disc from 360 up. */
 .home .screen-bar {
   --bar-h: 56px;
 }
@@ -6062,14 +6062,29 @@ summary::-webkit-details-marker {
 .home .large-title-row > .min-w-0 {
   flex: 1 1 auto;
 }
-/* From 360 up the greeting stops 6px short of the card's object zone
-   (52% of the column and 13px, `.home-hero`), so a long name fits
-   itself to that width (app/page.tsx) and never runs into the object's
-   top; under 360 the object rises less and the greeting has the row. */
+/* One line, always (app/page.tsx fits it, down to 26 and then 22 for
+   the name alone). A name too long even then (24 letters are allowed)
+   ends in an ellipsis at the title's edge rather than running under the
+   card's disc or off a 320 screen. The 6px over and under keep the clip
+   off accents and descenders without moving the line. */
+.home .large-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-block: 6px;
+  margin-block: -6px;
+}
+/* From 360 up the object's disc rises beside the greeting (`.home-hero`),
+   so the greeting stops where the disc's arc crosses the foot of its
+   line, 6px short of it: 180px up to 390 (where that arc comes nearest;
+   "Hi, Timothy" is 177 at 34), half the column and 5px from there. A
+   longer name fits itself to that width (app/page.tsx: down to 26px,
+   then the name alone) and never runs into the disc (lib/home.test.ts).
+   Under 360 the disc stands under the greeting's line and the greeting
+   has the row. */
 @media (min-width: 360px) {
   .home .large-title {
-    max-width: calc(52% + 6px);
-    text-wrap: balance;
+    max-width: max(180px, calc(50% + 5px));
   }
 }
 /* Under 360 the chips and the coin fill the collapsed bar; the small
@@ -6106,28 +6121,37 @@ summary::-webkit-details-marker {
   /*
    * The object zone, in the card's box (its 20px padding included).
    * The object's disc (`.home-hero-art`) is as wide as the zone (as
-   * tall, where the zone is shorter than it is wide), centred across
-   * it with its top on the zone's top. So every object rises out of
-   * the card by the same distance, 48px at 390 and 22 at 320, the
-   * hourglass and the boomerang alike, and none comes nearer the
-   * words than 12px.
-   *   left    13px right of the words' column (52% of the content box)
+   * tall, where the zone is shorter than it is wide), its right edge on
+   * the zone's right and its top on the zone's top. It is the card's
+   * hero: 168px at 390 (the 3D object it replaced stood about 180 tall
+   * there; the flat one at 140 read small), rising 52px out of the card
+   * into the room right of the greeting, as wide as three limits allow
+   * (lib/home.test.ts holds each, 6px clear of a circle, not a box):
+   *   the chip   on a day spoken, the trait's chip under the lead
+   *              ("Sentence restarts" ends 158px in): the disc's edge
+   *              stands 8px right of it, so `100cqw - 142px`
+   *   the name   the greeting's line over the card: from 390 up the
+   *              disc's arc is what meets it first, so it grows about a
+   *              third as fast as the card from there, `34cqw + 62px`, and
+   *              the greeting stops short of it (`.large-title`)
+   *   the cap    184px, a 440pt phone's
    *   right   16px inside the card's edge, the recorder's topic card's
    *           inset: at 10 the card's rounded corner showed past the
    *           disc as an 11px sliver tapering to where the two curves
    *           nearly met, a misfit (#516 review); at 16 the disc
    *           crosses the card's top edge cleanly and the corner
    *           stands clear beside it
-   *   top     the rise: -48px at 390, -22 at 320 (where the greeting
-   *           runs the column's width), between on the way
-   *   bottom  160px at 390, 140 at 320: the topic starts under it
+   *   top     the disc's foot 4px over the open day's topic (its zone's
+   *           foot, `[data-spin="link"]` below, 4px up), so the bigger
+   *           disc rises rather than pushing the topic down: 52px out
+   *           of the card at 390, 66 at 430, never less than 40
+   *   bottom  160px at 390, 151 at 360: the topic starts under it
    */
-  --zone-l: calc(52cqw + 33px);
+  --art-d: min(calc(100cqw - 142px), calc(34cqw + 62px), 184px);
   --zone-r: calc(100cqw + 24px);
-  --zone-t: clamp(-48px, calc(67.1px - 37.14cqw), -22px);
+  --zone-l: calc(var(--zone-r) - var(--art-d));
+  --zone-t: min(-40px, calc(clamp(96px, calc(27.4px + 28.57cqw), 116px) - var(--art-d)));
   --zone-b: clamp(140px, calc(71.4px + 28.57cqw), 160px);
-  /* The disc's centre across the zone. */
-  --art-cx: calc((var(--zone-l) + var(--zone-r)) / 2);
   display: flex;
   flex-direction: column;
   /* 376 tall; on a short screen (320x568) only as tall as leaves Another
@@ -6156,12 +6180,19 @@ summary::-webkit-details-marker {
 }
 /* Under 360 (D22): the words take 56% of the card so the longest
    tactic holds two lines at 320 (scripts/check-today.mjs), and the
-   object keeps to the right 44%, 12px clear of them, at 120px tall at
-   most, so the topic still starts under its foot. */
+   greeting has the row, so the disc stands under its line, rising 22px
+   out of the card, at 120px tall at most, so the topic still starts
+   under its foot. On a day spoken the chip's 8px holds it to 98 at
+   320; a day not yet spoken has no chip under its lead, so there the
+   disc takes the zone's whole 120 (100 on a short phone), and the
+   card's one picture is not the smallest thing on it. */
 @media (max-width: 359px) {
   .home-hero {
-    --zone-l: calc(56cqw + 32px);
+    --zone-t: -22px;
     --zone-b: calc(var(--zone-t) + 120px);
+  }
+  .home-hero[data-spin="link"] {
+    --art-d: 120px;
   }
   .home-hero .home-hero-words {
     max-width: 56%;
@@ -6273,7 +6304,11 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-hero[data-family="repairs"] {
   --home-a: #8f6110;
   --home-b: #3d2805;
-  --home-disc: #533401;
+  /* A step off the lesson stage's #533401: as a 168px coin on the
+     family's own amber that brown read as mud, a hole in the card; a
+     burnt orange of the same family (hue 33) reads as a disc, and the
+     object's orange holds 4.3:1 on it. */
+  --home-disc: #663800;
   --home-low: rgb(28 16 0 / 0.55);
   --home-glow: rgb(160 110 20 / 0.4);
 }
@@ -6335,8 +6370,10 @@ summary::-webkit-details-marker {
  * sit in it alike.
  *
  * The disc is the object zone's width (its height on a short phone),
- * its top on the zone's top, so it rises out of the card's corner as
- * the object did and keeps the zone's 12px clear of the words. It is
+ * its right edge on the zone's right and its top on the zone's top, so
+ * it rises out of the card's corner as the object did and its round
+ * edge keeps 6px clear of the greeting, the chip and the tactic beside
+ * it (`.home-hero`, lib/home.test.ts). It is
  * the picture itself: an <img> with the disc as its own round
  * background and the object inset by padding, so it arrives with the
  * object, flies with it to the recording's card (E51) and shrinks and
@@ -6360,7 +6397,7 @@ summary::-webkit-details-marker {
   --disc: min(calc(var(--zone-r) - var(--zone-l)), calc(var(--zone-b) - var(--zone-t)));
   position: absolute;
   top: var(--zone-t);
-  left: calc(var(--art-cx) - var(--disc) / 2);
+  left: calc(var(--zone-r) - var(--disc));
   width: var(--disc);
   height: var(--disc);
   pointer-events: none;
@@ -6371,11 +6408,13 @@ summary::-webkit-details-marker {
 .home-hero-art[data-loaded] {
   opacity: 1;
 }
-/* The words beside the object keep to the left 52%, and hold the
-   object zone's height, so the topic (24px under them) always starts
-   below the object's foot, however many lines it runs to. */
+/* The words beside the object keep to the left 48% (the tactic's two
+   lines clear the disc's arc by 6px at 390; 134px at 360, the width
+   they hold two lines in at 320), and hold the object zone's height,
+   so the topic (24px under them) always starts below the object's
+   foot, however many lines it runs to. */
 .home-hero-words {
-  max-width: 52%;
+  max-width: 48%;
   min-height: calc(var(--zone-b) - 38px);
 }
 /* The tactic's sentence, opened: under the object, across the card,

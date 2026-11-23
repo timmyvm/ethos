@@ -30,11 +30,13 @@ const lessons = between("lessons (trait tones) =====", "end of lessons (trait to
 const today = between("today (colour pass) =====", "end of today (colour pass)");
 const darkRoot = css.slice(css.indexOf(':root[data-theme="dark"] {'));
 const flat = readFileSync(path.resolve(__dirname, "../components/icons/flat/flat-icons.css"), "utf8");
-/* Each family's disc under Today's object: its wash in light, its dark stage in dark. */
+/* Each family's disc under Today's object: its wash in light, its dark stage in dark
+   (Repairs' a burnt orange a step off its stage's brown, which read as a hole once
+   the disc stood 168 wide). */
 const DISC: Record<string, { light: string; dark: string }> = {
   pause: { light: "#e6edff", dark: "#283a63" },
   fillers: { light: "#ffe6ee", dark: "#5c2935" },
-  repairs: { light: "#fff1d1", dark: "#533401" },
+  repairs: { light: "#fff1d1", dark: "#663800" },
   pace: { light: "#dcf7eb", dark: "#09472e" },
   range: { light: "#efe9ff", dark: "#3a3460" },
 };

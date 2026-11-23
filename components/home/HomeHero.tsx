@@ -49,9 +49,10 @@ export interface HeroRoulette {
  * The object is sized and stood by the box its visible pixels fill
  * (`artBox`, lib/lesson-art-bounds.ts), inside the card's object zone
  * (`.home-hero`): its top rises the same distance out of the card for
- * the hourglass and the boomerang alike, and it keeps 12px clear of the
- * words' column. The words' column holds the zone's height, so the
- * topic always starts under the object.
+ * the hourglass and the boomerang alike, into the room right of the
+ * greeting, and its disc's round edge keeps 6px clear of the greeting,
+ * the lead, the trait's chip and the tactic. The words' column holds
+ * the zone's height, so the topic always starts under the object.
  *
  * Demos is not on it. He stood here holding a mic every day, which is
  * furniture; he comes back for moments (the price drop's sheet, a

@@ -3389,7 +3389,8 @@ summary::-webkit-details-marker {
    scripts/export-flat-icons.mjs, on no ground of its own) on the one tile
    every lesson shares, the surface step, so the fifteen read as one set
    and the only colour is each object's own. On a stage it has no tile
-   and stands in the studio light (LessonArt's `stage`). */
+   and stands inside its family's disc (LessonArt's `stage`,
+   `.family-disc` and `.object-disc`). */
 .lesson-tile {
   background: var(--color-surface);
 }

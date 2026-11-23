@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { IconBack } from "@/components/Icon";
 import { backRetraces, goBack } from "@/lib/back";
+import { titleHandedOver } from "@/lib/title-handover";
 
 /**
  * Back retraces (#442, lib/back.ts). The chevron is a link to its
@@ -145,7 +146,9 @@ export function ScreenHeader({
       const barBottom = b.getBoundingClientRect().bottom;
       const rect = h.getBoundingClientRect();
       setEdge(y > 2);
-      setCollapsed(rect.bottom - 6 < barBottom);
+      /* On the title's line, not its box (lib/title-handover.ts): Today's
+         greeting pads its box 6px under the line for its clip. */
+      setCollapsed(titleHandedOver(rect.bottom, getComputedStyle(h).paddingBottom, barBottom));
       /* The material's own reach: the bar and its 14px soft edge. */
       const reach = barBottom + 14;
       let under = false;

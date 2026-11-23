@@ -1,8 +1,9 @@
 /**
  * The apple-design pass, checked in a real browser (DECISIONS #321):
- * the large title handing over to the bar, the nav lens a thumb can
- * slide, the sheet that keeps a flick's momentum and resists past its
- * top, the segmented thumb, and reduced transparency going solid.
+ * the large title handing over to the bar (on Today, on the greeting's
+ * line, not its padded box), the nav lens a thumb can slide, the sheet
+ * that keeps a flick's momentum and resists past its top, the segmented
+ * thumb, and reduced transparency going solid.
  *
  *   NEXT_PUBLIC_SUPABASE_URL=http://supabase.local \
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY=anon npx next dev -p 3123
@@ -292,6 +293,44 @@ for (const theme of ["light", "dark"]) {
   await sleep(700);
   await page.getByRole("radio", { name: theme }).click();
   await sleep(700);
+  await context.close();
+}
+
+// 1b. On Today the hand-over keys on the greeting's line, not its box.
+//     The greeting keeps 6px of clip room over and under its line for an
+//     ellipsis (`.home .large-title`), so its box reaches 6px under the
+//     line; read on the box, the small title came 6px of scroll after
+//     the greeting had gone under the frost, the bar empty between
+//     (lib/title-handover.ts). Scrolled a pixel at a time, the bar takes
+//     the title on the first pixel the line is 6px under the bar's foot.
+//     At 390 and 360; under 360 Today's bar shows no small title.
+for (const width of [390, 360]) {
+  const { context, page } = await open("light", { viewport: { width, height: 844 } });
+  await page.goto(`${BASE}/`);
+  await page.waitForSelector("main h1.large-title");
+  await sleep(900);
+  const hand = await page.evaluate(async () => {
+    const h = document.querySelector("main h1.large-title");
+    const bar = document.querySelector(".screen-bar");
+    const settle = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 30))));
+    let out = null;
+    for (let y = 0; y <= 240 && !out; y++) {
+      window.scrollTo(0, y);
+      await settle();
+      const pad = getComputedStyle(h).paddingBottom;
+      const foot = h.getBoundingClientRect().bottom - parseFloat(pad);
+      const due = foot - 6 < bar.getBoundingClientRect().bottom;
+      const got = bar.hasAttribute("data-collapsed");
+      if (due || got) out = { y: Math.round(window.scrollY), due, got, pad };
+    }
+    window.scrollTo(0, 0);
+    return out;
+  });
+  ok(
+    `${width}: Today's small title arrives on the scroll the greeting's line goes under the bar`,
+    !!hand && hand.due && hand.got,
+    hand ? `at scrollY ${hand.y}: line under ${hand.due}, bar title ${hand.got}, padding ${hand.pad}` : "never handed over"
+  );
   await context.close();
 }
 

@@ -6144,7 +6144,7 @@ summary::-webkit-details-marker {
    *   top     the disc's foot 4px over the open day's topic (its zone's
    *           foot, `[data-spin="link"]` below, 4px up), so the bigger
    *           disc rises rather than pushing the topic down: 52px out
-   *           of the card at 390, 66 at 430, never less than 40
+   *           of the card at 390, 65 at 430, never less than 40
    *   bottom  160px at 390, 151 at 360: the topic starts under it
    */
   --art-d: min(calc(100cqw - 142px), calc(34cqw + 62px), 184px);

@@ -111,8 +111,8 @@ describe("every practice has its object", () => {
  * app/globals.css, #516), sized by its reach (lib/lesson-art-bounds.ts).
  * The zone's edges are read from the CSS and evaluated at 320 and 390:
  * the disc rises out of the card by the same distance, keeps 12px or
- * more clear of the words' column, ends above the topic and stays
- * inside the card's edge, and every one of the fifteen stands inside it
+ * more clear of the words' column, ends above the topic and stands
+ * 16px inside the card's right edge, and every one of the fifteen stands inside it
  * with the same air.
  */
 describe("every object stands inside its disc in the card's zone", () => {
@@ -202,7 +202,7 @@ describe("every object stands inside its disc in the card's zone", () => {
     [320, 22, 0.56, true],
     [390, 48, 0.52, false],
   ] as const) {
-    it(`at ${width}${shortPhone ? " on a short phone" : ""}: all fifteen rise ${rise}px inside their disc, clear the words by 12px, end above the topic, inside the card`, () => {
+    it(`at ${width}${shortPhone ? " on a short phone" : ""}: all fifteen rise ${rise}px inside their disc, clear the words by 12px, end above the topic, 16px inside the card`, () => {
       const content = width - 40 - 40; // the column's gutters, then the card's padding
       const card = content + 40;
       const small = width < 360;
@@ -218,9 +218,15 @@ describe("every object stands inside its disc in the card's zone", () => {
       const disc = Math.min(r - l, b - t);
       const cx = (l + r) / 2;
       expect(cx - disc / 2 - column + 1e-6, "the disc clear of the words").toBeGreaterThanOrEqual(12);
-      expect(cx + disc / 2 - 1e-6, "the disc inside the card").toBeLessThanOrEqual(card - 8);
+      /* 16px clear of the card's right edge, the topic card's inset, so the
+         card's rounded corner stands clear beside the disc rather than
+         showing past it as a sliver where the two curves nearly meet
+         (#516 review: at 10 it did, in every family, both themes). */
+      expect(cx + disc / 2 - 1e-6, "the disc 16px inside the card's right edge").toBeLessThanOrEqual(card - 16);
       expect(t + disc - 1e-6, "the disc above the topic").toBeLessThanOrEqual(topic - 6);
       if (small) expect(disc, `the disc ${shortPhone ? 100 : 104}px at most`).toBeLessThanOrEqual((shortPhone ? 100 : 104) + 0.01);
+      /* ...and no smaller than the inset leaves it: the zone's width. */
+      expect(disc, "the disc the zone's width").toBeGreaterThanOrEqual(small ? 96 : 138);
       /* A day already spoken on a short phone: the words hold at least the
          lead (18), the trait's chip (22) and one line of the tactic (18),
          8 apart, and the topic stands 16 under them. */

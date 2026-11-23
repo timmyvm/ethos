@@ -16,6 +16,7 @@ import { practiceRow, type Challenge } from "./challenge";
 import { longestCleanRun } from "./clean-run";
 import type { RepRow } from "./client-data";
 import type { SubstanceRow } from "./rep-substance";
+import { lessonArtBox } from "./art-box";
 import { ART_BOUNDS } from "./lesson-art-bounds";
 import { choosePractice, type Chosen } from "./next-practice";
 import { repHref } from "./rep-config";
@@ -106,15 +107,7 @@ export function objectSrc(id: string): string {
 export function artBox(
   id: string
 ): Record<"--art-l" | "--art-t" | "--art-w" | "--art-h" | "--art-reach", number> {
-  const b = ART_BOUNDS[id] ?? ART_BOUNDS[HOUSE_OBJECT];
-  const round = (n: number) => Math.round(n * 10000) / 10000;
-  return {
-    "--art-l": b.l,
-    "--art-t": b.t,
-    "--art-w": round(b.r - b.l),
-    "--art-h": round(b.b - b.t),
-    "--art-reach": b.reach,
-  };
+  return lessonArtBox(ART_BOUNDS[id] ? id : HOUSE_OBJECT);
 }
 
 /* ------------------------------------------------------------------ */

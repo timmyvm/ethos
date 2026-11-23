@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { keepStatic } from "@/components/ServiceWorker";
 import { LESSONS } from "@/content/lessons";
 
 /*
@@ -36,8 +37,8 @@ describe("the offline shell", () => {
     for (const u of shell.filter((u) => /\.\w+$/.test(u))) expect(existsSync(path.join(root, "public", u)), u).toBe(true);
   });
 
-  it("moved CACHE with the flat set, so a phone holding v21 lets its 3D copies go", () => {
-    expect(Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1])).toBeGreaterThanOrEqual(22);
+  it("moved CACHE with the flat set and again with its re-toned target and gauge, so a phone lets the old copies go", () => {
+    expect(Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1])).toBeGreaterThanOrEqual(23);
   });
 });
 
@@ -48,6 +49,42 @@ describe("the worker registers after the first screen is drawn", () => {
     expect(reg).toMatch(/onDrawn\(register\)/);
     expect(reg).toMatch(/whenIdle\(\(\) => \{\s*navigator\.serviceWorker\.register\("\/sw\.js"\)/);
     expect(reg).toMatch(/if \(!drawExpected\(\)\) return register\(\);/);
+  });
+
+  it("hands the worker the build files the page loaded before it, once it is active", () => {
+    expect(reg).toMatch(/navigator\.serviceWorker\.register\("\/sw\.js"\)\.then\(keepStatic\)/);
+  });
+
+  it("posts only this origin's /_next/static/ files", async () => {
+    const posted: unknown[] = [];
+    vi.stubGlobal("location", { origin: "https://speakethos.test" });
+    vi.stubGlobal("performance", {
+      getEntriesByType: () =>
+        [
+          "https://speakethos.test/_next/static/css/app.css",
+          "https://speakethos.test/_next/static/chunks/main.js",
+          "https://speakethos.test/_next/static/media/font.woff2",
+          "https://speakethos.test/lessons/the-landing.svg",
+          "https://speakethos.test/api/today",
+          "https://cdn.example.test/_next/static/chunks/other.js",
+        ].map((name) => ({ name })),
+    });
+    vi.stubGlobal("navigator", { serviceWorker: { ready: Promise.resolve({ active: { postMessage: (m: unknown) => posted.push(m) } }) } });
+    try {
+      await keepStatic();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(posted).toEqual([
+      {
+        type: "keep-static",
+        urls: [
+          "https://speakethos.test/_next/static/css/app.css",
+          "https://speakethos.test/_next/static/chunks/main.js",
+          "https://speakethos.test/_next/static/media/font.woff2",
+        ],
+      },
+    ]);
   });
 
   it("still installs when the screen is left before its numbers land", () => {
@@ -76,7 +113,8 @@ describe("a lesson in a tunnel", () => {
     const caches = {
       match: async (r: string | { url: string }) => store.get(key(r))?.clone(),
       open: async () => ({
-        put: async (r: { url: string }, res: Response) => void store.set(key(r), res),
+        match: async (r: string | { url: string }) => store.get(key(r))?.clone(),
+        put: async (r: string | { url: string }, res: Response) => void store.set(key(r), res),
         add: async () => {},
       }),
       keys: async () => [],
@@ -85,7 +123,7 @@ describe("a lesson in a tunnel", () => {
     const sandbox = {
       self: { addEventListener: (type: string, fn: Handler) => (handlers[type] = fn), location: { origin: ORIGIN } },
       caches,
-      fetch: async (r: { url: string }) => {
+      fetch: async (r: string | { url: string }) => {
         fetched.push(key(r));
         if (!online) throw new TypeError("Failed to fetch");
         return new Response(`network ${key(r)}`, { status: 200 });
@@ -106,7 +144,13 @@ describe("a lesson in a tunnel", () => {
         return null;
       }
     };
-    return { get, store, fetched };
+    /** The page posting what it loaded (`keep-static`); resolves when the worker has done with it. */
+    const post = async (data: unknown) => {
+      let work: Promise<unknown> = Promise.resolve();
+      handlers.message({ data, waitUntil: (p: Promise<unknown>) => (work = p) });
+      await work;
+    };
+    return { get, post, store, fetched };
   }
 
   it("a lesson's object is answered offline from the shell", async () => {
@@ -129,6 +173,40 @@ describe("a lesson in a tunnel", () => {
     expect(await w.store.get("/lessons/the-landing.svg")?.clone().text()).toBe("network /lessons/the-landing.svg");
     w.fetched.length = 0;
     expect(await w.get("/lessons/the-landing.svg")).toBe("network /lessons/the-landing.svg");
+    expect(w.fetched).toEqual([]);
+  });
+
+  /* After one visit the page's stylesheet and scripts were never kept: they
+     loaded before the worker was installed (#516 review), so a tunnel drew
+     the shell as raw HTML. The page posts them; the worker keeps its own. */
+  it("keeps the build files the page posts, this origin's /_next/static/ only, and serves them offline", async () => {
+    const w = boot(true, {});
+    await w.post({
+      type: "keep-static",
+      urls: [
+        `${ORIGIN}/_next/static/css/app.css`,
+        `${ORIGIN}/_next/static/chunks/main.js`,
+        `${ORIGIN}/api/analyze`,
+        `${ORIGIN}/history`,
+        "https://cdn.example.test/_next/static/chunks/other.js",
+        "not a url at all ::",
+      ],
+    });
+    expect(w.fetched.sort()).toEqual(["/_next/static/chunks/main.js", "/_next/static/css/app.css"]);
+    expect([...w.store.keys()].sort()).toEqual(["/_next/static/chunks/main.js", "/_next/static/css/app.css"]);
+    // Posted again (a page the worker already serves): nothing is fetched twice.
+    w.fetched.length = 0;
+    await w.post({ type: "keep-static", urls: [`${ORIGIN}/_next/static/css/app.css`] });
+    expect(w.fetched).toEqual([]);
+    // Anything else posted is ignored.
+    await w.post({ type: "something-else", urls: [`${ORIGIN}/_next/static/x.js`] });
+    await w.post(null);
+    expect(w.fetched).toEqual([]);
+  });
+
+  it("a kept build file is answered in a tunnel", async () => {
+    const w = boot(false, { "/_next/static/css/app.css": "body{}" });
+    expect(await w.get("/_next/static/css/app.css")).toBe("body{}");
     expect(w.fetched).toEqual([]);
   });
 

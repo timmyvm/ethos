@@ -18,6 +18,24 @@ import { drawExpected, onDrawn, whenIdle } from "@/lib/first-draw";
 /** The longest the install waits on a screen that said it would be drawn, from `load`. */
 const LATEST_MS = 10_000;
 
+/**
+ * Hands the worker the build files this page loaded before it was there
+ * (#516 review): the screen's stylesheet, fonts and scripts came before
+ * the install and never passed through it, so offline after one visit the
+ * pages drew with no CSS or JS. Once the worker is active it keeps them
+ * (public/sw.js, `keep-static`). A page the worker already serves posts
+ * the same list and the worker finds every file held.
+ */
+export function keepStatic(): Promise<void> {
+  return navigator.serviceWorker.ready.then((reg) => {
+    const urls = performance
+      .getEntriesByType("resource")
+      .map((r) => r.name)
+      .filter((u) => u.startsWith(`${location.origin}/_next/static/`));
+    if (urls.length > 0) reg.active?.postMessage({ type: "keep-static", urls });
+  });
+}
+
 export function ServiceWorker() {
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
@@ -32,7 +50,7 @@ export function ServiceWorker() {
       asked = true;
       window.clearTimeout(latest);
       cancelIdle = whenIdle(() => {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
+        navigator.serviceWorker.register("/sw.js").then(keepStatic).catch(() => {});
       }, 3000);
     };
     const onLoad = () => {

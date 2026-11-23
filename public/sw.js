@@ -19,11 +19,13 @@
  * pre-cached. v22: the flat set. The stat icons are drawn inline, so the
  * 3D files leave the shell, and each lesson's object is one SVG at a new
  * path (no large or hero cut, so nothing stands in for one offline);
- * v22 empties v21 of every 3D file.
+ * v22 empties v21 of every 3D file. v23 (#516 review): the target and
+ * the gauge are re-toned to their families' at the same paths, and an
+ * .svg is served cache-first, so a phone holding v22 would keep the red.
  * The worker itself registers once the first screen is drawn
  * (components/ServiceWorker.tsx), not beside it.
  */
-const CACHE = "ethos-v22";
+const CACHE = "ethos-v23";
 
 const SHELL = [
   "/",
@@ -102,6 +104,42 @@ self.addEventListener("activate", (e) => {
         Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
+  );
+});
+
+/**
+ * The page's own build files (#516 review). The worker installs after the
+ * first screen is drawn, so the stylesheet, fonts and scripts that screen
+ * loaded came before it and never passed through the fetch handler: a
+ * phone that had opened the app once held its pages offline but not
+ * their CSS or JS, and drew them as raw HTML (every flat mark black). The
+ * page posts what it loaded from /_next/static/ once the worker is
+ * active (components/ServiceWorker.tsx), and each is kept as the fetch
+ * handler keeps an asset: this origin's build files only, a good answer
+ * only, nothing fetched twice. Those files are hashed, so a file kept
+ * never goes stale.
+ */
+self.addEventListener("message", (e) => {
+  const data = e.data;
+  if (!data || data.type !== "keep-static" || !Array.isArray(data.urls)) return;
+  const own = [];
+  for (const u of data.urls.slice(0, 200)) {
+    try {
+      const url = new URL(u, self.location.origin);
+      if (url.origin === self.location.origin && url.pathname.startsWith("/_next/static/")) own.push(url.href);
+    } catch {}
+  }
+  e.waitUntil(
+    caches.open(CACHE).then((c) =>
+      Promise.all(
+        own.map((href) =>
+          c
+            .match(href)
+            .then((hit) => hit || fetch(href).then((res) => (res.ok ? c.put(href, res) : undefined)))
+            .catch(() => {})
+        )
+      )
+    )
   );
 });
 

@@ -160,16 +160,35 @@ describe("the lessons' objects", () => {
     expect(LESSON_FAMILIES.flatMap((f) => f.kinds).sort()).toEqual([...LESSON_FLAT_KINDS].sort());
   });
 
-  it("share one tone set per family; the target keeps the set's red from the stat board", () => {
+  it("share one tone set per family, every object in it", () => {
     const vars = block(LIT);
     for (const { trait, kinds } of LESSON_FAMILIES) {
-      const own = kinds.filter((k) => k !== "target");
-      const bases = new Set(own.map((k) => tone(vars, k, "base")));
+      const bases = new Set(kinds.map((k) => tone(vars, k, "base")));
       expect(bases.size, `${trait}: ${[...bases].join(", ")}`).toBe(1);
-      const shades = new Set(own.map((k) => tone(vars, k, "shade")));
+      const shades = new Set(kinds.map((k) => tone(vars, k, "shade")));
       expect(shades.size, `${trait} shades`).toBe(1);
     }
-    expect(tone(vars, "target", "base")).toBe(tone(vars, "gauge", "needle"));
+  });
+
+  /* Every other tone an object takes is its family's own hue (a light, a
+     tint, a deep interior), white, or the set's one gold: never a second
+     hue of its own. The target kept the stat board's red with a navy dart,
+     and the gauge that red for its needle, until the #516 review. */
+  it("take no colour but their family's hue, white and the set's one gold", () => {
+    const vars = block(LIT);
+    const GOLD = ["#ffb914", "#eb9c00"];
+    for (const { trait, kinds } of LESSON_FAMILIES) {
+      for (const kind of kinds) {
+        const familyHue = hsl(tone(vars, kind, "base")).h;
+        for (const role of roles(kind)) {
+          const value = tone(vars, kind, role);
+          const c = hsl(value);
+          const apart = Math.min(Math.abs(c.h - familyHue), 360 - Math.abs(c.h - familyHue));
+          const ok = GOLD.includes(value) || c.l >= 97 || apart <= 15;
+          expect(ok, `${trait} ${kind} ${role} ${value} (hue ${Math.round(c.h)} against ${Math.round(familyHue)})`).toBe(true);
+        }
+      }
+    }
   });
 
   it("take the set's one gold wherever a gold appears", () => {

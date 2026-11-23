@@ -3623,9 +3623,12 @@ summary::-webkit-details-marker {
     width: 32px;
     height: 32px;
   }
+  /* 24, not 22: the cup is drawn with its light (StatIcon size 30), and
+     the size ladder starts the light at 24 (LIGHT_MIN_PX). At 22 a 2px
+     pale pill sat on the cup's left (#516 review). */
   .best-plaque-mark > .stat-icon {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
   .best-plaque-head {
     display: none;
@@ -6108,13 +6111,18 @@ summary::-webkit-details-marker {
    * hourglass and the boomerang alike, and none comes nearer the
    * words than 12px.
    *   left    13px right of the words' column (52% of the content box)
-   *   right   10px inside the card's edge
+   *   right   16px inside the card's edge, the recorder's topic card's
+   *           inset: at 10 the card's rounded corner showed past the
+   *           disc as an 11px sliver tapering to where the two curves
+   *           nearly met, a misfit (#516 review); at 16 the disc
+   *           crosses the card's top edge cleanly and the corner
+   *           stands clear beside it
    *   top     the rise: -48px at 390, -22 at 320 (where the greeting
    *           runs the column's width), between on the way
    *   bottom  160px at 390, 140 at 320: the topic starts under it
    */
   --zone-l: calc(52cqw + 33px);
-  --zone-r: calc(100cqw + 30px);
+  --zone-r: calc(100cqw + 24px);
   --zone-t: clamp(-48px, calc(67.1px - 37.14cqw), -22px);
   --zone-b: clamp(140px, calc(71.4px + 28.57cqw), 160px);
   /* The disc's centre across the zone. */
@@ -6193,8 +6201,11 @@ summary::-webkit-details-marker {
    foot, and the light feet are deep enough to hold terracotta at 3.3:1
    or better there (3.58, 3.38, 3.32, 3.55, 3.97; they were 2.4 to 3.3,
    under 3 on Fillers and Restarts days). The recording's topic card
-   wears the same family through .family-fill (D50). */
+   wears the same family through .family-fill (D50), and a lesson's
+   object off the family's own card (Lessons' Up next, on the sky)
+   reads only its disc through .family-disc (#516 review). */
 .family-fill[data-family="pause"],
+.family-disc[data-family="pause"],
 .home-hero[data-family="pause"] {
   --home-a: #3d6ae6;
   --home-b: #162c70;
@@ -6203,6 +6214,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(47 95 224 / 0.6);
 }
 .family-fill[data-family="fillers"],
+.family-disc[data-family="fillers"],
 .home-hero[data-family="fillers"] {
   --home-a: #cc3a6c;
   --home-b: #6a0f30;
@@ -6211,6 +6223,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(214 47 104 / 0.55);
 }
 .family-fill[data-family="repairs"],
+.family-disc[data-family="repairs"],
 .home-hero[data-family="repairs"] {
   --home-a: #9e6200;
   --home-b: #4f3000;
@@ -6219,6 +6232,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(200 130 10 / 0.55);
 }
 .family-fill[data-family="pace"],
+.family-disc[data-family="pace"],
 .home-hero[data-family="pace"] {
   --home-a: #12845a;
   --home-b: #063a26;
@@ -6227,6 +6241,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(13 132 87 / 0.55);
 }
 .family-fill[data-family="range"],
+.family-disc[data-family="range"],
 .home-hero[data-family="range"] {
   --home-a: #7652e6;
   --home-b: #2e1670;
@@ -6235,6 +6250,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(112 72 230 / 0.55);
 }
 :root[data-theme="dark"] .family-fill[data-family="pause"],
+:root[data-theme="dark"] .family-disc[data-family="pause"],
 :root[data-theme="dark"] .home-hero[data-family="pause"] {
   --home-a: #3558b4;
   --home-b: #14244f;
@@ -6243,6 +6259,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(40 80 190 / 0.45);
 }
 :root[data-theme="dark"] .family-fill[data-family="fillers"],
+:root[data-theme="dark"] .family-disc[data-family="fillers"],
 :root[data-theme="dark"] .home-hero[data-family="fillers"] {
   --home-a: #a83a60;
   --home-b: #4a1226;
@@ -6251,6 +6268,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(170 40 90 / 0.4);
 }
 :root[data-theme="dark"] .family-fill[data-family="repairs"],
+:root[data-theme="dark"] .family-disc[data-family="repairs"],
 :root[data-theme="dark"] .home-hero[data-family="repairs"] {
   --home-a: #8f6110;
   --home-b: #3d2805;
@@ -6259,6 +6277,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(160 110 20 / 0.4);
 }
 :root[data-theme="dark"] .family-fill[data-family="pace"],
+:root[data-theme="dark"] .family-disc[data-family="pace"],
 :root[data-theme="dark"] .home-hero[data-family="pace"] {
   --home-a: #1d7a56;
   --home-b: #0a3423;
@@ -6267,6 +6286,7 @@ summary::-webkit-details-marker {
   --home-glow: rgb(20 110 75 / 0.4);
 }
 :root[data-theme="dark"] .family-fill[data-family="range"],
+:root[data-theme="dark"] .family-disc[data-family="range"],
 :root[data-theme="dark"] .home-hero[data-family="range"] {
   --home-a: #6146b4;
   --home-b: #26164f;

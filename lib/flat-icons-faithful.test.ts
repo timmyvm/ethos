@@ -11,7 +11,9 @@ import { FLAT_ICONS, FLAT_KINDS, iconMarkup, type FlatKind } from "@/components/
  * The flat set was drawn and reviewed outside the app, one standalone SVG
  * per drawing with its colours baked in (lib/__fixtures__/flat-icons/, the
  * render truth; xp, best, target and hourglass baked from the drawings as
- * they stood before the lesson set came in). This holds the app's code to
+ * they stood before the lesson set came in, the target's and the gauge's
+ * colours since retoned to their families' in the #516 review, the
+ * shapes untouched). This holds the app's code to
  * them: every kind, drawn through both writers (the SVG string scripts and
  * the export use, and the React component pages render) with the tones
  * flat-icons.css gives it, must raster the same as its truth at 192px.
@@ -33,7 +35,8 @@ const tones = (() => {
 
 /** CSS variables replaced by their values, the size set to PX, and the namespace a bare React svg lacks. */
 function bake(svg: string): string {
-  let out = svg.replace(/var\((--fi-[\w-]+)\)/g, (_, v: string) => {
+  // A stat mark's fill carries its hex as a fallback (stat-tones.ts); the CSS value is what draws.
+  let out = svg.replace(/var\((--fi-[\w-]+)(?:, #[0-9a-f]{6})?\)/g, (_, v: string) => {
     const value = tones.get(v);
     if (!value) throw new Error(`no tone for ${v}`);
     return value;

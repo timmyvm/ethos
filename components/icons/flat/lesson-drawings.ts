@@ -11,10 +11,9 @@
  * One tone set per trait family (flat-icons.css): Pausing blue, Fillers
  * pink, Repairs orange, Pace green, Range violet, each with its own
  * shade and light, and the set's one gold (#ffb914, its shade #eb9c00)
- * where an object takes a second colour. The hourglass and the target
- * were drawn first, for the stat board, and are kept as they were: the
- * hourglass in Pausing's blue with the gold sand, the target in the set's
- * red (the gauge's needle) with its navy dart.
+ * where an object takes a second colour, with no exception: the target
+ * and the gauge's needle, drawn first in the stat board's red with a navy
+ * dart, take Repairs' orange and the gold since the #516 review.
  *
  * Weight: each object's long axis runs 84 to 88u (the `fit` of each
  * drawing is measured to land there; lib/flat-icons-faithful.test.ts
@@ -462,8 +461,8 @@ const arrow: FlatIconDef = {
 
 /* ------------------------------------------------------------------ */
 /* Know how it ends: a target with a dart in its middle. Three rings    */
-/* (base, ring colour, base), the dart in a second hue lying across it  */
-/* from the top right, its flight a rounded triangle.                   */
+/* (base, white ring, base) in Repairs' orange, the dart in the set's   */
+/* gold lying across it from the top right, its flight two swept fins. */
 /* ------------------------------------------------------------------ */
 const TX = 44;
 const TY = 52;
@@ -521,8 +520,8 @@ const target: FlatIconDef = {
 /* ------------------------------------------------------------------ */
 /* Slow your main point: a speed gauge. A dial cut flat at its foot (a  */
 /* full disc with a needle read as a clock), a pale face, five ticks on */
-/* the upper 210 degrees only, and a red needle on the slow side, the   */
-/* one second colour (the set's red, the target's). The dial is a       */
+/* the upper 210 degrees only, and a gold needle on the slow side, the  */
+/* one second colour (the set's one gold). The dial is a                */
 /* curve, so its outline is tangent arcs: the disc, and an 8u round     */
 /* where it meets its flat foot.                                        */
 /* ------------------------------------------------------------------ */

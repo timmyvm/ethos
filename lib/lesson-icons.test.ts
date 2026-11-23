@@ -123,7 +123,7 @@ describe("the lesson icons", () => {
     const sw = read("public/sw.js");
     for (const lesson of LESSONS) expect(sw).toContain(`"${lesson.art}"`);
     expect(sw).not.toMatch(/\/lessons\/[\w/-]*\.webp|lessons\/(large|hero)\//);
-    expect(Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1])).toBeGreaterThanOrEqual(22);
+    expect(Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1])).toBeGreaterThanOrEqual(23);
     for (const gone of ["public/lessons/large", "public/lessons/hero", "scripts/cut-lesson-icons.mjs", "assets/lessons-3d"]) {
       expect(existsSync(join(root, gone)), gone).toBe(false);
     }

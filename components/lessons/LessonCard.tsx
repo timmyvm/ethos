@@ -5,7 +5,9 @@ import { HeroStage, StageChip } from "@/components/ui/HeroStage";
 import { SegmentBar } from "@/components/ui/SegmentBar";
 import { TapArrow } from "@/components/ui/TapArrow";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { Lesson } from "@/content/lessons";
+import { lessonArtBox } from "@/lib/art-box";
 import { nextPractice } from "@/lib/lesson-progress";
 import { repHref } from "@/lib/rep-config";
 import { ACTION_ARROW_CLASS } from "@/lib/ui";
@@ -64,28 +66,52 @@ export function LessonArt({
   radius?: "rounded-control" | "rounded-card";
   className?: string;
   /**
-   * On a stage: no tile. The object stands in the stage's studio light
-   * (Demos's halo, `.demos-halo`), on its floor, the way Demos stands on
-   * every other tab's stage. Off a stage it sits on the one neutral tile
-   * every lesson shares (`.lesson-tile`).
+   * On a stage: no tile. The object stands inside its family's disc
+   * (`.object-disc`, the wash in light and the dark stage in dark, read
+   * through `.family-disc`), 10px in from every side of its square: the
+   * coin Today's card, the recorder's topic card and the welcome's day
+   * one stand it on. It stood in Demos's soft halo (`.demos-halo`) until
+   * the #516 review: a blurred pool of light behind a hard-edged flat
+   * object read as the 3D set's glow. Off a stage it sits on the one
+   * neutral tile every lesson shares (`.lesson-tile`).
    */
   stage?: boolean;
 }) {
+  if (stage) {
+    /* The disc: the square less 10px of air each side (112 in Up next's
+       132, the recorder's topic card's own disc), the object sized by
+       its reach and centred on it (`lessonArtBox`, lib/art-box.ts). */
+    const disc = size - 20;
+    return (
+      <span
+        aria-hidden
+        data-family={lesson.trait}
+        className={`lesson-art family-disc relative block shrink-0 ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={lesson.art}
+          alt=""
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+          width={disc}
+          height={disc}
+          className="object-disc absolute left-2.5 top-2.5 max-w-none"
+          style={{ ...lessonArtBox(lesson.id), "--disc": `${disc}px`, width: disc, height: disc } as CSSProperties}
+        />
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden
-      className={`lesson-art relative block shrink-0 ${
-        stage ? "tone-sky" : `lesson-tile overflow-hidden ${radius}`
-      } ${className}`}
+      className={`lesson-art lesson-tile relative block shrink-0 overflow-hidden ${radius} ${className}`}
       style={{ width: size, height: size }}
     >
-      {stage && <span className="demos-halo" />}
       {/* The flat object, a vector on its 96u square. It fills 84 to 88u
           of the square, so on the tile it stands 12% in from every edge,
           the tile's own margin (at 44 the target and the flag met the
-          tile's edges); on a stage it stands 10% in, inside the light
-          (at the full square the zip ran past the halo to 8px off the
-          stage's foot). */}
+          tile's edges). */}
       <img
         src={lesson.art}
         alt=""
@@ -93,7 +119,7 @@ export function LessonArt({
         decoding="async"
         width={96}
         height={96}
-        className={`absolute inset-0 h-full w-full object-contain ${stage ? "p-[10%]" : "p-[12%]"}`}
+        className="absolute inset-0 h-full w-full object-contain p-[12%]"
       />
     </span>
   );
@@ -233,8 +259,8 @@ export function LessonRow({
  *
  * The eyebrow is the trait on its stage chip, then "Up next"; the title
  * is the lesson; the line is its three practices as the stage's
- * segments; the art is the lesson's own glass object standing on the
- * stage's floor in Demos's studio light, at his 132 (`stage`). It was
+ * segments; the art is the lesson's own flat object inside its
+ * family's disc, in Demos's 132 square (`stage`). It was
  * the render's whole square, a tile of tone on the sky (the fix round). The tap says what it does: "Carry on" part way in,
  * "Start" before. One tap from the tab to recording is what "you just
  * start it" looks like.

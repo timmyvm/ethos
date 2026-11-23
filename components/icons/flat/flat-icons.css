@@ -99,13 +99,15 @@
   --fi-arrow-base: #ff8e14; /* hsl(31 100 54) */
   --fi-arrow-shade: #e67700; /* hsl(31 100 45), L 45: the band's right third */
   --fi-arrow-light: #ffd39e; /* hsl(33 100 81) */
-  /* Know how it ends: a target with a dart, drawn for the stat board and kept in the set's red */
-  --fi-target-base: #f24536; /* hsl(5 88 58) */
-  --fi-target-shade: #e32116; /* L 49 */
-  --fi-target-ring: #ffffff;
-  --fi-target-light: #ffb6a3; /* L 82 */
-  --fi-target-dart: #2744a5; /* hsl(226 62 40) */
-  --fi-target-dart-shade: #1f3384; /* L 32 */
+  /* Know how it ends: a target with a dart, in Repairs' orange with the set's gold dart (it
+     kept the stat board's red and a navy dart until the #516 review: the one object out of
+     its family's tones, a red-and-navy target between the orange flag and arrow) */
+  --fi-target-base: #ff8e14; /* hsl(31 100 54), Repairs' orange */
+  --fi-target-shade: #e67700; /* hsl(31 100 45) */
+  --fi-target-ring: #ffffff; /* the white ring, as the flag's white checks */
+  --fi-target-light: #ffd39e; /* hsl(33 100 81), the family's light */
+  --fi-target-dart: #ffb914; /* hsl(42 100 54), the set's one gold */
+  --fi-target-dart-shade: #eb9c00; /* hsl(40 100 46), L 46 */
 
   /* ------------------------------- Pace: green ------------------------------ */
   /* Slow your main point: a speed gauge */
@@ -113,7 +115,7 @@
   --fi-gauge-shade: #18a053; /* hsl(146 74 36) */
   --fi-gauge-light: #99f5b9; /* hsl(141 82 78) */
   --fi-gauge-face: #e3fcee; /* hsl(146 81 94): the dial's face */
-  --fi-gauge-needle: #f24536; /* hsl(5 88 58): the one second colour, the set's red (the target's base) */
+  --fi-gauge-needle: #ffb914; /* hsl(42 100 54): the one second colour, the set's one gold (it was the target's red) */
   /* Change speed once: a gear stick */
   --fi-gearstick-base: #1fc165; /* hsl(146 72 44), Pace's green */
   --fi-gearstick-shade: #18a053; /* hsl(146 74 36): 8 points under */

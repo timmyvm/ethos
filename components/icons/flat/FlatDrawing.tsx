@@ -21,6 +21,7 @@ export function FlatDrawing({
   def,
   size,
   lit = true,
+  fallback,
   className = "",
 }: {
   /** The name its tones are read under: `--fi-<kind>-<role>`. */
@@ -30,6 +31,12 @@ export function FlatDrawing({
   size: number;
   /** False draws it in its unlit greys (flat-icons.css), never a filter. */
   lit?: boolean;
+  /**
+   * Each role's hex where the stylesheet is missing (stat-tones.ts), the
+   * fallback in `var(--fi-<kind>-<role>, <hex>)`: a stat mark offline
+   * before its CSS was kept would otherwise draw black.
+   */
+  fallback?: Readonly<Record<string, string>>;
   className?: string;
 }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -59,7 +66,7 @@ export function FlatDrawing({
           <g
             key={l.part}
             data-part={l.part}
-            fill={`var(--fi-${kind}-${l.tone})`}
+            fill={fallback?.[l.tone] ? `var(--fi-${kind}-${l.tone}, ${fallback[l.tone]})` : `var(--fi-${kind}-${l.tone})`}
             clipPath={l.clipId ? `url(#${l.clipId})` : undefined}
           >
             <Shapes shapes={l.shapes} />

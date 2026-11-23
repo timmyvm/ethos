@@ -1,5 +1,6 @@
 import { FlatDrawing } from "./FlatDrawing";
 import { STAT_ICONS, type StatFlatKind } from "./stat-drawings";
+import { STAT_TONES } from "./stat-tones";
 
 /**
  * A stat's flat icon: the streak's flame, XP's bolt, the best's cup, the
@@ -14,6 +15,11 @@ import { STAT_ICONS, type StatFlatKind } from "./stat-drawings";
  * The size ladder: under 24px an icon is its base and shade only (the
  * light leaves, as Duolingo's own small art drops detail before it
  * blurs); the freeze's thin light waits for 32px.
+ *
+ * Each layer's fill carries its hex as the variable's fallback
+ * (stat-tones.ts, generated from flat-icons.css), so a mark drawn before
+ * the stylesheet arrives, or offline without it, keeps its colours (lit
+ * or unlit) instead of drawing black.
  *
  *   <FlatIcon kind="streak" size={22} lit={false} />
  */
@@ -30,5 +36,14 @@ export function FlatIcon({
   lit?: boolean;
   className?: string;
 }) {
-  return <FlatDrawing kind={kind} def={STAT_ICONS[kind]} size={size} lit={lit} className={className} />;
+  return (
+    <FlatDrawing
+      kind={kind}
+      def={STAT_ICONS[kind]}
+      size={size}
+      lit={lit}
+      fallback={STAT_TONES[kind]?.[lit ? "lit" : "unlit"]}
+      className={className}
+    />
+  );
 }

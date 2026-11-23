@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { readTones, statTonesModule } from "@/components/icons/flat/export";
 import { STAT_FLAT_KINDS } from "@/components/icons/flat/stat-drawings";
 import { StatIcon } from "@/components/StatIcon";
 import { StreakBadge } from "@/components/StreakBadge";
@@ -65,7 +66,9 @@ describe("StatIcon", () => {
     const lit = html({ kind: "streak" });
     const unlit = html({ kind: "streak", lit: false });
     expect(unlit).toContain('data-lit="false"');
-    const shapes = (s: string) => s.replace(/ data-lit="false"/, "").replace(/id="[^"]*"|url\(#[^)]*\)/g, "");
+    // The same shapes and roles: only the mark, the ids and each fill's fallback hex (lit or unlit) differ.
+    const shapes = (s: string) =>
+      s.replace(/ data-lit="false"/, "").replace(/id="[^"]*"|url\(#[^)]*\)/g, "").replace(/, #[0-9a-f]{6}\)/g, ")");
     expect(shapes(unlit)).toBe(shapes(lit));
   });
 
@@ -73,6 +76,50 @@ describe("StatIcon", () => {
     expect(html({ kind: "streak", size: 20 })).not.toContain('data-part="light"');
     expect(html({ kind: "streak", size: 24 })).toContain('data-part="light"');
     expect(html({ kind: "streak", size: 380 })).toContain('data-part="light"');
+  });
+
+  /* The light is drawn by the size a caller passes, so CSS that shows the
+     mark smaller must not take it under 24 when the prop drew a light:
+     the short best plaque showed its 30px cup at 22 with the light still
+     on it, a 2px pale pill (#516 review). */
+  it("the best plaque's cup keeps 24px or more wherever it is shown with its light", () => {
+    const prop = Number(read("components/rep/BestPlaque.tsx").match(/<StatIcon kind="trophy" size=\{(\d+)\} \/>/)?.[1]);
+    expect(prop).toBeGreaterThanOrEqual(24);
+    expect(html({ kind: "trophy", size: prop })).toContain('data-part="light"');
+    const css = read("app/globals.css");
+    const shown = [...css.matchAll(/\.best-plaque-mark > \.stat-icon[^{]*\{\s*width: (\d+)px;\s*height: (\d+)px;/g)].map((m) => [
+      Number(m[1]),
+      Number(m[2]),
+    ]);
+    expect(shown.length).toBeGreaterThanOrEqual(2); // the plaque's own, and under 700pt tall
+    for (const [w, h] of shown) {
+      expect(w).toBeGreaterThanOrEqual(24);
+      expect(h).toBe(w);
+    }
+  });
+
+  /* Offline before the worker kept the page's CSS (#516 review), the 3D
+     files kept their colours and the inline marks drew black: a fill was
+     only `var(--fi-...)`. Each fill now carries its hex as the fallback,
+     read from flat-icons.css (stat-tones.ts, generated), lit or unlit. */
+  it("keeps its colours without the stylesheet: each fill falls back to its own hex, lit and unlit", () => {
+    const css = read("components/icons/flat/flat-icons.css");
+    expect(statTonesModule(css)).toBe(read("components/icons/flat/stat-tones.ts"));
+    const lit = readTones(css);
+    const unlit = readTones(css, '.fi[data-lit="false"]');
+    for (const kind of STAT_KINDS) {
+      const flat = STAT_FLAT_KIND[kind];
+      for (const [on, tones] of [[true, lit], [false, unlit]] as const) {
+        const fills = [...html({ kind, lit: on, size: 40 }).matchAll(/ fill="([^"]*)"/g)].map((m) => m[1]);
+        expect(fills.length, kind).toBeGreaterThan(1);
+        for (const f of fills) {
+          const m = f.match(/^var\((--fi-[\w-]+), (#[0-9a-f]{6})\)$/);
+          expect(m, `${kind} ${on ? "lit" : "unlit"}: ${f}`).not.toBeNull();
+          expect(m![1].startsWith(`--fi-${flat}-`), f).toBe(true);
+          expect(m![2], f).toBe(tones.get(m![1]));
+        }
+      }
+    }
   });
 
   it("still takes `large` from a caller written for the 3D set, and draws the same", () => {

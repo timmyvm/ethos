@@ -4,7 +4,9 @@
  * tones of components/icons/flat/flat-icons.css baked in (the CSS is the
  * one place a tone lives). Then each file is rasterised at 560px and its
  * visible box (alpha over 40) written to lib/lesson-art-bounds.ts, which
- * Today's card and the recorder's topic card place an object by.
+ * Today's card and the recorder's topic card place an object by. And the
+ * stat marks' tones are written to components/icons/flat/stat-tones.ts,
+ * the fallback FlatIcon draws with where the stylesheet is missing.
  *
  *   npx vite-node --config vitest.config.ts scripts/export-flat-icons.mjs
  *
@@ -20,6 +22,7 @@ import {
   MEASURE_PX,
   boundsModule,
   lessonSvgFiles,
+  statTonesModule,
   visibleBox,
 } from "../components/icons/flat/export.ts";
 
@@ -38,4 +41,5 @@ for (const [path, svg] of Object.entries(files)) {
   console.log(`${path.padEnd(38)} ${String(Buffer.byteLength(svg)).padStart(5)} bytes  box ${JSON.stringify(boxes[id])}`);
 }
 writeFileSync("lib/lesson-art-bounds.ts", boundsModule(boxes));
-console.log(`wrote ${Object.keys(files).length} files and lib/lesson-art-bounds.ts`);
+writeFileSync("components/icons/flat/stat-tones.ts", statTonesModule(css));
+console.log(`wrote ${Object.keys(files).length} files, lib/lesson-art-bounds.ts and components/icons/flat/stat-tones.ts`);

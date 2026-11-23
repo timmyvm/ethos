@@ -9,7 +9,7 @@
  */
 export const STAT_TONES: Record<string, { lit: Record<string, string>; unlit: Record<string, string> }> = {
   streak: {
-    lit: { base: "#ff661a", shade: "#eb4200", inner: "#ff9e3d", light: "#ffc17a" },
+    lit: { base: "#ff661a", shade: "#eb4200", inner: "#ffb914", light: "#ffc17a" },
     unlit: { base: "#64615e", shade: "#4f4d4a", inner: "#797571", light: "#9d9995" },
   },
   xp: {

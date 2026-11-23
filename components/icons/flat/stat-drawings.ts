@@ -20,12 +20,12 @@ import { LIGHT_MIN_PX, at, centre, poly, ring, scale, type FlatIconDef, type Pt,
 /* right, as a flame does in a draught; their tips stand at y 4, 15 and */
 /* 27, staggered so they never read as a crown.                         */
 /*                                                                      */
-/* Inside it, one lighter tongue in the same family (amber, never lemon)*/
-/* rises from the foot's lower left along the body's lean and is cut by */
-/* the outline: off-centre, leaning, under half the height. Never the  */
-/* arrangement of an orange flame with a yellow teardrop centred inside */
-/* it. The shade is a crescent on the foot's lower right, the light a   */
-/* slim pill up the centre tongue's left face.                          */
+/* Inside it, one lighter tongue in the set's gold (the flame's one     */
+/* second colour) rises from the foot's lower left along the body's     */
+/* lean and is cut by the outline: off-centre, leaning, under half the  */
+/* height. Never the arrangement of an orange flame with a yellow       */
+/* teardrop centred inside it. The shade is a crescent on the foot's    */
+/* lower right, the light a slim pill up the centre tongue's left face. */
 /*                                                                      */
 /* Drawn with an arc-only pen (each step one arc of a radius and a      */
 /* turn), solved so the tips and notches land where they are set, then  */

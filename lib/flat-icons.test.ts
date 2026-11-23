@@ -315,15 +315,81 @@ describe("the streak flame", () => {
     expect(Math.min(...radii)).toBeGreaterThanOrEqual(3);
   });
 
-  it("has a tone for its inner tongue lighter and warmer than the base, darker than the light", () => {
+  /* The tongue is the heat inside the flame at 380 (the streak moment):
+     an orange a step lighter than the base (#ff9e3d, 1.4:1 on it) left the
+     flame one orange blob there. It is the flame's one second colour, the
+     set's gold, so the flame keeps the set's rule (three tones of its hue
+     and one second colour). Lighter and darker are luminance, as the eye
+     reads them: HSL lightness calls the gold (L 54) darker than the
+     orange (L 55). */
+  it("has the set's gold for its inner tongue: clearly lighter than the base, under the light, never a lemon", () => {
     const v = block(LIT);
-    const base = hsl(tone(v, "streak", "base"));
-    const inner = hsl(tone(v, "streak", "inner"));
-    const light = hsl(tone(v, "streak", "light"));
-    expect(inner.l).toBeGreaterThan(base.l);
-    expect(inner.l).toBeLessThan(light.l);
-    expect(inner.h, "warmer").toBeGreaterThan(base.h);
-    // An amber, not a lemon yellow.
-    expect(inner.h).toBeLessThanOrEqual(45);
+    const inner = tone(v, "streak", "inner");
+    expect(inner).toBe("#ffb914");
+    expect(contrast(inner, tone(v, "streak", "base")), "the tongue on the base").toBeGreaterThanOrEqual(1.6);
+    expect(luminance(inner)).toBeLessThan(luminance(tone(v, "streak", "light")));
+    expect(hsl(inner).h, "warmer than the base").toBeGreaterThan(hsl(tone(v, "streak", "base")).h);
+    // A gold, not a lemon yellow.
+    expect(hsl(inner).h).toBeLessThanOrEqual(45);
+  });
+});
+
+/*
+ * The streak moment's first frame draws the unlit flame at up to 380pt.
+ * The chip's light greys (L 38, #515) stood there as a charcoal mass, so
+ * the moment alone takes a lighter step of the same ramp in the light
+ * theme: still 3:1 on the ground, the steps round it the same. The chips,
+ * You's numbers and the Active rows keep theirs; dark and Increase
+ * Contrast keep theirs.
+ */
+describe("the unlit flame on the streak moment", () => {
+  const MOMENT = ':root:not([data-theme="dark"]) .streak-flame .fi[data-lit="false"]';
+  const WRAP = "@media not all and (prefers-contrast: more) {";
+
+  it("is scoped to the moment's flame, the light theme, and not under Increase Contrast", () => {
+    const at = css.indexOf(`  ${MOMENT} {`);
+    expect(at, "the moment's block").toBeGreaterThan(0);
+    const wrap = css.lastIndexOf(WRAP, at);
+    expect(wrap, "inside a media query that skips Increase Contrast").toBeGreaterThan(0);
+    // Nothing closes the media query between its opening and the rule.
+    expect(css.slice(wrap + WRAP.length, at).trim()).toBe("");
+    // The chip's light greys are the first unlit rule still (stat-tones.ts reads them).
+    expect(css.indexOf(`\n${UNLIT} {`)).toBeLessThan(at);
+  });
+
+  it("holds 3:1 on the ground, lighter than the chip's greys, in the same ramp, the streak's roles only", () => {
+    const body = css.slice(css.indexOf("{", css.indexOf(`  ${MOMENT} {`)) + 1);
+    const vars = new Map([...body.slice(0, body.indexOf("}")).matchAll(/(--fi-[\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+    expect([...vars.keys()].sort()).toEqual(roles("streak").map((r) => `--fi-streak-${r}`).sort());
+    const t = flameTones(vars);
+    const chip = flameTones(block(UNLIT));
+    for (const v of Object.values(t)) expect(chroma(v), v).toBeLessThanOrEqual(12);
+    expect(contrast(t.base, "#ffffff"), "base on the ground").toBeGreaterThanOrEqual(3);
+    expect(grey(t.base), "lighter than the chip's").toBeGreaterThan(grey(chip.base));
+    expect(grey(t.shade)).toBeLessThan(grey(t.base));
+    expect(grey(t.inner)).toBeGreaterThan(grey(t.base));
+    expect(grey(t.light)).toBeGreaterThan(grey(t.inner));
+  });
+});
+
+/*
+ * The hourglass's glass stands on Pausing's disc and stage, the wash
+ * #e6edff in light and #283a63 in dark. At #cce4ff it was 1.1:1 on the
+ * wash and the hourglass read as two caps and sand. A light tone of the
+ * family's blue, dark enough to hold its edge on the wash and light
+ * enough to read as glass on the dark stage, with the glint still white
+ * on it.
+ */
+describe("the hourglass's glass", () => {
+  it("reads on Pausing's wash and dark stage, a light tone of the family's blue", () => {
+    const v = block(LIT);
+    const glass = tone(v, "hourglass", "glass");
+    expect(contrast(glass, "#e6edff"), "on the wash").toBeGreaterThanOrEqual(1.6);
+    expect(contrast(glass, "#283a63"), "on the dark stage").toBeGreaterThanOrEqual(4.5);
+    expect(contrast(glass, tone(v, "hourglass", "light")), "the white glint on it").toBeGreaterThanOrEqual(1.8);
+    expect(contrast(glass, tone(v, "hourglass", "base")), "the caps on it").toBeGreaterThanOrEqual(2);
+    const c = hsl(glass);
+    expect(Math.abs(c.h - hsl(tone(v, "hourglass", "base")).h), "the family's hue").toBeLessThanOrEqual(5);
+    expect(c.l, "a light tone").toBeGreaterThanOrEqual(75);
   });
 });

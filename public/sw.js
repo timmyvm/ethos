@@ -22,10 +22,12 @@
  * v22 empties v21 of every 3D file. v23 (#516 review): the target and
  * the gauge are re-toned to their families' at the same paths, and an
  * .svg is served cache-first, so a phone holding v22 would keep the red.
+ * v24: the hourglass's glass is re-toned at its path (the-long-one.svg),
+ * so a phone holding v23 would keep the glass that vanished on its disc.
  * The worker itself registers once the first screen is drawn
  * (components/ServiceWorker.tsx), not beside it.
  */
-const CACHE = "ethos-v23";
+const CACHE = "ethos-v24";
 
 const SHELL = [
   "/",

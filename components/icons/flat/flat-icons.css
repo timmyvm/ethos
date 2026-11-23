@@ -8,8 +8,10 @@
  * edges: base, shade (same hue, 7 to 10 points darker in HSL lightness,
  * saturation held), light (20 points or more lighter, a few degrees
  * warmer). Never a grey mixed in, never a gradient, never a blur. The
- * flame alone has a fourth, `inner`: its inner tongue, between the base
- * and the light, a few degrees warmer (an amber, never a lemon yellow).
+ * flame's inner tongue (`inner`) is its one second colour, the set's gold:
+ * the heat inside it at 380 on the streak moment (an orange a shade
+ * lighter than the base, #ff9e3d, was 1.4:1 there and the flame read as
+ * one orange blob), and at 20px a small gold flick on the foot.
  *
  * The lessons' objects take one tone set per trait family, and the set's
  * one gold (#ffb914, shade #eb9c00) where an object takes a second
@@ -29,7 +31,7 @@
   --fi-streak-base: #ff661a; /* hsl(20 100 55) */
   --fi-streak-shade: #eb4200; /* L 46 */
   --fi-streak-light: #ffc17a; /* L 74 */
-  --fi-streak-inner: #ff9e3d; /* hsl(30 100 62): lighter and warmer than the base, darker than the light */
+  --fi-streak-inner: #ffb914; /* hsl(42 100 54), the set's one gold: 1.7:1 on the base (the orange #ff9e3d was 1.4), under the light in luminance */
   --fi-xp-base: #b73ff3; /* hsl(280 88 60) */
   --fi-xp-shade: #a01ee6; /* L 51 */
   --fi-xp-light: #eba8ff; /* L 83 */
@@ -53,7 +55,7 @@
   /* The two-second pause: an hourglass */
   --fi-hourglass-base: #3463ef; /* hsl(225 85 57) */
   --fi-hourglass-shade: #1b47da; /* L 48 */
-  --fi-hourglass-glass: #cce4ff; /* L 90 */
+  --fi-hourglass-glass: #99b3ff; /* hsl(225 100 80): 1.75:1 on Pausing's wash #e6edff (#cce4ff, L 90, was 1.1 and the glass vanished), 5.5:1 on the dark stage #283a63 */
   --fi-hourglass-sand: #ffb914; /* hsl(42 100 54), the set's one gold */
   --fi-hourglass-light: #ffffff;
   /* Pause between sentences: the pause sign and a full stop */
@@ -255,5 +257,25 @@
     --fi-boss-snow: #dddbda;
     --fi-boss-pole: #938f8b;
     --fi-boss-flag: #bab8b5;
+  }
+}
+
+/* The streak moment's first frame (components/StreakMoment.tsx, its
+   `.streak-flame`): the unlit flame at up to 380pt, for the half second
+   before it lights. The chip's light greys above (L 38, darkened in #515
+   so the flame holds its shape at 20px on the surface step) stood there as
+   a charcoal mass heavier than the count under it. A shape that size needs
+   3:1 and no more, so in the light theme the moment takes the lightest step
+   of the same ramp that holds it: base L 56, 3.2:1 on the ground
+   (#ffffff), the same steps round it. Only here: every chip, You's numbers
+   and the Active rows keep the greys above. Dark keeps its own (a mid grey
+   on #121212 that reads unlit, not heavy), and Increase Contrast keeps its
+   firm greys. */
+@media not all and (prefers-contrast: more) {
+  :root:not([data-theme="dark"]) .streak-flame .fi[data-lit="false"] {
+    --fi-streak-base: #938f8b; /* hsl(30 3.5 56), 3.2:1 on #ffffff */
+    --fi-streak-shade: #7f7a76;
+    --fi-streak-inner: #a6a3a0;
+    --fi-streak-light: #c9c7c5;
   }
 }

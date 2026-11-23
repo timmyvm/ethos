@@ -379,7 +379,8 @@ export function TopicCard({
               draggable={false}
               onLoad={() => setLoaded(true)}
               data-loaded={loaded || undefined}
-              className="topic-art vt-shared absolute max-w-none origin-top-right select-none opacity-0 transition-opacity dur-max ease-out drop-shadow-[0_14px_18px_rgb(8_20_70/0.38)] data-[loaded]:opacity-100 dark:drop-shadow-[0_14px_18px_rgb(0_0_0/0.5)]"
+              /* Flat, on its disc (`.topic-art` in app/globals.css): no shadow. */
+              className="topic-art vt-shared absolute max-w-none origin-top-right select-none opacity-0 transition-opacity dur-max ease-out data-[loaded]:opacity-100"
               style={{
                 viewTransitionName: "practice-object",
                 width: "var(--s)",

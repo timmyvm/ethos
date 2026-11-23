@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { LESSON_FAMILIES } from "@/components/icons/flat/lesson-drawings";
 
 /*
  * The trait rings (round 2, M02, M12): wherever a ring is drawn in its
@@ -28,6 +29,15 @@ const between = (a: string, b: string) => css.slice(css.indexOf(a), css.indexOf(
 const lessons = between("lessons (trait tones) =====", "end of lessons (trait tones)");
 const today = between("today (colour pass) =====", "end of today (colour pass)");
 const darkRoot = css.slice(css.indexOf(':root[data-theme="dark"] {'));
+const flat = readFileSync(path.resolve(__dirname, "../components/icons/flat/flat-icons.css"), "utf8");
+/* Each family's disc under Today's object: its wash in light, its dark stage in dark. */
+const DISC: Record<string, { light: string; dark: string }> = {
+  pause: { light: "#e6edff", dark: "#283a63" },
+  fillers: { light: "#ffe6ee", dark: "#5c2935" },
+  repairs: { light: "#fff1d1", dark: "#533401" },
+  pace: { light: "#dcf7eb", dark: "#09472e" },
+  range: { light: "#efe9ff", dark: "#3a3460" },
+};
 
 const tones = (dark: boolean) => {
   const out: Record<string, Record<string, string>> = {};
@@ -156,44 +166,26 @@ describe("Today's card holds white type in every family", () => {
       expect(ratio("#ffffff", darkTop)).toBeGreaterThanOrEqual(4.5);
     });
     /*
-     * The lit corner (the first radial in `.home-hero::before`) is laid
-     * over the top colour, and the critic's round measured 4.12:1 under
-     * "Today's practice" in light at 390 and 3.65 at 320: the light ran
-     * into the words' column. So the test lays the light over the top
-     * colour across the whole column (the left 52% of the content box,
-     * from the lead down through the tactic) on the card at 320 and 390,
-     * and holds white to 4.5:1 at the brightest point.
+     * The lesson object on the card is drawn in its family's own hue, so
+     * on the family's card it vanished (Pausing's blue on Pausing's blue,
+     * 1.05:1). It stands on a solid disc instead (`.home-hero-disc`): the
+     * family's wash in light, its dark stage in dark, and the blurred lit
+     * corner that stood behind the 3D object is gone from the card's fill
+     * (it read as a smudge under a flat object). The family's base tone
+     * (components/icons/flat/flat-icons.css) holds 2:1 or more on its
+     * disc in both themes (it was 1.05 to 2.35 on the card itself).
      */
-    it(`${f}: white over the lit corner across the words' column at 320 and 390, light and dark`, () => {
-      const before = block(".home-hero::before");
-      const g = before.match(
-        /radial-gradient\((\d+)% (\d+)% at (\d+)% (\d+)%, var\(--home-lit\) 0%, transparent (\d+)%\)/
-      );
-      expect(g, "the lit corner's gradient").not.toBeNull();
-      const [rx, ry, cx, cy, stop] = g!.slice(1).map(Number);
-      for (const sel of [`.home-hero[data-family="${f}"]`, `:root[data-theme="dark"] .home-hero[data-family="${f}"]`]) {
+    it(`${f}: the object's base stands on its disc at 2:1 or better, light and dark`, () => {
+      expect(block(".home-hero::before")).not.toMatch(/--home-lit|radial-gradient\(46% 42% at 84% 6%/);
+      const kinds = LESSON_FAMILIES.find((x) => x.trait === f)!.kinds.filter((k) => k !== "target");
+      const base = flat.match(new RegExp(`--fi-${kinds[0]}-base:\\s*(#[0-9a-f]{6})`))![1];
+      for (const [sel, disc] of [
+        [`.home-hero[data-family="${f}"]`, DISC[f].light],
+        [`:root[data-theme="dark"] .home-hero[data-family="${f}"]`, DISC[f].dark],
+      ] as const) {
         const body = block(sel);
-        const top = hexOf(body, "home-a");
-        const lit = body.match(/--home-lit:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
-        expect(lit, `${sel} --home-lit`).not.toBeNull();
-        const [lr, lg, lb, la] = lit!.slice(1).map(Number);
-        for (const width of [280, 350]) {
-          const height = 376;
-          const column = 20 + 0.52 * (width - 40);
-          let worst = Infinity;
-          for (let y = 20; y <= 120; y += 2) {
-            for (let x = 20; x <= column; x += 2) {
-              const t = Math.hypot((x - (cx / 100) * width) / ((rx / 100) * width), (y - (cy / 100) * height) / ((ry / 100) * height));
-              const a = la * Math.max(0, 1 - t / (stop / 100));
-              const [br, bg, bb] = rgb(top);
-              const over = "#" + [lr * a + br * (1 - a), lg * a + bg * (1 - a), lb * a + bb * (1 - a)]
-                .map((v) => Math.round(v).toString(16).padStart(2, "0"))
-                .join("");
-              worst = Math.min(worst, ratio("#ffffff", over));
-            }
-          }
-          expect(worst, `${sel} at ${width}`).toBeGreaterThanOrEqual(4.5);
-        }
+        expect(hexOf(body, "home-disc"), sel).toBe(disc);
+        expect(ratio(base, disc), `${sel} base on its disc`).toBeGreaterThanOrEqual(2);
       }
     });
     it(`${f}: the chip's name in the card's deep ink on white at 4.5:1 or better`, () => {

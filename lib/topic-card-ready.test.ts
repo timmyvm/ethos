@@ -44,24 +44,21 @@ describe("the ready card's topic", () => {
 });
 
 /*
- * The lit corner sits behind the object (app/globals.css, the family
- * fills). Where the card stands no object, none to stand or no room for
- * it at 320, the corner goes with it (#496, the morning tour,
- * docs/look/tour/03-ready-warmup-320-light.png: a pale blotch in the
- * card's top right).
+ * The lit corner that stood behind the 3D object (#496: on a card with no
+ * object it was a pale blotch in the top right) is gone from every family
+ * fill since the flat set: a flat object stands on its own solid disc, so
+ * no card, with an object or without, carries a light of its own there.
  */
 describe("the ready card's light", () => {
   const css = readFileSync("app/globals.css", "utf8");
-  const LIT = /radial-gradient\(46% 42% at 84% 6%, var\(--home-lit\)/;
+  const LIT = /radial-gradient\(46% 42% at 84% 6%|--home-lit/;
 
-  it("drops the lit corner on a card with no object, and keeps the rest of its fill", () => {
-    const rule = css.match(/\.family-fill\[data-object="none"\]::before \{([^}]*)\}/)?.[1];
-    expect(rule, "the no-object rule").toBeTruthy();
-    expect(rule).not.toMatch(LIT);
+  it("no family fill carries the lit corner, and the fill keeps its glow and its fall", () => {
+    expect(css).not.toMatch(LIT);
+    const rule = css.match(/\.family-fill::before,\s*\.home-hero::before \{([^}]*)\}/)?.[1];
+    expect(rule, "the shared fill").toBeTruthy();
     expect(rule).toMatch(/var\(--home-low\)/);
     expect(rule).toMatch(/linear-gradient\(172deg, var\(--home-a\) 0%, var\(--home-b\) 76%\)/);
-    // The card that stands its object keeps its light.
-    expect(css.match(/\.family-fill::before,\s*\.home-hero::before \{([^}]*)\}/)?.[1]).toMatch(LIT);
   });
 
   it("marks the card with no object, and only that card", () => {

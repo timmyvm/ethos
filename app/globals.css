@@ -4980,9 +4980,9 @@ summary::-webkit-details-marker {
   backdrop-filter: none;
   background: rgb(255 255 255 / 0.22);
 }
-/* The pool under Today's object and the blurred door behind the
-   premium wall: a soft edge drawn by the gradient alone. */
-:root[data-graphics="lite"] :is(.home-hero-pool, .premium-wall-behind) {
+/* The blurred door behind the premium wall: a soft edge drawn by the
+   gradient alone. */
+:root[data-graphics="lite"] .premium-wall-behind {
   filter: none;
 }
 /* Anything else that frosts: plain. */
@@ -6173,14 +6173,11 @@ summary::-webkit-details-marker {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  /* The lit corner sits behind the object and stops short of the words'
-     column (52% of the card) in every row the words use, so the white
-     13px lead and tactic hold 4.5:1 on the family's own top colour
-     (lib/today-colour.test.ts composites the two over that column at
-     320 and 390). It was 90% by 62% from 82% across, which put up to a
-     quarter of its light under "Today's practice". */
+  /* The colour falling to its foot and a low glow at the bottom left.
+     The blurred lit corner that stood behind the 3D object went with it:
+     a flat object stands on a solid disc of its own (`.home-hero-disc`),
+     and the corner's light under it read as a smudge. */
   background:
-    radial-gradient(46% 42% at 84% 6%, var(--home-lit) 0%, transparent 70%),
     radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
     linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 76%);
   box-shadow:
@@ -6189,16 +6186,6 @@ summary::-webkit-details-marker {
     0 28px 44px -22px var(--home-glow),
     0 8px 18px -10px rgb(0 0 0 / 0.3);
   transition: opacity var(--duration-max) var(--ease-out);
-}
-/* The recorder's topic card with no object on it (#496, the morning
-   tour at 320x568: the card dropped its glass object for want of room
-   and kept the lit corner that stands behind it, a pale blotch on the
-   blue): the light goes with the object; the low glow and the fall of
-   the family's colour stay. */
-.family-fill[data-object="none"]::before {
-  background:
-    radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
-    linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 76%);
 }
 /* One family per trait. Light: the tone lit at the top falling to its
    ink. Dark: the same hue a step deeper and quieter. White 13px type
@@ -6215,7 +6202,7 @@ summary::-webkit-details-marker {
 .home-hero[data-family="pause"] {
   --home-a: #3d6ae6;
   --home-b: #162c70;
-  --home-lit: rgb(196 214 255 / 0.62);
+  --home-disc: #e6edff;
   --home-low: rgb(14 30 92 / 0.5);
   --home-glow: rgb(47 95 224 / 0.6);
 }
@@ -6223,7 +6210,7 @@ summary::-webkit-details-marker {
 .home-hero[data-family="fillers"] {
   --home-a: #cc3a6c;
   --home-b: #6a0f30;
-  --home-lit: rgb(255 208 222 / 0.6);
+  --home-disc: #ffe6ee;
   --home-low: rgb(80 8 34 / 0.5);
   --home-glow: rgb(214 47 104 / 0.55);
 }
@@ -6231,7 +6218,7 @@ summary::-webkit-details-marker {
 .home-hero[data-family="repairs"] {
   --home-a: #9e6200;
   --home-b: #4f3000;
-  --home-lit: rgb(255 226 160 / 0.6);
+  --home-disc: #fff1d1;
   --home-low: rgb(60 34 0 / 0.5);
   --home-glow: rgb(200 130 10 / 0.55);
 }
@@ -6239,7 +6226,7 @@ summary::-webkit-details-marker {
 .home-hero[data-family="pace"] {
   --home-a: #12845a;
   --home-b: #063a26;
-  --home-lit: rgb(190 245 220 / 0.55);
+  --home-disc: #dcf7eb;
   --home-low: rgb(4 40 26 / 0.5);
   --home-glow: rgb(13 132 87 / 0.55);
 }
@@ -6247,7 +6234,7 @@ summary::-webkit-details-marker {
 .home-hero[data-family="range"] {
   --home-a: #7652e6;
   --home-b: #2e1670;
-  --home-lit: rgb(222 210 255 / 0.6);
+  --home-disc: #efe9ff;
   --home-low: rgb(30 12 80 / 0.5);
   --home-glow: rgb(112 72 230 / 0.55);
 }
@@ -6255,7 +6242,7 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-hero[data-family="pause"] {
   --home-a: #3558b4;
   --home-b: #14244f;
-  --home-lit: rgb(140 176 246 / 0.42);
+  --home-disc: #283a63;
   --home-low: rgb(6 12 34 / 0.55);
   --home-glow: rgb(40 80 190 / 0.45);
 }
@@ -6263,7 +6250,7 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-hero[data-family="fillers"] {
   --home-a: #a83a60;
   --home-b: #4a1226;
-  --home-lit: rgb(240 160 186 / 0.4);
+  --home-disc: #5c2935;
   --home-low: rgb(30 4 14 / 0.55);
   --home-glow: rgb(170 40 90 / 0.4);
 }
@@ -6271,7 +6258,7 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-hero[data-family="repairs"] {
   --home-a: #8f6110;
   --home-b: #3d2805;
-  --home-lit: rgb(240 200 120 / 0.38);
+  --home-disc: #533401;
   --home-low: rgb(28 16 0 / 0.55);
   --home-glow: rgb(160 110 20 / 0.4);
 }
@@ -6279,7 +6266,7 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-hero[data-family="pace"] {
   --home-a: #1d7a56;
   --home-b: #0a3423;
-  --home-lit: rgb(150 220 190 / 0.36);
+  --home-disc: #09472e;
   --home-low: rgb(2 22 14 / 0.55);
   --home-glow: rgb(20 110 75 / 0.4);
 }
@@ -6287,7 +6274,7 @@ summary::-webkit-details-marker {
 :root[data-theme="dark"] .home-hero[data-family="range"] {
   --home-a: #6146b4;
   --home-b: #26164f;
-  --home-lit: rgb(196 176 246 / 0.4);
+  --home-disc: #3a3460;
   --home-low: rgb(14 6 34 / 0.55);
   --home-glow: rgb(90 60 190 / 0.42);
 }
@@ -6313,9 +6300,45 @@ summary::-webkit-details-marker {
 }
 
 /* The object. The one picture on the screen that breaks its frame,
-   the way ToyCad's chick rises out of its tile; a soft shadow in the
-   card's own ink sits it on the colour. Stood by its visible box in the
-   zone (`.home-hero`), not by its square. */
+   the way ToyCad's chick rises out of its tile, standing on its disc.
+   Stood by its visible box in the zone (`.home-hero`), not by its
+   square. Flat: no shadow under it, as no flat mark in the app has one. */
+/*
+ * The disc it stands on, as Demos stands on his halo (`.demos-halo`):
+ * one solid circle in the family's wash (its dark stage in dark), so an
+ * object drawn in its family's own hue (Pausing's blue on Pausing's blue
+ * card, 1.05:1) stands clear of the card. It is the picture's own
+ * background, so it arrives with the object, flies with it to the
+ * recording's card (E51) and shrinks and fades with it on Record.
+ * Centred on the object's visible box (`artBox`) and 0.9 of its longer
+ * side, so a wide low object (the pause marks, the road, the gauge) is
+ * held as fully as the tall hourglass. On Today it is never wider than
+ * the object zone, so it keeps the zone's 12px clear of the words (white
+ * on the light disc would not read), and it rises past the card's top
+ * with the object, a halo behind it: cut at the card's edge it became a
+ * lens, a second shape, and moved down to fit it stood 30 to 40px under
+ * the object's foot. A radial gradient sized as an ellipse with equal
+ * radii is a circle on the square picture, and its 1% edge is the
+ * anti-aliasing a drawn circle has.
+ */
+.home-hero-art,
+.topic-art {
+  background: radial-gradient(
+    ellipse var(--disc-r) var(--disc-r) at calc((var(--art-l, 0.28) + var(--art-w, 0.43) / 2) * 100%)
+      calc((var(--art-t, 0.1) + var(--art-h, 0.84) / 2) * 100%),
+    var(--home-disc) 99%,
+    transparent 100%
+  );
+}
+.home-hero-art {
+  --disc-r: min(
+    calc(max(var(--art-w, 0.43), var(--art-h, 0.84)) * 0.45 * var(--art-s)),
+    calc((var(--zone-r) - var(--zone-l)) / 2)
+  );
+}
+.topic-art {
+  --disc-r: calc(max(var(--art-w), var(--art-h)) * 45%);
+}
 .home-hero-art {
   position: absolute;
   top: calc(var(--zone-t) - var(--art-s) * var(--art-t, 0.1));
@@ -6326,30 +6349,11 @@ summary::-webkit-details-marker {
   height: var(--art-s);
   pointer-events: none;
   user-select: none;
-  filter: drop-shadow(0 22px 26px rgb(8 20 70 / 0.38));
   opacity: 0;
   transition: opacity var(--duration-max) var(--ease-out);
 }
 .home-hero-art[data-loaded] {
   opacity: 1;
-}
-:root[data-theme="dark"] .home-hero-art {
-  filter: drop-shadow(0 22px 26px rgb(0 0 0 / 0.5));
-}
-/* A pool of light under the object, so it reads lit from inside the
-   colour (the fintech card's glow from below): centred under its foot,
-   no wider than the zone, so it never reaches the words. */
-.home-hero-pool {
-  --pool-w: min(calc(var(--art-s) * 0.7), calc(var(--zone-r) - var(--zone-l)));
-  position: absolute;
-  top: calc(var(--art-foot) - var(--pool-w) * 0.3);
-  left: calc(var(--art-cx) - var(--pool-w) / 2);
-  width: var(--pool-w);
-  height: calc(var(--pool-w) * 0.48);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.34), transparent);
-  filter: blur(6px);
-  pointer-events: none;
 }
 /* The words beside the object keep to the left 52%, and hold the
    object zone's height, so the topic (24px under them) always starts
@@ -6518,7 +6522,6 @@ summary::-webkit-details-marker {
    (scripts/check-colour.mjs: Fillers and Restarts read 2.9 without it). */
 .home-hero[data-spin="link"]::before {
   background:
-    radial-gradient(46% 42% at 84% 6%, var(--home-lit) 0%, transparent 70%),
     radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
     linear-gradient(172deg, var(--home-a) 0%, var(--home-b) 64%);
 }

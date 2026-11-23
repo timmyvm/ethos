@@ -198,12 +198,7 @@ export function HomeHero({
           viewTransitionName: "practice-card",
         }}
       >
-        {!loading && (
-          <>
-            <span aria-hidden className="home-hero-pool" />
-            <HeroObject key={object} id={object} />
-          </>
-        )}
+        {!loading && <HeroObject key={object} id={object} />}
 
         {roulette ? (
           <RouletteBody key="roulette" {...roulette} />

@@ -1,18 +1,20 @@
-import { STAT_ICON_LARGE_SRC, STAT_ICON_SRC, type StatKind } from "@/lib/stat-icons";
+import { FlatIcon } from "@/components/icons/flat/FlatIcon";
+import { STAT_FLAT_KIND, type StatKind } from "@/lib/stat-icons";
 
 /**
- * A stat's 3D icon (#487): the flame, the crowned flame, the freeze, the
- * XP bolt, a game's cup; and since #503 the two modes' marks, Hostile
- * Q&A's struck bubble and the weekly boss's mountain. A plain `<img>` at
- * its own size, so it holds its box before it loads (no shift) and is
- * never `next/image`, whose URL varies per device and could not be
- * precached (#274).
+ * A stat's mark: the flame, the cup, the freeze, the XP bolt, and the two
+ * modes' marks, Hostile Q&A's struck bubble and the weekly boss's
+ * mountain. Drawn flat and inline (FlatIcon, the flat set's variant A),
+ * so it has no file to wait for: it holds its box and is drawn on the
+ * first frame, offline included.
  *
- * Decoration in the strict sense: `alt=""`, because the count or the
- * name beside it carries its words (a chip's sr-only label, a column's
- * label, a row's aria-label, a tile's name). `lit={false}` is the unlit streak, the same file greyed
- * by `.stat-icon[data-lit="false"]` in app/globals.css (per theme, and
- * stronger under Increase Contrast), so lit and unlit are one shape.
+ * Decoration in the strict sense: `aria-hidden`, because the count or
+ * the name beside it carries its words (a chip's sr-only label, a
+ * column's label, a row's aria-label, a tile's name). `lit={false}` is
+ * the unlit streak: the same drawing in its own grey tones
+ * (`.fi[data-lit="false"]`, components/icons/flat/flat-icons.css, per
+ * theme and firmer under Increase Contrast), never a filter, so lit and
+ * unlit are one shape.
  *
  *   <StatIcon kind="streak" lit={!open} size={20} />
  */
@@ -20,28 +22,26 @@ export function StatIcon({
   kind,
   lit = true,
   size = 20,
-  large = false,
   className = "",
 }: {
   kind: StatKind;
   /** False draws it unlit: a day not yet spoken. */
   lit?: boolean;
-  /** CSS px, square. */
+  /** CSS px, square. Under 24px the drawing drops its light (the size ladder). */
   size?: number;
-  /** The large cut, where the kind has one: the streak moment's flame (#496). */
+  /**
+   * @deprecated The 3D set's 840px cut for the streak moment. A vector
+   * draws every size from one shape, so this changes nothing; kept so a
+   * caller that passes it still compiles.
+   */
   large?: boolean;
   className?: string;
 }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element -- a precached file at a fixed path (#274)
-    <img
-      src={(large && STAT_ICON_LARGE_SRC[kind]) || STAT_ICON_SRC[kind]}
-      width={size}
-      height={size}
-      alt=""
-      decoding="async"
-      draggable={false}
-      data-lit={lit ? undefined : "false"}
+    <FlatIcon
+      kind={STAT_FLAT_KIND[kind]}
+      size={size}
+      lit={lit}
       className={className ? `stat-icon ${className}` : "stat-icon"}
     />
   );

@@ -141,9 +141,10 @@ for (const theme of ["light", "dark"]) {
       const glowing = [...main.querySelectorAll("*")]
         .filter((el) => !el.closest(".home-hero") && /drop-shadow/.test(getComputedStyle(el).filter))
         .map((el) => el.className.toString().split(" ")[0] || el.tagName);
-      const images = [...main.querySelectorAll("img")]
+      /* A picture is a file (img) or a flat drawing (svg.fi, named by its kind). */
+      const images = [...main.querySelectorAll("img, svg.fi")]
         .filter((img) => !img.closest(".home-hero, header, .screen-bar, .large-title-row") && img.getBoundingClientRect().top >= card.bottom - 1)
-        .map((img) => ({ src: img.getAttribute("src"), w: Math.round(img.getBoundingClientRect().width) }));
+        .map((img) => ({ src: img.getAttribute("src") ?? `flat:${img.dataset.kind}`, w: Math.round(img.getBoundingClientRect().width) }));
       return {
         boxes,
         glowing,
@@ -159,10 +160,10 @@ for (const theme of ["light", "dark"]) {
       JSON.stringify({ boxes: under.boxes.slice(0, 6), glowing: under.glowing, switches: under.switches, tiles: under.tiles })
     );
     ok(
-      `${theme} ${width}: the only pictures under the card are the two games' 3D marks, at ${mark}px`,
+      `${theme} ${width}: the only pictures under the card are the two games' flat marks, at ${mark}px`,
       under.images.length === 2 &&
-        under.images[0].src === "/icons/3d/hostile.webp" &&
-        under.images[1].src === "/icons/3d/boss.webp" &&
+        under.images[0].src === "flat:hostile" &&
+        under.images[1].src === "flat:boss" &&
         under.images.every((i) => i.w === mark),
       JSON.stringify(under.images)
     );

@@ -20,10 +20,12 @@
  * asset rule below), so neither is pre-cached; v21 empties v20 of them.
  * A cut never drawn here is stood in for, offline, by one of the same
  * lesson the phone holds (lessonStandIn), so no CACHE move.
+ * v22: the stat icons are drawn inline (the flat set), so the 3D files
+ * leave the shell, and the lessons' objects are SVG files at new paths.
  * The worker itself registers once the first screen is drawn
  * (components/ServiceWorker.tsx), not beside it.
  */
-const CACHE = "ethos-v21";
+const CACHE = "ethos-v22";
 
 const SHELL = [
   "/",
@@ -72,20 +74,6 @@ const SHELL = [
   "/coin/coin-stack.svg",
   "/coin/coin-burst.svg",
   "/coin/coin-empty.svg",
-  /* The stat icons (#487): Today's streak chip is on the first screen
-     a returning phone opens, so the flame is shell, and its four
-     siblings with it (a few KB each). Hostile Q&A's and the weekly
-     boss's marks (#503) lead Today's two games' rows, so they are too. */
-  "/icons/3d/streak.webp",
-  "/icons/3d/best.webp",
-  "/icons/3d/freeze.webp",
-  "/icons/3d/xp.webp",
-  "/icons/3d/trophy.webp",
-  "/icons/3d/hostile.webp",
-  "/icons/3d/boss.webp",
-  /* The streak moment's flame, cut large (#496): the moment plays on the
-     way out of a take, which may be offline. A new path, so no CACHE bump. */
-  "/icons/3d/streak-large.webp",
   /* Demos's busts (#488): a picture worn as a pose is in Today's corner,
      the first screen a returning phone opens. New paths, so no CACHE
      bump; a re-cut keeps its path and moves CACHE. */

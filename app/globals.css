@@ -3504,39 +3504,16 @@ summary::-webkit-details-marker {
   background: var(--color-surface);
   color: var(--color-stone-600);
 }
-/* The stat icons (#487, Timothy 16 Nov: "higgs field icons duolingo
-   style"): a count's mark is a 3D object, `components/StatIcon.tsx`, so
-   it carries its own colour and the gold above no longer reaches it. An
-   unlit streak is the same file through a grey filter, never a second
-   render, so lit and unlit are one shape. With no hue left, lightness is
-   what tells them apart, so it has to hold with the phone in Greyscale
-   too (#453): the lit flame averages 146 of 255 there, and the unlit one
-   sits well off it. Light: darker, 109 on the chip (4.2:1), the chip's
-   stone-400 role. Dark: dimmer, 108 on the chip, so it never reads lit
-   beside the white number. Increase Contrast restates it in #448's block
-   with the neutrals, the way their ink moves: darker in light, brighter
-   in dark (lib/stat-icons.test.ts holds the gaps). */
-:root {
-  --stat-unlit: grayscale(1) brightness(0.72) contrast(0.85);
-}
-:root[data-theme="dark"] {
-  --stat-unlit: grayscale(1) brightness(0.9) contrast(0.8) opacity(0.7);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --stat-unlit: grayscale(1) brightness(0.9) contrast(0.8) opacity(0.7);
-  }
-}
+/* The stat icons: a count's mark is a flat drawing, `components/StatIcon.tsx`
+   (components/icons/flat/), so it carries its own colour and the gold
+   above no longer reaches it. An unlit streak is the same drawing in its
+   own grey tones (`.fi[data-lit="false"]`, flat-icons.css), never a
+   filter, so lit and unlit are one shape; Increase Contrast firms those
+   greys in the same file. */
 .stat-icon {
-  display: block;
-  flex: none;
-  object-fit: contain;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
-}
-.stat-icon[data-lit="false"] {
-  filter: var(--stat-unlit);
 }
 /* A game's best before Record (Timothy, 6 Nov: "make your best stand
    out more, it is an important milestone"). The record drawn as an
@@ -3594,8 +3571,8 @@ summary::-webkit-details-marker {
   background: color-mix(in oklab, var(--earned-gold) 20%, var(--color-ground));
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--earned-rim) 30%, transparent);
 }
-/* The cup is the 3D trophy since #487, drawn a little larger than the
-   line cup was: the object has no stroke to carry it. */
+/* The cup is the flat stat icon, drawn a little larger than the line
+   cup was: the object has no stroke to carry it. */
 .best-plaque-mark > .stat-icon,
 .best-moment-mark > .stat-icon {
   width: 30px;
@@ -3686,12 +3663,12 @@ summary::-webkit-details-marker {
   font-weight: 600;
   color: var(--color-sage-800);
 }
-/* The 3D cup (#487) at 18 in a 20px line: its handles sit about 1.6px
-   inside its box, so it is pulled out by 2 to line up with "Level". */
+/* The flat cup at 18 in a 20px line: its handles sit about 0.9px inside
+   its box (4.9u of 96), so it is pulled out by 1 to line up with "Level". */
 .tile-best-cup {
   display: inline-flex;
   flex: none;
-  margin-left: -2px;
+  margin-left: -1px;
 }
 .tile-best-value {
   font-size: var(--text-num-s);
@@ -4185,7 +4162,7 @@ summary::-webkit-details-marker {
   display: inline-flex;
 }
 /* A freeze was the sky's tile with a line snowflake here (.you-freeze);
-   since #487 it is the 3D snowflake in the Shop's neutral slot
+   it is the stat icon's snowflake in the Shop's neutral slot
    (components/shop/ItemArt.tsx). */
 /* A lexicon word: a neutral label, ink on the surface, never a pill
    anyone would press (no border, no arrow, no hover). It wore Variety's
@@ -5034,8 +5011,6 @@ summary::-webkit-details-marker {
     --color-stone-500: rgba(32, 30, 29, 0.86);
     --color-stone-600: rgba(32, 30, 29, 0.9);
     --color-bar-plain: rgba(32, 30, 29, 0.42);
-    /* The unlit streak (#487): a darker, firmer grey. */
-    --stat-unlit: grayscale(1) brightness(0.62) contrast(0.9);
   }
   :root[data-theme="dark"] {
     --color-hairline: rgba(242, 242, 242, 0.3);
@@ -5048,8 +5023,6 @@ summary::-webkit-details-marker {
     --color-stone-500: rgba(242, 242, 242, 0.86);
     --color-stone-600: rgba(242, 242, 242, 0.9);
     --color-bar-plain: rgba(242, 242, 242, 0.42);
-    /* Brighter than the lit flame, as the stone ink is here. */
-    --stat-unlit: grayscale(1) contrast(0.6) brightness(1.4);
   }
   .screen-bar[data-edge]::before {
     background: var(--color-ground);
@@ -6659,9 +6632,9 @@ summary::-webkit-details-marker {
  * of three designs, "one-card" (8, 8 and 8 against 6.5 and about 5.5),
  * with their grafts.
  *
- * The games: two rows, each led by its mode's 3D mark (#503) standing on
- * a soft pool of its own tone, then its name in that tone, what it is
- * about now in ink, one line, and the Disclosure. 24px under the card,
+ * The games: two rows, each led by its mode's flat mark, then its name
+ * in its tone, what it is about now in ink, one line, and the
+ * Disclosure. 24px under the card,
  * not the sections' 28: the card's own glow already holds that air, and
  * the four pixels keep the boss's row clear of the tab bar at 390x844.
  */
@@ -6716,11 +6689,12 @@ summary::-webkit-details-marker {
 .home-mode > svg:last-child {
   margin-top: calc((var(--mark) - 14px) / 2);
 }
-/* The mark, centred in its slot by its visible box (the cut centres
-   each object on its square, scripts/cut-stat-icons.mjs), so the wide
-   bubble and the tall peak share one centre line and one left edge. */
+/* The mark in its slot. The flat drawings fill 84 to 88 of their 96
+   and centre themselves, so the bubble and the peak share one centre
+   line and one left edge. No pool under them: a flat mark stands on the
+   ground as drawn (the 3D cut's soft ellipse read as a pale band under
+   the bubble and a plinth under the peak). */
 .home-mode-art {
-  position: relative;
   display: grid;
   place-items: center;
   width: var(--mark);
@@ -6728,34 +6702,8 @@ summary::-webkit-details-marker {
   flex-shrink: 0;
 }
 .home-mode-art > .stat-icon {
-  position: relative;
   width: var(--mark);
   height: var(--mark);
-}
-/* Its pool: a soft ellipse of its own tone under its visible foot, so
-   it stands on the ground rather than being pasted on it. In dark the
-   tone itself is near the ground, so the pool is its pale ink, faint,
-   a light rather than a smudge. */
-.home-mode-art::before {
-  content: "";
-  position: absolute;
-  left: 16%;
-  right: 16%;
-  top: calc(var(--foot) * var(--mark) - 6px);
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone) 85%, transparent), transparent);
-}
-:root[data-theme="dark"] .home-mode-art::before {
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--tone-ink) 26%, transparent), transparent);
-}
-/* Where each object's visible foot is in its square (measured off the
-   cut's alpha: the bubble ends at 87.5%, the peak at 95.3%). */
-.home-mode[data-mode="hostile"] {
-  --foot: 0.875;
-}
-.home-mode[data-mode="boss"] {
-  --foot: 0.953;
 }
 .home-mode-words {
   display: flex;
@@ -8458,7 +8406,7 @@ html[data-test-tile] .test-tile-slot {
   max-height: min(380px, calc(100vw - 16px));
 }
 .streak-flame {
-  /* #487's 3D flame is drawn on a square, centred at one optical size:
+  /* The flat flame is drawn on its square, 88u tall of 96 and centred:
      the slot's height, centred across it. */
   position: absolute;
   top: 0;
@@ -8472,7 +8420,7 @@ html[data-test-tile] .test-tile-slot {
   inset: 0;
   transform-origin: 50% 92%;
 }
-.streak-flame > span > img {
+.streak-flame > span > .stat-icon {
   width: 100%;
   height: 100%;
 }

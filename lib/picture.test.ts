@@ -212,7 +212,7 @@ describe("Demos in a coin", () => {
       expect(shop).toMatch(/class="picture-coin/);
     }
     const freeze = renderToStaticMarkup(createElement(ItemArt, { id: "streak_freeze" }));
-    expect(freeze).toContain('src="/icons/3d/freeze.webp"');
+    expect(freeze).toContain('data-kind="freeze"');
     expect(freeze).not.toMatch(/picture-coin/);
   });
 

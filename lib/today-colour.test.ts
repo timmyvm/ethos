@@ -388,8 +388,6 @@ describe("a trait's tone is only ever one of its forms", () => {
     // sky, so the line runs into them rather than through them.
     ".log-ring": "pop",
     ".log-dot": "pop",
-    // The ground a game's 3D mark stands on (#500): its pop tone, a pool.
-    ".home-mode-art::before": "pop",
     // The recording screen's live waveform (S08, D51).
     ".rec-wave": "measure",
     ':root[data-theme="dark"] .rec-wave': "measure",

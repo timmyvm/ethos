@@ -103,7 +103,7 @@ const FALLBACK_TOPIC = topicById(FALLBACK_TOPIC_ID)!;
  *    breaking out of the corner, the topic huge, Start, spin and
  *    difficulty (DECISIONS #9's floor, #268's one selector);
  *  - under it, Hostile Q&A and the weekly boss (#478, "the bike in the
- *    room") as two rows on the ground, each led by its 3D mark and one
+ *    room") as two rows on the ground, each led by its flat mark and one
  *    tap away (#500);
  *  - at the foot, the two numbers only Today holds: today's line (#281)
  *    and the longest stretch with no filler (#254, #267), as figures.
@@ -692,7 +692,7 @@ export default function Home() {
 
       {/* The other two things (#478, docs/plan-next.md section 10):
           Hostile Q&A and the weekly boss, two rows on the ground under the
-          card (#500), each led by its 3D mark and one tap away. No box, so
+          card (#500), each led by its flat mark and one tap away. No box, so
           the card stays the one box and the one thing that glows. The
           rows are every recording's date and kind (the spine), unread
           until the history lands. */}

@@ -1,5 +1,5 @@
 /**
- * The stat icons (#487), photographed on every surface that shows a
+ * The stat icons (#487; flat since the flat set), photographed on every surface that shows a
  * count or a state beside one: Today's streak chip (open day and spoken
  * day), the Shop's freeze and coin balance, You's numbers, Practice's
  * tiles with a game's best, the plaque before a game's Record, and the
@@ -124,69 +124,10 @@ async function scene(name, size, { path, plan = "free", games = false, today = f
 }
 
 /*
- * The icon sheet: every kind at 16, 20, 24, 32 and 64pt, the streak lit
- * and unlit, on #121212 and on white, at 3x, drawn with the app's own
- * `.stat-icon` rules (lifted from app/globals.css) and files (from the
- * server; Increase Contrast's grey from #448's block). `sheet` writes
- * sheet-dark.png and sheet-light.png, with Increase Contrast
- * sheet-contrast-{dark,light}.png, and in Greyscale
- * sheet-greyscale-{dark,light}.png; the look loop joins each pair side
- * by side.
- *   node scripts/look-stat-icons.mjs sheet
+ * The icon sheet the 3D set had (`sheet`) went with its files: the flat
+ * set's own board, every kind at every size, lit and unlit, light and
+ * dark, is app/workbench/icons, shot by scripts/look-icons-flat.mjs.
  */
-if (TAG === "sheet") {
-  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
-  const from = css.indexOf("/* The stat icons (#487");
-  const to = css.indexOf("}", css.indexOf('.stat-icon[data-lit="false"] {')) + 1;
-  /* And Increase Contrast's restatement, from #448's block. */
-  const at = css.indexOf("@media (prefers-contrast: more) {");
-  const more = css.slice(at, css.indexOf("\n}\n", at));
-  const [light, dark] = [...more.matchAll(/--stat-unlit: ([^;]+);/g)].map((m) => m[1]);
-  const block =
-    css.slice(from, to) +
-    `@media (prefers-contrast: more) { :root { --stat-unlit: ${light}; } :root[data-theme="dark"] { --stat-unlit: ${dark}; } }`;
-  const rows = [
-    ["Streak", "streak", true],
-    ["Streak, today open", "streak", false],
-    ["Best streak", "best", true],
-    ["Freeze", "freeze", true],
-    ["XP", "xp", true],
-    ["A game's best", "trophy", true],
-  ];
-  const sizes = [16, 20, 24, 32, 64];
-  /* Three passes: as drawn, under Increase Contrast, and with the phone
-     in Greyscale (Accessibility, Colour Filters), where only lightness
-     tells the open day's flame from a lit one (#453). */
-  for (const [contrast, grey] of [["no-preference", false], ["more", false], ["no-preference", true]]) {
-    for (const theme of ["dark", "light"]) {
-      const ctx = await browser.newContext({ viewport: { width: 520, height: 600 }, deviceScaleFactor: 3, colorScheme: theme, contrast });
-      const page = await ctx.newPage();
-      const cells = rows
-        .map(([label, kind, lit]) =>
-          `<div class="l">${label}</div>` +
-          sizes.map((s) => `<div class="c"><img class="stat-icon" ${lit ? "" : 'data-lit="false"'} src="${BASE}/icons/3d/${kind}.webp" width="${s}" height="${s}" alt=""></div>`).join("")
-        )
-        .join("");
-      await page.setContent(
-        `<!doctype html><html data-theme="${theme}"><head><style>${block}
-        body{margin:0;background:${theme === "dark" ? "#121212" : "#ffffff"};color:${theme === "dark" ? "#f2f2f2" : "#201e1d"};font:600 13px system-ui}
-        ${grey ? "html{filter:grayscale(1)}" : ""}
-        .g{display:grid;grid-template-columns:150px repeat(${sizes.length},auto);align-items:center;gap:14px 18px;padding:20px}
-        .h{font:700 11px system-ui;letter-spacing:.08em;opacity:.6}.c{display:flex;justify-content:center}</style></head>
-        <body><div class="g"><div class="h">${theme.toUpperCase()}${contrast === "more" ? ", MORE CONTRAST" : ""}${grey ? ", GREYSCALE" : ""}</div>${sizes.map((s) => `<div class="h" style="text-align:center">${s}</div>`).join("")}${cells}</div></body></html>`,
-        { waitUntil: "load" }
-      );
-      await page.waitForFunction(() => [...document.images].every((i) => i.complete && i.naturalWidth > 0));
-      const name = grey ? `sheet-greyscale-${theme}` : contrast === "more" ? `sheet-contrast-${theme}` : `sheet-${theme}`;
-      await page.locator(".g").screenshot({ path: `${OUT}${name}.png` });
-      console.log("shot", name);
-      await ctx.close();
-    }
-  }
-  await browser.close();
-  process.exit(0);
-}
-
 for (const size of SIZES) {
   /* Today on an open day (the fixtures' last recording is yesterday's):
      the streak chip's flame unlit. Then with today spoken: lit. */

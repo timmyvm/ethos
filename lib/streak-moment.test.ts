@@ -257,8 +257,8 @@ describe("the moment's room", () => {
 
   it("lets no band grow past 64: the top's counting the flame's own air, the foot's the shelf's 16", () => {
     expect(px(rule(".streak-gap"), "max-height")).toBe(64);
-    // The flame's square holds its object with (192 - 170) / 2 of 192 over it (scripts/cut-stat-icons.mjs).
-    const air = (380 * (192 - 170)) / 2 / 192;
+    // The flat flame is 88u tall, centred on its 96u square: 4u of air over its tip.
+    const air = (380 * 4) / 96;
     expect(px(rule(`.streak-gap[data-gap="top"]`), "max-height") + air).toBeLessThanOrEqual(64);
     expect(rule(`.streak-gap[data-gap="count"]`)).toMatch(/flex: 0 0 8px/);
     expect(px(rule(`.streak-gap[data-gap="week"]`), "max-height")).toBeLessThanOrEqual(64);
@@ -268,13 +268,15 @@ describe("the moment's room", () => {
     expect(rule(".streak-stage")).toMatch(/justify-content: center/);
   });
 
-  it("gives what is left to the flame, from 112 up to 380 and never wider than the screen, drawn from the large cut", () => {
+  it("gives what is left to the flame, from 112 up to 380 and never wider than the screen, drawn inline at the slot's size", () => {
     const slot = rule(".streak-flame-slot");
     expect(slot).toMatch(/flex: 1 1 112px/);
     expect(px(slot, "min-height")).toBe(112);
     expect(slot).toMatch(/max-height: min\(380px, calc\(100vw - 16px\)\)/);
     expect(rule(".streak-flame")).toMatch(/aspect-ratio: 1 \/ 1/);
-    expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{380\} large \/>/g)?.length).toBe(2);
+    expect(tsx.match(/<StatIcon kind="streak"[^>]*size=\{380\} \/>/g)?.length).toBe(2);
+    expect(tsx).not.toMatch(/<StatIcon[^>]*\blarge\b/);
+    expect(rule(".streak-flame > span > .stat-icon")).toMatch(/width: 100%;\s*height: 100%;/);
   });
 
   it("grows the count with the screen, from num-xl's 72 to 160", () => {

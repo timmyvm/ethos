@@ -147,7 +147,7 @@
    snow the light, the pennant the inner). Light: the base 3:1 or more on
    the chip (#f4f4f4, and the warmer #efedea), and the flame at least 30
    darker than the lit one in Greyscale (the app's own unlit rule,
-   lib/stat-icons.test.ts). Dark: the base 3:1 on #1c1c1c, dimmer than the
+   lib/flat-icons.test.ts). Dark: the base 3:1 on #1c1c1c, dimmer than the
    lit flame. The lessons' objects are never unlit. */
 .fi[data-lit="false"] {
   --fi-streak-base: #64615e; /* L 38, 5.6:1 on #f4f4f4 */
@@ -198,11 +198,60 @@
   --fi-boss-flag: #817d79;
 }
 
-/* Today's game rows: no pool under a flat mark. The flat pill, set at the
-   3D cut's --foot (0.875), hung 4px under the bubble's body (which ends at
-   0.77) and across its tail: the pale band at 44 to 56px (#050505 in dark).
-   Under the mountain it showed as a plinth narrower than the base, the
-   "triangle on a stand". */
-.home-mode[data-flat] .home-mode-art::before {
-  content: none;
+/* Increase Contrast (#448's block in app/globals.css moves the neutrals
+   the same way): the unlit greys firm up with the stone ink. Light: the
+   ramp 8 points darker, the base 7.7:1 on the chip (#f4f4f4). Dark: the
+   ramp brighter, the base 6.8:1 on #1c1c1c and 34 over the lit flame in
+   Greyscale, as the stone ink is brighter there (it was the 3D set's
+   filter rule too). Same steps as above: shade 8 under, inner 8 over,
+   light 22 over; a second colour takes the ramp's lighter steps. */
+@media (prefers-contrast: more) {
+  .fi[data-lit="false"] {
+    --fi-streak-base: #4f4c4a;
+    --fi-streak-shade: #3a3836;
+    --fi-streak-inner: #64615e;
+    --fi-streak-light: #898580;
+    --fi-xp-base: #4f4c4a;
+    --fi-xp-shade: #3a3836;
+    --fi-xp-light: #898580;
+    --fi-best-base: #4f4c4a;
+    --fi-best-shade: #3a3836;
+    --fi-best-light: #898580;
+    --fi-freeze-base: #4f4c4a;
+    --fi-freeze-shade: #3a3836;
+    --fi-freeze-light: #898580;
+    --fi-hostile-base: #4f4c4a;
+    --fi-hostile-shade: #3a3836;
+    --fi-hostile-light: #898580;
+    --fi-hostile-bolt: #898580;
+    --fi-boss-base: #4f4c4a;
+    --fi-boss-shade: #3a3836;
+    --fi-boss-snow: #898580;
+    --fi-boss-pole: #3a3836;
+    --fi-boss-flag: #64615e;
+  }
+  :root[data-theme="dark"] .fi[data-lit="false"] {
+    --fi-streak-base: #a6a3a0;
+    --fi-streak-shade: #938f8b;
+    --fi-streak-inner: #bab8b5;
+    --fi-streak-light: #dddbda;
+    --fi-xp-base: #a6a3a0;
+    --fi-xp-shade: #938f8b;
+    --fi-xp-light: #dddbda;
+    --fi-best-base: #a6a3a0;
+    --fi-best-shade: #938f8b;
+    --fi-best-light: #dddbda;
+    --fi-freeze-base: #a6a3a0;
+    --fi-freeze-shade: #938f8b;
+    --fi-freeze-light: #dddbda;
+    --fi-hostile-base: #a6a3a0;
+    --fi-hostile-shade: #938f8b;
+    --fi-hostile-light: #dddbda;
+    --fi-hostile-bolt: #dddbda;
+    --fi-boss-base: #a6a3a0;
+    --fi-boss-shade: #938f8b;
+    --fi-boss-snow: #dddbda;
+    --fi-boss-pole: #938f8b;
+    --fi-boss-flag: #bab8b5;
+  }
 }

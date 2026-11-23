@@ -85,9 +85,9 @@ describe("every practice has its object", () => {
   });
 
   /* #478, #500: under the card only the games' two marks stand, and
-     they are the stat icons' files (components/StatIcon.tsx), never a
-     lesson's glass object. The card keeps its own. */
-  it("only the card stands a lesson's object: the games' rows wear their 3D marks, the foot none", () => {
+     they are the stat icons' drawings (components/StatIcon.tsx), never a
+     lesson's object. The card keeps its own. */
+  it("only the card stands a lesson's object: the games' rows wear their stat marks, the foot none", () => {
     const rows = readFileSync(path.join(root, "components", "home", "ModeRows.tsx"), "utf8");
     expect(rows).not.toMatch(/objectSrc|artBox|lessons\/large/);
     expect(rows).toContain("<StatIcon kind={t.id} size={72} />");

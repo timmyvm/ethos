@@ -4,8 +4,8 @@ import type { BestParts } from "@/lib/round-live";
 /**
  * A game's best at this level, before Record (M4), drawn as the record
  * it is (Timothy, 6 Nov: "make your best stand out more, it is an
- * important milestone"). Sage because it was earned, the cup the 3D gold
- * trophy (#487), the number set large on its own so the eye lands on
+ * important milestone"). Sage because it was earned, the cup the flat
+ * gold stat icon, the number set large on its own so the eye lands on
  * what there is to beat. Not a tap: no fill of one, no press.
  *
  * A screen reader hears the one sentence (`label`, `bestLine`); the

@@ -1088,10 +1088,10 @@ function Line({
  * when it lands, which is the measurement arriving, never a re-run over
  * a figure that was already on the screen.
  *
- * The marks are #487's 3D icons (`StatIcon`): a flame lit, or the same
- * flame greyed by `--stat-unlit`, which differ in lightness as well as
- * colour and stay apart in Greyscale (lib/stat-icons.test.ts, #453's
- * rule); the best streak's crowned flame; XP's bolt. `said` is what the
+ * The marks are the flat stat icons (`StatIcon`): a flame lit, or the
+ * same flame in its unlit greys, which differ in lightness as well as
+ * colour and stay apart in Greyscale (lib/flat-icons.test.ts, #453's
+ * rule); the best streak's cup; XP's bolt. `said` is what the
  * mark means, for a screen reader.
  */
 function Stat({

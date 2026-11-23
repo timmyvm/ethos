@@ -294,13 +294,13 @@ for (const scene of SCENES) {
             /* The ground between what is drawn (#496): over the flame,
                flame to count, words to the week, and the week (or the
                freeze's line) to Continue. The flame's square holds the
-               object with a little air over and under it (135x170 in
-               192, scripts/cut-stat-icons.mjs), so its band is read from
-               the object, not the square. */
+               drawing with 4u of air over and under it (88u tall on the
+               96u grid, components/icons/flat/stat-drawings.ts), so its
+               band is read from the drawing, not the square. */
             bands: (() => {
               const box = (q) => el.querySelector(q)?.getBoundingClientRect() ?? null;
               const flame = box(".streak-flame");
-              const air = flame ? (flame.height * (192 - 170)) / 2 / 192 : 0;
+              const air = flame ? (flame.height * 4) / 96 : 0;
               const count = box(".streak-count");
               const words = box("h1 [data-line]");
               const week = box(".streak-week");

@@ -178,7 +178,7 @@ function YouStat({ label, value, kind, lit = true, tone }: { label: string; valu
 /** Today's two games, as components/home/ModeRows.tsx draws them, with the flat mark. */
 function ModeRow({ kind, name, subject, line }: { kind: "hostile" | "boss"; name: string; subject: string; line: ReactNode }) {
   return (
-    <div data-mode={kind} data-flat="" className={`home-mode ${kind === "hostile" ? "tone-coral" : "tone-sky"}`}>
+    <div data-mode={kind} className={`home-mode ${kind === "hostile" ? "tone-coral" : "tone-sky"}`}>
       <span aria-hidden className="home-mode-art">
         <FlatIcon kind={kind} size={72} />
       </span>

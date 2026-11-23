@@ -12,8 +12,8 @@ import type { ModeTile } from "@/lib/home-modes";
  * homepage", and of the two tiles, "it doesn't look that good... it's
  * kind of shit". So no tile, no fill, no edge, no shadow: the card above
  * stays the one box and the one lifted thing, and each row is led by its
- * mode's 3D mark (#503, the stat icons' family), standing on a soft pool
- * of its own tone. Then its name in that tone, what it is about now in
+ * mode's flat mark (the stat icons' set), standing on the ground as
+ * drawn. Then its name in its tone, what it is about now in
  * ink, one line, and the house Disclosure: a row-shaped door (DESIGN.md
  * rule 5). Spacing, not rules, keeps the two apart (rule 7, #454).
  *

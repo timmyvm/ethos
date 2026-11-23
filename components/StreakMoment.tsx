@@ -181,18 +181,18 @@ export function StreakMoment({
           screen too (`.streak-count`). */}
       <div data-arrive="" className="streak-stage flex flex-1 flex-col items-center text-center">
         <span aria-hidden className="streak-gap" data-gap="top" />
-        {/* #487's 3D flame, cut large for this screen: the unlit one (the
-            same file through `--stat-unlit`) fades as the lit one springs
-            in over it. */}
+        {/* The flat flame, drawn inline at the slot's size: the unlit one
+            (the same drawing in its grey tones) fades as the lit one
+            springs in over it. */}
         <div aria-hidden className="streak-flame-slot">
           <div className="streak-flame">
             {!calm && (
               <span data-flame="unlit">
-                <StatIcon kind="streak" lit={false} size={380} large />
+                <StatIcon kind="streak" lit={false} size={380} />
               </span>
             )}
             <span data-flame="lit">
-              <StatIcon kind="streak" size={380} large />
+              <StatIcon kind="streak" size={380} />
             </span>
           </div>
         </div>

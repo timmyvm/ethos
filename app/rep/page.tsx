@@ -42,7 +42,6 @@ import { splitPrompt } from "@/lib/tip-labels";
 import { TopicCard } from "@/components/rep/TopicCard";
 import { StreakMoment } from "@/components/StreakMoment";
 import { momentShownOn, streakMoment, type StreakMomentView } from "@/lib/streak-moment";
-import { warmLargeStatIcon } from "@/lib/stat-icons";
 import { FeltCheck, FeltStage } from "@/components/tester/FeltCheck";
 import { MatchCheck } from "@/components/tester/MatchCheck";
 import { TesterPaused } from "@/components/tester/TesterPaused";
@@ -1104,12 +1103,7 @@ function RepScreen() {
             now: new Date(),
             shownOn: momentShownOn(),
           });
-          if (owed) {
-            setOwedMoment(owed);
-            // Its flame is a file nothing else draws: fetched now, it is
-            // there on the moment's first frame (#496 review).
-            warmLargeStatIcon("streak");
-          }
+          if (owed) setOwedMoment(owed);
           setStreakNow(streak.current);
           /* Before the take: the snapshot, or, when it never landed, the
              rows read now without this round. */

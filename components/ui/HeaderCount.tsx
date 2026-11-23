@@ -13,8 +13,8 @@ import { useState, type ReactNode } from "react";
  *    ink, no fill. Shop's coin balance only.
  *
  * The glyph is an SVG from Icon.tsx (IconStar, a coin), sized to 18px by
- * both variants, or a 3D stat icon (`StatIcon`, #487: the streak's
- * flame), which carries its own size and colour. A lit SVG glyph is gold
+ * both variants, or a flat stat icon (`StatIcon`: the streak's flame),
+ * which carries its own colour. A lit SVG glyph is gold
  * (D03): `.earned-lit`, --color-amber with a 1px darker rim in light.
  *
  * `unlit` greys an SVG glyph through the chip's `data-open` hook in

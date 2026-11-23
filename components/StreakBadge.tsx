@@ -35,8 +35,9 @@ export function StreakBadge({ streak }: { streak: StreakState }) {
 
   /* M17: the flame and the number at 15/700, on the shared header
      count (HeaderCount's chip, the earned register). The flame is the
-     3D one since #487, at 20 because an object without a stroke reads
-     a size smaller than a line glyph; unlit it is the same file greyed. */
+     flat stat icon, at 20 (the chip's mark sets it to 18) because an
+     object without a stroke reads a size smaller than a line glyph;
+     unlit it is the same drawing in its grey tones. */
   return (
     <HeaderCount
       variant="chip"

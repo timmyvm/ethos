@@ -17,10 +17,10 @@ const SLOT = "flex h-14 w-14 shrink-0 items-center justify-center";
  * on a grey slot while the pose stood on You's stage (#395), and then a
  * full figure for a picture that no longer existed (#485).
  *
- * The freeze is the 3D snowflake (#487), standing bare in the same 56
+ * The freeze is the stat icon's snowflake, standing bare in the same 56
  * slot: a thing you hold, not a picture of you, so no coin, and no tile
  * either (#496, the morning tour: a filled grey square beside the
- * poses' sky coins read as a placeholder; the 3D object is its own
+ * poses' sky coins read as a placeholder; the object is its own
  * ground, as it is on You's numbers and Today's chip).
  */
 export function ItemArt({ id }: { id: string }) {

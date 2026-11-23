@@ -340,7 +340,7 @@ export default function RepDetail({
             width={40}
             height={40}
             decoding="async"
-            className="size-10 shrink-0 rounded-[8px] lesson-tile object-cover"
+            className="size-10 shrink-0 rounded-[8px] lesson-tile object-contain p-[5px]"
           />
           <span className="min-w-0 flex-1">
             <span className="font-display block truncate text-row">

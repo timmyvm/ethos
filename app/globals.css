@@ -6175,7 +6175,7 @@ summary::-webkit-details-marker {
   border-radius: inherit;
   /* The colour falling to its foot and a low glow at the bottom left.
      The blurred lit corner that stood behind the 3D object went with it:
-     a flat object stands on a solid disc of its own (`.home-hero-disc`),
+     a flat object stands on a solid disc of its own (`.home-hero-art`),
      and the corner's light under it read as a smudge. */
   background:
     radial-gradient(70% 50% at 0% 100%, var(--home-low) 0%, transparent 72%),
@@ -6322,7 +6322,7 @@ summary::-webkit-details-marker {
  * anti-aliasing a drawn circle has.
  */
 .home-hero-art,
-.topic-art {
+.object-disc {
   background: radial-gradient(
     ellipse var(--disc-r) var(--disc-r) at calc((var(--art-l, 0.28) + var(--art-w, 0.43) / 2) * 100%)
       calc((var(--art-t, 0.1) + var(--art-h, 0.84) / 2) * 100%),
@@ -6336,7 +6336,11 @@ summary::-webkit-details-marker {
     calc((var(--zone-r) - var(--zone-l)) / 2)
   );
 }
-.topic-art {
+/* Anywhere else a lesson's object stands on its family's colour (the
+   recorder's topic card, the welcome's day-one card): the same disc, its
+   radius 45% of the picture's longer visible side as a share of the
+   square, from the `artBox` variables on the picture or its box. */
+.object-disc {
   --disc-r: calc(max(var(--art-w), var(--art-h)) * 45%);
 }
 .home-hero-art {

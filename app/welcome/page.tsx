@@ -5,7 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type 
 import { preloadPose, type Pose, type Tone } from "@/components/DemosArt";
 import { IntroDemos } from "@/components/IntroDemos";
 import { GOOGLE_BUTTON, GoogleMark } from "@/components/AuthForm";
-import { heroObject, objectSrc } from "@/lib/home";
+import { artBox, heroObject, objectSrc } from "@/lib/home";
 import {
   IconBars,
   IconBolt,
@@ -1269,6 +1269,7 @@ function PlanSteps({ label, steps }: { label: string; steps: PlanStep[] }) {
 function DayOne() {
   const first = nextLesson({});
   const family = dayOneFamily(first);
+  const object = heroObject(family, first?.lesson.tips[0]);
   return (
     /* 160 at the least, taller where the room has it (240 at most), so
        the month and its first day fill the screen over Next. 240, not
@@ -1280,11 +1281,14 @@ function DayOne() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- lesson art is a plain img (#274) */}
       <img
-        src={objectSrc(heroObject(family, first?.lesson.tips[0]))}
+        src={objectSrc(object)}
         alt=""
         width={72}
         height={72}
-        className="pointer-events-none absolute right-4 top-3 size-[72px] select-none"
+        /* On its family's disc, as Today stands it (`.object-disc`): the
+           object is drawn in the card's own hue. */
+        style={artBox(object) as React.CSSProperties}
+        className="object-disc pointer-events-none absolute right-4 top-3 size-[72px] select-none"
       />
       <div className="eyebrow text-[var(--stage-ink)]">Your first recording</div>
       <div className="font-display text-num-m font-extrabold">Day one starts today.</div>

@@ -258,10 +258,12 @@ for (const scene of SCENES) {
           end: Number(el.getAttribute("data-end-ms")),
           /* What the first frame drew, before anything was sought. */
           first: el.querySelector(".streak-count")?.textContent ?? null,
-          /* The flame's file was there for that frame (#496 review: the
-             large cut, fetched only as the moment mounted, left the slot
-             empty, and the reduced-motion end stood without its flame). */
-          flame: [...el.querySelectorAll(".streak-flame img")].map((i) => i.complete && i.naturalWidth > 0),
+          /* The flame was drawn on that frame (#496 review: the large 3D
+             cut, fetched only as the moment mounted, left the slot empty).
+             It is the inline flat drawing now: both flames (unlit and lit,
+             or the lit alone under reduced motion) are in the slot with
+             their shapes, never a file to wait for. */
+          flame: [...el.querySelectorAll(".streak-flame svg.fi")].map((i) => i.getBoundingClientRect().width > 0 && i.querySelector('[data-part="base"] path') !== null),
           animations: document.getAnimations().length,
         };
       });

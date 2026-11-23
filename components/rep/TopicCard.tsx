@@ -379,8 +379,8 @@ export function TopicCard({
               draggable={false}
               onLoad={() => setLoaded(true)}
               data-loaded={loaded || undefined}
-              /* Flat, on its disc (`.topic-art` in app/globals.css): no shadow. */
-              className="topic-art vt-shared absolute max-w-none origin-top-right select-none opacity-0 transition-opacity dur-max ease-out data-[loaded]:opacity-100"
+              /* Flat, on its disc (`.object-disc` in app/globals.css): no shadow. */
+              className="topic-art object-disc vt-shared absolute max-w-none origin-top-right select-none opacity-0 transition-opacity dur-max ease-out data-[loaded]:opacity-100"
               style={{
                 viewTransitionName: "practice-object",
                 width: "var(--s)",

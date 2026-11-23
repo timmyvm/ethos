@@ -168,7 +168,7 @@ describe("Today's card holds white type in every family", () => {
     /*
      * The lesson object on the card is drawn in its family's own hue, so
      * on the family's card it vanished (Pausing's blue on Pausing's blue,
-     * 1.05:1). It stands on a solid disc instead (`.home-hero-disc`): the
+     * 1.05:1). It stands on a solid disc instead (`.home-hero-art`): the
      * family's wash in light, its dark stage in dark, and the blurred lit
      * corner that stood behind the 3D object is gone from the card's fill
      * (it read as a smudge under a flat object). The family's base tone

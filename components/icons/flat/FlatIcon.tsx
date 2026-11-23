@@ -1,104 +1,34 @@
-import { useId } from "react";
-import { FLAT_ICONS, fitTransform, type FlatKind, type Shape } from "./geometry";
-import "./flat-icons.css";
+import { FlatDrawing } from "./FlatDrawing";
+import { STAT_ICONS, type StatFlatKind } from "./stat-drawings";
 
 /**
- * A flat icon (workbench only: app/workbench/icons is the one page that
- * draws these; nothing in the app does yet).
+ * A stat's flat icon: the streak's flame, XP's bolt, the best's cup, the
+ * freeze's snowflake, and Today's two games' marks (Hostile Q&A's struck
+ * bubble, the weekly boss's mountain). One look, variant A's: its own
+ * bright palette, the same in both themes (flat-icons.css).
  *
- * The same drawing in every variant: `variant` only names which set of
- * tones the CSS reads (`.fi-a`, `.fi-b` in flat-icons.css). Each layer is
- * its own named group (`data-part`: base, shade, light, and the object's
- * own parts), filled from `--fi-<kind>-<role>`, so a token swaps a tone
- * and a part can pop or bounce on its own without a raster.
+ * Stat kinds only, on purpose: this is the one a client component may
+ * import, and it reads stat-drawings.ts and nothing else, so the lessons'
+ * objects (lesson-drawings.ts, FlatLessonIcon) stay out of the browser.
  *
  * The size ladder: under 24px an icon is its base and shade only (the
  * light leaves, as Duolingo's own small art drops detail before it
- * blurs); a light thinner than 8u waits for 32px.
+ * blurs); the freeze's thin light waits for 32px.
  *
- * Decoration: `aria-hidden`, because the number or the name beside it
- * carries the words, as StatIcon's `alt=""` does.
- *
- *   <FlatIcon kind="streak" variant="b" size={22} lit={false} />
+ *   <FlatIcon kind="streak" size={22} lit={false} />
  */
 export function FlatIcon({
   kind,
-  variant,
   size = 24,
   lit = true,
   className = "",
 }: {
-  kind: FlatKind;
-  variant: "a" | "b";
+  kind: StatFlatKind;
   /** CSS px, square. */
   size?: number;
-  /** False draws the streak unlit (its own grey tones, not a filter). */
+  /** False draws it unlit: a day not yet spoken (its own grey tones, not a filter). */
   lit?: boolean;
   className?: string;
 }) {
-  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const def = FLAT_ICONS[kind];
-  const layers = def.layers.filter((l) => size >= (l.minPx ?? 0));
-  /* One clip per distinct list of parts: a shade stays inside the union of what it names. */
-  const clips = new Map<string, readonly string[]>();
-  for (const l of layers) if (l.clip) clips.set(l.clip.join("-"), l.clip);
-  const transform = fitTransform(def);
-  return (
-    <svg
-      viewBox="0 0 96 96"
-      width={size}
-      height={size}
-      aria-hidden
-      focusable="false"
-      data-kind={kind}
-      data-lit={lit ? undefined : "false"}
-      className={`fi fi-${variant} ${className}`}
-    >
-      <g transform={transform}>
-        {clips.size > 0 && (
-          <defs>
-            {[...clips].map(([key, parts]) => (
-              <clipPath key={key} id={`${uid}-${key}`}>
-                {def.layers
-                  .filter((m) => parts.includes(m.part))
-                  .flatMap((m) => m.shapes)
-                  .map((s, i) => (
-                    <ShapeEl key={i} s={s} />
-                  ))}
-              </clipPath>
-            ))}
-          </defs>
-        )}
-        {layers.map((l) => (
-          <g
-            key={l.part}
-            data-part={l.part}
-            fill={`var(--fi-${kind}-${l.tone})`}
-            clipPath={l.clip ? `url(#${uid}-${l.clip.join("-")})` : undefined}
-          >
-            {l.shapes.map((s, i) => (
-              <ShapeEl key={i} s={s} />
-            ))}
-          </g>
-        ))}
-      </g>
-    </svg>
-  );
-}
-
-function ShapeEl({ s }: { s: Shape }) {
-  if (s.kind === "circle") return <circle cx={s.cx} cy={s.cy} r={s.r} />;
-  if (s.kind === "path")
-    return <path d={s.d} fillRule={s.evenodd ? "evenodd" : undefined} clipRule={s.evenodd ? "evenodd" : undefined} />;
-  const r = s.r ?? Math.min(s.w, s.h) / 2;
-  return (
-    <rect
-      x={s.cx - s.w / 2}
-      y={s.cy - s.h / 2}
-      width={s.w}
-      height={s.h}
-      rx={r}
-      transform={s.angle ? `rotate(${s.angle} ${s.cx} ${s.cy})` : undefined}
-    />
-  );
+  return <FlatDrawing kind={kind} def={STAT_ICONS[kind]} size={size} lit={lit} className={className} />;
 }

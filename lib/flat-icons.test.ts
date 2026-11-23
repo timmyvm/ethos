@@ -1,39 +1,44 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { FLAT_ICONS, FLAT_KINDS } from "@/components/icons/flat/geometry";
+import { LESSONS } from "@/content/lessons";
+import {
+  FLAT_ICONS,
+  FLAT_KINDS,
+  LESSON_FAMILIES,
+  LESSON_FLAT_KINDS,
+  LESSON_ICONS,
+  LESSON_OBJECT_KIND,
+  STAT_FLAT_KINDS,
+  STAT_ICONS,
+  type FlatKind,
+} from "@/components/icons/flat/geometry";
 
 /*
  * The flat icons' drawings name colour roles; components/icons/flat/
- * flat-icons.css gives each variant its values. These hold the two
- * together: no layer may name a role a variant leaves undefined (it
- * would draw black), the unlit streak keeps a grey for every role its
- * layers name in both themes and holds on Today's chip, and B's target
- * stays a clean gold with a dart of another hue (the brown ochre and the
- * bone dart it replaced).
+ * flat-icons.css gives each role its value. These hold the two together:
+ * no layer may name a role the tone block leaves undefined (it would draw
+ * black), no tone may outlive its layer, every stat keeps a grey for every
+ * role it names in both themes (the unlit streak holding on Today's chip),
+ * the lessons' objects keep their families' tones, and the client never
+ * imports the lessons' drawings.
  */
 
 const root = path.resolve(__dirname, "..");
 const css = readFileSync(path.join(root, "components/icons/flat/flat-icons.css"), "utf8");
-const globals = readFileSync(path.join(root, "app/globals.css"), "utf8");
+
+const LIT = ".fi";
+const UNLIT = '.fi[data-lit="false"]';
+const UNLIT_DARK = ':root[data-theme="dark"] .fi[data-lit="false"]';
 
 /** The custom properties set in the rule whose selector is exactly `selector`. */
 function block(selector: string): Map<string, string> {
-  const at = css.indexOf(`${selector} {`);
+  const at = css.indexOf(`\n${selector} {`);
   expect(at, `no rule for ${selector}`).toBeGreaterThanOrEqual(0);
   const body = css.slice(css.indexOf("{", at) + 1, css.indexOf("}", at));
   const vars = new Map<string, string>();
   for (const m of body.matchAll(/(--fi-[\w-]+):\s*([^;]+);/g)) vars.set(m[1], m[2].trim());
   return vars;
-}
-
-/** A value as a hex colour, through `var(--color-…)` in app/globals.css where it points there. */
-function hex(value: string): string {
-  const v = value.match(/^var\((--[\w-]+)\)$/);
-  if (!v) return value;
-  const m = globals.match(new RegExp(`${v[1]}:\\s*(#[0-9a-fA-F]{6})`));
-  expect(m, `${v[1]} is not a hex in app/globals.css`).not.toBeNull();
-  return m![1];
 }
 
 function hsl(color: string) {
@@ -75,49 +80,131 @@ function grey(color: string): number {
   return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
 }
 
-const roles = (kind: keyof typeof FLAT_ICONS) => [...new Set(FLAT_ICONS[kind].layers.map((l) => l.tone))];
+const roles = (kind: FlatKind) => [...new Set(FLAT_ICONS[kind].layers.map((l) => l.tone))];
+const tone = (vars: Map<string, string>, kind: string, role: string) => vars.get(`--fi-${kind}-${role}`)!;
+
+describe("the flat set", () => {
+  it("is the six stats and the fifteen lessons' objects, each drawn once", () => {
+    expect(STAT_FLAT_KINDS).toEqual(["streak", "xp", "best", "freeze", "hostile", "boss"]);
+    expect(LESSON_FLAT_KINDS).toHaveLength(15);
+    expect(FLAT_KINDS).toHaveLength(21);
+    for (const k of STAT_FLAT_KINDS) expect(k in LESSON_ICONS, k).toBe(false);
+  });
+
+  it("names each layer once and clips only to parts it draws", () => {
+    for (const kind of FLAT_KINDS) {
+      const parts = FLAT_ICONS[kind].layers.map((l) => l.part);
+      expect(new Set(parts).size, `${kind} parts`).toBe(parts.length);
+      for (const l of FLAT_ICONS[kind].layers) for (const c of l.clip ?? []) expect(parts, `${kind} ${l.part} clips to ${c}`).toContain(c);
+    }
+  });
+
+  it("is one look: no variant B, no variant prop", () => {
+    expect(css).not.toMatch(/\.fi-[ab]\b/);
+    for (const file of ["FlatIcon.tsx", "FlatDrawing.tsx", "FlatLessonIcon.tsx"]) {
+      const src = readFileSync(path.join(root, "components/icons/flat", file), "utf8");
+      expect(src, file).not.toMatch(/\bvariant\??\s*:|variant=\{/);
+    }
+  });
+});
 
 describe("flat icon tones", () => {
-  it("every role a layer names is set in both variants", () => {
-    for (const variant of [".fi-a", ".fi-b"]) {
-      const vars = block(variant);
-      for (const kind of FLAT_KINDS) {
-        for (const tone of roles(kind)) expect(vars.has(`--fi-${kind}-${tone}`), `${variant} --fi-${kind}-${tone}`).toBe(true);
-      }
+  it("every role a layer names is set in the tone block", () => {
+    const vars = block(LIT);
+    for (const kind of FLAT_KINDS) {
+      for (const role of roles(kind)) expect(vars.has(`--fi-${kind}-${role}`), `--fi-${kind}-${role}`).toBe(true);
     }
   });
 
-  it("the unlit streak has a grey for every role its layers name, in both variants and both themes", () => {
-    const unlit = [
-      '.fi-a[data-lit="false"]',
-      ':root[data-theme="dark"] .fi-a[data-lit="false"]',
-      '.fi-b[data-lit="false"]',
-      ':root[data-theme="dark"] .fi-b[data-lit="false"]',
-    ];
-    for (const selector of unlit) {
+  it("every tone in the block is one a layer names", () => {
+    const named = new Set(FLAT_KINDS.flatMap((kind) => roles(kind).map((role) => `--fi-${kind}-${role}`)));
+    for (const key of block(LIT).keys()) expect(named.has(key), `${key} is drawn by no layer`).toBe(true);
+  });
+
+  it("every stat has a grey for every role it names, in both themes; the lessons' objects are never unlit", () => {
+    for (const selector of [UNLIT, UNLIT_DARK]) {
       const vars = block(selector);
-      for (const tone of roles("streak")) {
-        const value = vars.get(`--fi-streak-${tone}`);
-        expect(value, `${selector} --fi-streak-${tone}`).toBeDefined();
-        expect(chroma(hex(value!)), `${selector} ${tone} is a grey`).toBeLessThanOrEqual(12);
+      for (const kind of STAT_FLAT_KINDS) {
+        for (const role of roles(kind)) {
+          const value = vars.get(`--fi-${kind}-${role}`);
+          expect(value, `${selector} --fi-${kind}-${role}`).toBeDefined();
+          expect(chroma(value!), `${selector} ${kind} ${role} is a grey`).toBeLessThanOrEqual(12);
+        }
+      }
+      for (const kind of LESSON_FLAT_KINDS) {
+        for (const key of vars.keys()) expect(key.startsWith(`--fi-${kind}-`), `${selector} ${key}`).toBe(false);
       }
     }
   });
 
-  it("B's target is a saturated gold with a dart of another hue", () => {
-    const b = block(".fi-b");
-    const base = hsl(hex(b.get("--fi-target-base")!));
-    expect(base.s).toBeGreaterThanOrEqual(35);
-    expect(base.l).toBeGreaterThanOrEqual(40);
-    expect(base.l).toBeLessThanOrEqual(65);
-    expect(base.h).toBeGreaterThanOrEqual(35);
-    expect(base.h).toBeLessThanOrEqual(55);
-    const dart = hsl(hex(b.get("--fi-target-dart")!));
-    const apart = Math.min(Math.abs(dart.h - base.h), 360 - Math.abs(dart.h - base.h));
-    expect(apart).toBeGreaterThanOrEqual(90);
-    // The dark theme keeps the same target: no brown ring, no bone dart.
-    const dark = block(':root[data-theme="dark"] .fi-b');
-    for (const role of ["ring", "dart", "dart-shade"]) expect(dark.has(`--fi-target-${role}`)).toBe(false);
+  it("every unlit stat keeps the method's ramp: shade under the base, light over it", () => {
+    for (const selector of [UNLIT, UNLIT_DARK]) {
+      const vars = block(selector);
+      for (const kind of STAT_FLAT_KINDS) {
+        expect(grey(tone(vars, kind, "shade")), `${selector} ${kind}`).toBeLessThan(grey(tone(vars, kind, "base")));
+        if (roles(kind).includes("light")) expect(grey(tone(vars, kind, "light")), `${selector} ${kind}`).toBeGreaterThan(grey(tone(vars, kind, "base")));
+      }
+    }
+  });
+});
+
+describe("the lessons' objects", () => {
+  it("each lesson has its object, in its own trait's family", () => {
+    expect(Object.keys(LESSON_OBJECT_KIND).sort()).toEqual(LESSONS.map((l) => l.id).sort());
+    for (const lesson of LESSONS) {
+      const kind = LESSON_OBJECT_KIND[lesson.id];
+      const family = LESSON_FAMILIES.find((f) => f.kinds.includes(kind));
+      expect(family?.trait, `${lesson.id} -> ${kind}`).toBe(lesson.trait);
+    }
+    expect(new Set(Object.values(LESSON_OBJECT_KIND)).size).toBe(15);
+    expect(LESSON_FAMILIES.flatMap((f) => f.kinds).sort()).toEqual([...LESSON_FLAT_KINDS].sort());
+  });
+
+  it("share one tone set per family; the target keeps the set's red from the stat board", () => {
+    const vars = block(LIT);
+    for (const { trait, kinds } of LESSON_FAMILIES) {
+      const own = kinds.filter((k) => k !== "target");
+      const bases = new Set(own.map((k) => tone(vars, k, "base")));
+      expect(bases.size, `${trait}: ${[...bases].join(", ")}`).toBe(1);
+      const shades = new Set(own.map((k) => tone(vars, k, "shade")));
+      expect(shades.size, `${trait} shades`).toBe(1);
+    }
+    expect(tone(vars, "target", "base")).toBe(tone(vars, "gauge", "needle"));
+  });
+
+  it("take the set's one gold wherever a gold appears", () => {
+    const vars = block(LIT);
+    for (const kind of LESSON_FLAT_KINDS) {
+      for (const role of roles(kind)) {
+        const c = hsl(tone(vars, kind, role));
+        const gold = c.h >= 36 && c.h <= 52 && c.s >= 80 && c.l >= 40 && c.l <= 62;
+        if (gold) expect(["#ffb914", "#eb9c00"], `${kind} ${role}`).toContain(tone(vars, kind, role));
+      }
+    }
+  });
+
+  it("stay out of the client: FlatIcon's imports never reach the lessons' drawings", () => {
+    /** Every file a source file imports, transitively, through relative and @/ paths. */
+    function graph(file: string, seen = new Set<string>()): Set<string> {
+      if (seen.has(file)) return seen;
+      seen.add(file);
+      const src = readFileSync(file, "utf8");
+      for (const m of src.matchAll(/(?:^|\n)\s*(?:import|export)\s(?:[^"']*?\sfrom\s)?["']([^"']+)["']/g)) {
+        const spec = m[1];
+        if (!spec.startsWith(".") && !spec.startsWith("@/")) continue;
+        const base = spec.startsWith("@/") ? path.join(root, spec.slice(2)) : path.resolve(path.dirname(file), spec);
+        const hit = [base, `${base}.ts`, `${base}.tsx`, path.join(base, "index.ts")].find((p) => existsSync(p) && !p.endsWith("/"));
+        if (hit && /\.tsx?$/.test(hit)) graph(hit, seen);
+      }
+      return seen;
+    }
+    const flat = path.join(root, "components/icons/flat");
+    const reached = [...graph(path.join(flat, "FlatIcon.tsx"))].map((f) => path.relative(flat, f));
+    expect(reached).toContain("stat-drawings.ts");
+    expect(reached).not.toContain("lesson-drawings.ts");
+    expect(reached).not.toContain("geometry.ts");
+    // And the test can see an import when there is one.
+    expect([...graph(path.join(flat, "FlatLessonIcon.tsx"))].map((f) => path.relative(flat, f))).toContain("lesson-drawings.ts");
   });
 });
 
@@ -127,30 +214,17 @@ describe("flat icon tones", () => {
  * These are the greys that have to hold there.
  */
 const CHIP = { light: ["#f4f4f4", "#efedea"], dark: ["#1c1c1c"] };
-const UNLIT = [
-  { variant: ".fi-a", theme: "light", selector: '.fi-a[data-lit="false"]' },
-  { variant: ".fi-a", theme: "dark", selector: ':root[data-theme="dark"] .fi-a[data-lit="false"]' },
-  { variant: ".fi-b", theme: "light", selector: '.fi-b[data-lit="false"]' },
-  { variant: ".fi-b", theme: "dark", selector: ':root[data-theme="dark"] .fi-b[data-lit="false"]' },
+const THEMES = [
+  { theme: "light", selector: UNLIT },
+  { theme: "dark", selector: UNLIT_DARK },
 ] as const;
 
-/** The tones a selector draws the streak in, falling back to the variant's own (and B's dark lit block). */
-function streakTones(selector: string, variant: string, theme: "light" | "dark") {
-  const own = block(selector);
-  const lit = block(variant);
-  const dark = theme === "dark" && variant === ".fi-b" ? block(':root[data-theme="dark"] .fi-b') : new Map<string, string>();
-  const pick = (role: string) => {
-    const key = `--fi-streak-${role}`;
-    const v = own.get(key) ?? dark.get(key) ?? lit.get(key);
-    if (v === "var(--streak)") {
-      // --streak moves with the theme in app/globals.css: the first value is light, the second dark.
-      const all = [...globals.matchAll(/--streak:\s*(#[0-9a-fA-F]{6})/g)].map((m) => m[1]);
-      return theme === "dark" ? all[1] : all[0];
-    }
-    return hex(v!);
-  };
-  return { base: pick("base"), shade: pick("shade"), inner: pick("inner"), light: pick("light") };
-}
+const flameTones = (vars: Map<string, string>) => ({
+  base: tone(vars, "streak", "base"),
+  shade: tone(vars, "streak", "shade"),
+  inner: tone(vars, "streak", "inner"),
+  light: tone(vars, "streak", "light"),
+});
 
 /** The flame's mean Greyscale lightness at 20px (no light): its layers by the share of the silhouette each covers. */
 const SHARE = { base: 0.725, shade: 0.162, inner: 0.113 };
@@ -159,8 +233,8 @@ const meanGrey = (t: { base: string; shade: string; inner: string }) =>
 
 describe("the unlit streak on Today's chip", () => {
   it("holds its shape: the base 3:1 or more on the chip, the inner tongue near it", () => {
-    for (const { variant, theme, selector } of UNLIT) {
-      const t = streakTones(selector, variant, theme);
+    for (const { theme, selector } of THEMES) {
+      const t = flameTones(block(selector));
       for (const chip of CHIP[theme]) {
         expect(contrast(t.base, chip), `${selector} base on ${chip}`).toBeGreaterThanOrEqual(3);
         expect(contrast(t.inner, chip), `${selector} inner on ${chip}`).toBeGreaterThanOrEqual(2.8);
@@ -169,8 +243,8 @@ describe("the unlit streak on Today's chip", () => {
   });
 
   it("keeps the method's ramp: shade darker than the base, inner and light lighter, in that order", () => {
-    for (const { variant, theme, selector } of UNLIT) {
-      const t = streakTones(selector, variant, theme);
+    for (const { selector } of THEMES) {
+      const t = flameTones(block(selector));
       expect(grey(t.shade), selector).toBeLessThan(grey(t.base));
       expect(grey(t.inner), selector).toBeGreaterThan(grey(t.base));
       expect(grey(t.light), selector).toBeGreaterThan(grey(t.inner));
@@ -178,22 +252,28 @@ describe("the unlit streak on Today's chip", () => {
   });
 
   it("is dimmer than the lit flame in Greyscale, by 30 in the light theme (the app's own unlit rule)", () => {
-    for (const { variant, theme, selector } of UNLIT) {
-      const lit = streakTones(variant, variant, theme);
-      const unlit = streakTones(selector, variant, theme);
+    const lit = flameTones(block(LIT));
+    for (const { theme, selector } of THEMES) {
+      const unlit = flameTones(block(selector));
       const gap = meanGrey(lit) - meanGrey(unlit);
       expect(gap, `${selector}: lit ${meanGrey(lit).toFixed(0)}, unlit ${meanGrey(unlit).toFixed(0)}`).toBeGreaterThan(0);
-      // B is Ethos's own and holds 30 in both themes. A's orange is itself a mid grey, so in the
-      // dark theme it can hold 3:1 on the chip or 30 under the lit flame, not both: it keeps the 3:1.
-      if (theme === "light" || variant === ".fi-b") expect(gap, selector).toBeGreaterThanOrEqual(30);
+      // The orange is itself a mid grey, so in the dark theme the flame can hold 3:1 on
+      // the chip or 30 under the lit flame, not both: it keeps the 3:1.
+      if (theme === "light") expect(gap, selector).toBeGreaterThanOrEqual(30);
     }
+  });
+
+  it("the unlit cup (You's best) is dimmer than the lit one by 30 in the light theme", () => {
+    const lit = block(LIT);
+    const unlit = block(UNLIT);
+    expect(grey(tone(lit, "best", "base")) - grey(tone(unlit, "best", "base"))).toBeGreaterThanOrEqual(30);
   });
 });
 
 describe("the streak flame", () => {
   it("is one silhouette with its shade, inner tongue and light clipped inside it", () => {
-    const [base, shade, inner, light] = FLAT_ICONS.streak.layers;
-    expect(FLAT_ICONS.streak.layers).toHaveLength(4);
+    const [base, shade, inner, light] = STAT_ICONS.streak.layers;
+    expect(STAT_ICONS.streak.layers).toHaveLength(4);
     expect(base).toMatchObject({ part: "base", tone: "base" });
     expect(base.shapes).toHaveLength(1);
     expect(shade).toMatchObject({ part: "shade", tone: "shade", clip: ["base"] });
@@ -201,12 +281,12 @@ describe("the streak flame", () => {
     expect(inner).toMatchObject({ part: "inner", tone: "inner", clip: ["base"] });
     expect(inner.minPx).toBeUndefined();
     expect(light).toMatchObject({ part: "light", tone: "light", clip: ["base"], minPx: 24 });
-    // The light is 12u wide, the set's smallest feature.
-    expect(light.shapes[0]).toMatchObject({ kind: "pill", w: 12 });
+    // The light is a slim streak, 8 by 19, as slim as the cup's and the bolt's.
+    expect(light.shapes[0]).toMatchObject({ kind: "pill", w: 8, h: 19 });
   });
 
   it("is drawn from arcs only, with tips no rounder than the method allows and none sharper", () => {
-    const shape = FLAT_ICONS.streak.layers[0].shapes[0];
+    const shape = STAT_ICONS.streak.layers[0].shapes[0];
     expect(shape.kind).toBe("path");
     const d = (shape as { d: string }).d;
     expect(d, "no straight side").not.toMatch(/[LlHhVvCcQqSsTt]/);
@@ -217,16 +297,14 @@ describe("the streak flame", () => {
   });
 
   it("has a tone for its inner tongue lighter and warmer than the base, darker than the light", () => {
-    for (const variant of [".fi-a", ".fi-b"]) {
-      const v = block(variant);
-      const base = hsl(hex(v.get("--fi-streak-base")!));
-      const inner = hsl(hex(v.get("--fi-streak-inner")!));
-      const light = hsl(hex(v.get("--fi-streak-light")!));
-      expect(inner.l, variant).toBeGreaterThan(base.l);
-      expect(inner.l, variant).toBeLessThan(light.l);
-      expect(inner.h, `${variant} warmer`).toBeGreaterThan(base.h);
-      // An amber, not a lemon yellow.
-      expect(inner.h, variant).toBeLessThanOrEqual(45);
-    }
+    const v = block(LIT);
+    const base = hsl(tone(v, "streak", "base"));
+    const inner = hsl(tone(v, "streak", "inner"));
+    const light = hsl(tone(v, "streak", "light"));
+    expect(inner.l).toBeGreaterThan(base.l);
+    expect(inner.l).toBeLessThan(light.l);
+    expect(inner.h, "warmer").toBeGreaterThan(base.h);
+    // An amber, not a lemon yellow.
+    expect(inner.h).toBeLessThanOrEqual(45);
   });
 });

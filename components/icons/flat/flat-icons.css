@@ -1,34 +1,31 @@
 /*
- * The flat icons' tones (workbench only, app/workbench/icons).
+ * The flat icons' tones.
  *
- * Every layer of components/icons/flat/geometry.ts fills with
- * `var(--fi-<kind>-<role>)`, so a variant is nothing but these values.
- * Three tones per colour, hard edges: base, shade (same hue, about 9
- * points darker in HSL lightness, saturation held), light (20 points or
- * more lighter, a few degrees warmer). Never a grey mixed in, never a
- * gradient, never a blur. Lightness is HSL's, the measure Duolingo's own
- * pairs were read in (#58CC02 to #58A700 is 7.6 points). The flame alone
- * has a fourth, `inner`: its inner tongue, between the base and the light,
- * a few degrees warmer (an amber, never a lemon yellow).
+ * Every layer of the drawings (components/icons/flat/stat-drawings.ts and
+ * lesson-drawings.ts) fills with `var(--fi-<kind>-<role>)`; these are the
+ * values. One look, variant A's: a bright saturated palette of its own (no
+ * Duolingo hex), the same in both themes. Three tones per colour, hard
+ * edges: base, shade (same hue, 7 to 10 points darker in HSL lightness,
+ * saturation held), light (20 points or more lighter, a few degrees
+ * warmer). Never a grey mixed in, never a gradient, never a blur. The
+ * flame alone has a fourth, `inner`: its inner tongue, between the base
+ * and the light, a few degrees warmer (an amber, never a lemon yellow).
  *
- * A, studied: the rules at full strength, a bright saturated palette of
- * its own (no Duolingo hex), the same in both themes, a near-white light.
+ * The lessons' objects take one tone set per trait family, and the set's
+ * one gold (#ffb914, shade #eb9c00) where an object takes a second
+ * colour. Hostile's bolt keeps its own brighter yellow: the shared gold
+ * went muddy on the coral bubble.
  *
- * B, Ethos: the same drawings in the app's own tokens: the streak's
- * orange and XP's orchid (both moving with the theme), the earned gold
- * (the cup, and the target with the sun's wash for its ring), the
- * introduction's sky, Pausing's blue and wash (the hourglass, and the
- * target's dart). Its light is a tint, never white.
+ * lib/flat-icons.test.ts holds every role a layer names to a value here,
+ * and every stat role to a grey in both unlit blocks.
  */
 
 .fi {
   display: block;
   flex: none;
   overflow: visible;
-}
 
-/* ---------------------------------- A ---------------------------------- */
-.fi-a {
+  /* ------------------------------ The stats ------------------------------ */
   --fi-streak-base: #ff661a; /* hsl(20 100 55) */
   --fi-streak-shade: #eb4200; /* L 46 */
   --fi-streak-light: #ffc17a; /* L 74 */
@@ -42,119 +39,170 @@
   --fi-freeze-base: #25b9f4; /* hsl(197 90 55) */
   --fi-freeze-shade: #1097da; /* L 46 */
   --fi-freeze-light: #b3f2ff; /* L 85 */
+  --fi-hostile-base: #f7614a; /* hsl(8 92 63) */
+  --fi-hostile-shade: #ec3b27; /* L 54 */
+  --fi-hostile-light: #ffc0ad;
+  --fi-hostile-bolt: #ffce1f; /* hsl(47 100 56): kept, not the lesson objects' #ffb914, which went muddy on the coral */
+  --fi-boss-base: #2c9ced; /* hsl(205 84 55) */
+  --fi-boss-shade: #1a7ed1; /* L 46 */
+  --fi-boss-snow: #bde3ff; /* hsl(205 100 87): pale blue snow, so the cap keeps its edge on white (#ffffff vanished into the ground) */
+  --fi-boss-pole: #1a7ed1;
+  --fi-boss-flag: #f03847;
+
+  /* ------------------- Pausing: blue, and the set's gold ------------------ */
+  /* The two-second pause: an hourglass */
+  --fi-hourglass-base: #3463ef; /* hsl(225 85 57) */
+  --fi-hourglass-shade: #1b47da; /* L 48 */
+  --fi-hourglass-glass: #cce4ff; /* L 90 */
+  --fi-hourglass-sand: #ffb914; /* hsl(42 100 54), the set's one gold */
+  --fi-hourglass-light: #ffffff;
+  /* Pause between sentences: the pause sign and a full stop */
+  --fi-pause-base: #3463ef; /* hsl(225 85 57), the hourglass's blue */
+  --fi-pause-shade: #1b47da; /* hsl(226 78 48), L 48 */
+  --fi-pause-light: #b3c9ff; /* hsl(223 100 85) */
+  --fi-pause-dot: #ffb914; /* hsl(42 100 54), the set's one gold (the hourglass's sand) */
+  --fi-pause-dot-shade: #eb9c00; /* hsl(40 100 46), L 46 */
+  /* Finish, then go quiet: a ball in a bowl, the ball in the family's light blue */
+  --fi-bowl-base: #3463ef; /* hsl(225 85 57) */
+  --fi-bowl-shade: #1b47da; /* hsl(226 78 48), L 48: the bowl's right and its mouth */
+  --fi-bowl-ball: #80a4ff; /* hsl(223 100 75), the family's light blue */
+  --fi-bowl-ball-shade: #5c87ff; /* hsl(224 100 68), L 68 */
+  --fi-bowl-light: #ccdaff; /* hsl(224 100 90), on the ball */
+
+  /* ------------------------------ Fillers: pink ----------------------------- */
+  /* Your first sentence: an open door; the room through it is the family's own deepest wine, not a second hue */
+  --fi-door-base: #f43474; /* hsl(340 90 58): the leaf */
+  --fi-door-shade: #ed0c57; /* hsl(340 90 49), L 49: the frame */
+  --fi-door-light: #ffb3c9; /* hsl(343 100 85): the knob, and the leaf's light */
+  --fi-door-inside: #521429; /* hsl(340 61 20): the room through the door */
+  /* The closed mouth: a zip, its slider and pull in the set's gold */
+  --fi-zipper-base: #f43474; /* hsl(340 90 58) */
+  --fi-zipper-shade: #ed0c57; /* hsl(340 90 49), L 49 */
+  --fi-zipper-light: #ffb3c9; /* hsl(343 100 85) */
+  --fi-zipper-teeth: #ffb3c9; /* hsl(343 100 85): the teeth, tone on tone, every size */
+  --fi-zipper-metal: #ffb914; /* hsl(42 100 54), the set's one gold: slider and pull */
+  --fi-zipper-metal-shade: #eb9c00; /* hsl(40 100 46), L 46: the slider's right */
+  /* The word you overuse: a magnifying glass */
+  --fi-magnifier-base: #f43474; /* hsl(340 90 58): Fillers' one pink, the door's and the zipper's */
+  --fi-magnifier-shade: #ed0c57; /* hsl(340 90 49), L 49 */
+  --fi-magnifier-lens: #fdcede; /* hsl(340 92 90): the lens, a pale tint of the family */
+  --fi-magnifier-light: #ffffff; /* the glint on the lens: the magnifier's white stays white */
+
+  /* ----------------------------- Repairs: orange ---------------------------- */
+  /* Finish it anyway: a chequered flag */
+  --fi-flag-base: #ff8e14; /* hsl(31 100 54), Repairs' orange: the cloth and the pole */
+  --fi-flag-shade: #e67700; /* hsl(31 100 45): 9 points under, the fold and the pole's right */
+  --fi-flag-light: #ffd39e; /* hsl(33 100 81): the family's light, the arrow's too */
+  --fi-flag-check: #ffffff; /* the checks, the second colour */
+  --fi-flag-check-shade: #ffe6c7; /* hsl(33 100 89): a check past the fold */
+  /* Fix it after: a swerving arrow */
+  --fi-arrow-base: #ff8e14; /* hsl(31 100 54) */
+  --fi-arrow-shade: #e67700; /* hsl(31 100 45), L 45: the band's right third */
+  --fi-arrow-light: #ffd39e; /* hsl(33 100 81) */
+  /* Know how it ends: a target with a dart, drawn for the stat board and kept in the set's red */
   --fi-target-base: #f24536; /* hsl(5 88 58) */
   --fi-target-shade: #e32116; /* L 49 */
   --fi-target-ring: #ffffff;
   --fi-target-light: #ffb6a3; /* L 82 */
   --fi-target-dart: #2744a5; /* hsl(226 62 40) */
   --fi-target-dart-shade: #1f3384; /* L 32 */
-  --fi-hourglass-base: #3463ef; /* hsl(225 85 57) */
-  --fi-hourglass-shade: #1b47da; /* L 48 */
-  --fi-hourglass-glass: #cce4ff; /* L 90 */
-  --fi-hourglass-sand: #ffb914; /* hsl(42 100 54) */
-  --fi-hourglass-light: #ffffff;
-  --fi-hostile-base: #f7614a; /* hsl(8 92 63) */
-  --fi-hostile-shade: #ec3b27; /* L 54 */
-  --fi-hostile-light: #ffc0ad;
-  --fi-hostile-bolt: #ffce1f;
-  --fi-boss-base: #2c9ced; /* hsl(205 84 55) */
-  --fi-boss-shade: #1a7ed1; /* L 46 */
-  --fi-boss-snow: #ffffff;
-  --fi-boss-pole: #1a7ed1;
-  --fi-boss-flag: #f03847;
+
+  /* ------------------------------- Pace: green ------------------------------ */
+  /* Slow your main point: a speed gauge */
+  --fi-gauge-base: #1fc165; /* hsl(146 72 44) */
+  --fi-gauge-shade: #18a053; /* hsl(146 74 36) */
+  --fi-gauge-light: #99f5b9; /* hsl(141 82 78) */
+  --fi-gauge-face: #e3fcee; /* hsl(146 81 94): the dial's face */
+  --fi-gauge-needle: #f24536; /* hsl(5 88 58): the one second colour, the set's red (the target's base) */
+  /* Change speed once: a gear stick */
+  --fi-gearstick-base: #1fc165; /* hsl(146 72 44), Pace's green */
+  --fi-gearstick-shade: #18a053; /* hsl(146 74 36): 8 points under */
+  --fi-gearstick-light: #99f5b9; /* hsl(141 82 78) */
+  --fi-gearstick-gate: #c9fadd; /* hsl(144 83 88): the H on the knob, a pale tint of the family */
+  /* Let it sink in: a road */
+  --fi-road-base: #1fc165; /* hsl(146 72 44) */
+  --fi-road-shade: #18a053; /* hsl(146 74 36): the right verge */
+  --fi-road-line: #ffffff; /* the edge lines and the dashes */
+
+  /* ------------------------------ Range: violet ----------------------------- */
+  /* Name it once: a name tag; the violet clear of XP's orchid (280) */
+  --fi-tag-base: #8b4ef4; /* hsl(262 88 63) */
+  --fi-tag-shade: #702aea; /* hsl(262 82 54), L 54: the tag's right long side */
+  --fi-tag-light: #c5a3ff; /* hsl(262 100 82) */
+  --fi-tag-eyelet: #c5a3ff; /* the light's tint: the ring round the hole, at every size */
+  /* Same idea, new words: a boomerang */
+  --fi-boomerang-base: #8b4ef4; /* hsl(262 88 63) */
+  --fi-boomerang-shade: #702aea; /* hsl(262 82 54), L 54: each arm's inner half */
+  --fi-boomerang-light: #c5a3ff; /* hsl(262 100 82) */
+  /* The actual thing: a cube, its three faces the three tones */
+  --fi-cube-base: #8b4ef4; /* hsl(262 88 63), the left face */
+  --fi-cube-shade: #702aea; /* hsl(262 82 54), L 54, the right face */
+  --fi-cube-light: #c5a3ff; /* hsl(262 100 82), the top face */
 }
-/* The unlit streak (Today's open chip, 20px on the surface step). One
-   warm grey ramp, hsl(30 3.5 L): shade 8 points under the base, inner 8
-   over, light 22 over. Light: the base 3:1 or more on the chip (#f4f4f4,
-   and the warmer #efedea), and the whole flame at least 30 darker than the
-   lit one in Greyscale (the app's own unlit rule, lib/stat-icons.test.ts),
-   so A, whose orange is itself a mid grey, goes darker than B. Dark: the
-   base 3:1 on #1c1c1c, dimmer than the lit flame. */
-.fi-a[data-lit="false"] {
+
+/* Unlit: a stat on a day not yet earned (Today's open chip at 20px on the
+   surface step, You's numbers at 22). One warm grey ramp, hsl(30 3.5 L),
+   for every stat: shade 8 points under the base, inner 8 over, light 22
+   over; a second colour takes the ramp's lighter steps (the bolt and the
+   snow the light, the pennant the inner). Light: the base 3:1 or more on
+   the chip (#f4f4f4, and the warmer #efedea), and the flame at least 30
+   darker than the lit one in Greyscale (the app's own unlit rule,
+   lib/stat-icons.test.ts). Dark: the base 3:1 on #1c1c1c, dimmer than the
+   lit flame. The lessons' objects are never unlit. */
+.fi[data-lit="false"] {
   --fi-streak-base: #64615e; /* L 38, 5.6:1 on #f4f4f4 */
   --fi-streak-shade: #4f4d4a;
   --fi-streak-inner: #797571;
   --fi-streak-light: #9d9995;
+  --fi-xp-base: #64615e;
+  --fi-xp-shade: #4f4d4a;
+  --fi-xp-light: #9d9995;
+  --fi-best-base: #64615e;
+  --fi-best-shade: #4f4d4a;
+  --fi-best-light: #9d9995;
+  --fi-freeze-base: #64615e;
+  --fi-freeze-shade: #4f4d4a;
+  --fi-freeze-light: #9d9995;
+  --fi-hostile-base: #64615e;
+  --fi-hostile-shade: #4f4d4a;
+  --fi-hostile-light: #9d9995;
+  --fi-hostile-bolt: #9d9995;
+  --fi-boss-base: #64615e;
+  --fi-boss-shade: #4f4d4a;
+  --fi-boss-snow: #9d9995;
+  --fi-boss-pole: #4f4d4a;
+  --fi-boss-flag: #797571;
 }
-:root[data-theme="dark"] .fi-a[data-lit="false"] {
+:root[data-theme="dark"] .fi[data-lit="false"] {
   --fi-streak-base: #6c6965; /* L 41, 3.1:1 on #1c1c1c */
   --fi-streak-shade: #575451;
   --fi-streak-inner: #817d79;
   --fi-streak-light: #a4a19d;
+  --fi-xp-base: #6c6965;
+  --fi-xp-shade: #575451;
+  --fi-xp-light: #a4a19d;
+  --fi-best-base: #6c6965;
+  --fi-best-shade: #575451;
+  --fi-best-light: #a4a19d;
+  --fi-freeze-base: #6c6965;
+  --fi-freeze-shade: #575451;
+  --fi-freeze-light: #a4a19d;
+  --fi-hostile-base: #6c6965;
+  --fi-hostile-shade: #575451;
+  --fi-hostile-light: #a4a19d;
+  --fi-hostile-bolt: #a4a19d;
+  --fi-boss-base: #6c6965;
+  --fi-boss-shade: #575451;
+  --fi-boss-snow: #a4a19d;
+  --fi-boss-pole: #575451;
+  --fi-boss-flag: #817d79;
 }
 
-/* ---------------------------------- B ---------------------------------- */
-.fi-b {
-  --fi-streak-base: var(--streak); /* #ff8a00 */
-  --fi-streak-shade: #d16900;
-  --fi-streak-light: #ffc766;
-  --fi-streak-inner: #ffb53d; /* hsl(37 100 62): an amber, never a lemon */
-  --fi-xp-base: var(--xp); /* #ad22dd */
-  --fi-xp-shade: #8c1cb5;
-  --fi-xp-light: #e289f5;
-  --fi-best-base: var(--color-amber); /* #e0a800, the earned gold */
-  --fi-best-shade: #b38000;
-  --fi-best-light: #ffd83d;
-  --fi-freeze-base: #3ea7e0; /* the sky, at an object's strength */
-  --fi-freeze-shade: #2688c5;
-  --fi-freeze-light: #a8daf5; /* --pop-sky */
-  /* The target in the earned gold, its rings split by the sun's wash as A's
-     are by white, and the dart in Pausing's blue, the set's own blue
-     (the hourglass), so it crosses the gold the way A's navy crosses red.
-     The ochre and its ink read brown, and a bone dart on it read as a bone. */
-  --fi-target-base: var(--color-amber); /* #e0a800, hsl(45 100 44) */
-  --fi-target-shade: #b38000; /* the cup's shade, L 35 */
-  --fi-target-ring: #fff1c9; /* --pop-sun-wash */
-  --fi-target-light: #ffd166; /* --pop-sun, L 70 */
-  --fi-target-dart: #2f5fe0; /* Pausing's tone, hsl(224 74 53) */
-  --fi-target-dart-shade: #1f4bc1; /* its shade, L 44 */
-  --fi-hourglass-base: #2f5fe0; /* Pausing's tone */
-  --fi-hourglass-shade: #1f4bc1;
-  --fi-hourglass-glass: #e6edff; /* its wash */
-  --fi-hourglass-sand: var(--color-amber);
-  --fi-hourglass-light: #ffffff;
-  --fi-hostile-base: #f47052; /* coral at an object's strength */
-  --fi-hostile-shade: #e64e33;
-  --fi-hostile-light: #ffd2c6;
-  --fi-hostile-bolt: #ffd166; /* --pop-sun */
-  --fi-boss-base: #3ea7e0;
-  --fi-boss-shade: #2688c5;
-  --fi-boss-snow: #ffffff;
-  --fi-boss-pole: #2688c5;
-  --fi-boss-flag: #c0432a; /* --pop-coral-ink */
-}
-.fi-b[data-lit="false"] {
-  --fi-streak-base: #797571; /* L 46, 4.2:1 on #f4f4f4 */
-  --fi-streak-shade: #64615e;
-  --fi-streak-inner: #8e8a86; /* 3.1:1: the foot's lower left is drawn in it */
-  --fi-streak-light: #b0adab;
-}
-:root[data-theme="dark"] .fi-b {
-  --fi-streak-shade: #db7900;
-  --fi-streak-inner: #ffc247; /* hsl(40 100 64) */
-  --fi-streak-light: #ffcf70;
-  --fi-xp-shade: #b757ea;
-  --fi-xp-light: #edb8ff;
-}
-:root[data-theme="dark"] .fi-b[data-lit="false"] {
-  --fi-streak-base: #77736f; /* L 45, 3.6:1 on #1c1c1c */
-  --fi-streak-shade: #625e5b;
-  --fi-streak-inner: #8b8783;
-  --fi-streak-light: #aeaba8;
-}
-
-/* Today's games' rows on the board: under a flat mark the pool is a flat
-   pill, darker than the ground it falls on, never a blurred oval (the
-   studied rule 9). The app's own rows keep their soft pool. */
+/* Today's game rows: no pool under a flat mark. The flat pill, set at the
+   3D cut's --foot (0.875), hung 4px under the bubble's body (which ends at
+   0.77) and across its tail: the pale band at 44 to 56px (#050505 in dark).
+   Under the mountain it showed as a plinth narrower than the base, the
+   "triangle on a stand". */
 .home-mode[data-flat] .home-mode-art::before {
-  left: 22%;
-  right: 22%;
-  height: 8px;
-  top: calc(var(--foot) * var(--mark) - 3px);
-  border-radius: 999px;
-  background: var(--color-sand);
-  z-index: -1;
-}
-:root[data-theme="dark"] .home-mode[data-flat] .home-mode-art::before {
-  background: #050505;
+  content: none;
 }

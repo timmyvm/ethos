@@ -57,8 +57,11 @@ export function SayCard({ quiet = false }: { quiet?: boolean }) {
 
   return (
     <section aria-labelledby="say-card-title" data-look="say-card" className="card elev-2 relative mt-5 overflow-hidden p-5">
-      {/* The boomerang, standing in the card's corner, as Today's card stands its object. */}
-      <SayArt className="pointer-events-none absolute -top-1 right-2 size-[92px]" />
+      {/* The boomerang, standing in the card's corner, as Today's card
+          stands its object. The flat drawing fills its square to the
+          edge (the 3D cut had air of its own), so it stands 12px down,
+          its top level with the title's, not on the card's edge. */}
+      <SayArt className="pointer-events-none absolute top-3 right-2 size-[88px]" />
       <h2 id="say-card-title" className="section-head pr-24">
         Say it better
       </h2>

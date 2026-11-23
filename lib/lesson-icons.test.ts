@@ -105,7 +105,11 @@ describe("the lesson icons", () => {
     for (const lesson of LESSONS) {
       boxes[lesson.id] = visibleBox(await raster(files[`public${lesson.art}`], MEASURE_PX), MEASURE_PX);
       const b = ART_BOUNDS[lesson.id];
-      for (const k of ["l", "t", "r", "b"] as const) expect(Math.abs(b[k] - boxes[lesson.id][k]), `${lesson.id} ${k}`).toBeLessThan(0.004);
+      for (const k of ["l", "t", "r", "b", "reach"] as const) expect(Math.abs(b[k] - boxes[lesson.id][k]), `${lesson.id} ${k}`).toBeLessThan(0.004);
+      // The reach (the disc the object stands in is sized by it) is past half the box's longer side and inside its half-diagonal.
+      const [w, h] = [b.r - b.l, b.b - b.t];
+      expect(b.reach, lesson.id).toBeGreaterThanOrEqual(Math.max(w, h) / 2 - 0.004);
+      expect(b.reach, lesson.id).toBeLessThanOrEqual(Math.hypot(w, h) / 2 + 0.004);
       // Inside its square, the long side 84 to 88u of 96 as the set is drawn.
       for (const v of [b.l, b.t]) expect(v, lesson.id).toBeGreaterThan(0.03);
       for (const v of [b.r, b.b]) expect(v, lesson.id).toBeLessThan(0.97);

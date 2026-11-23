@@ -83,8 +83,9 @@ export function LessonArt({
       {/* The flat object, a vector on its 96u square. It fills 84 to 88u
           of the square, so on the tile it stands 12% in from every edge,
           the tile's own margin (at 44 the target and the flag met the
-          tile's edges); on a stage it takes the square, standing in the
-          light. */}
+          tile's edges); on a stage it stands 10% in, inside the light
+          (at the full square the zip ran past the halo to 8px off the
+          stage's foot). */}
       <img
         src={lesson.art}
         alt=""
@@ -92,7 +93,7 @@ export function LessonArt({
         decoding="async"
         width={96}
         height={96}
-        className={`absolute inset-0 h-full w-full object-contain ${stage ? "" : "p-[12%]"}`}
+        className={`absolute inset-0 h-full w-full object-contain ${stage ? "p-[10%]" : "p-[12%]"}`}
       />
     </span>
   );

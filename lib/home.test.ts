@@ -106,16 +106,16 @@ describe("every practice has its object", () => {
 });
 
 /*
- * The fix round's object placement: every object is stood by the box
- * its visible pixels fill (lib/lesson-art-bounds.ts), inside the card's
- * object zone (`.home-hero` in app/globals.css). The zone's edges are
- * read from the CSS and evaluated at 320 and 390, and every one of the
- * fifteen must rise out of the card by the same distance, keep 12px or
- * more clear of the words' column, end above the topic and stay inside
- * the card's edge. (The browser check of the same, pixel by pixel, is
- * the fix round's objects.mjs; this holds the numbers it relied on.)
+ * The object's placement: every object stands inside its disc in the
+ * card's object zone (`.home-hero` and `.home-hero-art` in
+ * app/globals.css, #516), sized by its reach (lib/lesson-art-bounds.ts).
+ * The zone's edges are read from the CSS and evaluated at 320 and 390:
+ * the disc rises out of the card by the same distance, keeps 12px or
+ * more clear of the words' column, ends above the topic and stays
+ * inside the card's edge, and every one of the fifteen stands inside it
+ * with the same air.
  */
-describe("every object stands in the card's zone, by its visible box", () => {
+describe("every object stands inside its disc in the card's zone", () => {
   const css = readFileSync(path.join(root, "app", "globals.css"), "utf8");
   const home = css.slice(css.indexOf("/* the home (#393) */"), css.indexOf("end of the home (#393)"));
   const heroBlock = home.slice(home.indexOf("\n.home-hero {"), home.indexOf("}", home.indexOf("\n.home-hero {")));
@@ -135,12 +135,20 @@ describe("every object stands in the card's zone, by its visible box", () => {
         .replace(/([\d.]+)cqw/g, (_, n) => `(${n}*${content}/100)`)
         .replace(/([\d.]+)px/g, "$1")};`
     )((lo: number, v: number, hi: number) => Math.min(Math.max(lo, v), hi), Math.max) as number;
-  /* The disc under the object: the picture's own background (`.home-hero-art`), a radius of K of its visible box's longer side, capped at half the zone. */
-  const discAt = home.indexOf("\n.home-hero-art {\n  --disc-r:");
+  /* The disc the object stands inside (`.home-hero-art`, #516): the zone's width, or its height where that is less, centred across the zone with its top on the zone's top. */
+  const discAt = home.indexOf("\n.home-hero-art {\n  --disc:");
   const discRule = home.slice(discAt, home.indexOf("\n}", discAt));
-  const DISC_K =
-    2 * Number(discRule.match(/calc\(max\(var\(--art-w, 0\.43\), var\(--art-h, 0\.84\)\) \* ([\d.]+) \* var\(--art-s\)\)/)?.[1]);
-  const DISC_CAPPED = /calc\(\(var\(--zone-r\) - var\(--zone-l\)\) \/ 2\)/.test(discRule);
+  const DISC_IS_ZONE = discRule.includes(
+    "--disc: min(calc(var(--zone-r) - var(--zone-l)), calc(var(--zone-b) - var(--zone-t)));"
+  );
+  /* The object inside it: its square sized so its reach is FILL of the disc's width (0.44, so 0.88 of its radius). */
+  const sharedAt = home.indexOf("\n.home-hero-art,\n.object-disc {");
+  const shared = home.slice(sharedAt, home.indexOf("\n}", sharedAt));
+  const FILL = Number(shared.match(/calc\(var\(--disc\) \* ([\d.]+) \/ var\(--art-reach, 0\.55\)\)/)?.[1]);
+  /* ...and its visible box's centre moved onto the disc's, where a drawing sits off its square's centre. */
+  const CENTRED =
+    shared.includes("calc(50% + (0.5 - var(--art-l, 0.5) - var(--art-w, 0) / 2) * var(--disc-obj))") &&
+    shared.includes("calc(50% + (0.5 - var(--art-t, 0.5) - var(--art-h, 0) / 2) * var(--disc-obj))");
   const wordsMin = home.match(/\.home-hero-words \{[^}]*min-height: calc\(var\(--zone-b\) - (\d+)px\)/);
   /* Under 360 (D22) the words take 56% and the zone its own edges. */
   const narrowAt = home.indexOf("@media (max-width: 359px) {\n  .home-hero {");
@@ -158,8 +166,10 @@ describe("every object stands in the card's zone, by its visible box", () => {
       expect(b.b).toBeGreaterThan(b.t);
     }
     expect(wordsMin).not.toBeNull();
-    expect(DISC_K).toBeCloseTo(0.9, 6);
-    expect(DISC_CAPPED).toBe(true);
+    expect(DISC_IS_ZONE).toBe(true);
+    expect(sharedAt).toBeGreaterThan(0);
+    expect(FILL).toBeCloseTo(0.44, 6);
+    expect(CENTRED).toBe(true);
     expect(narrowAt).toBeGreaterThan(0);
     expect(narrowZone("l")).not.toBeNull();
     expect(narrowZone("b")).toBe("calc(var(--zone-t) + 120px)");
@@ -169,6 +179,7 @@ describe("every object stands in the card's zone, by its visible box", () => {
       "--art-t": ART_BOUNDS["the-long-one"].t,
       "--art-w": Math.round((ART_BOUNDS["the-long-one"].r - ART_BOUNDS["the-long-one"].l) * 10000) / 10000,
       "--art-h": Math.round((ART_BOUNDS["the-long-one"].b - ART_BOUNDS["the-long-one"].t) * 10000) / 10000,
+      "--art-reach": ART_BOUNDS["the-long-one"].reach,
     });
   });
 
@@ -191,7 +202,7 @@ describe("every object stands in the card's zone, by its visible box", () => {
     [320, 22, 0.56, true],
     [390, 48, 0.52, false],
   ] as const) {
-    it(`at ${width}${shortPhone ? " on a short phone" : ""}: all fifteen rise ${rise}px, clear the words by 12px, end above the topic, inside the card`, () => {
+    it(`at ${width}${shortPhone ? " on a short phone" : ""}: all fifteen rise ${rise}px inside their disc, clear the words by 12px, end above the topic, inside the card`, () => {
       const content = width - 40 - 40; // the column's gutters, then the card's padding
       const card = content + 40;
       const small = width < 360;
@@ -203,29 +214,33 @@ describe("every object stands in the card's zone, by its visible box", () => {
       expect(t).toBeCloseTo(-rise, 0);
       // The topic starts 24px under the words, which hold the zone's height.
       const topic = 20 + (b - Number(wordsMin![1])) + 24;
+      /* The disc: the zone's width (its height where less), centred across it, its top on the zone's top. */
+      const disc = Math.min(r - l, b - t);
+      const cx = (l + r) / 2;
+      expect(cx - disc / 2 - column + 1e-6, "the disc clear of the words").toBeGreaterThanOrEqual(12);
+      expect(cx + disc / 2 - 1e-6, "the disc inside the card").toBeLessThanOrEqual(card - 8);
+      expect(t + disc - 1e-6, "the disc above the topic").toBeLessThanOrEqual(topic - 6);
+      if (small) expect(disc, `the disc ${shortPhone ? 100 : 104}px at most`).toBeLessThanOrEqual((shortPhone ? 100 : 104) + 0.01);
+      /* A day already spoken on a short phone: the words hold at least the
+         lead (18), the trait's chip (22) and one line of the tactic (18),
+         8 apart, and the topic stands 16 under them. */
+      if (shortPhone) expect(t + disc - 1e-6, "the disc above One more's topic").toBeLessThanOrEqual(20 + (18 + 8 + 22 + 8 + 18) + 16 - 6);
       for (const id of LESSONS.map((x) => x.id)) {
         const box = artBox(id);
-        const s = Math.min((b - t) / box["--art-h"], (r - l) / box["--art-w"]);
-        const left = (l + r) / 2 - (s * box["--art-w"]) / 2;
-        expect(left - column + 1e-6, `${id} clear of the words`).toBeGreaterThanOrEqual(12);
-        expect(left + s * box["--art-w"], `${id} inside the card`).toBeLessThanOrEqual(card - 8);
-        expect(t + s * box["--art-h"] - 1e-6, `${id} above the topic`).toBeLessThanOrEqual(topic - 6);
-        if (small) expect(s * box["--art-h"], `${id} at ${shortPhone ? 100 : 120}px at most`).toBeLessThanOrEqual((shortPhone ? 100 : 120) + 0.01);
-        /* Its disc (`.home-hero-art`'s background): 0.9 of the visible box's longer
-           side, no wider than the zone, centred on the box. It may rise
-           past the card's top with the object (a halo, never cut), and it
-           keeps the object's 12px clear of the words, inside the card's
-           right edge, and above the topic. */
-        const disc = Math.min(DISC_K * Math.max(s * box["--art-w"], s * box["--art-h"]), r - l);
-        const cx = (l + r) / 2;
-        const cy = t + (s * box["--art-h"]) / 2;
-        expect(cx - disc / 2 - column + 1e-6, `${id}'s disc clear of the words`).toBeGreaterThanOrEqual(12);
-        expect(cx + disc / 2 - 1e-6, `${id}'s disc inside the card`).toBeLessThanOrEqual(card);
-        expect(cy + disc / 2 - 1e-6, `${id}'s disc above the topic`).toBeLessThanOrEqual(topic);
-        /* A day already spoken on a short phone: the words hold at least the
-           lead (18), the trait's chip (22) and one line of the tactic (18),
-           8 apart, and the topic stands 16 under them. */
-        if (shortPhone) expect(t + s * box["--art-h"] - 1e-6, `${id} above One more's topic`).toBeLessThanOrEqual(20 + (18 + 8 + 22 + 8 + 18) + 16 - 6);
+        /* Inside it, the object's square, sized by its reach, its visible
+           box centred on the disc (CENTRED): every visible pixel within
+           0.88 of the disc's radius, so each of the fifteen has the same
+           air to the disc's edge, and the shift that centres it never
+           cuts the drawing (it moves less than the square's margin). */
+        const s = Math.min(disc, (disc * FILL) / box["--art-reach"]);
+        expect(s * box["--art-reach"], `${id} inside its disc`).toBeLessThanOrEqual((disc / 2) * 0.88 + 1e-6);
+        expect(s * box["--art-reach"], `${id} fills its disc`).toBeGreaterThanOrEqual((disc / 2) * 0.8);
+        const dx = 0.5 - box["--art-l"] - box["--art-w"] / 2;
+        const dy = 0.5 - box["--art-t"] - box["--art-h"] / 2;
+        expect(box["--art-l"] + dx, `${id} left`).toBeGreaterThan(0);
+        expect(1 - box["--art-l"] - box["--art-w"] - dx, `${id} right`).toBeGreaterThan(0);
+        expect(box["--art-t"] + dy, `${id} top`).toBeGreaterThan(0);
+        expect(1 - box["--art-t"] - box["--art-h"] - dy, `${id} bottom`).toBeGreaterThan(0);
       }
     });
   }

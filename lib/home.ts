@@ -94,15 +94,18 @@ export function objectSrc(id: string): string {
 
 /**
  * Where the object is inside its square, for the CSS that places it:
- * its visible box's left and top and its width and height, as fractions
- * of the square (lib/lesson-art-bounds.ts, measured from each file
- * rasterised). `.home-hero` sizes an object so that
- * box fills their object zone, and stand it by the box, so a wide low
- * object (the pause marks, the bowl, the boomerang) rises out of the
- * card's corner as far as the hourglass does and never reaches the
- * words beside it.
+ * its visible box's left and top and its width and height, and its
+ * reach (the farthest visible pixel from the box's centre), as
+ * fractions of the square (lib/lesson-art-bounds.ts, measured from each
+ * file rasterised). Where an object stands on its family's colour
+ * (`.home-hero-art`, `.object-disc`) it stands inside a disc, sized by
+ * its reach so the tall hourglass and the wide road keep the same air
+ * to the disc's edge; the recorder's topic card reads the box to know
+ * whether its band has the room.
  */
-export function artBox(id: string): Record<"--art-l" | "--art-t" | "--art-w" | "--art-h", number> {
+export function artBox(
+  id: string
+): Record<"--art-l" | "--art-t" | "--art-w" | "--art-h" | "--art-reach", number> {
   const b = ART_BOUNDS[id] ?? ART_BOUNDS[HOUSE_OBJECT];
   const round = (n: number) => Math.round(n * 10000) / 10000;
   return {
@@ -110,6 +113,7 @@ export function artBox(id: string): Record<"--art-l" | "--art-t" | "--art-w" | "
     "--art-t": b.t,
     "--art-w": round(b.r - b.l),
     "--art-h": round(b.b - b.t),
+    "--art-reach": b.reach,
   };
 }
 

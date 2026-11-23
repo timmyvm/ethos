@@ -107,9 +107,10 @@
    * turn bright orange"): the lit flame and the days of the run on the
    * streak's moment, and nowhere else yet. His live call beats "sage
    * means earned" for the streak; stars, points and bars stay sage and
-   * gold. A colour, never a tap and never a glow. `-core` is the flame's
-   * heart. */
-  --color-streak: #ff7a00;
+   * gold. A colour, never a tap and never a glow. Since the flat set
+   * (#516) it is the flame's own base, `--fi-streak-base`, so the run's
+   * days are the flame's orange and not a second one beside it. */
+  --color-streak: #ff661a;
   /* The light text on the deep surfaces (score card, stage). Neutral
    * since #289, with the stage; the name stays because forty call
    * sites use it and a token's name is never on screen. */
@@ -514,9 +515,9 @@ body {
   --color-trough: var(--color-surface);
   /* 5.1:1 on raised #2a2a2a; #ff453a measured 4.21 there. */
   --color-destructive: #ff6961;
-  /* The streak (#480): a touch lighter, so the flame holds its
-     brightness on #121212 without glowing. */
-  --color-streak: #ff8a1a;
+  /* The streak (#480): the flat flame's base, the same in both themes
+     as the flame is (#516). */
+  --color-streak: #ff661a;
   /* 1.57:1 on the dark ground, 1.29:1 on a dark card; was 1.16 on the
      card, where the dimension bars' troughs vanished (#287). */
   --color-sand: #333333;
@@ -6100,12 +6101,12 @@ summary::-webkit-details-marker {
   container-type: inline-size;
   /*
    * The object zone, in the card's box (its 20px padding included).
-   * Every object is sized so the box its visible pixels fill
-   * (`artBox`: --art-l, --art-t, --art-w, --art-h, fractions of its
-   * square) fits the zone, then centred across it with its visible top
-   * on the zone's top. So every object rises out of the card by the
-   * same distance, 48px at 390 and 22 at 320, the hourglass and the
-   * boomerang alike, and none comes nearer the words than 12px.
+   * The object's disc (`.home-hero-art`) is as wide as the zone (as
+   * tall, where the zone is shorter than it is wide), centred across
+   * it with its top on the zone's top. So every object rises out of
+   * the card by the same distance, 48px at 390 and 22 at 320, the
+   * hourglass and the boomerang alike, and none comes nearer the
+   * words than 12px.
    *   left    13px right of the words' column (52% of the content box)
    *   right   10px inside the card's edge
    *   top     the rise: -48px at 390, -22 at 320 (where the greeting
@@ -6116,13 +6117,8 @@ summary::-webkit-details-marker {
   --zone-r: calc(100cqw + 30px);
   --zone-t: clamp(-48px, calc(67.1px - 37.14cqw), -22px);
   --zone-b: clamp(140px, calc(71.4px + 28.57cqw), 160px);
-  --art-s: min(
-    calc((var(--zone-b) - var(--zone-t)) / var(--art-h, 0.84)),
-    calc((var(--zone-r) - var(--zone-l)) / var(--art-w, 0.43))
-  );
-  /* The object's visible centre across the zone, and its visible foot. */
+  /* The disc's centre across the zone. */
   --art-cx: calc((var(--zone-l) + var(--zone-r)) / 2);
-  --art-foot: calc(var(--zone-t) + var(--art-s) * var(--art-h, 0.84));
   display: flex;
   flex-direction: column;
   /* 376 tall; on a short screen (320x568) only as tall as leaves Another
@@ -6300,57 +6296,52 @@ summary::-webkit-details-marker {
 }
 
 /* The object. The one picture on the screen that breaks its frame,
-   the way ToyCad's chick rises out of its tile, standing on its disc.
-   Stood by its visible box in the zone (`.home-hero`), not by its
-   square. Flat: no shadow under it, as no flat mark in the app has one. */
+   the way ToyCad's chick rises out of its tile: a disc in the family's
+   wash (its dark stage in dark), the object standing inside it. Flat:
+   no shadow under it, as no flat mark in the app has one. */
 /*
- * The disc it stands on, as Demos stands on his halo (`.demos-halo`):
- * one solid circle in the family's wash (its dark stage in dark), so an
- * object drawn in its family's own hue (Pausing's blue on Pausing's blue
- * card, 1.05:1) stands clear of the card. It is the picture's own
- * background, so it arrives with the object, flies with it to the
- * recording's card (E51) and shrinks and fades with it on Record.
- * Centred on the object's visible box (`artBox`) and 0.9 of its longer
- * side, so a wide low object (the pause marks, the road, the gauge) is
- * held as fully as the tall hourglass. On Today it is never wider than
- * the object zone, so it keeps the zone's 12px clear of the words (white
- * on the light disc would not read), and it rises past the card's top
- * with the object, a halo behind it: cut at the card's edge it became a
- * lens, a second shape, and moved down to fit it stood 30 to 40px under
- * the object's foot. A radial gradient sized as an ellipse with equal
- * radii is a circle on the square picture, and its 1% edge is the
- * anti-aliasing a drawn circle has.
+ * The disc holds the whole object (DECISIONS #516). An object drawn in
+ * its family's own hue (Pausing's blue on Pausing's blue card, 1.05:1)
+ * needs a ground of its own, and a disc smaller than the object put
+ * that ground behind its middle only: the hourglass's caps and the
+ * door's leaf stood past it on the card, where they melted, and the
+ * disc read as slivers round the door. So the disc is the lesson
+ * page's stage in a coin, the same wash and dark stage (`--home-disc`),
+ * and every object stands inside it with the same air: sized by its
+ * reach (the farthest visible pixel from its box's centre, measured
+ * from each file, lib/lesson-art-bounds.ts) to 0.88 of the disc's
+ * radius, so the tall hourglass, the square door and the wide road all
+ * sit in it alike.
+ *
+ * The disc is the object zone's width (its height on a short phone),
+ * its top on the zone's top, so it rises out of the card's corner as
+ * the object did and keeps the zone's 12px clear of the words. It is
+ * the picture itself: an <img> with the disc as its own round
+ * background and the object inset by padding, so it arrives with the
+ * object, flies with it to the recording's card (E51) and shrinks and
+ * fades with it on Record, one shape all the way.
  */
 .home-hero-art,
 .object-disc {
-  background: radial-gradient(
-    ellipse var(--disc-r) var(--disc-r) at calc((var(--art-l, 0.28) + var(--art-w, 0.43) / 2) * 100%)
-      calc((var(--art-t, 0.1) + var(--art-h, 0.84) / 2) * 100%),
-    var(--home-disc) 99%,
-    transparent 100%
-  );
+  --disc-obj: min(var(--disc), calc(var(--disc) * 0.44 / var(--art-reach, 0.55)));
+  box-sizing: border-box;
+  padding: calc((var(--disc) - var(--disc-obj)) / 2);
+  border-radius: 9999px;
+  background: var(--home-disc);
+  object-fit: contain;
+  /* The visible box's centre on the disc's, where a drawing sits a
+     touch off its square's (the magnifier, by 1.3%). */
+  object-position:
+    calc(50% + (0.5 - var(--art-l, 0.5) - var(--art-w, 0) / 2) * var(--disc-obj))
+    calc(50% + (0.5 - var(--art-t, 0.5) - var(--art-h, 0) / 2) * var(--disc-obj));
 }
 .home-hero-art {
-  --disc-r: min(
-    calc(max(var(--art-w, 0.43), var(--art-h, 0.84)) * 0.45 * var(--art-s)),
-    calc((var(--zone-r) - var(--zone-l)) / 2)
-  );
-}
-/* Anywhere else a lesson's object stands on its family's colour (the
-   recorder's topic card, the welcome's day-one card): the same disc, its
-   radius 45% of the picture's longer visible side as a share of the
-   square, from the `artBox` variables on the picture or its box. */
-.object-disc {
-  --disc-r: calc(max(var(--art-w), var(--art-h)) * 45%);
-}
-.home-hero-art {
+  --disc: min(calc(var(--zone-r) - var(--zone-l)), calc(var(--zone-b) - var(--zone-t)));
   position: absolute;
-  top: calc(var(--zone-t) - var(--art-s) * var(--art-t, 0.1));
-  left: calc(
-    var(--art-cx) - var(--art-s) * var(--art-w, 0.43) / 2 - var(--art-s) * var(--art-l, 0.28)
-  );
-  width: var(--art-s);
-  height: var(--art-s);
+  top: var(--zone-t);
+  left: calc(var(--art-cx) - var(--disc) / 2);
+  width: var(--disc);
+  height: var(--disc);
   pointer-events: none;
   user-select: none;
   opacity: 0;
@@ -6711,6 +6702,13 @@ summary::-webkit-details-marker {
 .home-mode-art > .stat-icon {
   width: var(--mark);
   height: var(--mark);
+}
+/* Hostile's bubble is a full block (0.57 of its square) beside the
+   boss's mountain (0.37), so at one size it read as the heavier game.
+   It stands 12% smaller inside the same box, the box and the row's left
+   edge unchanged (#516). */
+.home-mode[data-mode="hostile"] .home-mode-art > .stat-icon {
+  padding: 6%;
 }
 .home-mode-words {
   display: flex;

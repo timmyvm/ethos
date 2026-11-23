@@ -62,8 +62,15 @@ export function lessonSvgFiles(css: string): Record<string, string> {
   );
 }
 
-/** A file's visible box, as fractions of its square (left, top, right, bottom). */
-export type ArtBox = { l: number; t: number; r: number; b: number };
+/**
+ * A file's visible box, as fractions of its square (left, top, right,
+ * bottom), and its reach: how far its farthest visible pixel stands from
+ * the box's centre, as a fraction of the square. A disc of that radius
+ * round the box's centre holds the whole object, so the reach is what
+ * sizes an object to stand inside its disc (`.home-hero-art`,
+ * `.object-disc`) with the same air round every one of the fifteen.
+ */
+export type ArtBox = { l: number; t: number; r: number; b: number; reach: number };
 
 /** Where Today's card measures an object: alpha over this, of 255 (the rule the art boxes were always measured by). */
 export const SEEN_ALPHA = 40;
@@ -85,8 +92,20 @@ export function visibleBox(rgba: Uint8Array | Buffer, n: number): ArtBox {
       if (y > y1) y1 = y;
     }
   }
+  /* The reach, from the box's centre to the far edge of each seen pixel. */
+  const cx = (x0 + x1 + 1) / 2;
+  const cy = (y0 + y1 + 1) / 2;
+  let far = 0;
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (rgba[(y * n + x) * 4 + 3] <= SEEN_ALPHA) continue;
+      const dx = Math.max(Math.abs(x - cx), Math.abs(x + 1 - cx));
+      const dy = Math.max(Math.abs(y - cy), Math.abs(y + 1 - cy));
+      far = Math.max(far, dx * dx + dy * dy);
+    }
+  }
   const r4 = (v: number) => Math.round(v * 10000) / 10000;
-  return { l: r4(x0 / n), t: r4(y0 / n), r: r4((x1 + 1) / n), b: r4((y1 + 1) / n) };
+  return { l: r4(x0 / n), t: r4(y0 / n), r: r4((x1 + 1) / n), b: r4((y1 + 1) / n), reach: r4(Math.sqrt(far) / n) };
 }
 
 /** lib/lesson-art-bounds.ts, from each lesson's measured box. */
@@ -95,7 +114,7 @@ export function boundsModule(boxes: Readonly<Record<string, ArtBox>>): string {
     .sort()
     .map((id) => {
       const b = boxes[id];
-      return `  "${id}": { l: ${b.l}, t: ${b.t}, r: ${b.r}, b: ${b.b} },`;
+      return `  "${id}": { l: ${b.l}, t: ${b.t}, r: ${b.r}, b: ${b.b}, reach: ${b.reach} },`;
     });
   return (
     "/**\n" +
@@ -104,11 +123,12 @@ export function boundsModule(boxes: Readonly<Record<string, ArtBox>>): string {
     " *\n" +
     ` * Each lesson object's visible box inside its square, as fractions of\n` +
     ` * the square (left, top, right, bottom; each file rasterised at ${MEASURE_PX}px,\n` +
-    ` * alpha over ${SEEN_ALPHA} of 255). Today's card, the recorder's topic card and\n` +
-    " * the disc behind the object size and place it by this box, not by its\n" +
-    " * square (lib/home.ts `artBox`).\n" +
+    ` * alpha over ${SEEN_ALPHA} of 255), and its reach: the farthest visible pixel\n` +
+    " * from the box's centre, as a fraction of the square. Today's card, the\n" +
+    " * recorder's topic card and the welcome's day one stand the object inside\n" +
+    " * its disc by these, not by its square (lib/home.ts `artBox`).\n" +
     " */\n" +
-    "export const ART_BOUNDS: Record<string, { l: number; t: number; r: number; b: number }> = {\n" +
+    "export const ART_BOUNDS: Record<string, { l: number; t: number; r: number; b: number; reach: number }> = {\n" +
     rows.join("\n") +
     "\n};\n"
   );

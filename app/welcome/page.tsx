@@ -1285,10 +1285,10 @@ function DayOne() {
         alt=""
         width={72}
         height={72}
-        /* On its family's disc, as Today stands it (`.object-disc`): the
-           object is drawn in the card's own hue. */
-        style={artBox(object) as React.CSSProperties}
-        className="object-disc pointer-events-none absolute right-4 top-3 size-[72px] select-none"
+        /* Inside its family's disc, as Today stands it (`.object-disc`):
+           the object is drawn in the card's own hue. */
+        style={{ ...artBox(object), "--disc": "72px" } as React.CSSProperties}
+        className="object-disc pointer-events-none absolute right-4 top-4 size-[72px] select-none"
       />
       <div className="eyebrow text-[var(--stage-ink)]">Your first recording</div>
       <div className="font-display text-num-m font-extrabold">Day one starts today.</div>

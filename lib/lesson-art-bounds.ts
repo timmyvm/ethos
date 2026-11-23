@@ -4,24 +4,25 @@
  *
  * Each lesson object's visible box inside its square, as fractions of
  * the square (left, top, right, bottom; each file rasterised at 560px,
- * alpha over 40 of 255). Today's card, the recorder's topic card and
- * the disc behind the object size and place it by this box, not by its
- * square (lib/home.ts `artBox`).
+ * alpha over 40 of 255), and its reach: the farthest visible pixel
+ * from the box's centre, as a fraction of the square. Today's card, the
+ * recorder's topic card and the welcome's day one stand the object inside
+ * its disc by these, not by its square (lib/home.ts `artBox`).
  */
-export const ART_BOUNDS: Record<string, { l: number; t: number; r: number; b: number }> = {
-  "change-gear": { l: 0.1125, t: 0.0464, r: 0.8857, b: 0.9643 },
-  "closed-mouth": { l: 0.1411, t: 0.0446, r: 0.8607, b: 0.9554 },
-  "finish-it": { l: 0.1143, t: 0.0446, r: 0.8857, b: 0.9554 },
-  "inside-or-after": { l: 0.0464, t: 0.0964, r: 0.9554, b: 0.9036 },
-  "know-the-landing": { l: 0.0536, t: 0.0518, r: 0.9482, b: 0.9464 },
-  "name-it-once": { l: 0.0804, t: 0.0536, r: 0.9196, b: 0.9464 },
-  "one-gear-down": { l: 0.0607, t: 0.1554, r: 0.9393, b: 0.8411 },
-  "or-rather": { l: 0.1679, t: 0.0518, r: 0.8304, b: 0.9482 },
-  "room-to-land": { l: 0.0518, t: 0.1839, r: 0.9482, b: 0.8161 },
-  "second-pass": { l: 0.2018, t: 0.05, r: 0.7964, b: 0.9482 },
-  "short-and-concrete": { l: 0.1036, t: 0.0554, r: 0.8964, b: 0.9446 },
-  "the-cold-open": { l: 0.1661, t: 0.0518, r: 0.8339, b: 0.9482 },
-  "the-crutch": { l: 0.0625, t: 0.0625, r: 0.9625, b: 0.9625 },
-  "the-landing": { l: 0.0464, t: 0.1232, r: 0.9536, b: 0.8768 },
-  "the-long-one": { l: 0.1357, t: 0.0518, r: 0.8661, b: 0.9482 },
+export const ART_BOUNDS: Record<string, { l: number; t: number; r: number; b: number; reach: number }> = {
+  "change-gear": { l: 0.1125, t: 0.0464, r: 0.8857, b: 0.9643, reach: 0.5777 },
+  "closed-mouth": { l: 0.1411, t: 0.0446, r: 0.8607, b: 0.9554, reach: 0.553 },
+  "finish-it": { l: 0.1143, t: 0.0446, r: 0.8857, b: 0.9554, reach: 0.5687 },
+  "inside-or-after": { l: 0.0464, t: 0.0964, r: 0.9554, b: 0.9036, reach: 0.5789 },
+  "know-the-landing": { l: 0.0536, t: 0.0518, r: 0.9482, b: 0.9464, reach: 0.5228 },
+  "name-it-once": { l: 0.0804, t: 0.0536, r: 0.9196, b: 0.9464, reach: 0.5104 },
+  "one-gear-down": { l: 0.0607, t: 0.1554, r: 0.9393, b: 0.8411, reach: 0.4942 },
+  "or-rather": { l: 0.1679, t: 0.0518, r: 0.8304, b: 0.9482, reach: 0.5321 },
+  "room-to-land": { l: 0.0518, t: 0.1839, r: 0.9482, b: 0.8161, reach: 0.5094 },
+  "second-pass": { l: 0.2018, t: 0.05, r: 0.7964, b: 0.9482, reach: 0.4919 },
+  "short-and-concrete": { l: 0.1036, t: 0.0554, r: 0.8964, b: 0.9446, reach: 0.4456 },
+  "the-cold-open": { l: 0.1661, t: 0.0518, r: 0.8339, b: 0.9482, reach: 0.5356 },
+  "the-crutch": { l: 0.0625, t: 0.0625, r: 0.9625, b: 0.9625, reach: 0.5923 },
+  "the-landing": { l: 0.0464, t: 0.1232, r: 0.9536, b: 0.8768, reach: 0.455 },
+  "the-long-one": { l: 0.1357, t: 0.0518, r: 0.8661, b: 0.9482, reach: 0.55 },
 };

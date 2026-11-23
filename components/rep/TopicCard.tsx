@@ -2,7 +2,6 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { artBox, objectSrc } from "@/lib/home";
-import { ART_BOUNDS } from "@/lib/lesson-art-bounds";
 import { DURATION, EASE_OUT } from "@/lib/motion";
 import type { PracticeFamily } from "@/lib/practice-family";
 import { prefersReducedMotion } from "@/lib/prefs";
@@ -145,9 +144,6 @@ export function TopicCard({
       const h = head.current?.getBoundingClientRect();
       const e = brow.current?.getBoundingClientRect();
       if (!z || !h || !e || z.width === 0) return;
-      const b = ART_BOUNDS[art];
-      const w = b ? b.r - b.l : 0.43;
-      const t = b ? b.b - b.t : 0.84;
       /* The box the band holds: the full box, or what is left over the
          topic's first line (the box is pinned top right, so its top and
          right edges never move). */
@@ -155,11 +151,11 @@ export function TopicCard({
       const full = display ? (narrow ? 112 : DISPLAY_BOX) : narrow ? 96 : 112;
       let size = Math.min(full, Math.floor(h.top - CLEAR - z.top));
       /* Ready's larger box also keeps clear of the eyebrow across: the
-         widest box whose visible object stands 8px right of its words. */
-      if (display) size = Math.min(size, Math.floor((2 * (z.right - e.right - CLEAR)) / (1 + Math.min(1, w / t))));
-      /* The visible object's width inside the box, centred across it. */
-      const shown = Math.min(1, w / t) * size;
-      const left = z.right - size + (size - shown) / 2;
+         widest disc that stands 8px right of its words. */
+      if (display) size = Math.min(size, Math.floor(z.right - e.right - CLEAR));
+      /* What shows is the disc, the box's whole width (the object
+         stands inside it, `.object-disc`). */
+      const left = z.right - size;
       setFits(size >= MIN_BOX && e.right + CLEAR <= left);
       setBoxPx(display || size < full ? size : null);
       setMeasured(true);
@@ -351,18 +347,17 @@ export function TopicCard({
     >
       {art && (
         /* The object's box: 112px, 16px in from the top and the right
-           (96 under 360). The picture inside is sized and stood by its
-           visible pixels (`artBox`), centred across the box, its top on
-           the box's top, as Today's card stands its object. */
+           (96 under 360). The picture fills it as a disc in the family's
+           wash, the object standing inside by its reach (`artBox`,
+           `.object-disc`), as Today's card stands its object. */
         <span
           ref={zone}
           aria-hidden
-          className="pointer-events-none absolute right-4 top-4 size-[112px] max-[359px]:size-[96px]"
+          className="pointer-events-none absolute right-4 top-4 size-[112px] [--disc:112px] max-[359px]:size-[96px] max-[359px]:[--disc:96px]"
           style={
             {
               ...artBox(art),
-              "--s": "min(calc(100% / var(--art-h)), calc(100% / var(--art-w)))",
-              ...(boxPx !== null ? { width: boxPx, height: boxPx } : {}),
+              ...(boxPx !== null ? { width: boxPx, height: boxPx, "--disc": `${boxPx}px` } : {}),
             } as CSSProperties
           }
         >
@@ -379,15 +374,10 @@ export function TopicCard({
               draggable={false}
               onLoad={() => setLoaded(true)}
               data-loaded={loaded || undefined}
-              /* Flat, on its disc (`.object-disc` in app/globals.css): no shadow. */
-              className="topic-art object-disc vt-shared absolute max-w-none origin-top-right select-none opacity-0 transition-opacity dur-max ease-out data-[loaded]:opacity-100"
-              style={{
-                viewTransitionName: "practice-object",
-                width: "var(--s)",
-                height: "var(--s)",
-                top: "calc(var(--s) * var(--art-t) * -1)",
-                left: "calc(50% - var(--s) * var(--art-w) / 2 - var(--s) * var(--art-l))",
-              }}
+              /* Flat, inside its disc (`.object-disc` in app/globals.css,
+                 the box's width): no shadow. */
+              className="topic-art object-disc vt-shared absolute inset-0 size-full max-w-none origin-top-right select-none opacity-0 transition-opacity dur-max ease-out data-[loaded]:opacity-100"
+              style={{ viewTransitionName: "practice-object" }}
             />
           )}
         </span>

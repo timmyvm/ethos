@@ -11,7 +11,7 @@ import { TipLine } from "@/components/rep/TipStrip";
 import { StageChip } from "@/components/ui/HeroStage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { TraitId } from "@/content/traits";
-import { artBox, objectSrc, objectSrcSet, type CardFace } from "@/lib/home";
+import { artBox, objectSrc, type CardFace } from "@/lib/home";
 import { passingForAnswers, spinForAnswers } from "@/lib/portfolio";
 import { LONG_TOPIC, LONGER_TOPIC, TOPIC_SHAPES, type Topic } from "@/lib/topics";
 
@@ -436,8 +436,7 @@ function HeroObject({ id }: { id: string }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={ref}
-      src={objectSrc(id, true)}
-      srcSet={objectSrcSet(id)}
+      src={objectSrc(id)}
       alt=""
       width={260}
       height={260}

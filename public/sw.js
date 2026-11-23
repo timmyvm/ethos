@@ -15,13 +15,11 @@
  * 3D objects in the stat icons' family), and a .webp is served
  * cache-first, so a phone holding v19 would keep the glass ones. v21
  * (#508): the shell is lighter. The manifest's icons are fetched by the
- * phone itself at install and never drawn by the app, and the lesson
- * art's large cuts are cached the first time a screen draws one (the
- * asset rule below), so neither is pre-cached; v21 empties v20 of them.
- * A cut never drawn here is stood in for, offline, by one of the same
- * lesson the phone holds (lessonStandIn), so no CACHE move.
- * v22: the stat icons are drawn inline (the flat set), so the 3D files
- * leave the shell, and the lessons' objects are SVG files at new paths.
+ * phone itself at install and never drawn by the app, so they are not
+ * pre-cached. v22: the flat set. The stat icons are drawn inline, so the
+ * 3D files leave the shell, and each lesson's object is one SVG at a new
+ * path (no large or hero cut, so nothing stands in for one offline);
+ * v22 empties v21 of every 3D file.
  * The worker itself registers once the first screen is drawn
  * (components/ServiceWorker.tsx), not beside it.
  */
@@ -33,32 +31,27 @@ const SHELL = [
   "/history",
   "/you",
   "/lessons",
-  /* The lesson art is the Lessons page, so it is shell, not extra.
-     These are the URLs the page actually asks for: the cards use a
-     plain <img> at the file's own path rather than next/image, whose
-     /_next/image?url=…&w=… varies per device and could never be
-     pre-cached (#274). */
-  "/lessons/the-landing.webp",
-  "/lessons/inside-or-after.webp",
-  "/lessons/the-long-one.webp",
-  "/lessons/the-cold-open.webp",
-  "/lessons/closed-mouth.webp",
-  "/lessons/the-crutch.webp",
-  "/lessons/finish-it.webp",
-  "/lessons/know-the-landing.webp",
-  "/lessons/or-rather.webp",
-  "/lessons/room-to-land.webp",
-  "/lessons/one-gear-down.webp",
-  "/lessons/change-gear.webp",
-  "/lessons/name-it-once.webp",
-  "/lessons/short-and-concrete.webp",
-  "/lessons/second-pass.webp",
-  /* Each lesson's own screen, Today's card and the recorder draw the
-     560 cut (public/lessons/large/, #448), cached on first view rather
-     than here (#508): fifteen of them on the first open's link is
-     280 KB for the one or two a day draws. Offline, a cut not yet
-     drawn is answered by the best one of its lesson the phone holds,
-     the thumbnail above at worst (lessonStandIn). */
+  /* The lesson art is the Lessons page, so it is shell, not extra:
+     each lesson's flat object, one vector of a few KB that every screen
+     draws at every size (scripts/export-flat-icons.mjs). These are the
+     URLs the page actually asks for: a plain <img> at the file's own
+     path rather than next/image, whose /_next/image?url=…&w=… varies
+     per device and could never be pre-cached (#274). */
+  "/lessons/the-landing.svg",
+  "/lessons/inside-or-after.svg",
+  "/lessons/the-long-one.svg",
+  "/lessons/the-cold-open.svg",
+  "/lessons/closed-mouth.svg",
+  "/lessons/the-crutch.svg",
+  "/lessons/finish-it.svg",
+  "/lessons/know-the-landing.svg",
+  "/lessons/or-rather.svg",
+  "/lessons/room-to-land.svg",
+  "/lessons/one-gear-down.svg",
+  "/lessons/change-gear.svg",
+  "/lessons/name-it-once.svg",
+  "/lessons/short-and-concrete.svg",
+  "/lessons/second-pass.svg",
   "/boss",
   "/hostile",
   "/upload",
@@ -165,27 +158,6 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
-/*
- * A lesson opened in a tunnel still has its picture (#448), at no cost to
- * the install (the final pass of 18 Nov). Since v21 the large cuts are not
- * shell: each is kept the first time a screen draws it (the asset rule
- * below), and a 3x phone draws Today's object from /lessons/hero/ (#508),
- * so a lesson never opened on this phone, or opened only from Today, had
- * no picture offline. A cut the phone has never fetched is answered, with
- * no network, by the best cut of the same lesson it does hold: the 720,
- * the 560, then the 360 the shell always holds. Only a lesson's own art;
- * anything else missing offline fails as it always did.
- */
-const LESSON_ART = /^\/lessons\/(?:(large|hero)\/)?([\w-]+)\.webp$/;
-
-function lessonStandIn(pathname) {
-  const m = LESSON_ART.exec(pathname);
-  if (!m) return Promise.resolve(undefined);
-  const id = m[2];
-  const cuts = [`/lessons/hero/${id}.webp`, `/lessons/large/${id}.webp`, `/lessons/${id}.webp`].filter((u) => u !== pathname);
-  return cuts.reduce((found, u) => found.then((hit) => hit || caches.match(u)), Promise.resolve(undefined));
-}
-
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
@@ -242,7 +214,6 @@ self.addEventListener("fetch", (e) => {
               }
               return res;
             })
-            .catch((err) => lessonStandIn(url.pathname).then((alt) => alt || Promise.reject(err)))
       )
     );
     return;

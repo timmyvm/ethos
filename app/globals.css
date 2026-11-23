@@ -3384,8 +3384,8 @@ summary::-webkit-details-marker {
 .practice-stage .disclosure-mark {
   color: var(--stage-ink);
 }
-/* A lesson's picture off a stage: the lesson's 3D object (#503, cut on a
-   transparent ground by scripts/cut-lesson-icons.mjs) on the one tile
+/* A lesson's picture off a stage: the lesson's flat object (an SVG by
+   scripts/export-flat-icons.mjs, on no ground of its own) on the one tile
    every lesson shares, the surface step, so the fifteen read as one set
    and the only colour is each object's own. On a stage it has no tile
    and stands in the studio light (LessonArt's `stage`). */

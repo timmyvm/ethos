@@ -133,7 +133,7 @@ export default function HomeDial() {
       {/* Today's practice: the one lifted thing, lit from its foot. */}
       <section aria-label="Today's practice" className="mt-12">
         <div className="hd-play elev-2 p-5">
-          <img src="/lessons/the-long-one.webp" alt="" className="hd-art" />
+          <img src="/lessons/the-long-one.svg" alt="" className="hd-art" />
           <div aria-hidden className="hd-art-room" />
           <div className="flex min-h-[22px] flex-wrap items-center gap-x-2 gap-y-1">
             <span data-trait="pause" className="stage-chip font-display text-caption font-bold leading-none">
@@ -226,7 +226,7 @@ export default function HomeDial() {
                   }`}
                 >
                   <span className="hd-thumb">
-                    <img src={`/lessons/${r.art}.webp`} alt="" width={46} height={46} />
+                    <img src={`/lessons/${r.art}.svg`} alt="" width={46} height={46} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="font-display block truncate text-row">{t.prompt}</span>

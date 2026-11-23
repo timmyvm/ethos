@@ -66,13 +66,11 @@ describe("every practice has its object", () => {
     expect(HOUSE_OBJECT).toBe("the-long-one");
   });
 
-  it("every practice on the path resolves to an object of its own trait, cut at both sizes", () => {
+  it("every practice on the path resolves to an object of its own trait, its file on disk", () => {
     for (const p of PATH) {
       const id = heroObject(p.trait, p.tips[0]);
       expect(lessonById(id)?.trait, p.id).toBe(p.trait);
-      for (const large of [false, true]) {
-        expect(existsSync(path.join(root, "public", objectSrc(id, large))), `${id} ${large}`).toBe(true);
-      }
+      expect(existsSync(path.join(root, "public", objectSrc(id))), id).toBe(true);
     }
   });
 
@@ -89,7 +87,7 @@ describe("every practice has its object", () => {
      lesson's object. The card keeps its own. */
   it("only the card stands a lesson's object: the games' rows wear their stat marks, the foot none", () => {
     const rows = readFileSync(path.join(root, "components", "home", "ModeRows.tsx"), "utf8");
-    expect(rows).not.toMatch(/objectSrc|artBox|lessons\/large/);
+    expect(rows).not.toMatch(/objectSrc|artBox|\/lessons\//);
     expect(rows).toContain("<StatIcon kind={t.id} size={72} />");
     const foot = readFileSync(path.join(root, "components", "home", "TodayFoot.tsx"), "utf8");
     expect(foot).not.toMatch(/<img|StatIcon|objectSrc/);
@@ -99,11 +97,10 @@ describe("every practice has its object", () => {
     expect(existsSync(path.join(root, "components", "TraitGlyph.tsx"))).toBe(false);
   });
 
-  it("the large cut carries transparency like the thumbnails", () => {
+  it("each object is a vector on its own square: the file is an SVG with the 96u viewBox", () => {
     for (const l of LESSONS) {
-      const head = readFileSync(path.join(root, "public", objectSrc(l.id, true))).subarray(0, 64);
-      expect(head.toString("ascii", 12, 16), l.id).toBe("VP8X");
-      expect(head[20] & 0x10, l.id).toBe(0x10);
+      const svg = readFileSync(path.join(root, "public", objectSrc(l.id)), "utf8");
+      expect(svg, l.id).toMatch(/^<svg [^>]*viewBox="0 0 96 96"/);
     }
   });
 });

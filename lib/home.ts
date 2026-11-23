@@ -82,30 +82,21 @@ export function heroObject(trait: TraitId | null, tip?: string | null): string {
  */
 
 /**
- * The file. The 560 cut (`public/lessons/large/`, scripts/cut-lesson-icons.mjs)
- * for anything drawn over 180px, which the 360 thumbnail cannot hold at 2x.
+ * The file: the lesson's flat object as a vector
+ * (`public/lessons/<id>.svg`, scripts/export-flat-icons.mjs), one file
+ * sharp at every size and density, so there is no large cut and no
+ * srcset. An id that is no lesson's draws the house's object.
  */
-export function objectSrc(id: string, large = false): string {
+export function objectSrc(id: string): string {
   const lesson = lessonById(id);
-  const name = lesson ? lesson.id : HOUSE_OBJECT;
-  return large ? `/lessons/large/${name}.webp` : `/lessons/${name}.webp`;
-}
-
-/**
- * Today's card, where the object stands up to 260pt (#508, the speed
- * audit's fix 21): a 3x phone gets the 720 cut (`public/lessons/hero/`,
- * 780 pixels wanted; the 560 was soft), a 2x phone the 560 it always had.
- */
-export function objectSrcSet(id: string): string {
-  const large = objectSrc(id, true);
-  return `${large} 2x, ${large.replace("/lessons/large/", "/lessons/hero/")} 3x`;
+  return `/lessons/${lesson ? lesson.id : HOUSE_OBJECT}.svg`;
 }
 
 /**
  * Where the object is inside its square, for the CSS that places it:
  * its visible box's left and top and its width and height, as fractions
- * of the square (lib/lesson-art-bounds.ts, measured from the cut's
- * transparency). `.home-hero` sizes an object so that
+ * of the square (lib/lesson-art-bounds.ts, measured from each file
+ * rasterised). `.home-hero` sizes an object so that
  * box fills their object zone, and stand it by the box, so a wide low
  * object (the pause marks, the bowl, the boomerang) rises out of the
  * card's corner as far as the hourglass does and never reaches the

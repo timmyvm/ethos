@@ -340,7 +340,7 @@ function TraitTile({ t, wide = false }: { t: (typeof TRAITS)[number]; wide?: boo
       <span aria-hidden className="hb-tile-glow" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`/lessons/${t.art}.webp`}
+        src={`/lessons/${t.art}.svg`}
         alt=""
         width={wide ? 168 : 108}
         height={wide ? 168 : 108}

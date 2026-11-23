@@ -327,7 +327,7 @@ export default function RepDetail({
       {/* The lesson it belongs to, one bare row with no card (Imprint's
           lesson sheet, "Featured in"): the art at 40, the lesson over
           the practice, the row's chevron. A plain <img>: the service
-          worker caches /lessons/*.webp and could not cache next/image's
+          worker caches /lessons/*.svg and could not cache next/image's
           resized URLs (#274). */}
       {lesson && practice && (
         <Link

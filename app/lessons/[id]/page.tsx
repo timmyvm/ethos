@@ -175,19 +175,17 @@ export default function LessonPage() {
               {/* The lesson's object alone, standing in the room (the
                   fix round): a render's own square was a full-strength
                   tile of tone on the stage, the brightest thing one tap
-                  past Lessons. Cut on a transparent ground
-                  (scripts/cut-lesson-icons.mjs, #503); a plain img
-                  (#274). The 560 cut (#448): at 176pt a 3x iPhone draws
-                  528px, and the list's 360 thumbnail was being
-                  stretched to it. */}
+                  past Lessons. The flat object as a vector
+                  (scripts/export-flat-icons.mjs), sharp at 176pt on any
+                  phone; a plain img (#274). */}
               <img
-                src={objectSrc(lesson.id, true)}
+                src={objectSrc(lesson.id)}
                 alt=""
                 loading="eager"
                 decoding="async"
-                width={560}
-                height={560}
-                className="absolute inset-0 h-full w-full object-cover"
+                width={96}
+                height={96}
+                className="absolute inset-0 h-full w-full object-contain"
               />
             </span>
           </div>

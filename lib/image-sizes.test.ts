@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { MID_POSE_MAX, SMALL_POSE_MAX, poseSrc } from "@/components/DemosArt";
 import { LESSONS } from "@/content/lessons";
-import { objectSrc, objectSrcSet } from "./home";
+import { objectSrc } from "./home";
 
 /*
  * Images at what a 3x phone draws (#508, the speed audit's fix 21).
@@ -30,32 +30,31 @@ describe("Demos's poses", () => {
 });
 
 describe("Today's object", () => {
-  it("asks for the 720 cut at 3x and the 560 below it, each on disk", () => {
+  it("is one vector file at every density: no srcset, no cut per size", () => {
     for (const l of LESSONS) {
-      const set = objectSrcSet(l.id);
-      expect(set).toBe(`${objectSrc(l.id, true)} 2x, /lessons/hero/${l.id}.webp 3x`);
-      expect(onDisk(`/lessons/hero/${l.id}.webp`), l.id).toBe(true);
+      expect(objectSrc(l.id)).toBe(`/lessons/${l.id}.svg`);
+      expect(onDisk(objectSrc(l.id)), l.id).toBe(true);
     }
-    expect(readFileSync(path.join(root, "components/home/HomeHero.tsx"), "utf8")).toMatch(/srcSet=\{objectSrcSet\(id\)\}/);
+    const hero = readFileSync(path.join(root, "components/home/HomeHero.tsx"), "utf8");
+    expect(hero).toMatch(/src=\{objectSrc\(id\)\}/);
+    expect(hero).not.toMatch(/srcSet/);
   });
 
   it("is the same file on the recorder's card, so Start's move never waits on a fetch", () => {
     // The move into the recording waits for the topic card's object to
     // load (components/rep/TopicCard.tsx topicCardArrival); a different
-    // cut there meant a fetch inside the tap (297 ms to 515 ms, #508).
+    // file there meant a fetch inside the tap (297 ms to 515 ms, #508).
     const card = readFileSync(path.join(root, "components/rep/TopicCard.tsx"), "utf8");
-    expect(card).toMatch(/src=\{objectSrc\(art, true\)\}/);
-    expect(card).toMatch(/srcSet=\{objectSrcSet\(art\)\}/);
+    expect(card).toMatch(/src=\{objectSrc\(art\)\}/);
+    expect(card).not.toMatch(/srcSet/);
   });
 
-  it("changes no file the worker pre-caches (no CACHE to move)", () => {
+  it("is a file the worker pre-caches, and no large cut is left in the shell", () => {
     const sw = readFileSync(path.join(root, "public/sw.js"), "utf8");
-    /* The shell's list, not the whole file: since the final pass of 18 Nov
-       the worker names the 720 cut in its offline stand-in for lesson art
-       (#448's tunnel promise), which pre-caches nothing. */
     const at = sw.indexOf("const SHELL = [");
     const shell = sw.slice(at, sw.indexOf("];", at));
     expect(shell.length).toBeGreaterThan(100);
-    expect(shell).not.toMatch(/demos-768|lessons\/hero/);
+    expect(shell).not.toMatch(/demos-768|lessons\/(hero|large)/);
+    for (const l of LESSONS) expect(shell).toContain(`"${objectSrc(l.id)}"`);
   });
 });

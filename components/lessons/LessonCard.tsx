@@ -34,21 +34,20 @@ import { ACTION_ARROW_CLASS } from "@/lib/ui";
  * went to a third of their colour, which read as old photos, so since
  * the fix round each render is keyed off its gradient: the object
  * alone, on one neutral tile in every row, so the fifteen read as one
- * set and the colour is the object's own, never a square of tone. Since
- * #503 the objects are bold glossy 3D renders in the stat icons' family
- * (scripts/cut-lesson-icons.mjs), each in its unit's colour made bold,
- * still alone on that neutral tile.
+ * set and the colour is the object's own, never a square of tone. The
+ * objects are the flat set's, one tone set per trait
+ * (scripts/export-flat-icons.mjs), still alone on that neutral tile.
  */
 
 /**
  * A plain <img>, not next/image, and that is about the offline shell
  * rather than about taste. The service worker pre-caches
- * /lessons/*.webp; next/image asks for /_next/image?url=… at a width it
- * picks per device, which is never the URL in the shell, so the PWA
- * would hold fifteen files the page never requests and show fifteen
- * holes offline. The art is already cut to 360px square and a few KB by
- * scripts/cut-lesson-icons.mjs, so there is nothing for the optimiser to
- * do anyway.
+ * /lessons/*.svg; next/image asks for /_next/image?url=… at a width it
+ * picks per device, which is never the URL in the shell (and refuses an
+ * SVG unless told not to optimise), so the PWA would hold fifteen files
+ * the page never requests and show fifteen holes offline. The art is a
+ * vector of a few KB (scripts/export-flat-icons.mjs), so there is
+ * nothing for the optimiser to do anyway.
  */
 export function LessonArt({
   lesson,
@@ -81,16 +80,15 @@ export function LessonArt({
       style={{ width: size, height: size }}
     >
       {stage && <span className="demos-halo" />}
-      {/* 3D renders in the stat icons' family since #503: a square cut
-          at 360px with transparency. */}
+      {/* The flat object, a vector on its 96u square. */}
       <img
         src={lesson.art}
         alt=""
         loading={eager ? "eager" : "lazy"}
         decoding="async"
-        width={360}
-        height={360}
-        className="absolute inset-0 h-full w-full object-cover"
+        width={96}
+        height={96}
+        className="absolute inset-0 h-full w-full object-contain"
       />
     </span>
   );

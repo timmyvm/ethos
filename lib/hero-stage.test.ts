@@ -97,9 +97,10 @@ describe("Today opens on the object", () => {
     }
   });
 
-  it("the card stands the lesson's object at the large cut, and holds the one Start", () => {
+  it("the card stands the lesson's object, its one vector file, and holds the one Start", () => {
     expect(hero).toContain("<HeroObject key={object} id={object} />");
-    expect(hero).toMatch(/src=\{objectSrc\(id, true\)\}/);
+    expect(hero).toMatch(/src=\{objectSrc\(id\)\}/);
+    expect(hero).not.toMatch(/srcSet/);
     // Start, and in its place while the roulette has the card, "Take this
     // one": the same pill, never both on screen, and never disabled by a
     // spin (D14).
@@ -162,8 +163,8 @@ describe("under the hero, colour is an accent", () => {
   });
 
   /*
-   * The fix round: the renders stand on a transparent ground (keyed
-   * then, cut so since #503 by scripts/cut-lesson-icons.mjs), so a row
+   * The fix round: the objects stand on a transparent ground (vectors
+   * since the flat set, scripts/export-flat-icons.mjs), so a row
    * shows the object on the one neutral tile every lesson shares and no
    * square of tone; the
    * stage's picture is the object standing in the studio light; and
@@ -179,13 +180,13 @@ describe("under the hero, colour is an accent", () => {
     expect(css).toMatch(/\.lesson-tile \{\s*background: var\(--color-surface\);/);
   });
 
-  it("the lesson pictures are cut out: every one carries transparency", () => {
-    for (const name of readdirSync(path.join(root, "public/lessons"))) {
-      if (!name.endsWith(".webp")) continue;
-      const head = readFileSync(path.join(root, "public/lessons", name)).subarray(0, 64);
-      // RIFF....WEBPVP8X with the alpha flag (bit 4 of the flags byte).
-      expect(head.toString("ascii", 12, 16), name).toBe("VP8X");
-      expect(head[20] & 0x10, name).toBe(0x10);
+  it("the lesson pictures are cut out: no file paints a ground behind its object", () => {
+    const names = readdirSync(path.join(root, "public/lessons"));
+    expect(names.filter((n) => n.endsWith(".svg"))).toHaveLength(15);
+    for (const name of names) {
+      const svg = readFileSync(path.join(root, "public/lessons", name), "utf8");
+      // A full-bleed rect or a background style would be a tile of colour behind the object.
+      expect(svg, name).not.toMatch(/<rect[^>]*width="96"[^>]*height="96"|background/);
     }
   });
 });

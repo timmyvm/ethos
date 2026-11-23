@@ -6,8 +6,8 @@ import { SegmentBar } from "@/components/ui/SegmentBar";
 import { markIn, saidBetter } from "@/lib/say";
 
 /**
- * Say it better's object (#507): the Variety lesson's glass boomerang,
- * "Same idea, new words" (public/lessons/large/second-pass.webp), the
+ * Say it better's object (#507): the Variety lesson's boomerang,
+ * "Same idea, new words" (public/lessons/second-pass.svg), the
  * one Variety render whose meaning is the feature's. Never the price tag
  * the first design borrowed, which read as shopping in an app where money
  * buys only cosmetics. A plain img, as every lesson object is (#274).
@@ -16,11 +16,11 @@ export function SayArt({ className = "" }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/lessons/large/second-pass.webp"
+      src="/lessons/second-pass.svg"
       alt=""
       aria-hidden
-      width={560}
-      height={560}
+      width={96}
+      height={96}
       loading="eager"
       decoding="async"
       className={`block object-contain ${className}`}

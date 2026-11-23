@@ -27,16 +27,17 @@ describe("the offline shell", () => {
     expect(shell).not.toContain("/icon-maskable-512.png");
   });
 
-  it("leaves the lesson art's large cuts to the first view", () => {
-    expect(shell.filter((u) => u.startsWith("/lessons/large/"))).toEqual([]);
+  it("holds each lesson's one vector, and no 3D cut of any size", () => {
+    for (const l of LESSONS) expect(shell, l.id).toContain(`/lessons/${l.id}.svg`);
+    expect(shell.filter((u) => /^\/lessons\/(large|hero)\/|^\/icons\/3d\/|\/lessons\/.*\.webp$/.test(u))).toEqual([]);
   });
 
   it("names only files that exist", () => {
     for (const u of shell.filter((u) => /\.\w+$/.test(u))) expect(existsSync(path.join(root, "public", u)), u).toBe(true);
   });
 
-  it("moved CACHE with the change, so a phone holding v20 lets its copies go", () => {
-    expect(Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1])).toBeGreaterThanOrEqual(21);
+  it("moved CACHE with the flat set, so a phone holding v21 lets its 3D copies go", () => {
+    expect(Number(sw.match(/const CACHE = "ethos-v(\d+)";/)![1])).toBeGreaterThanOrEqual(22);
   });
 });
 
@@ -56,11 +57,11 @@ describe("the worker registers after the first screen is drawn", () => {
 });
 
 /*
- * A lesson opened in a tunnel still has its picture (#448), kept at no
- * install cost (the final pass of 18 Nov): v21 left the large cuts to the
- * first view, and a 3x phone draws Today's object from /lessons/hero/, so
- * a lesson page offline asked for a 560 this phone never fetched. The
- * worker itself is run here, its fetch handler fed a tunnel.
+ * A lesson opened in a tunnel still has its picture (#448). Since the flat
+ * set each lesson's object is one small SVG every screen draws, and all
+ * fifteen are shell, so there is no cut to stand in for another: the
+ * worker answers the file from its cache. The worker itself is run here,
+ * its fetch handler fed a tunnel.
  */
 describe("a lesson in a tunnel", () => {
   const ORIGIN = "https://speakethos.test";
@@ -108,44 +109,30 @@ describe("a lesson in a tunnel", () => {
     return { get, store, fetched };
   }
 
-  it("a 560 never drawn here is answered offline by the thumbnail the shell holds", async () => {
-    const w = boot(false, { "/lessons/the-landing.webp": "360 the-landing" });
-    expect(await w.get("/lessons/large/the-landing.webp")).toBe("360 the-landing");
-  });
-
-  it("the best cut held wins: Today's 720 stands in for the lesson page's 560, and the 560 for a 3x phone's 720", async () => {
-    const w = boot(false, {
-      "/lessons/the-landing.webp": "360 the-landing",
-      "/lessons/hero/the-landing.webp": "720 the-landing",
-      "/lessons/second-pass.webp": "360 second-pass",
-      "/lessons/large/second-pass.webp": "560 second-pass",
-    });
-    expect(await w.get("/lessons/large/the-landing.webp")).toBe("720 the-landing");
-    expect(await w.get("/lessons/hero/second-pass.webp")).toBe("560 second-pass");
-    // Say it better's stage art (#507) is the same file, so it is kept the same way.
-    expect(await w.get("/lessons/large/second-pass.webp")).toBe("560 second-pass");
-  });
-
-  it("never stands one lesson in for another, and anything else missing offline fails as before", async () => {
-    const w = boot(false, { "/lessons/the-landing.webp": "360 the-landing" });
-    expect(await w.get("/lessons/large/the-crutch.webp")).toBeNull();
-    expect(await w.get("/demos-celebrate.webp")).toBeNull();
-    expect(await w.get("/icons/3d/streak.webp")).toBeNull();
-  });
-
-  it("online, the cut asked for is fetched and kept under its own path: no stand-in", async () => {
-    const w = boot(true, { "/lessons/the-landing.webp": "360 the-landing" });
-    expect(await w.get("/lessons/large/the-landing.webp")).toBe("network /lessons/large/the-landing.webp");
-    await new Promise((r) => setTimeout(r, 0));
-    expect(await w.store.get("/lessons/large/the-landing.webp")?.clone().text()).toBe("network /lessons/large/the-landing.webp");
-    // Kept once, drawn from the phone after: the network is not asked again.
-    w.fetched.length = 0;
-    expect(await w.get("/lessons/large/the-landing.webp")).toBe("network /lessons/large/the-landing.webp");
+  it("a lesson's object is answered offline from the shell", async () => {
+    const w = boot(false, { "/lessons/the-landing.svg": "<svg>the-landing</svg>" });
+    expect(await w.get("/lessons/the-landing.svg")).toBe("<svg>the-landing</svg>");
     expect(w.fetched).toEqual([]);
   });
 
-  it("costs the install nothing: every lesson's thumbnail is shell, no large or hero cut is", () => {
-    for (const l of LESSONS) expect(shell, l.id).toContain(`/lessons/${l.id}.webp`);
-    expect(shell.filter((u) => /^\/lessons\/(large|hero)\//.test(u))).toEqual([]);
+  it("never stands one lesson in for another, and anything else missing offline fails", async () => {
+    const w = boot(false, { "/lessons/the-landing.svg": "<svg>the-landing</svg>" });
+    expect(await w.get("/lessons/the-crutch.svg")).toBeNull();
+    expect(await w.get("/lessons/large/the-landing.webp")).toBeNull();
+    expect(await w.get("/demos-celebrate.webp")).toBeNull();
+  });
+
+  it("online, a file not yet held is fetched and kept under its own path", async () => {
+    const w = boot(true, {});
+    expect(await w.get("/lessons/the-landing.svg")).toBe("network /lessons/the-landing.svg");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await w.store.get("/lessons/the-landing.svg")?.clone().text()).toBe("network /lessons/the-landing.svg");
+    w.fetched.length = 0;
+    expect(await w.get("/lessons/the-landing.svg")).toBe("network /lessons/the-landing.svg");
+    expect(w.fetched).toEqual([]);
+  });
+
+  it("keeps no stand-in rule: the worker names no cut of a lesson but its file", () => {
+    expect(sw).not.toMatch(/lessonStandIn|LESSON_ART/);
   });
 });

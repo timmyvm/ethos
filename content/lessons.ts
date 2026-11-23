@@ -164,7 +164,7 @@ export const LESSONS: Lesson[] = SEEDS.map((s) => ({
   trait: s.trait,
   title: s.title,
   blurb: s.blurb,
-  art: `/lessons/${s.id}.webp`,
+  art: `/lessons/${s.id}.svg`,
   practices: practicesFor(s),
 }));
 

@@ -1,125 +1,172 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { FlatIcon } from "@/components/icons/flat/FlatIcon";
-import { FLAT_SIX, type FlatKind } from "@/components/icons/flat/geometry";
-import { LessonArt } from "@/components/lessons/LessonCard";
-import { StatIcon } from "@/components/StatIcon";
-import { TraitChip } from "@/components/TraitChip";
+import { FlatLessonIcon } from "@/components/icons/flat/FlatLessonIcon";
+import {
+  LESSON_FAMILIES,
+  LESSON_OBJECT_KIND,
+  STAT_FLAT_KINDS,
+  type LessonFlatKind,
+  type StatFlatKind,
+} from "@/components/icons/flat/geometry";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { HeaderCount } from "@/components/ui/HeaderCount";
-import { HeroStage, StageChip } from "@/components/ui/HeroStage";
-import { SegmentBar } from "@/components/ui/SegmentBar";
-import { lessonById, type Lesson } from "@/content/lessons";
-import { ART_BOUNDS } from "@/lib/lesson-art-bounds";
-import { objectSrc } from "@/lib/home";
-import type { StatKind } from "@/lib/stat-icons";
+import { LESSONS } from "@/content/lessons";
+import { TRAIT } from "@/content/traits";
 
 /**
- * The icon board (camera only; nothing ships from it). Timothy, 20 Nov:
- * "lets just copy duolingos newer styles". Their art, never: their method,
- * drawn again from Ethos's own objects (components/icons/flat/).
+ * The flat icon board (camera only; nothing ships from it). Timothy, 20
+ * Nov: "lets just copy duolingos newer styles". Their method, never their
+ * art, drawn again from Ethos's own objects (components/icons/flat/). He
+ * picked variant A: its own bright palette, the same in both themes, and
+ * this board shows that set alone.
  *
- * Three columns of the same eight places, so the choice is made by
- * pointing: A, the studied rules in a bright palette of its own; B, the
- * same drawings in Ethos's own tokens; Now, the Higgsfield 3D icons the
- * app draws today. Each column has the six at 20, 32, 48, 96 and 120 on
- * the page's ground (the camera shoots it light and dark), then the same
- * icons where the app puts them: You's three numbers, Today's chips, the
- * freeze's line and its two games' rows, Lessons' Up next stage, and a
- * lesson's own stage at 120.
+ * The six stat icons at 20, 24, 44 and 120, then unlit at the small sizes;
+ * the fifteen lessons' objects by trait at the same sizes; each object on
+ * its family's colour (Today's card and the lesson stage); and the stats
+ * where the app puts them: You's numbers, Today's chips, the freeze's line
+ * and Today's two game rows. The camera (scripts/look-icons-flat.mjs)
+ * shoots it light and dark.
  *
- * `?only=a|b|now` draws one column, for the camera's side by side
- * (scripts/look-icons-flat.mjs).
+ * A server component: the lessons' drawings render here and never reach
+ * the browser bundle.
  */
 
-type Variant = "a" | "b" | "now";
-const VARIANTS: { v: Variant; name: string; line: string }[] = [
-  { v: "a", name: "A, studied", line: "Flat base, one shade, a small light, in a bright palette of its own." },
-  { v: "b", name: "B, Ethos", line: "The same drawings in the app's tokens: streak orange, XP orchid, gold, sky, trait tones." },
-  { v: "now", name: "Now", line: "The Higgsfield 3D icons the app draws today." },
-];
+const SMALL = [20, 24, 44];
+const LARGE = 120;
 
-/** The six, in the ladder's order. */
-const LEGEND = "Streak, XP, best, freeze, and two lessons' objects";
+/** Each object's lesson title, for the caption under it at 120. */
+const TITLE: Partial<Record<LessonFlatKind, string>> = Object.fromEntries(
+  LESSONS.map((l) => [LESSON_OBJECT_KIND[l.id], l.title]),
+);
 
-/** What the app draws today for each place. */
-const NOW_STAT: Partial<Record<FlatKind, StatKind>> = {
-  streak: "streak",
-  xp: "xp",
-  best: "best",
-  freeze: "freeze",
-  hostile: "hostile",
-  boss: "boss",
-};
-const NOW_LESSON: Partial<Record<FlatKind, string>> = {
-  target: "know-the-landing",
-  hourglass: "the-long-one",
-};
-
-/**
- * One mark at one size. A lesson's 3D render stands inside a square with
- * its own air (lib/lesson-art-bounds.ts), so here it is cropped to its
- * visible box and drawn at the flat icons' 90%, or every size in the
- * Now column would read a third smaller than it is.
- */
-function Mark({ v, kind, size, lit = true }: { v: Variant; kind: FlatKind; size: number; lit?: boolean }) {
-  if (v !== "now") return <FlatIcon kind={kind} variant={v} size={size} lit={lit} />;
-  const stat = NOW_STAT[kind];
-  if (stat) return <StatIcon kind={stat} size={size} lit={lit} />;
-  const id = NOW_LESSON[kind]!;
-  const b = ART_BOUNDS[id];
-  const k = (0.9 * size) / Math.max(b.r - b.l, b.b - b.t);
-  const style: CSSProperties = {
-    position: "absolute",
-    width: k,
-    height: k,
-    left: size / 2 - k * ((b.l + b.r) / 2),
-    top: size / 2 - k * ((b.t + b.b) / 2),
-    maxWidth: "none",
-  };
+function SizeRow({ size, children }: { size: number; children: ReactNode }) {
   return (
-    <span className="relative block shrink-0 overflow-hidden" style={{ width: size, height: size }}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- the app's own file, as the app draws it (#274) */}
-      <img src={objectSrc(id, true)} alt="" style={style} />
-    </span>
+    <div className="flex items-center gap-3 py-2">
+      <span className="font-display w-9 shrink-0 text-caption font-semibold text-stone-500">{size}</span>
+      <span className="flex flex-1 items-center justify-between">{children}</span>
+    </div>
   );
 }
 
-const SMALL = [20, 32, 48];
+/** 120 stands on its own line: three icons at 120 fill the row's whole width. */
+function LargeLabel() {
+  return <span className="font-display block pb-1 pt-2 text-caption font-semibold text-stone-500">{LARGE}</span>;
+}
 
-function Ladder({ v }: { v: Variant }) {
+function Heading({ children, line }: { children: ReactNode; line?: string }) {
   return (
-    <section aria-label="Sizes" className="mt-5">
-      {SMALL.map((s) => (
-        <div key={s} className="flex items-center gap-3 py-2">
-          <span className="font-display w-10 shrink-0 text-caption font-semibold text-stone-500">{s}</span>
-          <span className="flex flex-1 items-center justify-between">
-            {FLAT_SIX.map((k) => (
-              <Mark key={k} v={v} kind={k} size={s} />
+    <>
+      <h2 className="font-display mt-8 text-title font-extrabold">{children}</h2>
+      {line && <p className="mt-1 text-caption text-stone-500">{line}</p>}
+    </>
+  );
+}
+
+function Stats() {
+  return (
+    <section aria-label="Stat icons">
+      <Heading line="Streak, XP, best, freeze, and Today's two games.">Stats</Heading>
+      <div className="mt-2">
+        {SMALL.map((s) => (
+          <SizeRow key={s} size={s}>
+            {STAT_FLAT_KINDS.map((k) => (
+              <FlatIcon key={k} kind={k} size={s} />
             ))}
-          </span>
+          </SizeRow>
+        ))}
+        <LargeLabel />
+        <div className="grid grid-cols-3 justify-items-center gap-y-3">
+          {STAT_FLAT_KINDS.map((k) => (
+            <FlatIcon key={k} kind={k} size={LARGE} />
+          ))}
         </div>
-      ))}
-      {[96, 120].map((s) => (
-        <div key={s} className="flex gap-3 py-2">
-          <span className="font-display w-10 shrink-0 pt-1 text-caption font-semibold text-stone-500">{s}</span>
-          <span className="grid flex-1 grid-cols-3 justify-items-center gap-y-3">
-            {FLAT_SIX.map((k) => (
-              <Mark key={k} v={v} kind={k} size={s} />
+      </div>
+      <h3 className="eyebrow mt-4">Unlit</h3>
+      <div className="mt-1">
+        {SMALL.map((s) => (
+          <SizeRow key={s} size={s}>
+            {STAT_FLAT_KINDS.map((k) => (
+              <FlatIcon key={k} kind={k} size={s} lit={false} />
             ))}
-          </span>
+          </SizeRow>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Family({ trait, kinds }: { trait: (typeof LESSON_FAMILIES)[number]["trait"]; kinds: readonly LessonFlatKind[] }) {
+  return (
+    <div data-family-board={trait} className="mt-5">
+      <h3 className="eyebrow">{TRAIT[trait].name}</h3>
+      <div className="mt-1">
+        {SMALL.map((s) => (
+          <div key={s} className="flex items-center gap-3 py-2">
+            <span className="font-display w-9 shrink-0 text-caption font-semibold text-stone-500">{s}</span>
+            <span className="grid flex-1 grid-cols-3 justify-items-center">
+              {kinds.map((k) => (
+                <FlatLessonIcon key={k} kind={k} size={s} />
+              ))}
+            </span>
+          </div>
+        ))}
+        <LargeLabel />
+        <div className="grid grid-cols-3 justify-items-center">
+          {kinds.map((k) => (
+            <span key={k} className="flex w-full flex-col items-center">
+              <FlatLessonIcon kind={k} size={LARGE} />
+              <span className="font-display mt-1 text-center text-caption font-semibold text-stone-500">{TITLE[k]}</span>
+            </span>
+          ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Lessons() {
+  return (
+    <section aria-label="Lesson objects">
+      <Heading line="Fifteen objects, three to a trait, in their family's tones.">Lessons</Heading>
+      {LESSON_FAMILIES.map((f) => (
+        <Family key={f.trait} trait={f.trait} kinds={f.kinds} />
       ))}
     </section>
   );
 }
 
+/** Each family's objects on Today's card (the family's own colour) and on the lesson stage (its wash, its dark stage). */
+function OnFamily() {
+  return (
+    <section aria-label="On the family's colour">
+      <Heading line="Today's card, then the lesson stage.">On its family&apos;s colour</Heading>
+      <div className="mt-3 flex flex-col gap-3">
+        {LESSON_FAMILIES.map(({ trait, kinds }) => (
+          <div key={trait} className="grid grid-cols-2 gap-3">
+            <div className="family-fill flex items-center justify-around px-2 py-3" data-family={trait} data-object="none" style={{ borderRadius: 20 }}>
+              {kinds.map((k) => (
+                <FlatLessonIcon key={k} kind={k} size={52} />
+              ))}
+            </div>
+            <div data-trait={trait} className="flex items-center justify-around rounded-[20px] bg-[var(--tone-stage)] px-2 py-3">
+              {kinds.map((k) => (
+                <FlatLessonIcon key={k} kind={k} size={52} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /** You's three numbers, as app/you/page.tsx `Stat` draws them. */
-function YouStat({ label, value, mark, tone }: { label: string; value: number; mark: ReactNode; tone: string }) {
+function YouStat({ label, value, kind, lit = true, tone }: { label: string; value: number; kind: StatFlatKind; lit?: boolean; tone: string }) {
   return (
     <div className="min-w-0 text-center">
       <div className="font-display flex items-center justify-center gap-1.5 text-num-m tabular-nums">
         <span aria-hidden className={`flex shrink-0 ${tone}`}>
-          {mark}
+          <FlatIcon kind={kind} size={22} lit={lit} />
         </span>
         <span>{value}</span>
       </div>
@@ -128,12 +175,12 @@ function YouStat({ label, value, mark, tone }: { label: string; value: number; m
   );
 }
 
-/** Today's two games, as components/home/ModeRows.tsx draws them (its mark swapped). */
-function ModeRow({ v, kind, name, subject, line }: { v: Variant; kind: "hostile" | "boss"; name: string; subject: string; line: ReactNode }) {
+/** Today's two games, as components/home/ModeRows.tsx draws them, with the flat mark. */
+function ModeRow({ kind, name, subject, line }: { kind: "hostile" | "boss"; name: string; subject: string; line: ReactNode }) {
   return (
-    <div data-mode={kind} data-flat={v === "now" ? undefined : ""} className={`home-mode ${kind === "hostile" ? "tone-coral" : "tone-sky"}`}>
+    <div data-mode={kind} data-flat="" className={`home-mode ${kind === "hostile" ? "tone-coral" : "tone-sky"}`}>
       <span aria-hidden className="home-mode-art">
-        <Mark v={v} kind={kind} size={72} />
+        <FlatIcon kind={kind} size={72} />
       </span>
       <span className="home-mode-words">
         <span className="home-mode-name font-display">{name}</span>
@@ -147,36 +194,23 @@ function ModeRow({ v, kind, name, subject, line }: { v: Variant; kind: "hostile"
   );
 }
 
-/** A lesson's object on a stage, as LessonArt's `stage` draws it: the flat icon stands where the render's object stands. */
-function StageArt({ v, lesson, size }: { v: Variant; lesson: Lesson; size: number }) {
-  if (v === "now") return <LessonArt lesson={lesson} size={size} eager stage />;
-  const kind: FlatKind = lesson.id === "know-the-landing" ? "target" : "hourglass";
-  const b = ART_BOUNDS[lesson.id];
-  const icon = Math.round(size * Math.max(b.r - b.l, b.b - b.t) * 1.05);
+function InTheApp() {
   return (
-    <span aria-hidden className="lesson-art tone-sky relative block shrink-0" style={{ width: size, height: size }}>
-      <span className="demos-halo" />
-      <span
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{ bottom: size * (1 - b.b) - icon * 0.05, width: icon, height: icon }}
-      >
-        <FlatIcon kind={kind} variant={v} size={icon} />
-      </span>
-    </span>
-  );
-}
-
-function Context({ v }: { v: Variant }) {
-  const landing = lessonById("know-the-landing")!;
-  const longOne = lessonById("the-long-one")!;
-  return (
-    <section id={`context-${v}`} data-context={v} aria-label="In the app" className="-mx-5 px-5 pb-4 pt-2">
+    <section id="context" data-context aria-label="In the app" className="pb-4">
+      <Heading>In the app</Heading>
       <h3 className="eyebrow mt-4">You</h3>
       <div className="card mt-2 p-4">
         <div className="grid grid-cols-3">
-          <YouStat label="Streak" value={12} tone="streak-lit" mark={<Mark v={v} kind="streak" size={22} />} />
-          <YouStat label="Best streak" value={30} tone="streak-lit" mark={<Mark v={v} kind="best" size={22} />} />
-          <YouStat label="XP today" value={40} tone="xp-ink" mark={<Mark v={v} kind="xp" size={22} />} />
+          <YouStat label="Streak" value={12} kind="streak" tone="streak-lit" />
+          <YouStat label="Best streak" value={30} kind="best" tone="streak-lit" />
+          <YouStat label="XP today" value={40} kind="xp" tone="xp-ink" />
+        </div>
+      </div>
+      <div className="card mt-2 p-4">
+        <div className="grid grid-cols-3">
+          <YouStat label="Streak" value={0} kind="streak" lit={false} tone="" />
+          <YouStat label="Best streak" value={0} kind="best" lit={false} tone="" />
+          <YouStat label="XP today" value={0} kind="xp" tone="xp-ink" />
         </div>
       </div>
 
@@ -186,19 +220,27 @@ function Context({ v }: { v: Variant }) {
           variant="chip"
           unlit
           label="Streak 12, today's open"
-          glyph={<span className="flex">{<Mark v={v} kind="streak" size={20} lit={false} />}</span>}
+          glyph={
+            <span className="flex">
+              <FlatIcon kind="streak" size={20} lit={false} />
+            </span>
+          }
           value={12}
         />
         <HeaderCount
           variant="chip"
           label="Streak 13"
-          glyph={<span className="flex">{<Mark v={v} kind="streak" size={20} />}</span>}
+          glyph={
+            <span className="flex">
+              <FlatIcon kind="streak" size={20} />
+            </span>
+          }
           value={13}
         />
       </div>
       <p className="home-freeze mt-4 text-body">
         <span className="home-freeze-mark flex">
-          <Mark v={v} kind="freeze" size={24} />
+          <FlatIcon kind="freeze" size={24} />
         </span>
         <span>
           <span className="font-semibold">A freeze covered a day you missed.</span>{" "}
@@ -207,7 +249,6 @@ function Context({ v }: { v: Variant }) {
       </p>
       <div className="home-modes">
         <ModeRow
-          v={v}
           kind="hostile"
           name="Hostile Q&A"
           subject="Social media does more good than harm"
@@ -222,85 +263,21 @@ function Context({ v }: { v: Variant }) {
             </>
           }
         />
-        <ModeRow v={v} kind="boss" name="Weekly boss" subject="How a bill becomes law" line="Read it, explain it" />
-      </div>
-
-      <h3 className="eyebrow mt-6">Lessons, Up next</h3>
-      <div className="mt-2">
-        <HeroStage
-          eyebrow={
-            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-              <StageChip trait={landing.trait} />
-              <span className="eyebrow stage-ink">Up next</span>
-            </span>
-          }
-          eyebrowWide
-          title={landing.title}
-          art={<StageArt v={v} lesson={landing} size={132} />}
-          line={
-            <span className="mt-auto flex items-center gap-2.5 pt-3">
-              <span className="w-24 shrink-0">
-                <SegmentBar total={3} done={1} tone="stage" />
-              </span>
-              <span className="stage-ink font-display whitespace-nowrap text-link font-bold tabular-nums">1 of 3</span>
-            </span>
-          }
-        />
-      </div>
-
-      <h3 className="eyebrow mt-6">A lesson&apos;s stage</h3>
-      <div data-trait={longOne.trait} className="relative mt-2 overflow-hidden rounded-card bg-[var(--tone-stage)] pb-4 pt-5">
-        <div className="flex justify-center">
-          <LessonStageObject v={v} lesson={longOne} />
-        </div>
-        <div className="mt-3 flex flex-col items-center">
-          <TraitChip trait={longOne.trait} size="md" />
-          <p className="font-display mt-2 text-center text-title">{longOne.title}</p>
-        </div>
+        <ModeRow kind="boss" name="Weekly boss" subject="How a bill becomes law" line="Read it, explain it" />
       </div>
     </section>
   );
 }
 
-/** The lesson page's object at its smallest, 120 (app/lessons/[id]/page.tsx). */
-function LessonStageObject({ v, lesson }: { v: Variant; lesson: Lesson }) {
-  if (v === "now")
-    return (
-      <span className="lesson-art relative block size-[120px] shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element -- the app's own file (#274) */}
-        <img src={objectSrc(lesson.id, true)} alt="" width={560} height={560} className="absolute inset-0 h-full w-full" />
-      </span>
-    );
-  const b = ART_BOUNDS[lesson.id];
-  const icon = Math.round(120 * Math.max(b.r - b.l, b.b - b.t) * 1.05);
+export default function IconsBoard() {
   return (
-    <span className="relative grid size-[120px] shrink-0 place-items-center">
-      <FlatIcon kind="hourglass" variant={v} size={icon} />
-    </span>
-  );
-}
-
-function Column({ v, name, line }: { v: Variant; name: string; line: string }) {
-  return (
-    <div data-column={v} className="px-5 pb-10 pt-8">
-      <h2 className="font-display text-title font-extrabold">{name}</h2>
-      {/* Two lines held in every column, so the rows line up side by side. */}
-      <p className="mt-2 min-h-[2lh] text-caption text-stone-500">{line}</p>
-      <p className="font-display mt-2 text-caption font-semibold text-stone-500">{LEGEND}</p>
-      <Ladder v={v} />
-      <Context v={v} />
-    </div>
-  );
-}
-
-export default async function IconsBoard({ searchParams }: { searchParams: Promise<{ only?: string }> }) {
-  const { only } = await searchParams;
-  const shown = VARIANTS.filter((x) => !only || x.v === only);
-  return (
-    <main className="min-h-dvh bg-ground text-ink">
-      {shown.map((x) => (
-        <Column key={x.v} {...x} />
-      ))}
+    <main className="min-h-dvh bg-ground px-5 pb-10 pt-6 text-ink">
+      <h1 className="font-display text-title font-extrabold">Flat icons</h1>
+      <p className="mt-1 text-caption text-stone-500">Flat base, one shade, a small light, in a bright palette of its own.</p>
+      <Stats />
+      <Lessons />
+      <OnFamily />
+      <InTheApp />
     </main>
   );
 }

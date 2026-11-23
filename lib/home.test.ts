@@ -233,6 +233,22 @@ describe("every object stands inside its disc in the card's zone", () => {
     });
   });
 
+  it("the disc is painted behind the object, never cut round it, so no object loses a corner", () => {
+    // A round <img> trims its picture to the circle inside its content box,
+    // the object's square, and most objects reach past half of it (the
+    // hourglass's caps lost their ends, the door its leaf).
+    expect(Object.values(ART_BOUNDS).filter((b) => b.reach > 0.5).length).toBeGreaterThan(5);
+    expect(shared).not.toMatch(/border-radius/);
+    expect(shared).toMatch(/background: radial-gradient\(closest-side, var\(--home-disc\) calc\(100% - 0\.5px\), transparent 100%\);/);
+    // Nor rounded where it is placed: Today's card, the recorder's topic card, Up next, the welcome's day one.
+    for (const file of ["components/home/HomeHero.tsx", "components/rep/TopicCard.tsx", "components/lessons/LessonCard.tsx", "app/welcome/page.tsx"]) {
+      const src = readFileSync(path.join(root, file), "utf8");
+      const classes = [...src.matchAll(/className="([^"]*(?:object-disc|home-hero-art)[^"]*)"/g)].map((m) => m[1]);
+      expect(classes.length, file).toBeGreaterThan(0);
+      for (const c of classes) expect(c, file).not.toMatch(/\brounded/);
+    }
+  });
+
   it("on a short phone the object stands 100px tall and the topic takes the size a step down", () => {
     expect(shortAt).toBeGreaterThan(narrowAt);
     expect(shortHero["zone-b"]).toBe("calc(var(--zone-t) + 100px)");

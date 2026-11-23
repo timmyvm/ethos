@@ -6378,14 +6378,21 @@ summary::-webkit-details-marker {
  * background and the object inset by padding, so it arrives with the
  * object, flies with it to the recording's card (E51) and shrinks and
  * fades with it on Record, one shape all the way.
+ *
+ * The disc is painted, not cut: a circle drawn as the img's background
+ * on a square box. A round img (border-radius) trims its picture to the
+ * circle inside its own content box, which is the object's square, so
+ * every object reaching past half its square (eleven of the fifteen:
+ * the hourglass 0.55, the crutch 0.59) lost its corners, the hourglass's
+ * caps ending in points and the door's leaf cut off, as much as 11px at
+ * Today's 168. The half pixel of ramp is the edge's antialiasing.
  */
 .home-hero-art,
 .object-disc {
   --disc-obj: min(var(--disc), calc(var(--disc) * 0.44 / var(--art-reach, 0.55)));
   box-sizing: border-box;
   padding: calc((var(--disc) - var(--disc-obj)) / 2);
-  border-radius: 9999px;
-  background: var(--home-disc);
+  background: radial-gradient(closest-side, var(--home-disc) calc(100% - 0.5px), transparent 100%);
   object-fit: contain;
   /* The visible box's centre on the disc's, where a drawing sits a
      touch off its square's (the magnifier, by 1.3%). */

@@ -2,12 +2,12 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DemosArt } from "@/components/DemosArt";
-import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
-import { FREE_ALLOWANCE } from "@/lib/allowance-copy";
+import { BENEFITS } from "@/components/Paywall";
 import { PremiumDoor, PremiumMark } from "@/components/PremiumMark";
 import { SpeechBubble } from "@/components/SpeechBubble";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { FIRST_PRICE_CENTS, FLOOR_MONTH, formatAud, formatBare, priceForMonth } from "@/lib/pricing";
+import { PAYWALL_COPY } from "@/lib/plan-view";
 import { buzz } from "@/lib/prefs";
 import { ACTION_CLASS } from "@/lib/ui";
 import { Timeline } from "./Timeline";
@@ -60,15 +60,7 @@ function IconOut() {
   );
 }
 
-/** The same five lines the paywall has always carried (#199). */
-const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
-const BENEFITS = [
-  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep(FREE_ALLOWANCE)}</> },
-  { Glyph: IconMic, text: "Presence on video, with its moments" },
-  { Glyph: IconTrend, text: "Your whole history, all nine skills" },
-  { Glyph: IconSpark, text: "Every word you've earned, kept" },
-  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A, {keep("any boss topic, any week")}</> },
-];
+/* The five lines are the paywall's own (BENEFITS), so this page never sells what the sheet no longer does (the reel's build 4). */
 
 /* ------------------------------------------------------------------ */
 /* 1, 2. The paywall sheet. */
@@ -184,9 +176,7 @@ export function PaywallSheet({
           </button>
         </div>
       )}
-      <p className="mt-0.5 text-center text-caption text-cream/60">
-        Money never buys stars, streaks, or scores.
-      </p>
+      <p className="mt-0.5 text-center text-caption text-balance text-cream/60">{PAYWALL_COPY.closing}</p>
     </div>
   );
 }

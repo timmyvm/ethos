@@ -249,6 +249,14 @@ describe("the paywall's words", () => {
       "Renews monthly until you cancel in the app. If a plan ends, the next starts at A$12.99."
     );
   });
+
+  /* The reel's build 4: the first row sells "Every recording scored"
+     (#514), so the foot cannot say money never buys scores. It buys more
+     scored recordings, never a higher one. */
+  it("closes on what money never buys, without contradicting the first row", () => {
+    expect(PAYWALL_COPY.closing).toBe("Money never buys stars, streaks, or a higher score.");
+    expect(PAYWALL_COPY.closing).not.toMatch(/scores\.$/);
+  });
 });
 
 describe("You, the manage sheet and Settings, per state", () => {

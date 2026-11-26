@@ -60,3 +60,51 @@ describe("the paywall's benefits (#403, E40)", () => {
     expect(list).not.toMatch(/(?:and|,) Hostile Q&amp;A/);
   });
 });
+
+/*
+ * The reel's build 4 (26 Nov): every row sells something only Premium
+ * has. "Every word you've earned, kept" sold Say it better, free and
+ * uncapped since #507, and read as a threat to saved phrases; the boss
+ * row says what app/boss/page.tsx gives Premium (any of the topics, any
+ * time; free plays the week's one, once). Five rows, each its own mark.
+ */
+describe("the paywall's benefits say only what Premium adds", () => {
+  const src = readFileSync("components/Paywall.tsx", "utf8");
+  const list = src.slice(src.indexOf("const BENEFITS = ["), src.indexOf("];", src.indexOf("const BENEFITS = [")));
+  const rows = [...list.matchAll(/\{ Glyph: (\w+), text: ([^\n]+) \},?\n/g)].map((m) => ({ glyph: m[1], text: m[2] }));
+
+  it("keeps five rows, the boss fourth and the games last", () => {
+    expect(rows).toHaveLength(5);
+    expect(rows[3]).toEqual({ glyph: "IconBoss", text: '"Weekly boss: any topic, any time"' });
+    expect(rows[4].glyph).toBe("IconStopwatch");
+    expect(rows[4].text).toContain("Speed rush, Interview, more Hostile Q&amp;A");
+  });
+
+  it("wears each mark once", () => {
+    const glyphs = rows.map((r) => r.glyph);
+    expect(new Set(glyphs).size).toBe(glyphs.length);
+    expect(glyphs.filter((g) => g === "IconBoss")).toHaveLength(1);
+  });
+
+  it("never sells Say it better or a kept word, which are free", () => {
+    for (const r of rows) expect(r.text).not.toMatch(/word|Say it better|kept/i);
+  });
+
+  it("matches what the boss page gives Premium: a picked topic and no week's limit", () => {
+    const boss = readFileSync("app/boss/page.tsx", "utf8");
+    // Free: one run a week, locked once taken; Premium: any topic, any time.
+    expect(boss).toMatch(/const locked = takenThisWeek && premium === false;/);
+    expect(boss).toMatch(/paid \? setLibrary\(\(v\) => !v\) : setPaywall\("The boss library"\)/);
+    expect(boss).toMatch(/premium runs any topic, any time/);
+  });
+
+  it("the workbench's sheets carry the paywall's own rows and closing, not copies", () => {
+    for (const f of ["app/workbench/ladder-a/Surfaces.tsx", "app/workbench/ladder-b/PaywallB.tsx"]) {
+      const w = readFileSync(f, "utf8");
+      expect(w).toMatch(/import \{ BENEFITS(, reasonLine)? \} from "@\/components\/Paywall"/);
+      expect(w).not.toMatch(/const BENEFITS = \[/);
+      expect(w).toContain("{PAYWALL_COPY.closing}");
+      expect(w).not.toMatch(/Every word you've earned|never buys stars, streaks, or scores/);
+    }
+  });
+});

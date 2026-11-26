@@ -375,10 +375,20 @@ export interface RepSpine {
   ethos_index: number | null;
   /** A boss take or a daily one, so a row past the newest 90 is named as its whole read would be. */
   mode: RepRow["mode"];
+  /**
+   * Whether its words made a real answer, 20 or more (migration 0037, the
+   * server's `isScorable` of the stored transcript): what the streak's
+   * repair counts (lib/streak.ts keptDays). Absent on a database before
+   * 0037, which keeps no day; null on a row the server never filled.
+   */
+  scorable?: boolean | null;
 }
 
 /** The spine's columns: a few short ones per recording, read for every recording the account holds. */
-export const SPINE_COLUMNS = "id, created_at, lesson_id, stars, ethos_index, mode";
+export const SPINE_COLUMNS = "id, created_at, lesson_id, stars, ethos_index, mode, scorable";
+
+/** The same before migration 0037: no `scorable`, so the repair keeps nothing (lib/streak.ts). */
+const SPINE_COLUMNS_BEFORE_0037 = SPINE_COLUMNS.replace(/, scorable$/, "");
 
 /** PostgREST answers at most this many rows (max_rows), so whole reads page. */
 const PAGE = 1000;
@@ -410,21 +420,24 @@ export function fetchRepSpine(): Promise<RepSpine[]> {
 }
 
 /**
- * The spine is kept between opens (lib/held.ts, rule 4, #508): six short
- * columns a recording, its date, lesson, stars and Index. Never a word of
- * what was said. Read back only in exactly that shape.
+ * The spine is kept between opens (lib/held.ts, rule 4, #508): seven short
+ * columns a recording, its date, lesson, stars, Index, kind and whether it
+ * scored. Never a word of what was said. Read back only in exactly that
+ * shape.
  */
 export function spineOf(raw: unknown): RepSpine[] | null {
   if (!Array.isArray(raw)) return null;
   const out: RepSpine[] = [];
   for (const r of raw) {
     if (typeof r !== "object" || r === null) return null;
-    const { id, created_at, lesson_id, stars, ethos_index, mode } = r as Record<string, unknown>;
+    const { id, created_at, lesson_id, stars, ethos_index, mode, scorable } = r as Record<string, unknown>;
     if (typeof id !== "string" || typeof created_at !== "string" || Number.isNaN(Date.parse(created_at))) return null;
     if (lesson_id !== null && typeof lesson_id !== "string") return null;
     if (typeof stars !== "number" || (ethos_index !== null && typeof ethos_index !== "number")) return null;
     if (mode !== "daily" && mode !== "boss") return null;
-    out.push({ id, created_at, lesson_id, stars, ethos_index, mode });
+    if (scorable !== undefined && scorable !== null && typeof scorable !== "boolean") return null;
+    /* A read from before 0037 has no column, and stays without one. */
+    out.push(scorable === undefined ? { id, created_at, lesson_id, stars, ethos_index, mode } : { id, created_at, lesson_id, stars, ethos_index, mode, scorable });
   }
   return out;
 }
@@ -432,7 +445,16 @@ keepBetweenOpens<RepSpine[]>(SPINE_KEY, { save: (v) => spineOf(v), load: spineOf
 
 async function readRepSpine(): Promise<RepSpine[]> {
   const mark = heldMark();
-  return hold(SPINE_KEY, await readAll<RepSpine>("reps", SPINE_COLUMNS), mark);
+  /* A database before 0037 answers 42703 for `scorable`: the spine is read
+     without it, as the lists are (`readListed`), once a load. */
+  if (before0037) return hold(SPINE_KEY, await readAll<RepSpine>("reps", SPINE_COLUMNS_BEFORE_0037), mark);
+  try {
+    return hold(SPINE_KEY, await readAll<RepSpine>("reps", SPINE_COLUMNS), mark);
+  } catch (e) {
+    if (!missingSubstanceColumn(e as { code?: string; message?: string })) throw e;
+    before0037 = true;
+    return hold(SPINE_KEY, await readAll<RepSpine>("reps", SPINE_COLUMNS_BEFORE_0037), mark);
+  }
 }
 
 /** Every recording, whole, for the export: nothing capped, nothing guessed. */

@@ -246,9 +246,9 @@ export default function YouPage() {
   }, []);
 
   /** Same for freezes: one dead sync shouldn't blank the profile. */
-  const loadFreezes = useCallback(async (dates: Date[]) => {
+  const loadFreezes = useCallback(async (all: RepSpine[]) => {
     setFreezes(undefined);
-    const read = await readable(() => syncFreezes(dates));
+    const read = await readable(() => syncFreezes(all));
     if (!read.ok) {
       setFreezes(null);
       return;
@@ -280,7 +280,7 @@ export default function YouPage() {
     const dates = all.map((r) => new Date(r.created_at));
     // The bare count stands in only where no reconciled streak is drawn.
     if (!quiet) setStreak(computeStreak(dates));
-    void loadFreezes(dates);
+    void loadFreezes(all);
     // The coin sync pays new days, which are always among the newest, so
     // the 90 rows' dates suffice.
     void loadCoins(rows.map((r) => new Date(r.created_at)));

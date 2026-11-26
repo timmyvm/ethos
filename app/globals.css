@@ -8555,6 +8555,13 @@ html[data-test-tile] .test-tile-slot {
   background: var(--pop-sky-wash);
   color: var(--pop-sky-ink);
 }
+/* A missed day two recordings kept (closure.md row 14): the freeze's sky
+   wash with the mic in the snowflake's place, since no freeze was spent
+   on it and a colour is never the whole message (DESIGN 10). */
+.streak-day[data-day="kept"] {
+  background: var(--pop-sky-wash);
+  color: var(--pop-sky-ink);
+}
 .streak-day > [data-fill] {
   position: absolute;
   inset: 0;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
-import { IconFreeze } from "@/components/Icon";
+import { IconFreeze, IconMic } from "@/components/Icon";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { TapTick } from "@/components/ui/TapTick";
 import { DURATION, EASE_OUT } from "@/lib/motion";
@@ -10,6 +10,7 @@ import { playSound } from "@/lib/sound";
 import { SPRING, springEasing, springMs } from "@/lib/spring";
 import {
   freezeLine,
+  keptLine,
   markMomentShown,
   momentTimeline,
   odometer,
@@ -59,7 +60,10 @@ export function StreakMoment({
   const head = useRef<HTMLHeadingElement>(null);
   const places = useMemo(() => odometer(moment.from, moment.to), [moment.from, moment.to]);
   const line = streakLine(moment.to);
-  const freeze = freezeLine(moment.bridged);
+  /* Under the week, what carried the run to today: a freeze, or the two
+     recordings that kept yesterday (closure.md row 14). Never both: a
+     kept day is never a frozen one. */
+  const under = freezeLine(moment.bridged) ?? keptLine(moment.kept);
 
   /* Shown is shown, once a day on this phone, whatever is tapped. */
   useEffect(() => {
@@ -157,9 +161,10 @@ export function StreakMoment({
 
   const spoken = moment.week.filter((d) => d.mark === "spoken").length;
   const frozen = moment.week.map((d, i) => (d.mark === "frozen" ? WEEKDAY[i] : null)).filter(Boolean);
+  const kept = moment.week.map((d, i) => (d.mark === "kept" ? WEEKDAY[i] : null)).filter(Boolean);
   const weekName = `This week: ${spoken} day${spoken === 1 ? "" : "s"} spoken${
     frozen.length ? `, ${frozen.join(" and ")} on a freeze` : ""
-  }`;
+  }${kept.length ? `, ${kept.join(" and ")} covered by two recordings` : ""}`;
 
   return (
     <main
@@ -255,6 +260,14 @@ export function StreakMoment({
             <span key={i} className="flex flex-col items-center gap-1.5">
               <span className="streak-day w-full" data-day={d.today ? "today" : d.mark}>
                 {d.mark === "frozen" && <IconFreeze size={16} />}
+                {/* A day two recordings kept: the freeze's sky, its own
+                    mark (the mic, what covered it), so kept, frozen and
+                    open differ in shape, not colour alone (DESIGN 10). */}
+                {d.mark === "kept" && (
+                  <span data-mark="recordings" className="grid place-items-center">
+                    <IconMic size={16} />
+                  </span>
+                )}
                 {d.today && <span data-fill="" />}
               </span>
               <span className={`font-display text-suffix ${d.today ? "font-extrabold text-ink" : "font-bold text-stone-400"}`}>
@@ -264,9 +277,9 @@ export function StreakMoment({
           ))}
         </div>
 
-        {freeze && (
-          <p data-line="" className="mt-4 text-body text-stone-500 text-pretty">
-            {freeze}
+        {under && (
+          <p data-line="" data-under-week={moment.kept ? "kept" : "freeze"} className="mt-4 text-body text-stone-500 text-pretty">
+            {under}
           </p>
         )}
         <span aria-hidden className="streak-gap" data-gap="foot" />

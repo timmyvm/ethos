@@ -72,6 +72,25 @@ const rep = (over: Partial<RepRow> = {}): RepRow =>
   }) as RepRow;
 
 describe("anticipation", () => {
+  /* The day after a missed one, while two recordings of 20+ words can keep
+     it (lib/streak.ts repairState, closure.md row 14): said where you
+     record, in the line's own earned tone, in place of the milestone. */
+  it("says the repair's two lines under Record, by the run it keeps", () => {
+    const missed = new Date(2026, 11, 1);
+    const first = anticipation([ms()], streak({ current: 0 }), { run: 5, missed, counted: 0 });
+    expect(first?.headline).toBe("Two recordings of 20+ words keep a 5-day streak alive");
+    expect(first?.tone).toBe("earned");
+    const second = anticipation([ms()], streak({ current: 1, didToday: true }), { run: 5, missed, counted: 1 });
+    expect(second?.headline).toBe("This one keeps a 5-day streak alive");
+    expect(second?.tone).toBe("earned");
+    for (const a of [first, second]) expect(a?.headline).not.toMatch(/[\u2014\u2013]|lose|lost|before midnight|hours? left/i);
+  });
+
+  it("keeps the milestone line on a day with no repair", () => {
+    expect(anticipation([ms()], streak({ current: 0 }), null)?.headline).toBe("Next: star 3 of 3 on The baseline");
+    expect(anticipation([ms()], streak({ current: 6 }), null)?.headline).toBe("This one keeps a 6-day streak alive");
+  });
+
   it("leads with the streak when one is on the line", () => {
     const a = anticipation([ms()], streak({ current: 5 }));
     expect(a?.headline).toContain("5-day streak");

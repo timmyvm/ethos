@@ -28,8 +28,13 @@ import {
   ladderLine,
   lessonDone,
   lessonTakes,
+  ONE_MORE,
+  oneMoreLine,
   playsOnAfterSheet,
   practiceCount,
+  repairBudget,
+  repairWayOn,
+  GLANCE_WORDS_REPAIR,
   roundGlance,
   sheetSections,
   unscoredReason,
@@ -369,6 +374,54 @@ describe("fitGlance, the budget", () => {
     expect(askBudget(GLANCE_WORDS, "Add Ethos to your Home Screen to get reminders. Tap Share, then Add to Home Screen.")).toBe(41);
     expect(askBudget(GLANCE_WORDS, "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen")).toBe(41);
     expect(GLANCE_WORDS_ASK).toBe(16);
+  });
+});
+
+/*
+ * The day after a miss (closure.md row 14): after the first recording of
+ * 20+ words, the glance's tap is "One more" and "Done for today" its quiet
+ * link, with one stone line under it. Only where the take is done for
+ * today: Today's practice or a topic of your own.
+ */
+describe("the way on the day after a miss", () => {
+  const missed = new Date(2026, 11, 1);
+  const open = { run: 5, missed, counted: 1 as const };
+  const base = { repair: open, scorable: true, label: "Done for today", doneForToday: "Done for today", lesson: false, game: false, boss: false };
+
+  it("makes One more the tap, Done for today the quiet link, and says what the second does", () => {
+    expect(repairWayOn(base)).toEqual({ tap: "One more", quiet: "Done for today", line: "One more keeps a 5-day streak alive" });
+    expect(ONE_MORE).toBe("One more");
+    expect(oneMoreLine(3)).toBe("One more keeps a 3-day streak alive");
+  });
+
+  it("leaves a lesson's practice, a game round and the boss as they are", () => {
+    expect(repairWayOn({ ...base, lesson: true })).toBeNull();
+    expect(repairWayOn({ ...base, label: "Practice 2 of 3", lesson: true })).toBeNull();
+    expect(repairWayOn({ ...base, game: true, label: "Another round: Q&A" })).toBeNull();
+    expect(repairWayOn({ ...base, boss: true })).toBeNull();
+    expect(repairWayOn({ ...base, label: "Back to the lesson" })).toBeNull();
+  });
+
+  it("changes nothing for a take too short to score, before the first counts, or once the day is kept", () => {
+    expect(repairWayOn({ ...base, scorable: false })).toBeNull();
+    expect(repairWayOn({ ...base, repair: { ...open, counted: 0 } })).toBeNull();
+    expect(repairWayOn({ ...base, repair: null })).toBeNull();
+  });
+
+  it("rides on the ceiling: the carried cue gives up its words first, the line and the taps never", () => {
+    const way = repairWayOn(base)!;
+    const head = ["Today's practice", "+1", "665", "/1000", "▲ 3 since last time", "Every number"];
+    const said = { line: "4 fillers, first at 0:02", cue: "Tomorrow: pause where “like” was.", cueShort: "Pause where “like” was.", earned: null };
+    // A glance at its ceiling, whole: 25 words with the cue.
+    const plain = fitGlance({ fixed: [...head, "Done for today", "Retake"], ...said });
+    expect([plain.cue, plain.words]).toEqual([said.cue, GLANCE_WORDS]);
+    // The repair's line rides on top (7 words); its two taps take one word more, which the cue gives up.
+    expect(repairBudget(GLANCE_WORDS, way.line)).toBe(GLANCE_WORDS + 7);
+    expect(repairBudget(GLANCE_WORDS, null)).toBe(GLANCE_WORDS);
+    expect(GLANCE_WORDS_REPAIR).toBe(8);
+    const f = fitGlance({ fixed: [...head, way.tap, way.quiet, way.line], ...said }, repairBudget(GLANCE_WORDS, way.line));
+    expect(f.cue).toBe(said.cueShort);
+    expect(f.words).toBe(GLANCE_WORDS + 7);
   });
 });
 

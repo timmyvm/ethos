@@ -101,7 +101,7 @@ export default function ShopPage() {
     // The freezes held are earned from the longest run, which only every
     // recording's date can give; the newest 90 lost the early ones.
     const f = await readable(async () =>
-      syncFreezes((await fetchRepSpine()).map((r) => new Date(r.created_at)))
+      syncFreezes(await fetchRepSpine())
     );
     if (f.ok) setEquipped(f.data.equipped);
   }, []);

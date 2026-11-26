@@ -5,6 +5,7 @@ import { resolveRepConfig } from "./rep-config";
 import {
   backLabel,
   celebratesStreak,
+  cueAfterTake,
   defaultBack,
   exitBeat,
   recordCue,
@@ -13,7 +14,9 @@ import {
   thinksFirst,
 } from "./rep-screen";
 import { endNote, personalBests } from "./rewards";
-import type { StreakState } from "./streak";
+import { repairWayOn } from "./glance";
+import { repairAfterTake, type RepairState, type StreakState } from "./streak";
+import { DONE_FOR_TODAY } from "./way-on";
 
 const streak = (over: Partial<StreakState> = {}): StreakState => ({
   current: 0,
@@ -88,6 +91,43 @@ describe("recordCue", () => {
     expect(cue?.headline ?? "").not.toMatch(/streak alive/);
     // The closest milestone, in its two-second line (#483).
     expect(cue?.headline).toBe("Your best score is 600. Next: 700.");
+  });
+});
+
+/*
+ * The day after a miss (closure.md row 14), on one screen: the take's
+ * own answer moves the repair the next take is judged from, read back or
+ * not. The review (26 Nov): a read that failed after the first take left
+ * the screen on its opening state, so the second take, which kept the
+ * day, still drew "One more", and the line still asked for two.
+ */
+describe("a repair carried from take to take on one screen", () => {
+  const open: RepairState = { run: 5, missed: new Date(2026, 11, 1), counted: 0 };
+  const at = new Date(2026, 11, 2, 19);
+  const cueAtOpen = recordCue({ reps: [], starMap: {}, streak: streak({ current: 0 }), xp: 0, repair: open });
+  const glanceWay = (repair: RepairState | null) =>
+    repairWayOn({ repair, scorable: true, label: DONE_FOR_TODAY, doneForToday: DONE_FOR_TODAY, lesson: false, game: false, boss: false });
+
+  it("asks for one more after the first, and for nothing after the second, with no read between", () => {
+    expect(cueAtOpen?.headline).toBe("Two recordings of 20+ words keep a 5-day streak alive");
+    const first = repairAfterTake(open, { scorable: true, stored: true, at });
+    expect(glanceWay(first)?.tap).toBe("One more");
+    const cue1 = cueAfterTake(cueAtOpen, open, first);
+    expect(cue1?.headline).toBe("This one keeps a 5-day streak alive");
+    expect(cue1?.tone).toBe("earned");
+    // The second take is judged from what the first left, not the opening state.
+    const second = repairAfterTake(first, { scorable: true, stored: true, at });
+    expect(second).toBeNull();
+    expect(glanceWay(second)).toBeNull();
+    expect(cueAfterTake(cue1, first, second)).toBeNull();
+  });
+
+  it("leaves the line alone for a take too short to count, or on a day with no repair", () => {
+    const short = repairAfterTake(open, { scorable: false, stored: true, at });
+    expect(short).toBe(open);
+    expect(cueAfterTake(cueAtOpen, open, short)).toBe(cueAtOpen);
+    const plain = recordCue({ reps: [], starMap: {}, streak: streak({ current: 3 }), xp: 0 });
+    expect(cueAfterTake(plain, null, null)).toBe(plain);
   });
 });
 

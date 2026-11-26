@@ -23,7 +23,9 @@ import { currentSession } from "./supabase-browser";
 import {
   computeStreak,
   freezeBalance,
+  keptDays,
   rescuableDays,
+  type RepairTake,
   type StreakState,
 } from "./streak";
 
@@ -52,6 +54,13 @@ export interface FreezeSync {
   equipped: number;
   /** Days a freeze just rescued, for the "your streak survived" note. */
   rescued: Date[];
+  /**
+   * Missed days two recordings kept (lib/streak.ts keptDays, closure.md
+   * row 14): counted in `streak` as bridges, never in `frozenDays`, so
+   * none is ever a freeze spent. `equipped` is earned from `streak`, the
+   * run the person sees, kept days bridging it.
+   */
+  keptDays: Date[];
 }
 
 /**
@@ -77,22 +86,30 @@ export function keptFreezes(raw: unknown, now: Date = new Date()): FreezeSync | 
   if (days.some((d) => d === null || Number.isNaN(d.getTime()))) return null;
   const spine = held<RepSpine[]>(SPINE_KEY);
   if (!spine) return null;
-  const streak = computeStreak(spine.map((r) => new Date(r.created_at)), now, days as Date[]);
-  return { streak, frozenDays: days as Date[], equipped, rescued: [] };
+  /* The kept days are never stored: counted again from the held spine. */
+  const kept = keptDays(spine, days as Date[], now);
+  const streak = computeStreak(spine.map((r) => new Date(r.created_at)), now, [...(days as Date[]), ...kept]);
+  return { streak, frozenDays: days as Date[], equipped, rescued: [], keptDays: kept };
 }
 keepBetweenOpens<FreezeSync>(FREEZES_KEY, {
   save: (v) => ({ frozenDays: v.frozenDays.map((d) => d.toISOString()), equipped: v.equipped }),
   load: (raw) => keptFreezes(raw),
 });
 
-export function syncFreezes(repDates: Date[], now = new Date()): Promise<FreezeSync> {
-  return once(FREEZES_KEY, () => runFreezeSync(repDates, now));
+/**
+ * The freezes reconciled against every recording the account holds: the
+ * spine's rows (`fetchRepSpine`), each with its time and whether it
+ * scored, so the days two recordings kept are counted too.
+ */
+export function syncFreezes(takes: RepairTake[], now = new Date()): Promise<FreezeSync> {
+  return once(FREEZES_KEY, () => runFreezeSync(takes, now));
 }
 
 async function runFreezeSync(
-  repDates: Date[],
+  takes: RepairTake[],
   now: Date
 ): Promise<FreezeSync> {
+  const repDates = takes.map((t) => new Date(t.created_at));
   const mark = heldMark();
   // A failed read rejects, before anything is written: missing rows must
   // not look like "nothing spent yet" (a rescue paid twice) or "none
@@ -114,7 +131,13 @@ async function runFreezeSync(
   // so the column could never say three. A rescue never moves `longest`
   // (a freeze bridges, it never counts, and rescued days come after the
   // last covered one), so before and after agree.
-  const before = computeStreak(repDates, now, frozenDays);
+  //
+  // The freezes are earned from the run the streak shows, which a day two
+  // recordings kept bridges as a freeze does (closure.md row 14): the line
+  // under Record ("A 7-day streak earns a streak freeze") counts from it,
+  // so the freeze it promises is earned from it too. A kept day is never
+  // a freeze spent, so the spent count stays the freezes' own.
+  const before = computeStreak(repDates, now, [...frozenDays, ...keptDays(takes, frozenDays, now)]);
   const held = freezeBalance(before.longest, frozenDays.length, purchased);
   const candidates = rescuableDays(
     [...repDates, ...pending],
@@ -132,7 +155,16 @@ async function runFreezeSync(
     }
   }
 
-  const streak = computeStreak(repDates, now, frozenDays);
+  // A held freeze is spent first (#39); only then can two recordings keep
+  // a day, which the streak counts as a bridge, like a freeze, adding
+  // nothing. A rescue only ever covers days after the last one spoken and
+  // a kept day lies before a spoken one, so the two never meet, and the
+  // kept days are the same before the rescue and after it.
+  const kept = keptDays(takes, frozenDays, now);
+  const streak = computeStreak(repDates, now, [...frozenDays, ...kept]);
+  // Earned from the streak shown (its longest, kept days bridging), spent
+  // by the freezes alone. A run of 6 kept on its seventh spoken day earns
+  // its freeze that day, as 7 days spoken over a freeze would.
   const equipped = freezeBalance(streak.longest, frozenDays.length, purchased);
 
   // The column stays a mirror for anyone reading the table, clamped to
@@ -145,6 +177,6 @@ async function runFreezeSync(
     await grantFreezes(mirror).catch(() => 0);
   }
 
-  hold(FREEZES_KEY, { streak, frozenDays, equipped, rescued: [] }, mark);
-  return { streak, frozenDays, equipped, rescued };
+  hold(FREEZES_KEY, { streak, frozenDays, equipped, rescued: [], keptDays: kept }, mark);
+  return { streak, frozenDays, equipped, rescued, keptDays: kept };
 }

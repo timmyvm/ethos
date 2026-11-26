@@ -51,8 +51,8 @@ const { keptFreezes, heldFreezes } = await import("./freeze-sync");
  * else.
  */
 const spine = [
-  { id: "r1", created_at: "2026-11-16T09:00:00.000Z", lesson_id: "the-landing", stars: 2, ethos_index: 61, mode: "daily" },
-  { id: "r2", created_at: "2026-11-17T09:00:00.000Z", lesson_id: null, stars: 3, ethos_index: 64, mode: "daily" },
+  { id: "r1", created_at: "2026-11-16T09:00:00.000Z", lesson_id: "the-landing", stars: 2, ethos_index: 61, mode: "daily", scorable: true },
+  { id: "r2", created_at: "2026-11-17T09:00:00.000Z", lesson_id: null, stars: 3, ethos_index: 64, mode: "daily", scorable: true },
 ];
 const profile = { display_name: "Timothy", premium: false, premium_until: null, equipped_pose: "hello" };
 const freezes = (now = new Date("2026-11-17T12:00:00.000Z")) => ({
@@ -235,6 +235,31 @@ describe("Today's numbers kept between opens", () => {
     expect(next.streak.current).toBeGreaterThan(0);
   });
 
+  it("counts a day two recordings kept again from the kept spine, so a cold open draws the run, not the bare count", () => {
+    // Spoke 26 to 30 November, missed Tuesday 1 December, two takes of
+    // 20+ words on Wednesday (lib/streak.ts keptDays, closure.md row 14).
+    const row = (d: number, m: number, h: number, i: number) => ({
+      id: `k${i}`,
+      created_at: new Date(2026, m - 1, d, h).toISOString(),
+      lesson_id: null,
+      stars: 1,
+      ethos_index: 60,
+      mode: "daily",
+      scorable: true,
+    });
+    const five = [26, 27, 28, 29, 30].map((d, i) => row(d, 11, 18, i));
+    const repaired = [...five, row(2, 12, 9, 5), row(2, 12, 19, 6)];
+    heldFor("user-a");
+    hold(SPINE_KEY, repaired, heldMark());
+    hold(FREEZES_KEY, { ...freezes(), frozenDays: [], equipped: 0 }, heldMark());
+    reopen();
+    restoreHeld("user-a");
+    const back = keptFreezes(onPhone()!.items[FREEZES_KEY], new Date(2026, 11, 2, 21))!;
+    expect(back.keptDays.map((d) => d.toDateString())).toEqual([new Date(2026, 11, 1).toDateString()]);
+    expect(back.streak.current).toBe(6);
+    expect(back.streak.didToday).toBe(true);
+  });
+
   it("reads the account from the auth client's own key, and nothing else", () => {
     expect(phoneAccount("http://supabase.local")).toBeNull();
     disk.set("sb-supabase-auth-token", JSON.stringify({ access_token: "x", user: { id: "user-a" } }));
@@ -247,8 +272,15 @@ describe("Today's numbers kept between opens", () => {
 });
 
 describe("what each kept key reads back", () => {
-  it("the spine: its six columns, or nothing", () => {
+  it("the spine: its seven columns, or nothing", () => {
     expect(spineOf(spine)).toEqual(spine);
+    // Read from a database before 0037: no `scorable`, and none is made up.
+    const { scorable, ...before0037 } = spine[0];
+    void scorable;
+    expect(spineOf([before0037])).toEqual([before0037]);
+    expect(Object.keys(spineOf([before0037])![0])).not.toContain("scorable");
+    expect(spineOf([{ ...spine[0], scorable: null }])).toEqual([{ ...spine[0], scorable: null }]);
+    expect(spineOf([{ ...spine[0], scorable: "yes" }])).toBeNull();
     expect(spineOf([{ ...spine[0], transcript: "words" }])).toEqual([spine[0]]);
     expect(spineOf([{ ...spine[0], created_at: "not a date" }])).toBeNull();
     expect(spineOf([{ ...spine[0], mode: "other" }])).toBeNull();
@@ -270,9 +302,9 @@ describe("what each kept key reads back", () => {
     expect(select).not.toBeNull();
     expect(Object.keys(profileOf(profile)!).sort()).toEqual(cols(select![1]));
     // The shape these were written against. A new column is a new number here and in lib/held.ts.
-    expect(cols(SPINE_COLUMNS)).toEqual(["created_at", "ethos_index", "id", "lesson_id", "mode", "stars"]);
+    expect(cols(SPINE_COLUMNS)).toEqual(["created_at", "ethos_index", "id", "lesson_id", "mode", "scorable", "stars"]);
     expect(cols(select![1])).toEqual(["display_name", "equipped_pose", "premium", "premium_until"]);
-    expect(KEPT_VERSION).toBe(1);
+    expect(KEPT_VERSION).toBe(2);
   });
 
   it("a record of another version is dropped, never read as this one's", () => {

@@ -195,9 +195,9 @@ export interface KeptCodec<T> {
 export const KEPT_KEYS = [SPINE_KEY, PROFILE_KEY, FREEZES_KEY] as const;
 export type KeptKey = (typeof KEPT_KEYS)[number];
 
-/** Where the record lives on the phone, and its shape's version: a new shape is a new number. */
+/** Where the record lives on the phone, and its shape's version: a new shape is a new number (2: the spine's `scorable`). */
 export const KEPT_STORE = "ethos.held";
-export const KEPT_VERSION = 1;
+export const KEPT_VERSION = 2;
 
 interface KeptRecord {
   v: typeof KEPT_VERSION;

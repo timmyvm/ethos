@@ -23,6 +23,7 @@ import { filledWords, heldPauseMarks, landedPause, PAUSE_KEY_WORDS, PAUSE_WHY_WO
 import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S } from "./pause-quality";
 import { MOST_PAUSES, type RewardMoment } from "./rewards";
 import type { GameRound } from "./round";
+import type { RepairState } from "./streak";
 import { clockTenth, decidingCutIn, secs as tenths, type RoundReveal } from "./round-copy";
 import type { LevelUpPiece, LevelUpView } from "./traits";
 import { transcriptPieces, type TranscriptUnit } from "./transcript-words";
@@ -588,6 +589,52 @@ export function lessonDone(trait: TraitId, takes: readonly PracticeTake[] | null
  */
 export function comeBackLine(streak: number): string | null {
   return streak >= 1 ? `Day ${streak + 1} tomorrow` : null;
+}
+
+/**
+ * The repair's stone line rides on the ceiling, up to its own words, as
+ * the reminder ask's do (#430): the glance makes room for it, and what
+ * the taps add past that is found the usual way, the carried cue giving
+ * up its words first (`fitGlance`).
+ */
+export const GLANCE_WORDS_REPAIR = 8;
+
+export function repairBudget(budget: number, line: string | null): number {
+  return budget + Math.min(GLANCE_WORDS_REPAIR, line ? countWords(line) : 0);
+}
+
+/** The glance's tap on the day after a miss, once its first recording of 20+ words is in (closure.md row 14). */
+export const ONE_MORE = "One more";
+
+/** The one stone line under the quiet link that day: what the second recording does, by the run it keeps. */
+export function oneMoreLine(run: number): string {
+  return `One more keeps a ${run}-day streak alive`;
+}
+
+/**
+ * The way on the day after a miss (closure.md row 14), or null for the
+ * way on as it is. Only on a take that is done for today (Today's
+ * practice, a topic of your own: wayOn's DONE_FOR_TODAY, never a lesson's
+ * ending, a game or the boss), that scored, and that made the repair's
+ * first recording of 20+ words: the tap records "One more" on the same
+ * topic, "Done for today" steps down to the quiet link and still leaves
+ * for Today, and the line that a lesson's ending uses for "Day 8
+ * tomorrow" says what the second recording does. A take too short to
+ * score changes nothing: Retake is already its tap.
+ */
+export function repairWayOn(p: {
+  repair: RepairState | null;
+  scorable: boolean;
+  /** wayOn's label for this take. */
+  label: string;
+  doneForToday: string;
+  lesson: boolean;
+  game: boolean;
+  boss: boolean;
+}): { tap: string; quiet: string; line: string } | null {
+  if (!p.repair || p.repair.counted !== 1 || !p.scorable) return null;
+  if (p.lesson || p.game || p.boss || p.label !== p.doneForToday) return null;
+  return { tap: ONE_MORE, quiet: p.doneForToday, line: oneMoreLine(p.repair.run) };
 }
 
 /**

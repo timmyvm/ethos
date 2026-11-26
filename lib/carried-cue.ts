@@ -722,4 +722,32 @@ export function warmsUp(state: CueState | null | undefined, today: string): Cue 
   return cue && answerable(cue, today) ? cue : null;
 }
 
+/**
+ * Whether the cue's number is still the last recording's (the psych
+ * review, 26 Nov). The cue is written only by the take that set or
+ * answered it, on that take's results (`carryCue`), so `at` is when that
+ * take landed, on the phone's clock, which also dates the take
+ * (`recordedAt`, clamped to the server's now, lib/spoken-at.ts): the take
+ * is never newer than `at`. A take newer than `at` never touched the cue
+ * (a second take that day, One more, a lesson, a game, the boss), and
+ * "Last time" would quote an older take than the last one. No take, or
+ * one whose time cannot be read, is no proof.
+ */
+export function saidLastTime(state: Pick<CueState, "at">, newestTakeAt: string | null | undefined): boolean {
+  if (!newestTakeAt) return false;
+  const take = Date.parse(newestTakeAt);
+  const at = Date.parse(state.at);
+  return Number.isFinite(take) && Number.isFinite(at) && take <= at;
+}
+
+/**
+ * The cue a reminder says (#520): the one today's warm-up rehearses, and
+ * only while its number is the newest take's, so "Last time" is the last
+ * time. Otherwise null, and the reminder says the newest take's own line.
+ */
+export function reminderCue(state: CueState | null | undefined, today: string, newestTakeAt: string | null | undefined): Cue | null {
+  const cue = warmsUp(state, today);
+  return cue && state && saidLastTime(state, newestTakeAt) ? cue : null;
+}
+
 export { clockOf as cueClock } from "./transcript-words";

@@ -28,7 +28,9 @@ const sendOptions: unknown[] = [];
 /** The tick notes the route wrote to rate_limits. */
 let notes: { subject: string; at: string }[] = [];
 /** The newest takes, newest first, as the body's read gets them. */
-let recent: { filler_count: number; duration_s: number }[] = [];
+let recent: { filler_count: number; duration_s: number; created_at?: string }[] = [];
+/** The body's read of the newest takes fails with this, or answers. */
+let recentError: { message: string } | null = null;
 /** A push service error's statusCode for the next sends, or null. */
 let sendFails: number | null = null;
 /** How long each send takes, in turns of the event loop; and how many were in flight at once. */
@@ -152,7 +154,10 @@ function repsQuery() {
     // The address's read (#431, the one with the dimensions) finds no
     // measured recording here, so the reminder opens Today; the address
     // itself is lib/push-cron-url.test.ts's subject.
-    limit: () => Promise.resolve({ data: cols.includes("dimensions") ? [] : recent, error: null }),
+    limit: () =>
+      Promise.resolve(
+        cols.includes("dimensions") ? { data: [], error: null } : recentError ? { data: null, error: recentError } : { data: recent, error: null }
+      ),
     then: (ok: (v: unknown) => unknown) =>
       Promise.resolve(
         head
@@ -299,6 +304,7 @@ beforeEach(() => {
   sendOptions.length = 0;
   notes = [];
   recent = [];
+  recentError = null;
   sendFails = null;
   sendTurns = 0;
   inFlight = 0;
@@ -599,12 +605,13 @@ describe("the reminder cron, the carried cue", () => {
     line: { text: "The best part ‖ was the people.", at: 12.4 },
     ...over,
   });
-  async function ring() {
+  async function ring(takes?: typeof recent) {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(AT);
     try {
       subs = [six()];
-      recent = [{ filler_count: 4, duration_s: 61.6 }];
+      // The take that set the cue, a minute before the cue was written (`at`).
+      recent = takes ?? [{ filler_count: 4, duration_s: 61.6, created_at: "2026-11-08T07:59:00.000Z" }];
       return await (await tick()).json();
     } finally {
       vi.useRealTimers();
@@ -673,6 +680,7 @@ describe("the reminder cron, the carried cue", () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 10, 9, 10, 16))); // 21:16 there
     try {
       subs = [six()];
+      recent = [{ filler_count: 4, duration_s: 61.6, created_at: "2026-11-08T07:59:00.000Z" }];
       expect((await (await tick()).json()).sent).toBe(1);
     } finally {
       vi.useRealTimers();
@@ -688,12 +696,67 @@ describe("the reminder cron, the carried cue", () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 10, 8, 20, 1)));
     try {
       subs = [{ ...six(), reminder_hour: 7, quiet_from: 23, quiet_to: 5 }];
-      recent = [{ filler_count: 4, duration_s: 61.6 }];
+      recent = [{ filler_count: 4, duration_s: 61.6, created_at: "2026-11-08T07:59:00.000Z" }];
       expect((await (await tick()).json()).sent).toBe(1);
     } finally {
       vi.useRealTimers();
     }
     expect(payloads[0]).toEqual({ title: "Your 7 am practice", body: "Last time, “like” 9 times. Pause where “like” was.", url: "/" });
+  });
+
+  /*
+   * The cue's number is the number of the take that set or answered it,
+   * and `at` is when that take landed: the only writer is the take's own
+   * results (lib/carried-cue.ts carryCue). A take after it never touches
+   * the cue (a second take that day, One more, a lesson, a game, the
+   * boss), so "Last time" would quote an older take than the last one.
+   * Then the body is the newest take's own line (the psych review, 26 Nov).
+   */
+  it("a take after the one that set the cue keeps today's body: its number is no longer the last time", async () => {
+    cueRead = { data: state(like({ kind: "filler", word: "um", from: 5, last: 5 })), error: null };
+    // 18:00 the cue's take, "um" 5 times; 18:05 One more, "um" once: the cue stays as it was.
+    await ring([
+      { filler_count: 1, duration_s: 40, created_at: "2026-11-08T08:05:00.000Z" },
+      { filler_count: 5, duration_s: 61.6, created_at: "2026-11-08T07:59:00.000Z" },
+    ]);
+    expect(payloads[0]).toEqual({ title: "Your 6 pm practice", body: "Last time: 1 filler in 40 seconds.", url: "/" });
+  });
+
+  it("a lesson, game or boss take on a later day keeps today's body too", async () => {
+    cueRead = {
+      data: { carried_cue: { v: 1, cue: like({ givenOn: "2026-11-07" }), aside: [], at: "2026-11-07T08:00:00.000Z" } },
+      error: null,
+    };
+    await ring([
+      { filler_count: 2, duration_s: 70, created_at: "2026-11-08T09:30:00.000Z" },
+      { filler_count: 9, duration_s: 61.6, created_at: "2026-11-07T07:59:00.000Z" },
+    ]);
+    expect(payloads[0].body).toBe("Last time: 2 fillers in 70 seconds.");
+  });
+
+  it("a short take after the cue's take still counts as newer: the cue is not said", async () => {
+    cueRead = { data: state(like()), error: null };
+    await ring([
+      { filler_count: 0, duration_s: 9, created_at: "2026-11-08T08:03:00.000Z" },
+      { filler_count: 4, duration_s: 61.6, created_at: "2026-11-08T07:59:00.000Z" },
+    ]);
+    expect(payloads[0].body).toBe(TODAY_BODY);
+  });
+
+  it("no take left to have said it (recordings deleted), or a takes read that fails, is no cue", async () => {
+    cueRead = { data: state(like()), error: null };
+    await ring([]);
+    expect(payloads[0].body).toBe("It takes about a minute.");
+    payloads.length = 0;
+    recentError = { message: "canceling statement due to statement timeout" };
+    expect((await ring()).sent).toBe(1);
+    expect(payloads[0].body).toBe("It takes about a minute.");
+  });
+
+  it("a take whose time cannot be read is not proof the cue is the newest", async () => {
+    cueRead = { data: state(like()), error: null };
+    await ring([{ filler_count: 4, duration_s: 61.6 }]);
+    expect(payloads[0].body).toBe(TODAY_BODY);
   });
 
   it("never reads the cue on a day already practised", async () => {

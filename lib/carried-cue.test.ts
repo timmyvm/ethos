@@ -18,6 +18,8 @@ import {
   newerCue,
   parseCueState,
   PAUSE_MARK,
+  reminderCue,
+  saidLastTime,
   warmsUp,
   warmupLead,
   warmupPieces,
@@ -502,5 +504,42 @@ describe("the store's shape", () => {
     expect(warmsUp(state(cue({ answeredOn: TODAY })), TODAY)).toBeNull();
     expect(warmsUp(state(null), TODAY)).toBeNull();
     expect(warmsUp(undefined, TODAY)).toBeNull();
+  });
+});
+
+/*
+ * The reminder says the cue only while its number is the last take's (the
+ * psych review, 26 Nov). The cue is written only by the take that set or
+ * answered it, so a take landing after `at` never touched it.
+ */
+describe("the reminder's cue: the last time is the last take", () => {
+  it("a second take on the cue's own day leaves the cue as it was, so the cue is not the last time", () => {
+    // 18:00 Today's practice, "um" 5 times, sets the cue; 18:05 One more, "um" once.
+    const set = carryCue({ before: null, take: take({ fillers: ums(5), fillerCount: 6, fillerCounts: { um: 5, like: 1 } }), today: YESTERDAY, at: new Date("2026-11-15T07:00:30.000Z") });
+    expect(set.cue).toMatchObject({ kind: "filler", word: "um", last: 5 });
+    const more = carryCue({ before: set.next, take: take({ fillers: ums(1), fillerCount: 2, fillerCounts: { um: 1, like: 1 } }), today: YESTERDAY });
+    expect(more.next).toBeNull();
+    // The account's copy the next day still warms up on 5.
+    expect(warmsUp(set.next, TODAY)).toMatchObject({ last: 5 });
+    // Its own take was stopped before its results wrote it; One more after.
+    expect(reminderCue(set.next, TODAY, "2026-11-15T07:00:00.000Z")).toMatchObject({ word: "um", last: 5 });
+    expect(reminderCue(set.next, TODAY, "2026-11-15T07:05:40.000Z")).toBeNull();
+  });
+  it("needs a take to have said it, with a time that reads", () => {
+    const s = state(cue(), { at: "2026-11-15T09:00:00.000Z" });
+    expect(saidLastTime(s, "2026-11-15T09:00:00.000Z")).toBe(true);
+    expect(saidLastTime(s, "2026-11-15T08:59:59.000+00:00")).toBe(true);
+    expect(saidLastTime(s, "2026-11-15T09:00:01.000Z")).toBe(false);
+    expect(saidLastTime(s, null)).toBe(false);
+    expect(saidLastTime(s, undefined)).toBe(false);
+    expect(saidLastTime(s, "not a time")).toBe(false);
+  });
+  it("is the warm-up's cue and nothing else", () => {
+    const before = "2026-11-15T08:00:00.000Z";
+    expect(reminderCue(state(cue()), TODAY, before)).toMatchObject({ word: "um" });
+    expect(reminderCue(state(cue({ givenOn: TODAY })), TODAY, before)).toBeNull();
+    expect(reminderCue(state(cue({ answeredOn: TODAY })), TODAY, before)).toBeNull();
+    expect(reminderCue(state(null), TODAY, before)).toBeNull();
+    expect(reminderCue(null, TODAY, before)).toBeNull();
   });
 });

@@ -241,6 +241,19 @@ describe("saveRep, the XP of a take of no stars (#510)", () => {
     const bare = inserts.find((i) => i.table === "reps")!.row.dimensions as Record<string, unknown>;
     expect("pauseRules" in bare).toBe(false);
   });
+
+  /* The reel's extra A: a capped take (#514) says so beside its scores, so
+     Say it better can tell the meter's take from one whose coach failed. */
+  it("marks a capped take beside its scores, and only a capped one", async () => {
+    await saveRep(params({ capped: true }));
+    const dims = inserts.find((i) => i.table === "reps")!.row.dimensions as Record<string, unknown>;
+    expect(dims.capped).toBe(true);
+    for (const capped of [false, undefined]) {
+      inserts = [];
+      await saveRep(params({ capped }));
+      expect("capped" in (inserts.find((i) => i.table === "reps")!.row.dimensions as Record<string, unknown>)).toBe(false);
+    }
+  });
 });
 
 /*

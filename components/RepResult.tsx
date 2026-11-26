@@ -1439,7 +1439,9 @@ function Glance({
             lands with the take's moment. Two targets side by side, never
             one in the other: the door opens the swap's sheet over the
             results, the chip plays where it was said. */}
-        {view.proof && ethosIndex !== null && (
+        {/* With its number, or on a capped take, which the count reads
+            too (lib/say.ts usesOf): the cap is the score's, never the words'. */}
+        {view.proof && (ethosIndex !== null || !!cappedNote) && (
           <div className={`mt-3 flex max-w-full justify-center [@media(max-height:700px)]:mt-2 ${counting ? "" : "invisible"}`}>
             <span className="star-land max-w-full" style={{ "--land-after": `${landed}ms` } as CSSProperties}>
               <span {...{ [OUTSIDE_CEILING]: "" }} className="proof-token">

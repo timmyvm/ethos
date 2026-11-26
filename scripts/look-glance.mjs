@@ -891,6 +891,20 @@ for (const size of SIZES) {
       await page.locator("main [data-results-back]").click();
       await sleep(1600);
       await beat("exit-leaves");
+      /* LOOK_PRO_TAP=1: Since day one's tap opens the paywall on its own
+         headline (the reel's build 4), shot over the moment. */
+      if (process.env.LOOK_PRO_TAP === "1") {
+        const tap = page.getByRole("button", { name: "See Premium" });
+        if (await tap.count()) {
+          await tap.click();
+          await page.waitForSelector('[role="dialog"] [role="slider"]', { timeout: 8000 }).catch(() => fail(`${at}: See Premium opened no paywall`));
+          await sleep(1200);
+          await page.screenshot({ path: file("pro-sheet", "s0") });
+          console.log(`${at} pro-sheet: ${(await page.locator('[role="dialog"] h2').first().innerText().catch(() => "")).trim()}`);
+          await page.keyboard.press("Escape");
+          await sleep(600);
+        } else fail(`${at}: no See Premium on Since day one`);
+      }
       if (VARIANT === "daily") {
         await page.evaluate(() => localStorage.setItem("ethos.pro.day3", new Date().toISOString()));
       }

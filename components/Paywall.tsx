@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
+import { IconBoss, IconBubble, IconMic, IconStopwatch, IconTrend } from "@/components/Icon";
 import { PremiumMark } from "@/components/PremiumMark";
 import { Price } from "@/components/premium/PlanCard";
 import { Stair } from "@/components/premium/Stair";
@@ -90,13 +90,21 @@ export const BENEFITS = [
   { Glyph: IconBubble, text: <>{keep(SCORED_BENEFIT)} {keep(FREE_ALLOWANCE)}</> },
   { Glyph: IconMic, text: "Presence on video, with its moments" },
   { Glyph: IconTrend, text: "Your whole history, all nine skills" },
-  { Glyph: IconSpark, text: "Every word you've earned, kept" },
+  /* The boss as Premium plays it (the reel's build 4, 26 Nov), as
+     app/boss/page.tsx gives it: free takes the week's topic or one of two
+     spins and runs it once a week; Premium spins freely, picks from the
+     whole library and runs it any time. It took the row that sold "Every
+     word you've earned, kept": Say it better is free and uncapped since
+     #507, so that row sold something free and implied a saved phrase was
+     held for pay. */
+  { Glyph: IconBoss, text: "Weekly boss: any topic, any time" },
   /* The games in one row (#403, Timothy's pick): a sixth row put the
      Stair's last prices under the fold at 375x667 (regression review,
      edges F4). Their levels are said on Practice's tiles. Hostile Q&A
      is free since #478, three rounds a day; Premium is more of it, and
-     the row says so in the one line it holds at 375. */
-  { Glyph: IconBoss, text: <>Speed rush, Interview, more Hostile Q&amp;A</> },
+     the row says so in the one line it holds at 375. The boss's mark is
+     the boss's row's now; the games wear the clock. */
+  { Glyph: IconStopwatch, text: <>Speed rush, Interview, more Hostile Q&amp;A</> },
 ];
 
 /**
@@ -671,7 +679,7 @@ export function Paywall({
               parts them: the caption read at 13 (E08) took a pixel from
               the scroll over this shelf, and on a 375x667 phone the
               stair's columns stand right at its edge. */}
-          <p className={`${unlocked ? "mt-3" : "mt-0.5"} text-center text-caption text-cream/60`}>{PAYWALL_COPY.closing}</p>
+          <p className={`${unlocked ? "mt-3" : "mt-0.5"} text-center text-caption text-balance text-cream/60`}>{PAYWALL_COPY.closing}</p>
         </div>
       </div>
     </Overlay>

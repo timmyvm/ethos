@@ -134,9 +134,22 @@ function onboardingQuery() {
   return q;
 }
 
+/* The account's carried cue (0034): none here; the body is lib/push-cron.test.ts's subject. */
+function noCueQuery() {
+  const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: null, error: null }) };
+  return q;
+}
+
 vi.mock("@/lib/db", () => ({
   supabaseAdmin: () => ({
-    from: (t: string) => (t === "push_subscriptions" ? subsQuery() : t === "onboarding" ? onboardingQuery() : repsQuery()),
+    from: (t: string) =>
+      t === "push_subscriptions"
+        ? subsQuery()
+        : t === "onboarding"
+          ? onboardingQuery()
+          : t === "profiles"
+            ? noCueQuery()
+            : repsQuery(),
   }),
 }));
 

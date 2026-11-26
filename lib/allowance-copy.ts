@@ -42,7 +42,7 @@ export const CAPPED_DOOR = "Ethos score back tomorrow, or go Premium";
 export const CAPPED_SHEET = "Your Ethos score and Demos's read are back tomorrow. This one still counted toward your streak.";
 
 /**
- * Since day one's line over Keep every number. "a day" is held together
+ * Since day one's line over See Premium. "a day" is held together
  * (a no-break space), so a 390 phone never ends a line on "a".
  */
 export const PRO_MOMENT_LINE = `Free shows the last 7 days and scores ${DAILY_GRANT} recordings a\u00a0day. Premium opens all of it.`;

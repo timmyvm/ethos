@@ -365,7 +365,10 @@ export const PAYWALL_COPY = {
   start: `Start at ${aud(FIRST_PRICE_CENTS)} a month`,
   busy: "One moment…",
   notYet: "Not yet",
-  closing: "Money never buys stars, streaks, or scores.",
+  // Money buys more scored recordings (#514's first row), never a higher
+  // score: Presence is outside the Index's weights and a mod multiplies
+  // XP, never stars. "or scores" said the opposite of the row above it.
+  closing: "Money never buys stars, streaks, or a higher score.",
   // Every way through (the inbox link, Google, sign-in) ends on a tap back to
   // this sheet; "straight" overpromised a trip through the inbox.
   needsAccount: "A plan needs an account. Make one and you'll come back here.",

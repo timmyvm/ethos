@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { IconBoss, IconBubble, IconMic, IconSpark, IconTrend } from "@/components/Icon";
-import { FREE_ALLOWANCE } from "@/lib/allowance-copy";
 import { PremiumMark } from "@/components/PremiumMark";
-import { reasonLine } from "@/components/Paywall";
+import { BENEFITS, reasonLine } from "@/components/Paywall";
 import { Overlay } from "@/components/ui/Overlay";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { PAYWALL_COPY } from "@/lib/plan-view";
 import { ACTION_CLASS } from "@/lib/ui";
 import { FIRST_PRICE_CENTS, FLOOR_MONTH, FLOOR_PRICE_CENTS } from "@/lib/pricing";
 import { RUNGS, TODAY, addMonths, dayMonth, dayMonthLong, formatAud, formatBare, spokenPrice } from "./data";
@@ -29,15 +28,7 @@ import { Stair } from "./Stair";
  * before purchase as text, not only as a shape.
  */
 
-const keep = (s: string) => <span className="whitespace-nowrap">{s}</span>;
-
-const BENEFITS = [
-  { Glyph: IconBubble, text: <>Demos&apos;s full read on every recording {keep(FREE_ALLOWANCE)}</> },
-  { Glyph: IconMic, text: "Presence on video, with its moments" },
-  { Glyph: IconTrend, text: "Your whole history, all nine skills" },
-  { Glyph: IconSpark, text: "Every word you've earned, kept" },
-  { Glyph: IconBoss, text: <>Speed rush, Interview and Hostile Q&amp;A, {keep("any boss topic, any week")}</> },
-];
+/* The five lines are the paywall's own (BENEFITS), so this page never sells what the sheet no longer does (the reel's build 4). */
 
 /** The checkout flag (the contract: live only when it is "1"). */
 const CHECKOUT_OPEN = process.env.NEXT_PUBLIC_CHECKOUT_OPEN === "1";
@@ -252,7 +243,7 @@ export function PaywallBody({
       >
         Not yet
       </button>
-      <p className="mt-1 text-center text-caption text-cream/60">Money never buys stars, streaks, or scores.</p>
+      <p className="mt-1 text-center text-caption text-balance text-cream/60">{PAYWALL_COPY.closing}</p>
     </div>
   );
 }

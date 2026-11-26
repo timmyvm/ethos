@@ -720,6 +720,20 @@ describe("judged-analysis metering", () => {
     expect(saveRep).toHaveBeenCalledTimes(1);
   });
 
+  /* The reel's extra A: the row keeps that the meter, and nothing else,
+     left it without a number, so Say it better counts its words
+     (lib/say.ts usesOf) while a take whose coach failed stays out. */
+  it("marks a capped take as capped where it is stored, and a judged one not", async () => {
+    coachedFixture();
+    vi.mocked(readMeterState).mockResolvedValue({ balance: 0, accruedOn: dateKey(new Date()), usedAt: null });
+    await post(audioForm());
+    expect(vi.mocked(saveRep).mock.lastCall?.[0]).toMatchObject({ capped: true, ethosIndex: null, coach: null });
+    vi.mocked(saveRep).mockClear();
+    vi.mocked(readMeterState).mockResolvedValue({ balance: 2, accruedOn: dateKey(new Date()), usedAt: null });
+    await post(audioForm());
+    expect(vi.mocked(saveRep).mock.lastCall?.[0].capped).toBe(false);
+  });
+
   it("spends one and reports what is left", async () => {
     coachedFixture();
     vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });

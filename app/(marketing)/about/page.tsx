@@ -39,8 +39,10 @@ const SAMPLE_PAUSES: (Pause & { verdict: PauseVerdict })[] = [
 ];
 
 /** A footer link: a 44px target in the caption's voice (marketing-9). */
-/* The sample card's history: 21 recordings from 564 to 612 (+48), a
-   plausible three weeks with its dips, drawn as the card's hill. */
+/* An example line for the sample stage, not anyone's numbers: 21
+   recordings from 564 to 612 (+48) with their dips. The caption says it
+   is an example (the reel's build 4): "▲ 48 since you started" over no
+   label read as a promise of what a reader's own line would do. */
 const SAMPLE_SERIES = [
   564, 571, 566, 579, 574, 583, 580, 588, 585, 591, 597, 590, 598, 603, 599, 606, 602, 609, 605, 611,
   612,
@@ -129,11 +131,11 @@ export default function About() {
       </section>
 
       {/* "Hard numbers", shown: the stage the Log draws (#506), with
-          numbers a person three weeks in might have, and said to be a
-          sample. */}
+          example numbers, said to be an example, and where a reader's
+          own line begins. */}
       <div className="mt-12">
         <LogStage index={612} first={564} series={SAMPLE_SERIES} recordings={21} />
-        <p className="mt-2 text-caption text-stone-500">A sample, three weeks in.</p>
+        <p className="mt-2 text-caption text-stone-500">Example numbers: your line starts with your first recording.</p>
         <p className="mt-3 text-body font-semibold">
           If we can&apos;t point at a timestamp, we don&apos;t say it.
         </p>

@@ -32,6 +32,11 @@
  *              the final pass of 19 Nov): "Not scored", no token, no
  *              note and no pulse, and the swap left unheard for a scored
  *              take to prove
+ *   capped     a free account's fourth take of the day (#514) that says
+ *              the better phrase: no Ethos number, "Ethos score back
+ *              tomorrow, or go Premium" under its fillers, and the token,
+ *              since Say it better counts a capped take (the reel's extra
+ *              A, 26 Nov: the meter is the score's, never the words')
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 4081
  *   PLAYWRIGHT_MODULE=/opt/node22/lib/node_modules/playwright/index.mjs \
@@ -54,7 +59,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright")
 import { mkdirSync } from "node:fs";
 const F = await import("./look-fixtures.mjs");
 
-const ALL = ["returning", "level", "first", "none", "worst", "late", "door", "nostar"];
+const ALL = ["returning", "level", "first", "none", "worst", "late", "door", "nostar", "capped"];
 const SCENES = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const BASE = process.env.LOOK_BASE ?? "http://localhost:4081";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/proof/after/", import.meta.url).pathname).replace(/\/?$/, "/");
@@ -73,6 +78,7 @@ const SIZES_OF = {
   late: ["390x844-light"],
   door: ["390x844-light", "390x844-dark"],
   nostar: ["390x844-light", "390x844-dark", "320x568-light", "320x568-dark"],
+  capped: ["390x844-light", "390x844-dark", "375x667-light", "375x667-dark", "320x568-light", "320x568-dark"],
 };
 const ONLY = process.env.LOOK_SIZES ? process.env.LOOK_SIZES.split(",") : null;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -113,6 +119,15 @@ const NO_STAR = (() => {
     judged: { ran: false, unlimited: false, remaining: 3, capped: false },
   };
 })();
+/* A free account's fourth take today (#514): measured in full, its words
+   timed, no coach and no Ethos number because the day's 3 are used. */
+const CAPPED = {
+  ...TAKE,
+  coach: null,
+  ethosIndex: null,
+  repId: "rep-live-capped",
+  judged: { ran: false, unlimited: false, remaining: 0, capped: true },
+};
 /* #429's longest better phrase, "a week nobody could survive at all". */
 const LONG_TAKE = rewrite("a week nobody could really do, then miss", "a week nobody could survive at all, miss");
 const COMMON = F.SAY_LEXICON[0];
@@ -150,6 +165,7 @@ const SCENE = {
   late: { history: flat(4, STEADY), take: TAKE, lexicon: F.SAY_LEXICON, asks: false, lexiconAfterMs: 14000 },
   door: { history: flat(4, STEADY), take: TAKE, lexicon: F.SAY_LEXICON, asks: false },
   nostar: { history: flat(4, STEADY), take: NO_STAR, lexicon: F.SAY_LEXICON, asks: false },
+  capped: { history: flat(4, STEADY), take: CAPPED, lexicon: F.SAY_LEXICON, asks: false },
 };
 
 /* ---- yesterday's cue (look-sticks' "answer") ----------------------------- */
@@ -323,7 +339,12 @@ for (const scene of SCENES) {
         created_at: new Date().toISOString(),
         transcript: body.transcript,
         ethos_index: body.ethosIndex,
-        dimensions: { tier1: body.tier1, anchors: body.anchors, tier2: body.coach?.dimensions ?? null },
+        dimensions: {
+          tier1: body.tier1,
+          anchors: body.anchors,
+          tier2: body.coach?.dimensions ?? null,
+          ...(body.judged?.capped ? { capped: true } : {}),
+        },
         /* A take with no star is stored with none (nostar). */
         stars: body.metrics.stars,
       });
@@ -422,6 +443,12 @@ for (const scene of SCENES) {
       if (scene === "worst" && m.struck !== "none") fail(`${at}: the longest pair's struck phrase is on the token`);
       if (wantsToken && pulses.length !== 1) fail(`${at}: ${pulses.length} pulses for the proof`);
       if (!wantsToken && pulses.length !== 0) fail(`${at}: a pulse with no proof`);
+      if (scene === "capped") {
+        /* No number, the meter's line, and the token under it. */
+        const text = await page.evaluate(() => document.querySelector("main")?.innerText ?? "");
+        if (!/Ethos score back tomorrow/.test(text)) fail(`${at}: no "Ethos score back tomorrow" on a capped take`);
+        if (/\/1000/.test(text)) fail(`${at}: an Ethos number on a capped take`);
+      }
       if (scene === "nostar") {
         /* It won nothing: no note says it did, and it says why it was not scored. */
         if (clusters.length !== 0) fail(`${at}: ${clusters.length} note(s) on a take with no star`);

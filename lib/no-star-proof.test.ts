@@ -58,17 +58,19 @@ describe("a take with no star that says the better phrase (#510 with #509)", () 
     expect(usesOf(pair, [{ ...scored, ethos_index: undefined }]).map((u) => u.repId)).toEqual(["scored"]);
   });
 
-  it("a scored take whose judged read did not run has stars and no Ethos number, and is no use either, as its glance shows no token", () => {
-    // /api/analyze stores `ethosIndex(tier1, coach ? tier2 : null)`: a free
-    // account's read spent for the day, or a coach that failed, leaves a
-    // scored take with its stars and a null number. The glance proves only
-    // beside a number (app/rep/page.tsx), so the count, which must agree
-    // with it (#507 review), passes it by too: null is not "no star" alone.
+  it("a scored take whose coach failed has stars and no Ethos number, and is no use either, as its glance shows no token", () => {
+    // /api/analyze stores `ethosIndex(tier1, coach ? tier2 : null)`: a
+    // coach that failed or ran out of time leaves a scored take with its
+    // stars and a null number, and no mark of the meter. The glance proves
+    // only beside a number or on a capped take (app/rep/page.tsx), so the
+    // count, which must agree with it (#507 review), passes it by too:
+    // null is not "no star" alone.
     const tier1 = { pause: 70, fillers: 70, repairs: 70, pace: 70, range: 70 };
     expect(ethosIndex(tier1, null)).toBeNull();
     expect(starsFor({ slips: 0, durationS: 30, substance: substance(REAL) })).toBeGreaterThan(0);
-    const capped: TakeText = { id: "capped", created_at: "2026-11-16T09:00:00.000Z", transcript: REAL, ethos_index: null, words: timed(REAL) };
-    expect(usesOf(pair, [capped])).toEqual([]);
+    const unjudged: TakeText = { id: "unjudged", created_at: "2026-11-16T09:00:00.000Z", transcript: REAL, ethos_index: null, words: timed(REAL) };
+    expect(usesOf(pair, [unjudged])).toEqual([]);
+    expect(usesOf(pair, [{ ...unjudged, capped: false }])).toEqual([]);
   });
 
   it("still holds the moment, so the first scored take to say it gets the token", () => {
@@ -77,5 +79,67 @@ describe("a take with no star that says the better phrase (#510 with #509)", () 
     // take, so the scored one proves it, with where it was said.
     const proof = proofIn([pair], {}, { id: "scored", transcript: REAL, words: timed(REAL), startedAt: new Date("2026-11-17T07:59:00.000Z") });
     expect(proof).toMatchObject({ better: "the point is", at: 0 });
+  });
+});
+
+/*
+ * The reel's extra A (26 Nov): a free account's fourth recording of the
+ * day (#514) is measured in full, its words timed, and stored with no
+ * Ethos number because of the meter alone (`dimensions.capped`, lib/db.ts).
+ * The phrase is in its words with its moment, and Say it better is free
+ * and uncapped (#507): it counts toward "you now say on your own", and its
+ * glance shows the token, so the two still agree. The guard the null
+ * number was put there for (d8bfdf3, seam c of 18 Nov) stays: a take with
+ * no star, and one whose coach failed, are still no use.
+ */
+describe("a capped take that says the better phrase (#514 with #507)", () => {
+  const capped: TakeText = {
+    id: "capped",
+    created_at: "2026-11-16T09:00:00.000Z",
+    transcript: REAL,
+    ethos_index: null,
+    capped: true,
+    words: timed(REAL),
+  };
+
+  it("counts, with where it was said", () => {
+    expect(usesOf(pair, [capped])).toEqual([{ repId: "capped", createdAt: capped.created_at, times: 1, at: 0 }]);
+    // Its words not read (the list's view), it still counts, with no moment.
+    expect(usesOf(pair, [{ ...capped, words: undefined }])).toEqual([{ repId: "capped", createdAt: capped.created_at, times: 1, at: null }]);
+  });
+
+  it("counts beside a scored take, newest first, and the no-star and unjudged takes stay out", () => {
+    const takes: TakeText[] = [
+      capped,
+      { id: "nostar", created_at: "2026-11-16T10:00:00.000Z", transcript: SHORT, ethos_index: null, words: timed(SHORT) },
+      { id: "unjudged", created_at: "2026-11-16T11:00:00.000Z", transcript: REAL, ethos_index: null, words: timed(REAL) },
+      { id: "scored", created_at: "2026-11-17T08:00:00.000Z", transcript: REAL, ethos_index: 640, words: timed(REAL) },
+    ];
+    expect(usesOf(pair, takes).map((u) => u.repId)).toEqual(["scored", "capped"]);
+  });
+
+  it("keeps every rule the count holds a scored take to", () => {
+    // Saved after it: not a use.
+    expect(usesOf({ ...pair, savedAt: "2026-11-16T10:00:00.000Z" }, [capped])).toEqual([]);
+    // The recording the swap came from: not a use.
+    expect(usesOf(pair, [{ ...capped, id: "src" }])).toEqual([]);
+    // The better phrase only inside the old one said again: not a use.
+    const again = `the thing is ${Array.from({ length: 26 }, (_, i) => `word${i}`).join(" ")}`;
+    expect(usesOf(pair, [{ ...capped, transcript: again, words: timed(again) }])).toEqual([]);
+    // Its timed words read and without the phrase: not a use.
+    expect(usesOf(pair, [{ ...capped, words: timed(SHORT.replace(/the point is/g, "a b c")) }])).toEqual([]);
+  });
+
+  it("proves on its own glance, so the swap is never marked heard without its token", () => {
+    const proof = proofIn([pair], {}, { id: "capped", transcript: REAL, words: timed(REAL), startedAt: new Date("2026-11-16T08:59:00.000Z") });
+    expect(proof).toMatchObject({ better: "the point is", said: "the thing is", at: 0 });
+  });
+
+  it("the glance asks for the proof on a capped take too, and the token stands on one", async () => {
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync("app/rep/page.tsx", "utf8");
+    expect(page).toMatch(/scorable && \(result\.ethosIndex !== null \|\| capped\) && sayAtLanding/);
+    const result = readFileSync("components/RepResult.tsx", "utf8");
+    expect(result).toMatch(/view\.proof && \(ethosIndex !== null \|\| !!cappedNote\)/);
   });
 });

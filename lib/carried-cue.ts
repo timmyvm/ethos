@@ -37,6 +37,10 @@ import type { FillerHit, Pause, RepMetrics, Word } from "./metrics";
 import { landedPause } from "./pause-mark";
 import { filledMoments, MOMENT_LEAD_S, MOMENT_TAIL_S, type PauseVerdict } from "./pause-quality";
 import { stem, transcriptPieces, type TranscriptUnit } from "./transcript-words";
+import { cueTitle, plural, q, times } from "./cue-words";
+
+/* The warm-up's two lines live in lib/cue-words.ts, so the reminder says them without this engine. */
+export { cueTitle, warmupLead } from "./cue-words";
 
 /** What a cue is about: one measured thing, each in one trait's unit. */
 export type CueKind = "filler" | "searching" | "filled" | "unheld" | "restarts" | "fast" | "slow" | "repeat";
@@ -360,35 +364,7 @@ export function carryCue(p: {
 
 /* ---- the words ---------------------------------------------------------- */
 
-const q = (w: string | null) => `“${w ?? ""}”`;
-const times = (n: number) => (n === 1 ? "once" : `${n} times`);
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
-
-/**
- * What to do instead, as the warm-up's title: silence where the habit
- * was (plan section 9, idea 5), or the one move a pace or a word needs.
- */
-export function cueTitle(cue: Pick<Cue, "kind" | "word">): string {
-  switch (cue.kind) {
-    case "filler":
-      return `Pause where ${q(cue.word)} was`;
-    case "searching":
-      return "Pause between sentences";
-    case "filled":
-      return "Keep each pause silent";
-    case "unheld":
-      return "Pause once after a full sentence";
-    case "restarts":
-      return "Pause, then finish the sentence";
-    case "fast":
-      return "Pause at every full stop";
-    case "slow":
-      return "Keep each sentence moving";
-    case "repeat":
-      return `Find another word for ${q(cue.word)}`;
-  }
-}
 
 /**
  * The glance's own words for a cue, where they are shorter than the
@@ -578,27 +554,6 @@ export function cueGlance(step: CueStep, take: CueTake): CueGlance | null {
 
 /* ---- the warm-up -------------------------------------------------------- */
 
-/** The number the warm-up leads with, the cue's newest: "Last time, “like” 9 times". */
-export function warmupLead(cue: Pick<Cue, "kind" | "word" | "last">): string {
-  const n = cue.last;
-  switch (cue.kind) {
-    case "filler":
-    case "repeat":
-      return `Last time, ${q(cue.word)} ${times(n)}`;
-    case "searching":
-      return `Last time, ${n} ${plural(n, "misplaced pause", "misplaced pauses")}`;
-    case "filled":
-      return `Last time, ${n} ${plural(n, "pause", "pauses")} had an um`;
-    case "unheld":
-      return "Last time, no pauses between sentences";
-    case "restarts":
-      return `Last time, ${n} ${plural(n, "sentence restart", "sentence restarts")}`;
-    case "fast":
-    case "slow":
-      return `Last time, ${n} words a minute`;
-  }
-}
-
 /** A sentence to say with the cue applied, where the take gave none of its own. */
 const FIXED_LINE: Record<CueKind, string> = {
   filler: `The best part ${PAUSE_MARK} was the people.`,
@@ -739,6 +694,19 @@ export function parseCueState(raw: unknown): CueState | null {
     }
   }
   return { v: 1, cue, aside, at: r.at };
+}
+
+/**
+ * PostgREST's and Postgres's answers for the column before 0034 (42703
+ * from Postgres, PGRST204 from PostgREST's schema cache): the phone keeps
+ * its copy alone (lib/cue-store.ts) and the reminder says today's words.
+ */
+export function missingCueColumn(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    (error.code === "42703" || error.code === "PGRST204" || /column/i.test(error.message ?? "")) &&
+    /carried_cue/.test(error.message ?? "")
+  );
 }
 
 /** The newer of two states, by when each was written. */

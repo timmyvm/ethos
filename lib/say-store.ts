@@ -256,17 +256,21 @@ async function readTakes(since: string): Promise<TakeText[]> {
   const db = supabaseBrowser();
   if (!db) return [];
   const me = await myId();
-  /* With its Ethos number: a take with none (no star, or no judged read) is no use (lib/say.ts usesOf). */
-  const { data, error } = await own(db.from("reps").select("id, created_at, transcript, ethos_index"), me)
+  /* With its Ethos number, or the meter's mark: a take with neither (no
+     star, or a judged read that failed) is no use (lib/say.ts usesOf). */
+  const { data, error } = await own(db.from("reps").select("id, created_at, transcript, ethos_index, capped:dimensions->capped"), me)
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(TAKES_READ);
   if (error) throw error;
-  return ((data as { id: string; created_at: string; transcript: string | null; ethos_index?: number | null }[] | null) ?? []).map((r) => ({
+  return (
+    (data as { id: string; created_at: string; transcript: string | null; ethos_index?: number | null; capped?: unknown }[] | null) ?? []
+  ).map((r) => ({
     id: r.id,
     created_at: r.created_at,
     transcript: r.transcript,
     ethos_index: r.ethos_index,
+    capped: r.capped === true,
   }));
 }
 

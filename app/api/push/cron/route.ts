@@ -41,6 +41,7 @@ import {
   tzOffsetAt,
 } from "@/lib/push";
 import { lastTake, reminderCopy } from "@/lib/reminder-copy";
+import { missingCueColumn, parseCueState, warmsUp, type Cue } from "@/lib/carried-cue";
 import { todayHrefOn, type PracticeRow } from "@/lib/home";
 import { poolForRow } from "@/lib/pool";
 import { inLanes } from "@/lib/lanes";
@@ -217,17 +218,22 @@ export async function GET(req: NextRequest) {
       return;
     }
 
-    // One number from their own last take for the body (lib/reminder-copy.ts).
-    const { data: recent } = await db
-      .from("reps")
-      .select("filler_count, duration_s")
-      .eq("user_id", sub.user_id)
-      .order("created_at", { ascending: false })
-      .limit(5);
+    // The body (lib/reminder-copy.ts): the cue today's warm-up rehearses,
+    // word for word, or one number from their own last take.
+    const [{ data: recent }, cue] = await Promise.all([
+      db
+        .from("reps")
+        .select("filler_count, duration_s")
+        .eq("user_id", sub.user_id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      carriedCue(db, sub.user_id, today),
+    ]);
     const copy = reminderCopy({
       hour: sub.reminder_hour,
       onTime: onTime(win, now),
       last: lastTake((recent ?? []) as { filler_count?: number | null; duration_s?: number | string | null }[]),
+      cue,
     });
 
     // Today's own topic, ready to record (#431).
@@ -325,6 +331,36 @@ async function practiceUrl(
   } catch (e) {
     console.error("push cron: practice address failed", (e as Error).message);
     return "/";
+  }
+}
+
+/**
+ * The cue the account carries into today (#477; the reel's build 3, 26
+ * Nov): `profiles.carried_cue` (0034), read through the rule the ready
+ * recorder warms up on (lib/carried-cue.ts `warmsUp`: given on an earlier
+ * day, not answered today), on the subscriber's own calendar day, so the
+ * reminder says the warm-up's two lines and the screen it opens leads
+ * with them. A cue given today, one already answered today, a read that
+ * fails, a row that does not parse, or a database without the column
+ * (42703 or PGRST204) is no cue, and the body stays the last take's line.
+ * Only the account's copy: a phone's newer copy that never reached the
+ * account is the phone's own (lib/cue-store.ts).
+ */
+async function carriedCue(
+  db: NonNullable<ReturnType<typeof supabaseAdmin>>,
+  userId: string,
+  today: string
+): Promise<Cue | null> {
+  try {
+    const { data, error } = await db.from("profiles").select("carried_cue").eq("user_id", userId).maybeSingle();
+    if (error) {
+      if (!missingCueColumn(error)) console.error("push cron: cue read failed", error.message);
+      return null;
+    }
+    return warmsUp(parseCueState((data as { carried_cue?: unknown } | null)?.carried_cue ?? null), today);
+  } catch (e) {
+    console.error("push cron: cue read failed", (e as Error).message);
+    return null;
   }
 }
 

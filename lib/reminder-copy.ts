@@ -9,7 +9,15 @@
  *
  * Pure, so the cron route, the phone's local tiers and the service
  * worker's fallback say the same thing.
+ *
+ * With a cue carried into today (#477, profiles.carried_cue, 0034), the
+ * body is the warm-up's own two lines, word for word (the reel's build 3,
+ * 26 Nov): the screen the reminder opens leads with the same number and
+ * the same move, so the push and the warm-up say one thing.
  */
+
+import type { Cue } from "./carried-cue";
+import { cueTitle, warmupLead } from "./cue-words";
 
 /** The last take worth quoting: long enough to have been a real one. */
 export interface LastTake {
@@ -57,16 +65,41 @@ export function takeLine(last: LastTake | null): string {
 }
 
 /**
- * The notification: its title names the hour they chose while the send
- * is on time, and the body is their last take's numbers.
+ * The longest body a reminder sends. A lock screen shows about four lines
+ * of a notification's body and cuts the rest with an ellipsis; at 110
+ * characters a body stands whole in three lines on a 390 phone. Every
+ * kind fits with room (the longest, "no pauses between sentences", is
+ * 73; a "basically" filler 61), and a repeated word does up to 30
+ * letters. Past it (a longer word, which the account's own column can
+ * hold, lib/carried-cue.ts WORD_MAX 40), the body is today's words
+ * rather than a cut one.
  */
-export function reminderCopy(p: { hour: number | null; onTime: boolean; last: LastTake | null }): {
+export const PUSH_BODY_MAX = 110;
+
+/** The warm-up's eyebrow and title as one body: "Last time, “like” 9 times. Pause where “like” was." */
+export function cueBody(cue: Pick<Cue, "kind" | "word" | "last">): string {
+  return `${warmupLead(cue)}. ${cueTitle(cue)}.`;
+}
+
+/**
+ * The notification: its title names the hour they chose while the send
+ * is on time. The body is the cue carried into today, as the warm-up says
+ * it, when there is one that fits; otherwise their last take's numbers.
+ */
+export function reminderCopy(p: {
+  hour: number | null;
+  onTime: boolean;
+  last: LastTake | null;
+  /** The cue today's warm-up rehearses (lib/carried-cue.ts warmsUp), or null. */
+  cue?: Pick<Cue, "kind" | "word" | "last"> | null;
+}): {
   title: string;
   body: string;
 } {
+  const said = p.cue ? cueBody(p.cue) : null;
   return {
     title: p.hour !== null && p.onTime ? `Your ${hourWords(p.hour)} practice` : LATE_TITLE,
-    body: takeLine(p.last),
+    body: said !== null && said.length <= PUSH_BODY_MAX ? said : takeLine(p.last),
   };
 }
 

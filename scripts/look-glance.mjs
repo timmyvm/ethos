@@ -34,6 +34,8 @@
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
  * upload, rules (#491: the first take under #476's pause rules against
  * a stored take scored before them, its note under the delta),
+ * pauses-between, pauses-mid (the reel's honest wins, build 6: the pause
+ * record on Today's Pausing card counts pauses between sentences only),
  * baseline-rushing, baseline-freezing, baseline-flat (the reel's honest
  * wins, build 2: an account's first scored recording, The baseline
  * opened as the introduction opens it, with that concern answered in the
@@ -182,6 +184,32 @@ const bodies = {
   "baseline-freezing": () => ({ ...A, previousIndex: null }),
   "baseline-flat": () => ({ ...A, previousIndex: null }),
   "baseline-fillers": () => ({ ...A, previousIndex: null }),
+  /* The pause record (the reel's honest wins, build 6) on Today's Pausing
+     card, against the fixtures' most of 3 between sentences (5 with the
+     mid-sentence ones): 4 between sentences breaks it; 2 between and 4
+     mid-sentence, which the old count called 6 and a record, does not. */
+  "pauses-between": () => ({
+    ...A,
+    pauseHeadline: "4 pauses between sentences.",
+    metrics: {
+      ...A.metrics,
+      heldPauses: 4, composedPauses: 4, midSentencePauses: 0,
+      pauses: [2.1, 18, 33, 47].map((t, i) => ({ t, len: 1.2 + i * 0.1, kind: "pre", verdict: i === 0 ? "opening" : "landing" })),
+    },
+  }),
+  "pauses-mid": () => ({
+    ...A,
+    pauseHeadline: "You paused mid-sentence 4 times and between sentences twice. Pause where a full sentence ends.",
+    metrics: {
+      ...A.metrics,
+      heldPauses: 6, composedPauses: 2, midSentencePauses: 4,
+      pauses: [
+        { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
+        ...[12, 20, 29, 37].map((t) => ({ t, len: 1, kind: "mid", verdict: "hesitation" })),
+        { t: 47, len: 1.3, kind: "pre", verdict: "landing" },
+      ],
+    },
+  }),
 };
 /* The concern each baseline variant answered in the introduction (content/portfolio.ts PAINS). */
 const BASELINE_PAIN = { "baseline-rushing": ["rushing", "rushing"], "baseline-freezing": ["freezing", "freezing"], "baseline-flat": ["flat", "sounding flat"], "baseline-fillers": ["fillers", "fillers"] }[VARIANT] ?? null;
@@ -550,7 +578,7 @@ for (const size of SIZES) {
     await page.goto(`${BASE}/rep?lesson=f1`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
-  } else if (["daily", "capped", "capped-early", "video", "rules"].includes(VARIANT)) {
+  } else if (["daily", "capped", "capped-early", "video", "rules", "pauses-between", "pauses-mid"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
     await sleep(800);

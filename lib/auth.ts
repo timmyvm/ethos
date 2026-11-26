@@ -28,6 +28,7 @@ import { rememberEmailAsked } from "./account-gate";
 import { forgetCarriedCue } from "./cue-keys";
 import { forget as forgetHeld } from "./held";
 import { forgetSayCopy } from "./say-keys";
+import { forgetScoredLeft } from "./scored-left";
 import { supabaseBrowser } from "./supabase-browser";
 import { carryTesting, keepCarryForLink, stashTesterCarry, testerCarryToken } from "./tester-client";
 import { safeNextPath } from "./use-paywall-return";
@@ -1000,6 +1001,8 @@ export async function signOut(): Promise<void> {
   forgetHeld();
   /* So is Say it better's copy of its test (lib/say-keys.ts, #507). */
   forgetSayCopy();
+  /* And what the meter last said of today's scored recordings (lib/scored-left.ts). */
+  forgetScoredLeft();
 }
 
 /**
@@ -1052,6 +1055,7 @@ export async function deleteAccount({ plan = false }: { plan?: boolean } = {}): 
      caller then empties the rest of the device. */
   forgetCarriedCue();
   forgetSayCopy();
+  forgetScoredLeft();
   return { ok: true };
 }
 

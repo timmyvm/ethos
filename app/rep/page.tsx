@@ -53,7 +53,8 @@ import { dayTurned, lastSpokeOn } from "@/lib/home";
 import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
-import { CAPPED_DOOR, CAPPED_LINE, CAPPED_REASON, PRO_MOMENT_LINE } from "@/lib/allowance-copy";
+import { CAPPED_DOOR, CAPPED_LINE, CAPPED_REASON, PRO_MOMENT_LINE, SCORED_USED } from "@/lib/allowance-copy";
+import { keepScoredLeft, readScoredLeft, scoredUsed, type ScoredLeft } from "@/lib/scored-left";
 import { buildPortfolio } from "@/lib/portfolio";
 import { poolHere } from "@/lib/pool";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -703,6 +704,25 @@ function RepScreen() {
   /** Demos's line while he cuts in (F1); null while he listens. */
   const [cutIn, setCutIn] = useState<string | null>(null);
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
+  /**
+   * What the meter last said of today's scored recordings, and whose
+   * (lib/scored-left.ts): read on open, and kept from each reply.
+   */
+  const [scoredLeft, setScoredLeft] = useState<ScoredLeft | null>(null);
+  const [scoredFor, setScoredFor] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    currentSession()
+      .then((s) => {
+        if (!live) return;
+        setScoredFor(s?.userId ?? null);
+        setScoredLeft(readScoredLeft());
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
   /**
@@ -972,6 +992,8 @@ function RepScreen() {
     // recording (a browser back mid-scoring), so it is still stored,
     // but its answer never takes over the other recording's screen.
     const live = () => lessonKeyRef.current === key;
+    /* Before any await: the meter counts the take on the day it was sent. */
+    const sentAt = Date.now();
     if (live()) {
       setPhase("analyzing");
       setError(null);
@@ -1045,6 +1067,19 @@ function RepScreen() {
         return;
       }
       setResult(data as AnalyzeResponse);
+      /* What the meter said of today's scored recordings, for this account
+         and the day the take was spoken (lib/scored-left.ts): kept only
+         when it is sure, so the line under the next Record never guesses. */
+      const spokenOn = new Date(Number(form.get("recordedAt")) || sentAt);
+      void currentSession()
+        .then((s) => {
+          const kept = keepScoredLeft({ uid: s?.userId, at: spokenOn, judged: (data as AnalyzeResponse).judged });
+          if (kept) {
+            setScoredFor(kept.uid);
+            setScoredLeft(kept);
+          }
+        })
+        .catch(() => {});
       /* The first take under #476 beside one scored before it (#491),
          read off the history from before this take, in the same frame
          as the result, so nothing on the glance moves when it lands. */
@@ -2148,6 +2183,16 @@ function RepScreen() {
   const ready =
     searchParams.get("ready") === "1" && !game && config.kind !== "boss" && config.tips.length > 0;
   /*
+   * Today's scored recordings are used (the reel's honest wins, build 5):
+   * said under Record before the take, once this phone is sure (this
+   * account, this day, none left, a plan read as free), grey and with no
+   * door. Never on the ready screen, the day's first take. While the plan
+   * is still being read the slot stays empty rather than flip.
+   */
+  const usedOnPhone = !ready && scoredUsed(scoredLeft, { uid: scoredFor, now: new Date(), free: true });
+  const sayScoredUsed = usedOnPhone && plan === false && !premium;
+  const holdAnticipate = usedOnPhone && plan !== true && !premium;
+  /*
    * The warm-up (#477, plan section 9, idea 2): on the day's first take,
    * the cue carried from an earlier day and not yet answered, rehearsed
    * alone in the tactic's slot before Record. Skip trades the two slots
@@ -2832,13 +2877,19 @@ function RepScreen() {
          */}
         {/* Anticipation cue — what this recording is about to earn (#48),
             one line under the tap that earns it. */}
-        {phase === "idle" && anticipate && (
+        {phase === "idle" && anticipate && !holdAnticipate && (
           <p
             className={`-mt-2 max-w-[280px] text-center text-caption font-semibold ${
               anticipate.tone === "earned" ? "text-sage-700" : "text-stone-600"
             }`}
           >
             {anticipate.headline}
+          </p>
+        )}
+        {/* In its place, today's scored recordings used (lib/scored-left.ts). */}
+        {phase === "idle" && sayScoredUsed && (
+          <p data-scored-used className="arrive -mt-2 max-w-[280px] text-center text-caption font-semibold text-stone-600">
+            {SCORED_USED}
           </p>
         )}
 

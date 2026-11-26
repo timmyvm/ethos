@@ -729,7 +729,7 @@ describe("judged-analysis metering", () => {
       usedAt: null,
     });
     const body = await (await post(audioForm())).json();
-    expect(body.judged).toMatchObject({ ran: true, remaining: 1 });
+    expect(body.judged).toMatchObject({ ran: true, remaining: 1, counted: true });
     expect(swapMeterState).toHaveBeenCalledWith(
       "user-1",
       expect.objectContaining({ balance: 2 }),
@@ -766,8 +766,28 @@ describe("judged-analysis metering", () => {
       usedAt: null,
     });
     const body = await (await post(audioForm())).json();
-    expect(body.judged).toMatchObject({ ran: true, unlimited: true });
+    expect(body.judged).toMatchObject({ ran: true, unlimited: true, counted: false });
     expect(swapMeterState).not.toHaveBeenCalled();
+  });
+
+  /* The reel's honest wins, build 5: a meter that could not be read still
+     lets Demos read, and its 0 is no count of anything, so the phone is
+     told nothing was counted (lib/scored-left.ts keeps nothing then). */
+  it("says nothing was counted when the meter could not be read", async () => {
+    coachedFixture();
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    vi.mocked(readMeterState).mockRejectedValue(new Error("db down"));
+    const body = await (await post(audioForm())).json();
+    expect(body.judged).toMatchObject({ ran: true, unlimited: false, remaining: 0, capped: false, counted: false });
+  });
+
+  it("says nothing was counted when the coach failed and the read went back", async () => {
+    vi.mocked(transcribe).mockResolvedValue(FIXTURE);
+    vi.mocked(coachRep).mockRejectedValue(new Error("api down"));
+    vi.mocked(getUserFromAuthHeader).mockResolvedValue({ id: "user-1", anonymous: false });
+    meterRow({ balance: 1, accruedOn: dateKey(new Date()), usedAt: null });
+    const body = await (await post(audioForm())).json();
+    expect(body.judged).toMatchObject({ ran: false, capped: false, counted: false });
   });
 
   /*
@@ -792,10 +812,10 @@ describe("judged-analysis metering", () => {
         takes.push({ coached: vi.mocked(coachRep).mock.calls.length, judged: body.judged, index: body.ethosIndex !== null });
       }
       expect(takes.map((t) => t.judged)).toEqual([
-        { ran: true, unlimited: false, remaining: 2, capped: false },
-        { ran: true, unlimited: false, remaining: 1, capped: false },
-        { ran: true, unlimited: false, remaining: 0, capped: false },
-        { ran: false, unlimited: false, remaining: 0, capped: true },
+        { ran: true, unlimited: false, remaining: 2, capped: false, counted: true },
+        { ran: true, unlimited: false, remaining: 1, capped: false, counted: true },
+        { ran: true, unlimited: false, remaining: 0, capped: false, counted: true },
+        { ran: false, unlimited: false, remaining: 0, capped: true, counted: false },
       ]);
       expect(takes.map((t) => t.coached)).toEqual([1, 1, 1, 0]);
       // The first three carry the Ethos score; the fourth has none.

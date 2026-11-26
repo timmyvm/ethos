@@ -8,6 +8,7 @@ import {
   FREE_ALLOWANCE,
   PRO_MOMENT_LINE,
   SCORED_BENEFIT,
+  SCORED_USED,
 } from "./allowance-copy";
 import { countWords } from "./glance";
 import { DAILY_GRANT, meter, meterStatus, type MeterState } from "./metering";
@@ -47,8 +48,18 @@ describe("the free allowance in words (#514)", () => {
     expect(CAPPED_DOOR).toMatch(/Premium/);
   });
 
+  /* The reel's honest wins, build 5: said under Record before the take, from the meter's number and the capped line's own words. */
+  it("says the day's scored recordings are used, from DAILY_GRANT and CAPPED_LINE", () => {
+    expect(SCORED_USED).toBe("You've used today's 3 scored recordings. Ethos score back tomorrow.");
+    expect(SCORED_USED).toContain(`${DAILY_GRANT} scored recordings`);
+    expect(SCORED_USED).toContain(CAPPED_LINE);
+    expect(SCORED_USED).not.toMatch(/Premium|upgrade|only|hurry|left!/i);
+    const src = readFileSync("lib/allowance-copy.ts", "utf8");
+    expect(src).toMatch(/SCORED_USED = `You've used today's \$\{DAILY_GRANT\} scored recordings\. \$\{CAPPED_LINE\}\.`/);
+  });
+
   it("follows the copy rules: no dash, no rep, no full stop on a door", () => {
-    for (const s of [FREE_ALLOWANCE, SCORED_BENEFIT, CAPPED_REASON, CAPPED_LINE, CAPPED_DOOR, CAPPED_SHEET, PRO_MOMENT_LINE]) {
+    for (const s of [FREE_ALLOWANCE, SCORED_BENEFIT, CAPPED_REASON, CAPPED_LINE, CAPPED_DOOR, CAPPED_SHEET, PRO_MOMENT_LINE, SCORED_USED]) {
       expect(s).not.toMatch(/[—–]/);
       expect(s).not.toMatch(/\breps?\b/i);
       expect(s).not.toMatch(/\b(judged|analys[ie]s)\b/i);

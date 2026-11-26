@@ -33,7 +33,13 @@
  * (LOOK_BEST=1), first (LOOK_FRESH=1),
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
  * upload, rules (#491: the first take under #476's pause rules against
- * a stored take scored before them, its note under the delta).
+ * a stored take scored before them, its note under the delta), repair
+ * (closure.md row 14: spoke five days, missed yesterday, and this is
+ * today's first take of 20+ words: the tap reads "One more", "Done for
+ * today" stands under it and the stone line "One more keeps a 5-day
+ * streak alive" under that, its words riding on the ceiling. Its page
+ * runs on the first Wednesday after lib/streak.ts REPAIR_FROM, read from
+ * the file, at 19:30 Melbourne).
  *
  * The #427 review added: every glance's bands (no gap over 64 between
  * the header's back and the shelf at 390x844, reported elsewhere), the
@@ -55,7 +61,19 @@ import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_CJS ?? "/opt/node-tools/node_modules/playwright");
+/* The repair keeps no day before it shipped (lib/streak.ts REPAIR_FROM):
+   its variant's "today" is the first Wednesday whose Tuesday is on or
+   after it, set before the fixtures load. */
+const REPAIR_FROM = /export const REPAIR_FROM = "(\d{4}-\d{2}-\d{2})";/.exec(readFileSync(new URL("../lib/streak.ts", import.meta.url), "utf8"))?.[1] ?? "2026-11-27";
+if (process.argv[3] === "repair" && !process.env.LOOK_TODAY) {
+  const d = new Date(`${REPAIR_FROM}T12:00:00Z`);
+  while (d.getUTCDay() !== 2) d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCDate(d.getUTCDate() + 1);
+  process.env.LOOK_TODAY = d.toISOString().slice(0, 10);
+}
 const F = await import("./look-fixtures.mjs");
+/* The page's clock for a variant shot on another day than this one: 19:30 Melbourne that day. */
+const CLOCK = process.env.LOOK_TODAY ? new Date(`${process.env.LOOK_TODAY}T19:30:00+11:00`) : null;
 /* The glance's named piece outside its ceiling (#509), by the name lib/glance.ts gives it. */
 const OUTSIDE = /export const OUTSIDE_CEILING = "([a-z-]+)";/.exec(readFileSync(new URL("../lib/glance.ts", import.meta.url), "utf8"))?.[1];
 if (!OUTSIDE) throw new Error("lib/glance.ts names no OUTSIDE_CEILING");
@@ -168,7 +186,17 @@ const bodies = {
   }),
   upload: () => A,
   rules: () => ({ ...A, pauseRules: 476, tier1: { ...A.tier1, pause: 73 }, previousIndex: RULES_PREV, ethosIndex: RULES_PREV + 71 }),
+  repair: () => A,
 };
+/* repair (closure.md row 14): the three weeks' last five takes, re-dated
+   to the five days before yesterday (a run of five, Thursday to Monday),
+   yesterday missed, and the take stored today on the reps reads once the
+   server has it, scorable as its transcript is (look-fixtures withSubstance). */
+const REPAIR_RUN = 5;
+if (VARIANT === "repair") {
+  const day = (n, h = 18) => new Date(CLOCK.getTime() - n * 86_400_000 + (h - 19) * 3_600_000 - 30 * 60_000).toISOString();
+  F.repsMode.rows = F.reps.slice(-REPAIR_RUN).map((r, i) => ({ ...r, created_at: day(REPAIR_RUN + 1 - i) }));
+}
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
 /* capped (#514): a free account's fourth take today, so today already
    holds its three scored ones (09:12, 09:52, 10:47). capped-early: the
@@ -331,6 +359,25 @@ for (const size of SIZES) {
     permissions: ["microphone", "camera", "notifications"], locale: "en-AU", timezoneId: "Australia/Melbourne",
     colorScheme: size.theme, serviceWorkers: "block",
   });
+  /* A variant shot on another day: the page's clock moved there and still
+     running (the recorder times a take by it). Laid on first, so every
+     script after it reads that day. */
+  if (VARIANT === "repair") {
+    F.extraReps.splice(0, F.extraReps.length);
+    await context.addInitScript((shift) => {
+      const Real = Date;
+      class Shifted extends Real {
+        constructor(...a) {
+          if (a.length === 0) super(Real.now() + shift);
+          else super(...a);
+        }
+        static now() {
+          return Real.now() + shift;
+        }
+      }
+      globalThis.Date = Shifted;
+    }, CLOCK.getTime() - Date.now());
+  }
   await context.route("http://supabase.local/**", F.supabaseRoute);
   /* LOOK_PROOF=0 (#509): the coach's pairs empty, so no swap is proved
      and the glance stands as it does without Say it better's token (the
@@ -343,6 +390,11 @@ for (const size of SIZES) {
   }
   await context.route("**/api/analyze", async (route) => {
     await sleep(1500);
+    /* The repair's take is stored, today, with its words: the reads after it hold it. */
+    if (VARIANT === "repair") {
+      const at = new Date(Date.now() + (CLOCK.getTime() - Date.now())).toISOString();
+      F.extraReps.splice(0, F.extraReps.length, { ...F.reps[F.reps.length - 1], id: "rep-live", client_id: "rep-live", created_at: at });
+    }
     await route.fulfill(F.json(bodies[VARIANT]()));
   });
   await context.route("**/api/push", (r) => r.fulfill(F.json({ ok: true })));
@@ -478,6 +530,23 @@ for (const size of SIZES) {
         return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
       });
       ceiling += Math.min(16, noteWords);
+      /* The repair's stone line rides on it too, up to 8 (closure.md row 14, GLANCE_WORDS_REPAIR). */
+      const repairWords = await page.evaluate(() => {
+        const a = document.querySelector("main [data-repair-line]");
+        return a ? a.innerText.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length : 0;
+      });
+      ceiling += Math.min(8, repairWords);
+      if (VARIANT === "repair" && TAG !== "before") {
+        const way = await page.evaluate(() => ({
+          tap: document.querySelector("main [data-step-action]")?.textContent?.trim() ?? null,
+          quiet: document.querySelector("main [data-quiet-action]")?.textContent?.trim() ?? null,
+          line: document.querySelector("main [data-repair-line]")?.textContent?.trim() ?? null,
+        }));
+        console.log(`${at} ${name}: tap "${way.tap}", quiet "${way.quiet}", line "${way.line}"`);
+        if (way.tap !== "One more") fail(`${at} ${name}: the tap reads "${way.tap}", wanted "One more"`);
+        if (way.quiet !== "Done for today") fail(`${at} ${name}: the quiet link reads "${way.quiet}", wanted "Done for today"`);
+        if (way.line !== `One more keeps a ${REPAIR_RUN}-day streak alive`) fail(`${at} ${name}: the stone line reads "${way.line}"`);
+      }
       /* The stars' goals ride on it too, up to 8 (#504, GLANCE_WORDS_STARS). */
       const goalWords = await page.evaluate(STAR_GOAL_WORDS);
       ceiling += Math.min(8, goalWords);
@@ -521,7 +590,7 @@ for (const size of SIZES) {
     await page.goto(`${BASE}/rep?boss=week`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
-  } else if (["daily", "capped", "capped-early", "video", "rules"].includes(VARIANT)) {
+  } else if (["daily", "capped", "capped-early", "video", "rules", "repair"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
     await sleep(800);

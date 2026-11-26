@@ -2872,7 +2872,8 @@ function RepScreen() {
             one line under the tap that earns it. */}
         {phase === "idle" && anticipate && (
           <p
-            className={`-mt-2 max-w-[280px] text-center text-caption font-semibold ${
+            data-record-cue=""
+            className={`-mt-2 max-w-[280px] text-center text-caption font-semibold text-balance ${
               anticipate.tone === "earned" ? "text-sage-700" : "text-stone-600"
             }`}
           >

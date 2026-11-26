@@ -25,6 +25,18 @@
  *           Since day one, and its Not now to Today (the #480 review: the
  *           asks follow the moment, or someone who speaks once a day never
  *           meets them).
+ *   repair  one missed day kept by speaking twice (closure.md row 14): spoke
+ *           Thursday to Monday, missed Tuesday, and today is Wednesday.
+ *           Today first, which still says Welcome back over the grey 0;
+ *           then under Record "Two recordings of 20+ words keep a 5-day
+ *           streak alive"; the first take's glance taps "One more" with
+ *           "Done for today" under it and the stone line; under Record
+ *           again "This one keeps a 5-day streak alive"; the second
+ *           take's "Done for today" plays the moment 5 to 6, Tuesday drawn
+ *           kept (the sky wash, no snowflake) and "Two recordings covered
+ *           Tuesday." under the row; then Today on a lit 6. Its day is the
+ *           first Wednesday after lib/streak.ts REPAIR_FROM (read from the
+ *           file), so it runs on its own: `... after repair`.
  *
  * Each scene that shows the moment is shot at its start, mid-roll and end
  * (the page's animations paused and sought, so a frame is its moment),
@@ -39,17 +51,30 @@
  * with more than one filled tap, and one whose Continue is under the fold.
  */
 import { createRequire } from "node:module";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_CJS ?? "/opt/node-tools/node_modules/playwright");
 
-/* The fixtures' Melbourne "today" is Thursday 19 November, set before they load. */
-process.env.LOOK_TODAY = process.env.LOOK_TODAY ?? "2026-11-19";
-const F = await import("./look-fixtures.mjs");
-const CLOCK = new Date(`${process.env.LOOK_TODAY}T19:30:00+11:00`);
-
 const TAG = process.argv[2] ?? "after";
 const SCENES = process.argv.slice(3).length ? process.argv.slice(3) : ["roll", "freeze", "first", "calm", "second", "short"];
+
+/* The repair keeps no day before it shipped (lib/streak.ts REPAIR_FROM), so
+   its scene runs on the first Wednesday whose Tuesday is on or after it. */
+const REPAIR_FROM = /export const REPAIR_FROM = "(\d{4}-\d{2}-\d{2})";/.exec(readFileSync(new URL("../lib/streak.ts", import.meta.url), "utf8"))?.[1] ?? "2026-11-27";
+const repairWednesday = (from) => {
+  const d = new Date(`${from}T12:00:00Z`);
+  while (d.getUTCDay() !== 2) d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+const REPAIRING = SCENES.some((s) => s.startsWith("repair"));
+if (REPAIRING && !SCENES.every((s) => s.startsWith("repair"))) throw new Error("the repair scene runs on its own day: shoot it alone");
+
+/* The fixtures' Melbourne "today" is Thursday 19 November (the repair's
+   Wednesday for its scene), set before they load. */
+process.env.LOOK_TODAY = process.env.LOOK_TODAY ?? (REPAIRING ? repairWednesday(REPAIR_FROM) : "2026-11-19");
+const F = await import("./look-fixtures.mjs");
+const CLOCK = new Date(`${process.env.LOOK_TODAY}T19:30:00+11:00`);
 const BASE = process.env.LOOK_BASE ?? "http://localhost:3844";
 const OUT = (process.env.LOOK_OUT ?? new URL("../docs/look/streak/", import.meta.url).pathname).replace(/\/?$/, "/");
 const SIZES = (process.env.LOOK_SIZES ?? "390x844-light,390x844-dark,375x667-light,375x667-dark").split(",").map((s) => {
@@ -85,7 +110,10 @@ const SCENE = {
      straight on (the moment waits, owed), and the way back from the next
      practice's idle screen plays it. */
   lesson: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, lesson: "know-the-landing" },
+  /* Spoke Thursday to Monday, missed Tuesday: two takes today keep it. */
+  repair: { spoke: [2, 3, 4, 5, 6], frozen: [], from: 5, to: 6, moment: true, repair: true, viaTap: "Done for today" },
 };
+const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 const browser = await chromium.launch({
   args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
@@ -119,12 +147,17 @@ for (const scene of SCENES) {
       globalThis.Date = Shifted;
     }, CLOCK.getTime() - Date.now());
 
-    let taken = false;
+    /* Each take the server stored, at the page's clock. A repair's rows
+       say whether their words scored (migration 0037), as the spine reads. */
+    const taken = [];
     const history = () => {
       const rows = S.spoke.map((n, i) => row(n, i + 1));
       if (S.today) rows.push(row(0, 90, 9));
-      if (taken) rows.push({ ...row(0, 99, 19), id: "rep-live", client_id: "rep-live", created_at: new Date(Date.now() + (CLOCK.getTime() - Date.now())).toISOString(), ethos_index: F.analyzeBody.ethosIndex });
-      return rows;
+      taken.forEach((at, i) => {
+        const id = i === 0 ? "rep-live" : `rep-live-${i + 1}`;
+        rows.push({ ...row(0, 99, 19), id, client_id: id, created_at: at, ethos_index: F.analyzeBody.ethosIndex });
+      });
+      return S.repair ? rows.map((r) => ({ ...r, scorable: true })) : rows;
     };
     await context.route("http://supabase.local/**", F.supabaseRoute);
     await context.route("http://supabase.local/rest/v1/reps**", (route) => {
@@ -151,8 +184,9 @@ for (const scene of SCENES) {
     });
     await context.route("**/api/analyze", async (route) => {
       await sleep(900);
-      taken = true;
-      await route.fulfill(F.json({ ...F.analyzeBody, previousIndex: S.spoke.length ? F.analyzeBody.previousIndex : null }));
+      taken.push(new Date(Date.now() + (CLOCK.getTime() - Date.now())).toISOString());
+      const repId = taken.length === 1 ? "rep-live" : `rep-live-${taken.length}`;
+      await route.fulfill(F.json({ ...F.analyzeBody, repId, previousIndex: S.spoke.length ? F.analyzeBody.previousIndex : null }));
     });
     await context.route("**/api/push", (r) => r.fulfill(F.json({ ok: true })));
     await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF });
@@ -172,6 +206,25 @@ for (const scene of SCENES) {
     page.on("pageerror", (e) => console.log("PAGEERROR", e.message.slice(0, 160)));
     const shot = (beat) => `${OUT}${TAG}-${scene}-${beat}-${size.name}.png`;
 
+    /* The line under Record, once its reads have landed. */
+    const recordCue = async () => {
+      await page.waitForSelector("[data-record-cue]", { timeout: 6000 }).catch(() => {});
+      await sleep(400);
+      return ((await page.locator("[data-record-cue]").first().textContent().catch(() => null)) ?? "").trim();
+    };
+    /* The streak chip's own words for a screen reader (HeaderCount's sr-only label): "Streak 0, today's open". */
+    const chip = () =>
+      page.evaluate(() => [...document.querySelectorAll(".sr-only")].map((e) => e.textContent ?? "").find((t) => /^Streak \d/.test(t)) ?? null);
+    const take = async (ms) => {
+      await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
+      await sleep(1200);
+      await page.click('button[data-record="start"]', { force: true });
+      await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
+      await sleep(ms);
+      await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+    };
+    const run = S.repair ? S.from : 0;
+
     const lessonBack = S.lesson ? `/lessons/${S.lesson}` : null;
     if (S.lesson) {
       await page.goto(`${BASE}/rep?lesson=${S.lesson}&q=1&back=${encodeURIComponent(lessonBack)}`);
@@ -179,14 +232,58 @@ for (const scene of SCENES) {
       await page.goto(`${BASE}/`);
       await page.waitForSelector("main .arrive", { timeout: 30000 });
       await sleep(800);
+      if (S.repair) {
+        /* Today on the repair day is the day after a break, as it was
+           (#431 (5)): Welcome back, and the chip at its grey 0. */
+        await sleep(800);
+        await page.screenshot({ path: shot("today-before") });
+        const welcome = await page.getByText("Welcome back", { exact: false }).count();
+        const label = await chip();
+        console.log(`${at}: Today says Welcome back ${welcome > 0}; chip "${label}"`);
+        if (!welcome) fail(`${at}: Today on the repair day does not say Welcome back`);
+        if (!label || !label.startsWith("Streak 0")) fail(`${at}: Today's chip reads "${label}" on the repair day, wanted its grey 0`);
+      }
       await page.locator('main a[href^="/rep"], main button:has-text("Start")').first().click();
     }
-    await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
-    await sleep(1200);
-    await page.click('button[data-record="start"]', { force: true });
-    await page.waitForSelector('button[aria-label="Stop and score this recording"]', { timeout: 20000 });
-    await sleep(S.short ? 300 : 3000);
-    await page.click('button[aria-label="Stop and score this recording"]', { force: true });
+    if (S.repair) {
+      /* Under Record before the first take, then the first take's glance. */
+      await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
+      const cue1 = await recordCue();
+      await page.screenshot({ path: shot("record1") });
+      console.log(`${at}: under Record "${cue1}"`);
+      const want1 = `Two recordings of 20+ words keep a ${run}-day streak alive`;
+      if (TAG !== "before" && cue1 !== want1) fail(`${at}: under Record reads "${cue1}", wanted "${want1}"`);
+      await take(3000);
+      await page.waitForSelector("main [data-glance]", { timeout: 30000 });
+      await sleep(2600);
+      await page.screenshot({ path: shot("glance1") });
+      const way = await page.evaluate(() => ({
+        tap: document.querySelector("main [data-step-action]")?.textContent?.trim() ?? null,
+        quiet: document.querySelector("main [data-quiet-action]")?.textContent?.trim() ?? null,
+        line: document.querySelector("main [data-repair-line]")?.textContent?.trim() ?? null,
+        scrolls: document.scrollingElement.scrollHeight > innerHeight + 1,
+        taps: document.querySelectorAll("main .tap, main .tap-tonal").length,
+      }));
+      console.log(`${at}: first glance tap "${way.tap}", quiet "${way.quiet}", line "${way.line}", scrolls ${way.scrolls}`);
+      if (TAG !== "before") {
+        if (way.tap !== "One more") fail(`${at}: the first take's tap reads "${way.tap}", wanted "One more"`);
+        if (way.quiet !== "Done for today") fail(`${at}: the quiet link reads "${way.quiet}", wanted "Done for today"`);
+        if (way.line !== `One more keeps a ${run}-day streak alive`) fail(`${at}: the stone line reads "${way.line}"`);
+        if (way.scrolls) fail(`${at}: the first take's glance scrolls`);
+      }
+      if (way.tap === "One more") {
+        await page.locator("main [data-step-action]").click();
+        await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
+        const cue2 = await recordCue();
+        await page.screenshot({ path: shot("record2") });
+        console.log(`${at}: under Record again "${cue2}"`);
+        const want2 = `This one keeps a ${run}-day streak alive`;
+        if (cue2 !== want2) fail(`${at}: under Record reads "${cue2}", wanted "${want2}"`);
+        await take(3000);
+      }
+    } else {
+      await take(S.short ? 300 : 3000);
+    }
 
     if (S.short) {
       await sleep(1500);
@@ -286,6 +383,9 @@ for (const scene of SCENES) {
             taps: [...el.querySelectorAll(".tap, .tap-tonal")].length,
             continueBottom: r ? Math.round(r.bottom) : null,
             frozen: el.querySelectorAll("[data-day='frozen']").length,
+            kept: el.querySelectorAll("[data-day='kept']").length,
+            keptMarks: el.querySelectorAll("[data-day='kept'] svg").length,
+            under: el.querySelector("[data-under-week]")?.textContent?.trim() ?? null,
             scrolls: document.scrollingElement.scrollHeight > innerHeight + 1,
             /* Today's block at rest: no transform held on it, or its layer
                snaps a pixel short of its slot and a sand seam shows. */
@@ -349,7 +449,15 @@ for (const scene of SCENES) {
           if (v > 64 && TAG !== "before") fail(`${at}: ${v}px of ground ${name === "top" ? "over the flame" : name === "foot" ? "over Continue" : `before the ${name}`}`);
         }
       } else if (TAG !== "before") fail(`${at}: the moment's parts were not found to measure`);
-      if (Number(m.from) !== S.from || Number(m.to) !== S.to) fail(`${at}: rolled ${m.from} to ${m.to}, wanted ${S.from} to ${S.to}`);
+      if ((Number(m.from) !== S.from || Number(m.to) !== S.to) && !(S.repair && TAG === "before")) fail(`${at}: rolled ${m.from} to ${m.to}, wanted ${S.from} to ${S.to}`);
+      if (S.repair && TAG !== "before") {
+        /* Tuesday drawn kept, in the sky wash with no snowflake, and named under the row. */
+        const tuesday = WEEKDAY[new Date(CLOCK.getTime() - 86_400_000).getDay()];
+        console.log(`${at}: kept days drawn ${m.kept} (${m.keptMarks} marks in them); under the row "${m.under}"`);
+        if (m.kept !== 1) fail(`${at}: ${m.kept} kept days drawn, wanted 1`);
+        if (m.keptMarks !== 0) fail(`${at}: the kept day carries a mark (a freeze's snowflake?)`);
+        if (m.under !== `Two recordings covered ${tuesday}.`) fail(`${at}: under the row "${m.under}"`);
+      }
       if (m.taps !== 1) fail(`${at}: ${m.taps} filled taps`);
       if (m.continueBottom === null || m.continueBottom > size.h) fail(`${at}: Continue is under the fold (${m.continueBottom} > ${size.h})`);
       if (m.scrolls) fail(`${at}: the moment scrolls`);
@@ -382,6 +490,11 @@ for (const scene of SCENES) {
     await page.waitForSelector("main .arrive", { timeout: 30000 }).catch(() => {});
     await sleep(1200);
     await page.screenshot({ path: shot(S.lesson ? "lesson" : "today") });
+    if (S.repair) {
+      const label = await chip();
+      console.log(`${at}: Today's chip after "${label}"`);
+      if (TAG !== "before" && (!label || !label.startsWith(`Streak ${S.to}`) || label.includes("open"))) fail(`${at}: Today's chip reads "${label}", wanted ${S.to} lit`);
+    }
     await context.close();
   }
 }

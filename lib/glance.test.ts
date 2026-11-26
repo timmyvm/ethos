@@ -395,7 +395,7 @@ describe("earnedLine", () => {
   const ladder: RewardMoment = { headline: "Level 3 is open", detail: "x", tone: "earned" };
   const index: RewardMoment = { headline: "Best Ethos yet", detail: "849, past your 690", tone: "earned" };
   const clean: RewardMoment = { headline: "Cleanest recording yet", detail: "1.2/min, under your 2", tone: "earned" };
-  const held: RewardMoment = { headline: MOST_PAUSES, detail: "5 one-second pauses, past your 4", tone: "earned" };
+  const held: RewardMoment = { headline: MOST_PAUSES, detail: "4 pauses between sentences, past your 3", tone: "earned" };
   const round: RewardMoment = { headline: "Best round yet", detail: "22s", tone: "earned" };
   it("takes the ladder over the Index over the trait's record over the best round", () => {
     expect(earnedLine({ bests: [index, clean, round], ladderMoment: ladder, trait: "fillers" })?.text).toBe("Level 3 is open");

@@ -7,10 +7,6 @@ import {
   celebrates,
   composedHeard,
   endNote,
-  freshStart,
-  landmark,
-  nearMisses,
-  openLoop,
   personalBests,
   MOST_PAUSES,
 } from "./rewards";
@@ -112,60 +108,6 @@ describe("anticipation", () => {
       const a = anticipation([ms()], s);
       expect(`${a?.headline} ${a?.detail}`).toMatch(/\d/);
     }
-  });
-});
-
-describe("nearMisses", () => {
-  it("keeps only what one rep could realistically close", () => {
-    const near = nearMisses([
-      ms({ id: "a", progress: 0.94 }),
-      ms({ id: "b", progress: 0.5 }),
-      ms({ id: "c", progress: 0.86 }),
-    ]);
-    expect(near.map((m) => m.id)).toEqual(["a", "c"]);
-  });
-});
-
-describe("openLoop", () => {
-  const lessons = [
-    { id: "f1", title: "The baseline rep" },
-    { id: "f2", title: "Kill 'like'" },
-  ];
-
-  it("names a started-but-unfinished lesson", () => {
-    const loop = openLoop({ f1: 3, f2: 1 }, lessons);
-    expect(loop?.headline).toBe("Kill 'like' is 1 of 3");
-    expect(loop?.detail).toBe("2 stars left on it");
-  });
-
-  it("stays quiet when nothing is half-done", () => {
-    expect(openLoop({ f1: 3 }, lessons)).toBeNull();
-    expect(openLoop({}, lessons)).toBeNull();
-  });
-});
-
-describe("freshStart", () => {
-  it("recognises the landmarks", () => {
-    expect(landmark(new Date(2026, 0, 1))).toBe("year");
-    expect(landmark(new Date(2026, 7, 1))).toBe("month");
-    expect(landmark(new Date(2026, 7, 10))).toBe("monday");
-    expect(landmark(new Date(2026, 7, 12))).toBeNull();
-  });
-
-  it("points forward and never scolds the closed chapter", () => {
-    const guilt = /missed|failed|behind|should have|lost/i;
-    for (const d of [
-      new Date(2026, 0, 1),
-      new Date(2026, 7, 1),
-      new Date(2026, 7, 10),
-    ]) {
-      const f = freshStart(d)!;
-      expect(`${f.headline} ${f.detail}`).not.toMatch(guilt);
-    }
-  });
-
-  it("is silent on an ordinary day", () => {
-    expect(freshStart(new Date(2026, 7, 12))).toBeNull();
   });
 });
 
@@ -313,17 +255,48 @@ describe("personalBests", () => {
     expect(personalBests([rep({ transcript: "Hi." })], metrics({ heldPauses: 4 }), null)).toEqual([]);
   });
 
-  /* The review of #490: the record is a count of one-second pauses, so it
-     says a count, never an amount of silence ("Most silence you've held"). */
-  it("calls the pause record a count of one-second pauses", () => {
+  /* The review of #490: the record is a count, never an amount of
+     silence ("Most silence you've held"). Since the reel's honest wins
+     (build 6) it counts pauses between sentences only, #495's rule on the
+     Log: a pause mid-sentence is the fault Demos names, so more of them
+     never breaks a record. */
+  const pause = (t: number, kind: "pre" | "mid" | "beat") => ({ t, len: kind === "beat" ? 0.4 : 1.1, kind });
+  const pauses = (pre: number, mid: number) => [
+    ...Array.from({ length: pre }, (_, i) => pause(2 + i * 5, "pre")),
+    ...Array.from({ length: mid }, (_, i) => pause(3 + i * 5, "mid")),
+    pause(40, "beat"),
+  ];
+
+  it("breaks no pause record with more pauses mid-sentence", () => {
     const out = personalBests(
-      [rep({ pauses: [{ t: 2, len: 1.1, kind: "pre" }, { t: 9, len: 0.9, kind: "mid" }, { t: 14, len: 0.4, kind: "beat" }] })],
-      metrics({ heldPauses: 5 }),
+      [rep({ pauses: pauses(3, 0) })],
+      metrics({ heldPauses: 8, composedPauses: 2, midSentencePauses: 6, pauses: pauses(2, 6) }),
       null
     );
-    const pause = out.find((b) => b.headline === MOST_PAUSES);
-    expect(pause).toEqual({ headline: "Most pauses yet", detail: "5 one-second pauses, past your 2", tone: "earned" });
+    expect(out.map((b) => b.headline)).not.toContain(MOST_PAUSES);
+  });
+
+  it("counts pauses between sentences against the most in any earlier recording", () => {
+    const out = personalBests(
+      [rep({ pauses: pauses(3, 0) }), rep({ pauses: pauses(1, 7) }), { ...rep(), pauses: null } as unknown as RepRow],
+      metrics({ heldPauses: 4, composedPauses: 4, midSentencePauses: 0, pauses: pauses(4, 0) }),
+      null
+    );
+    expect(out.find((b) => b.headline === MOST_PAUSES)).toEqual({
+      headline: "Most pauses yet",
+      detail: "4 pauses between sentences, past your 3",
+      tone: "earned",
+    });
     expect(out.map((b) => b.headline)).not.toContain("Most silence you've held");
+  });
+
+  it("says one pause in the singular", () => {
+    const out = personalBests(
+      [rep({ pauses: pauses(0, 5) })],
+      metrics({ heldPauses: 1, composedPauses: 1, midSentencePauses: 0, pauses: pauses(1, 0) }),
+      null
+    );
+    expect(out.find((b) => b.headline === MOST_PAUSES)?.detail).toBe("1 pause between sentences, past your 0");
   });
 
   it("names the number it beat, every time", () => {

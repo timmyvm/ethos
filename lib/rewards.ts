@@ -7,14 +7,6 @@
  *   Dopamine fires on cues that *predict* reward, not only on reward
  *   itself, and only when the cue carries new information. So we show
  *   what this rep will earn BEFORE the record button, not just after.
- * - NEAR-MISS outcomes recruit win-related circuitry and raise
- *   motivation to try again. "3 points off 700" is worth saying.
- * - The ZEIGARNIK effect: unfinished tasks stay mentally active.
- *   Naming the half-done thing pulls people back to it.
- * - The FRESH START effect (Dai, Milkman & Riis, Management Science
- *   2014): temporal landmarks relegate past imperfection to a closed
- *   chapter. People are 33% more likely to exercise at the start of a
- *   week. So Mondays and month starts get their own framing.
  * - The STREAK-END RULE (PNAS, 14,383 volunteers, 1.97M events): when
  *   people judge a sequence, the ENDING carries disproportionate
  *   weight, and hard endings drive quitting. So the last thing on the
@@ -23,6 +15,7 @@
 
 import type { TraitId } from "@/content/traits";
 import type { RepRow } from "./client-data";
+import { pausesBetween } from "./metric-labels";
 import { isScorable, type RepMetrics } from "./metrics";
 import { heldPauseMarks } from "./pause-mark";
 import type { Milestone } from "./progress";
@@ -48,9 +41,6 @@ export interface RewardMoment {
    */
   trait?: TraitId;
 }
-
-/** A milestone this close counts as within reach of one rep. */
-const NEAR_MISS_RATIO = 0.85;
 
 /**
  * What one rep, right now, is likely to move. Shown BEFORE recording —
@@ -80,75 +70,6 @@ export function anticipation(
     detail: closest.detail,
     tone: "earned",
   };
-}
-
-/**
- * Milestones sitting just out of reach. Near-misses read as almost-wins
- * and raise the pull to go again — the honest version is simply not
- * hiding how close the number is.
- */
-export function nearMisses(milestones: Milestone[]): Milestone[] {
-  return milestones.filter((m) => m.progress >= NEAR_MISS_RATIO);
-}
-
-/**
- * Zeigarnik: name the thing that is started and unfinished. An open
- * loop stays mentally active in a way a fresh one does not.
- */
-export function openLoop(
-  starMap: Record<string, number>,
-  lessons: { id: string; title: string }[]
-): RewardMoment | null {
-  const started = lessons.find((l) => {
-    const s = starMap[l.id] ?? 0;
-    return s > 0 && s < 3;
-  });
-  if (!started) return null;
-  const stars = starMap[started.id] ?? 0;
-  return {
-    headline: `${started.title} is ${stars} of 3`,
-    detail: `${3 - stars} star${3 - stars === 1 ? "" : "s"} left on it`,
-    tone: "neutral",
-  };
-}
-
-export type Landmark = "monday" | "month" | "year" | null;
-
-export function landmark(now = new Date()): Landmark {
-  if (now.getMonth() === 0 && now.getDate() === 1) return "year";
-  if (now.getDate() === 1) return "month";
-  if (now.getDay() === 1) return "monday";
-  return null;
-}
-
-/**
- * Fresh-start framing. The effect comes from the landmark closing the
- * previous chapter, so the copy points forward and never re-litigates
- * what the user did or didn't do last week.
- */
-export function freshStart(now = new Date()): RewardMoment | null {
-  switch (landmark(now)) {
-    case "year":
-      return {
-        headline: "First day of the year",
-        detail: "New page. Counting starts fresh today.",
-        tone: "earned",
-      };
-    case "month":
-      return {
-        headline: `First of ${now.toLocaleDateString(undefined, { month: "long" })}`,
-        detail: "Clean month. One lesson opens it.",
-        tone: "earned",
-      };
-    case "monday":
-      return {
-        headline: "Monday",
-        detail: "New week, new league. Take the first lesson.",
-        tone: "earned",
-      };
-    default:
-      return null;
-  }
 }
 
 /**
@@ -301,17 +222,18 @@ export function personalBests(
     });
   }
 
-  const bestHeld = Math.max(
-    ...prior.map((r) => (r.pauses ?? []).filter((p) => p.kind !== "beat").length)
-  );
-  /* A count of pauses of 0.8 seconds or more, the house's one-second
-     pauses (lib/achievements.ts's badge says it so), never an amount of
-     silence: "Most silence you've held" named a total nothing adds up
-     (the review of #490). */
-  if (current.heldPauses > bestHeld) {
+  /* A count of pauses between sentences (kind "pre"), the rule #495 put
+     on the Log (lib/metric-labels.ts `pausesBetween`), never an amount of
+     silence (the review of #490). It counted every one-second pause, the
+     ones inside a sentence too, so a take with more of the fault Demos
+     names could break the record. Stored rows are only read, never
+     rescored (#422). The "Held the room" badge keeps its own rule. */
+  const bestBetween = Math.max(...prior.map((r) => pausesBetween(r.pauses)));
+  const between = current.composedPauses;
+  if (between > bestBetween) {
     out.push({
       headline: MOST_PAUSES,
-      detail: `${current.heldPauses} one-second pauses, past your ${bestHeld}`,
+      detail: `${between} ${between === 1 ? "pause" : "pauses"} between sentences, past your ${bestBetween}`,
       tone: "earned",
     });
   }

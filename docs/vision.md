@@ -5,21 +5,21 @@
 
 ## One-liner
 
-A daily gym for speech. Five minutes of reps a day until speaking clearly
-under pressure is a trait, not a performance.
+Daily practice for speech. Five minutes of speaking a day, measured, until
+speaking clearly under pressure is a trait, not a performance.
 
 ## The problem
 
 Most people can speak but can't *command* — can't hold a pause, can't
 compress a thought into one clean sentence, can't think out loud without
-filler. There is no place to train this. Courses teach theory. Coaches cost
-$150/hr. Nobody offers reps.
+filler. There is no place to practise this. Courses teach theory. Coaches
+cost $150/hr. Nobody offers daily practice.
 
 ## The user
 
 One persona, written as a person:
 
-Ambitious, 16–28, self-improvement-driven. Trains their body, manages their
+Ambitious, 16–28, self-improvement-driven. Looks after their body, manages their
 money, consumes podcasts — and has noticed their speech doesn't match their
 ambition. They don't have a presentation next week. They have a gap between
 who they are and how they sound, and it bothers them daily.
@@ -32,12 +32,12 @@ The daily loop:
 
 1. App serves one prompt (impromptu topic, 60-second explanation, argue
    against your own view, retell tighter)
-   - **Cold Topic (boss-level drill):** app assigns a topic the user has
+   - **Cold Topic (the weekly boss):** app assigns a topic the user has
      never studied (Dunning-Kruger effect, Bretton Woods, CRISPR). Timed
      research window (3–5 min), then record a 90-second explanation from
      memory. Scored on delivery AND accuracy — the LLM knows the topic and
-     flags confident wrong claims. Trains compression, not just polish.
-     Longer than the daily rep, so it lives as a weekly streak-multiplier,
+     flags confident wrong claims. Practises compression, not just polish.
+     Longer than the daily recording, so it lives as a weekly streak-multiplier,
      not the default loop.
 2. User records 60–90 seconds
 3. Engine returns hard numbers: filler count + locations, words per minute,
@@ -45,7 +45,7 @@ The daily loop:
    or inside them (panic)
 4. One focus point for tomorrow. Not five. One.
 5. **One supply.** Measurement tells you what to remove; supply gives you
-   what to say instead. Each rep, Demos offers exactly one upgrade drawn
+   what to say instead. Each recording, Demos offers exactly one upgrade drawn
    from the user's OWN transcript — a word swap ("you said 'really good'
    three times — try 'compelling'") or a base phrase. Swaps accumulate
    into a personal lexicon. (Competitor research: this supply/vocabulary
@@ -61,13 +61,13 @@ gets rejected regardless of how well it converts.
 
 - **No manufactured insecurity.** We never tell users they're inadequate,
   low-value, or "invisible without status." The user already knows their
-  gap; our job is reps, not fear.
+  gap; our job is practice, not fear.
 - **No manosphere language.** No "alpha," "high-value," "dominate,"
   "top 1% of men." The product serves ambition, not contempt.
 - **No guru.** The app has no personality cult. The coach voice cites
   numbers, not vibes.
-- **Not deadline prep.** No "ace your presentation" positioning. This is a
-  gym, not a cram session. (Deadline rubrics may come later as a mode —
+- **Not deadline prep.** No "ace your presentation" positioning. This is
+  daily practice, not a cram session. (Deadline rubrics may come later as a mode —
   they are not the identity.)
 - **No horoscope feedback.** Every piece of feedback must trace to a
   measurement or a specific moment in the recording. If the AI can't point
@@ -89,7 +89,8 @@ gets rejected regardless of how well it converts.
 
 ## Voice & tone
 
-Gym, not classroom. Coach, not guru. Short sentences. Specific numbers.
+The practice floor, not a classroom. Coach, not guru. Short sentences.
+Specific numbers.
 Zero hype adjectives.
 
 - Yes: "11 fillers today, down from 19. Tomorrow: kill 'like.'"
@@ -103,7 +104,7 @@ A signup is a compliment; a 14-day streak is a business.
 ## Build order (violations = procrastination)
 
 1. Recording + scoring engine (Whisper timestamps → deterministic metrics)
-2. Daily drill loop + one-focus feedback
+2. Daily practice loop + one-focus feedback
 3. Streaks + progress graphs
 4. Paywall (per mechanics.md)
 5. Brand polish, marketing site

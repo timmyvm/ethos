@@ -89,3 +89,37 @@ describe("no surface states the old one-a-day rule", () => {
     expect(src).toMatch(/keep\(SCORED_BENEFIT\)\} \{keep\(FREE_ALLOWANCE\)\}/);
   });
 });
+
+/*
+ * The reel's build 4 (26 Nov): free keeps every recording, so Since day
+ * one's tap does not offer to "keep" anything. It is Settings' own "See
+ * Premium", and the sheet opens on its own headline.
+ */
+describe("Since day one's tap (app/rep/page.tsx ProgressMoment)", () => {
+  const src = readFileSync("app/rep/page.tsx", "utf8");
+  const start = src.indexOf("function ProgressMoment(");
+  const moment = src.slice(start, src.indexOf("\n}\n", start));
+
+  it("reads See Premium over Not now, and nothing in it says Keep", () => {
+    expect(start).toBeGreaterThan(0);
+    expect(moment).toMatch(/className=\{PRIMARY\}>\s*See Premium\s*<\/button>/);
+    expect(moment).toMatch(/Not now/);
+    expect(moment.indexOf("See Premium")).toBeLessThan(moment.indexOf("Not now"));
+    expect(moment).not.toMatch(/Keep/);
+  });
+
+  it("opens the paywall on its own headline, with the day as the reason", () => {
+    expect(moment).not.toMatch(/headline=/);
+    expect(moment).toContain("reason={`Day ${days} of speaking`}");
+    expect(moment).toContain("{PRO_MOMENT_LINE}");
+  });
+});
+
+/* About's sample stage is said to be an example, and where a reader's own line begins. */
+describe("About's sample caption", () => {
+  it("names the numbers an example", () => {
+    const about = readFileSync("app/(marketing)/about/page.tsx", "utf8");
+    expect(about).toContain("Example numbers: your line starts with your first recording.");
+    expect(about).not.toMatch(/A sample, three weeks in/);
+  });
+});

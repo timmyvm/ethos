@@ -4218,6 +4218,10 @@ function SaveGate({
  * decline continues to exactly the destination that was tapped, the
  * save wall's own no-bait rule. The streak is never mentioned here:
  * this sells the archive and the coaching, never the loss of a habit.
+ * Nor of a number (the reel's build 4, 26 Nov): free keeps every
+ * recording, so the tap is Settings' "See Premium", not "Keep every
+ * number", and the sheet opens on its own headline, not "Keep all of
+ * them".
  */
 function ProgressMoment({
   reps,
@@ -4250,7 +4254,7 @@ function ProgressMoment({
       </div>
 
       <button onClick={() => setSheet(true)} className={PRIMARY}>
-        Keep every number
+        See Premium
       </button>
       <button
         onClick={onSkip}
@@ -4262,7 +4266,6 @@ function ProgressMoment({
       {sheet && (
         <Paywall
           reason={`Day ${days} of speaking`}
-          headline={`${days} days of numbers. Keep all of them.`}
           // This moment is gone after a reload: come back to You, which
           // reopens the sheet.
           returnTo="/you"

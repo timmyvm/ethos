@@ -15,8 +15,8 @@
  *
  * On `after` it asserts the line where it belongs and nowhere else, grey
  * (stone-600 in light), in place of the milestone line, no Premium door
- * under Record, Record on the first screen, and no scroll the idle screen
- * did not already have.
+ * under Record, Record and both of the line's sentences on the first
+ * screen at every size, 320x568 included.
  *
  *   NEXT_DIST_DIR=.next-build npx next start -p 4132
  *   LOOK_BASE=http://localhost:4132 LOOK_OUT=/tmp/shots node scripts/look-scored-used.mjs after
@@ -169,6 +169,10 @@ for (const size of SIZES) {
         if (should && size.theme === "light" && m.colour !== "rgb(87, 83, 78)" && !/stone/.test(m.colour ?? "")) console.log(`${tag}: the line's colour is ${m.colour}`);
         if (m.recordBottom !== null && m.recordBottom > m.innerH) fail(`${tag}: Record is under the first screen (${m.recordBottom} > ${m.innerH})`);
         if (should && m.usedBox && m.usedBox.lines > 2) fail(`${tag}: the line takes ${m.usedBox.lines} lines`);
+        /* Both of its sentences on the first screen: the second is the
+           one that says when the score comes back (the review of build 5:
+           at 320x568 it stood under the fold). */
+        if (should && m.usedBox && m.usedBox.bottom > m.innerH) fail(`${tag}: the line runs under the first screen (${m.usedBox.bottom} > ${m.innerH})`);
       }
     } catch (e) {
       fail(`${tag}: ${String(e.message ?? e).split("\n")[0]}`);

@@ -2349,7 +2349,7 @@ function RepScreen() {
       <div
         className={
           phase === "idle"
-            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
+            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 [@media(max-height:600px)]:pb-2 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
             : ""
         }
       >
@@ -2399,7 +2399,12 @@ function RepScreen() {
       )}
 
       {phase === "idle" && (
-        <div className={`mt-6 max-[359px]:mt-4 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
+        /* Under 600pt tall (320x568) the stack steps in where it has air
+           to give: 4 over the instruction, 8 under the tiles, 8 inside
+           each tile (TipStrip) and 4 under the topic (TopicCard), so a
+           two-line line under Record (SCORED_USED) stands whole on the
+           first screen (the review of build 5). */
+        <div className={`mt-6 max-[359px]:mt-4 [@media(max-height:600px)]:mt-3 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
           {!ready && <h2 className="font-display text-lead font-bold">{doLine}</h2>}
@@ -2886,9 +2891,12 @@ function RepScreen() {
             {anticipate.headline}
           </p>
         )}
-        {/* In its place, today's scored recordings used (lib/scored-left.ts). */}
+        {/* In its place, today's scored recordings used (lib/scored-left.ts).
+            Positioned, so it paints over Record's shadow (Record's box is
+            `relative`, which painted its shadow over the line's middle
+            words and dimmed them in dark). */}
         {phase === "idle" && sayScoredUsed && (
-          <p data-scored-used className="arrive -mt-2 max-w-[280px] text-center text-caption font-semibold text-stone-600">
+          <p data-scored-used className="arrive relative -mt-2 max-w-[280px] text-center text-caption font-semibold text-stone-600">
             {SCORED_USED}
           </p>
         )}

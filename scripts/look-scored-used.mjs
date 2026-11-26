@@ -12,6 +12,13 @@
  *            first take): never the line.
  *   premium  the same copy on a Premium account: never the line.
  *   stale    a copy from yesterday, and one from another account: never.
+ *   game-qa, game-rush, game-interview
+ *            a game's idle recorder on the same phone, as an iPhone opens
+ *            it (no Voice/Video switch): the level's row and the best's
+ *            plaque stand over Record, so its stack is the tallest.
+ *   game-new Q&A with no round played yet (no plaque): the psych review's
+ *            case, where the line's second sentence ran 2px under the
+ *            first screen at 320x568 and the page scrolled 22px.
  *
  * On `after` it asserts the line where it belongs and nowhere else, grey
  * (stone-600 in light), in place of the milestone line, no Premium door
@@ -41,7 +48,11 @@ const SIZES = (process.env.LOOK_SIZES ?? "390x844-light,390x844-dark,375x667-lig
     const [w, h] = wh.split("x").map(Number);
     return { w, h, theme, name: s };
   });
-const SCENES = (process.env.LOOK_SCENES ?? "capped,idle,ready,premium,stale").split(",");
+const SCENES = (process.env.LOOK_SCENES ?? "capped,idle,ready,premium,stale,game-qa,game-rush,game-interview,game-new").split(",");
+/* A game's idle recorder, opened as an iPhone opens it. */
+const GAME_URL = { "game-qa": "/rep?game=qa", "game-rush": "/rep?game=rush", "game-interview": "/rep?game=interview", "game-new": "/rep?game=qa" };
+const IPHONE_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1";
 const LINE = "You've used today's 3 scored recordings. Ethos score back tomorrow.";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const failures = [];
@@ -98,8 +109,15 @@ for (const size of SIZES) {
       timezoneId: "Australia/Melbourne",
       colorScheme: size.theme,
       serviceWorkers: "block",
+      ...(GAME_URL[scene] ? { userAgent: IPHONE_UA } : {}),
     });
     await context.route("http://supabase.local/**", F.supabaseRoute);
+    /* No round played yet: no best, so no plaque. */
+    if (scene === "game-new") {
+      await context.route("http://supabase.local/rest/v1/reps**", (route) =>
+        (new URL(route.request().url()).searchParams.get("lesson_id") ?? "").startsWith("like.game:") ? route.fulfill(F.json([])) : route.fallback()
+      );
+    }
     await context.route("**/api/analyze", async (route) => {
       await sleep(900);
       await route.fulfill(F.json(CAPPED));
@@ -134,7 +152,7 @@ for (const size of SIZES) {
         if (c) {
           await context.addInitScript((v) => localStorage.setItem("ethos.scored.left", JSON.stringify(v)), c);
         }
-        const url = scene === "ready" ? `${BASE}/rep?lesson=f1&ready=1` : `${BASE}/rep?lesson=f1`;
+        const url = GAME_URL[scene] ? `${BASE}${GAME_URL[scene]}` : scene === "ready" ? `${BASE}/rep?lesson=f1&ready=1` : `${BASE}/rep?lesson=f1`;
         await page.goto(url);
         await page.waitForSelector('main button[data-record="start"]', { timeout: 30000 });
         await sleep(2200);
@@ -161,7 +179,7 @@ for (const size of SIZES) {
         const m = await measure(page);
         console.log(`${tag} ${name}: under Record ${JSON.stringify(m.under)}; line ${m.used ? `"${m.used}" ${m.colour} ${JSON.stringify(m.usedBox)}` : "none"}; Record bottom ${m.recordBottom}/${m.innerH}; scroll ${m.scrollH}/${m.innerH}`);
         if (TAG === "before") continue;
-        const should = scene === "capped" || scene === "idle";
+        const should = scene === "capped" || scene === "idle" || !!GAME_URL[scene];
         if (should && m.used !== LINE) fail(`${tag}: the line reads ${JSON.stringify(m.used)}`);
         if (!should && m.used !== null) fail(`${tag}: the line shows where it must not`);
         if (m.premiumUnder) fail(`${tag}: a Premium door under Record`);
@@ -173,6 +191,9 @@ for (const size of SIZES) {
            one that says when the score comes back (the review of build 5:
            at 320x568 it stood under the fold). */
         if (should && m.usedBox && m.usedBox.bottom > m.innerH) fail(`${tag}: the line runs under the first screen (${m.usedBox.bottom} > ${m.innerH})`);
+        /* A game's stack is the tallest idle stack: at 320x568 it may not
+           scroll either (the psych review: Q&A scrolled 22px). */
+        if (GAME_URL[scene] && m.scrollH > m.innerH + 1) fail(`${tag}: the idle screen scrolls (${m.scrollH} > ${m.innerH})`);
       }
     } catch (e) {
       fail(`${tag}: ${String(e.message ?? e).split("\n")[0]}`);

@@ -2356,8 +2356,12 @@ function RepScreen() {
            the same steps on a layout under 360 wide, which is what an
            iPhone lays out once its text size is followed (#451: 390x844
            two steps up is 320x692): the instruction and the tactics run
-           a line deeper each there, on a screen that is shorter too. */
-        game ? "[@media(max-height:700px)]:pb-5" : ""
+           a line deeper each there, on a screen that is shorter too.
+           The 700pt steps stop at 600: under it (320x568) a game takes
+           the idle stack's own savings and a foot of 12 (the psych
+           review: the 700 rule had outranked them, and the line under
+           Record ran off the first screen). */
+        game ? "[@media(min-height:601px)_and_(max-height:700px)]:pb-5 [@media(max-height:600px)]:pb-3" : ""
       }`}
     >
       {/* D50: the ground is the plain ground. The amber glow under
@@ -2402,7 +2406,7 @@ function RepScreen() {
       <div
         className={
           phase === "idle"
-            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 [@media(max-height:600px)]:pb-2 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
+            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 [@media(max-height:600px)]:pb-2 ${game ? "[@media(min-height:601px)_and_(max-height:700px)]:pb-4" : ""}`
             : ""
         }
       >
@@ -2454,13 +2458,18 @@ function RepScreen() {
       {phase === "idle" && (
         /* Under 600pt tall (320x568) the stack steps in where it has air
            to give: 4 over the instruction, 8 under the tiles, 8 inside
-           each tile (TipStrip) and 4 under the topic (TopicCard), so a
-           two-line line under Record (SCORED_USED) stands whole on the
-           first screen (the review of build 5). */
-        <div className={`mt-6 max-[359px]:mt-4 [@media(max-height:600px)]:mt-3 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
+           each tile (TipStrip) and 8 in the topic's head and foot
+           (TopicCard), so a two-line line under Record (SCORED_USED, the
+           repair's) stands whole on the first screen (the review of
+           build 5). The instruction steps to 17 there, and a game's
+           700pt steps stop at 600 so none of this is outranked (the
+           psych review: a game's stack, its level's row and a
+           three-line question, put Record itself under the first
+           screen, and the line 52px under it). */
+        <div className={`mt-6 max-[359px]:mt-4 [@media(max-height:600px)]:mt-3 ${game ? "[@media(min-height:601px)_and_(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
-          {!ready && <h2 className="font-display text-lead font-bold">{doLine}</h2>}
+          {!ready && <h2 className="font-display text-lead font-bold [@media(max-height:600px)]:text-detail">{doLine}</h2>}
           {/* The best at this level, once there is one (M4), as a plaque
               (Timothy, 6 Nov: an important milestone). Its row opens on
               the base spring once the ladder is read, so the tips glide
@@ -2522,7 +2531,7 @@ function RepScreen() {
           carries the level, so the row steps out. */}
       {game && level !== null && phase === "idle" && (
         <LevelControl
-          className="mt-3 [@media(max-height:700px)]:mt-2"
+          className="mt-3 [@media(min-height:601px)_and_(max-height:700px)]:mt-2 [@media(max-height:600px)]:mt-1"
           level={level}
           open={ladder?.open ?? null}
           xp={config.xpMultiplier}

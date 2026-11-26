@@ -26,6 +26,7 @@ import {
 import { forgetCarriedCue } from "./cue-keys";
 import { forget as forgetHeld } from "./held";
 import { forgetSayCopy } from "./say-keys";
+import { forgetScoredLeft } from "./scored-left";
 import { supabaseBrowser } from "./supabase-browser";
 
 /** The parts of an auth user this page reads (Supabase's `User`). */
@@ -213,6 +214,7 @@ export async function signOutEverywhere(): Promise<AuthResult> {
     forgetCarriedCue();
     forgetHeld();
     forgetSayCopy();
+    forgetScoredLeft();
     return { ok: true };
   } catch {
     return { ok: false, error: "That didn't go through, so you're still signed in. Try again." };

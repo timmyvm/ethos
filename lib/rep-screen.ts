@@ -72,6 +72,30 @@ export function recordCue(p: {
  * read fails, this stands, so the line never asks for two recordings after
  * one is in (the review, 26 Nov). Any other take leaves the line alone.
  */
+/**
+ * The one line under Record, when two could stand there (the reel's
+ * honest wins, builds 1 and 5). Today's scored recordings used
+ * ("You've used today's 3 scored recordings...") takes the cue's place
+ * once this phone is sure of it on a free plan, and holds the slot empty
+ * while the plan is still being read, so nothing flips. The repair's line
+ * wins over it: a capped take still has 20+ words, is stored scorable and
+ * keeps the missed day (lib/streak.ts keptDays (d)), so the line that says
+ * so stays and the used line waits until the repair is done.
+ */
+export function underRecord(p: {
+  cue: RewardMoment | null;
+  /** lib/scored-left.ts scoredUsed: this account, this local day, none left (ready screens never ask). */
+  usedOnPhone: boolean;
+  /** The plan as read: true Premium, false free, null not read yet. */
+  plan: boolean | null;
+  premium: boolean;
+}): { cue: RewardMoment | null; used: boolean } {
+  const used = p.usedOnPhone && !p.premium && p.cue?.repair !== true;
+  if (!used) return { cue: p.cue, used: false };
+  if (p.plan === true) return { cue: p.cue, used: false };
+  return { cue: null, used: p.plan === false };
+}
+
 export function cueAfterTake(
   cue: RewardMoment | null,
   before: RepairState | null,

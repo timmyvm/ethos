@@ -479,3 +479,66 @@ describe("the shop names where a pose shows", () => {
     }
   });
 });
+
+/*
+ * No reward waits for tomorrow (the reel's honest wins, build 6;
+ * closure.md row 16). A surprise is earned on the take it comes from, so
+ * no line holds a number back to pull someone in later: no "unlock to
+ * see", no "see your score tomorrow", no "come back tomorrow to find out".
+ * "Ethos score back tomorrow" says when the allowance resets, a real
+ * limit with its real time (#514), and is not a reveal held back.
+ */
+const DEFERRED_REVEAL = /to see the rest|unlock to see|see (it|your \w+) tomorrow|tomorrow to (see|find out)/i;
+
+/** Every string a module exports, and the strings inside an exported object. */
+function exportedStrings(mod: Record<string, unknown>): string[] {
+  return Object.values(mod).flatMap((v) =>
+    typeof v === "string"
+      ? [v]
+      : v && typeof v === "object"
+        ? Object.values(v as Record<string, unknown>).filter((x): x is string => typeof x === "string")
+        : []
+  );
+}
+
+describe("no deferred reveal", () => {
+  it("catches the shapes it bans", () => {
+    for (const s of [
+      "Unlock to see your score",
+      "See your score tomorrow",
+      "Come back tomorrow to see how you did.",
+      "Tomorrow to find out",
+      "Go Premium to see the rest",
+    ]) {
+      expect(s).toMatch(DEFERRED_REVEAL);
+    }
+  });
+
+  it("lets the allowance say when it resets", async () => {
+    const { CAPPED_LINE, CAPPED_SHEET } = await import("./allowance-copy");
+    expect(CAPPED_LINE).not.toMatch(DEFERRED_REVEAL);
+    expect(CAPPED_SHEET).not.toMatch(DEFERRED_REVEAL);
+  });
+
+  it("is in no line of the allowance's or the reminder's", async () => {
+    const allowance = (await import("./allowance-copy")) as Record<string, unknown>;
+    const reminder = await import("./reminder-copy");
+    const lines = [
+      ...exportedStrings(allowance),
+      ...exportedStrings(reminder as Record<string, unknown>),
+      ...[null, { fillers: 0, seconds: 40 }, { fillers: 4, seconds: 62 }].flatMap((last) =>
+        Object.values(reminder.reminderCopy({ hour: 18, onTime: true, last }))
+      ),
+    ];
+    expect(lines.length).toBeGreaterThan(8);
+    expect(lines.filter((s) => DEFERRED_REVEAL.test(s))).toEqual([]);
+  });
+
+  const files = ROOTS.flatMap(tsxFiles);
+  for (const file of files) {
+    it(`is in no copy of ${file}`, () => {
+      const found = copyOnly(readFileSync(file, "utf8")).match(DEFERRED_REVEAL);
+      expect(found?.[0] ?? null).toBeNull();
+    });
+  }
+});

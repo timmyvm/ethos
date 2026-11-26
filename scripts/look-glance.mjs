@@ -39,7 +39,17 @@
  * today" stands under it and the stone line "One more keeps a 5-day
  * streak alive" under that, its words riding on the ceiling. Its page
  * runs on the first Wednesday after lib/streak.ts REPAIR_FROM, read from
- * the file, at 19:30 Melbourne).
+ * the file, at 19:30 Melbourne),
+ * pauses-between, pauses-mid, pauses-dead (the reel's honest wins, build
+ * 6: the pause record on Today's Pausing card counts the pauses between
+ * sentences that landed, so mid-sentence, dead and filled ones break
+ * none; asserted on the sheet),
+ * baseline-rushing, baseline-freezing, baseline-flat (the reel's honest
+ * wins, build 2: an account's first scored recording, The baseline
+ * opened as the introduction opens it, with that concern answered in the
+ * introduction and the reminder ask showing; Demos's line leads "You said
+ * rushing:" and the take is held to GLANCE_WORDS_FIRST plus the ask's
+ * own words; baseline-fillers keeps the take's own line).
  *
  * The #427 review added: every glance's bands (no gap over 64 between
  * the header's back and the shelf at 390x844, reported elsewhere), the
@@ -71,6 +81,8 @@ if (process.argv[3] === "repair" && !process.env.LOOK_TODAY) {
   d.setUTCDate(d.getUTCDate() + 1);
   process.env.LOOK_TODAY = d.toISOString().slice(0, 10);
 }
+/* The baseline variants are an account's first recording: nothing stored yet. */
+if ((process.argv[3] ?? "").startsWith("baseline-")) process.env.LOOK_FRESH = "1";
 const F = await import("./look-fixtures.mjs");
 /* The page's clock for a variant shot on another day than this one: 19:30 Melbourne that day. */
 const CLOCK = process.env.LOOK_TODAY ? new Date(`${process.env.LOOK_TODAY}T19:30:00+11:00`) : null;
@@ -187,7 +199,60 @@ const bodies = {
   upload: () => A,
   rules: () => ({ ...A, pauseRules: 476, tier1: { ...A.tier1, pause: 73 }, previousIndex: RULES_PREV, ethosIndex: RULES_PREV + 71 }),
   repair: () => A,
+  /* The first scored recording: no score before it. Rushing's take runs at
+     184 words a minute, over the zone the plan named. */
+  "baseline-rushing": () => ({ ...A, previousIndex: null, metrics: { ...A.metrics, wpm: 184 } }),
+  "baseline-freezing": () => ({ ...A, previousIndex: null }),
+  "baseline-flat": () => ({ ...A, previousIndex: null }),
+  "baseline-fillers": () => ({ ...A, previousIndex: null }),
+  /* The pause record (the reel's honest wins, build 6) on Today's Pausing
+     card, against the fixtures' most of 3 between sentences (5 with the
+     mid-sentence ones): 4 between sentences breaks it; 2 between and 4
+     mid-sentence, which the old count called 6 and a record, does not. */
+  "pauses-between": () => ({
+    ...A,
+    pauseHeadline: "4 pauses between sentences.",
+    metrics: {
+      ...A.metrics,
+      heldPauses: 4, composedPauses: 4, midSentencePauses: 0,
+      pauses: [2.1, 18, 33, 47].map((t, i) => ({ t, len: 1.2 + i * 0.1, kind: "pre", verdict: i === 0 ? "opening" : "landing" })),
+    },
+  }),
+  "pauses-mid": () => ({
+    ...A,
+    pauseHeadline: "You paused mid-sentence 4 times and between sentences twice. Pause where a full sentence ends.",
+    metrics: {
+      ...A.metrics,
+      heldPauses: 6, composedPauses: 2, midSentencePauses: 4,
+      pauses: [
+        { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
+        ...[12, 20, 29, 37].map((t) => ({ t, len: 1, kind: "mid", verdict: "hesitation" })),
+        { t: 47, len: 1.3, kind: "pre", verdict: "landing" },
+      ],
+    },
+  }),
+  /* The review of build 6: four pauses before a sentence, but two ran
+     past 3.5 seconds and one had an um next to it, so one landed and no
+     record breaks. */
+  "pauses-dead": () => ({
+    ...A,
+    pauseHeadline: "1 pause between sentences. Two ran past 3.5 seconds.",
+    metrics: {
+      ...A.metrics,
+      heldPauses: 4, composedPauses: 4, midSentencePauses: 0,
+      pauses: [
+        { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
+        { t: 18, len: 4.5, kind: "pre", verdict: "dead" },
+        { t: 33, len: 5, kind: "pre", verdict: "dead" },
+        { t: 47, len: 1, kind: "pre", verdict: "filled", note: "" },
+      ],
+    },
+  }),
 };
+/* What the sheet must say of the pause record on each pause variant. */
+const PAUSE_RECORD = { "pauses-between": true, "pauses-mid": false, "pauses-dead": false }[VARIANT];
+/* The concern each baseline variant answered in the introduction (content/portfolio.ts PAINS). */
+const BASELINE_PAIN = { "baseline-rushing": ["rushing", "rushing"], "baseline-freezing": ["freezing", "freezing"], "baseline-flat": ["flat", "sounding flat"], "baseline-fillers": ["fillers", "fillers"] }[VARIANT] ?? null;
 /* repair (closure.md row 14): the three weeks' last five takes, re-dated
    to the five days before yesterday (a run of five, Thursday to Monday),
    yesterday missed, and the take stored today on the reps reads once the
@@ -403,8 +468,9 @@ for (const size of SIZES) {
   await context.route("**/api/tester/collect", F.collectRoute);
   await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF, tester: VARIANT === "tester" });
   /* The reminder ask (#430) has had its showing today on this phone, so
-     each variant's glance is its own; the daily walk below shoots the ask. */
-  await context.addInitScript(() => {
+     each variant's glance is its own; the daily walk below shoots the ask.
+     A first recording asks (#430), so the baseline variants keep it. */
+  if (!BASELINE_PAIN) await context.addInitScript(() => {
     const d = new Date();
     localStorage.setItem("ethos.reminder.asked", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
   });
@@ -455,7 +521,16 @@ for (const size of SIZES) {
       window.__ethosLookPresence = presence;
     }, PRESENCE);
   }
-  if (VARIANT === "lesson3") {
+  if (BASELINE_PAIN) {
+    /* The introduction's answer: the concern this first recording leads with. */
+    await context.addInitScript((pain) => {
+      localStorage.setItem(
+        "ethos.onboarding",
+        JSON.stringify({ answers: { ageBand: "19-22", goal: "work", pains: [pain], level: "some", context: "meetings" }, step: 6, done: true, synced: true })
+      );
+    }, BASELINE_PAIN[0]);
+  }
+  if (VARIANT === "lesson3" || BASELINE_PAIN) {
     /* A phone that has never been asked: the reminder ask can show. */
     await context.addInitScript(() => {
       try {
@@ -588,9 +663,12 @@ for (const size of SIZES) {
   } else if (VARIANT === "boss") {
     /* Where /boss's Start reading lands once the 90s read is over. */
     await page.goto(`${BASE}/rep?boss=week`);
+  } else if (BASELINE_PAIN) {
+    /* The introduction's floor: The baseline (app/welcome firstRep). */
+    await page.goto(`${BASE}/rep?lesson=f1`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
-  } else if (["daily", "capped", "capped-early", "video", "rules", "repair"].includes(VARIANT)) {
+  } else if (["daily", "capped", "capped-early", "video", "rules", "repair", "pauses-between", "pauses-mid", "pauses-dead"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
     await sleep(800);
@@ -664,8 +742,19 @@ for (const size of SIZES) {
 
   if (glance) {
     /* ---- the glance ----------------------------------------------------- */
-    const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : VARIANT === "lesson3" ? 30 : 25;
+    const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" || BASELINE_PAIN ? 28 : VARIANT === "lesson3" ? 30 : 25;
     await beat("glance", { ceiling });
+    /* The first recording leads with the concern (build 2); fillers keeps its own line. */
+    if (BASELINE_PAIN) {
+      const said = (await page.locator("main [data-glance-line]").first().innerText()).replace(/\s+/g, " ").trim();
+      const asked = await page.locator("main [data-reminder-ask]").count();
+      console.log(`${at} line: "${said}"; reminder ask ${asked ? "showing" : "not shown"}`);
+      if (TAG !== "before") {
+        const lead = `You said ${BASELINE_PAIN[1]}:`;
+        if (BASELINE_PAIN[0] === "fillers" ? said.startsWith("You said") : !said.startsWith(lead)) fail(`${at}: the line reads "${said}"`);
+        if (!asked) fail(`${at}: the reminder ask is not showing on the first recording`);
+      }
+    }
     console.log(`${at} glance: the tap is live ${tapLiveMs}ms after the first frame`);
     /* The fourth take's Premium door (#514) opens the paywall, its
        reason the free allowance and its first benefit the same rule. */
@@ -741,6 +830,16 @@ for (const size of SIZES) {
     const focusIn = await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'));
     if (!focusIn) fail(`${at}: focus did not move into the sheet`);
     await beat("sheet", { scope: "dialog", scroller: "[data-sheet-scroll]" });
+    if (PAUSE_RECORD !== undefined) {
+      /* The record counts the pauses that landed, the closing note's
+         count, so it never stands over more of the fault (build 6). */
+      const text = await page.locator('[role="dialog"]').first().innerText();
+      const record = /(\d+) pauses? between sentences, past your (\d+)/.exec(text);
+      const has = text.includes("Most pauses yet");
+      if (has !== PAUSE_RECORD) fail(`${at}: the sheet ${has ? "says" : "does not say"} Most pauses yet`);
+      else if (PAUSE_RECORD && !record) fail(`${at}: the pause record names no count`);
+      else console.log(`${at} pause record: ${has ? record[0] : "none"}`);
+    }
     /* A word in the transcript opens its sheet over this one. */
     const word = page.locator('[role="dialog"] .transcript [role="button"]').nth(3);
     if ((await word.count()) > 0) {

@@ -20,6 +20,8 @@ import {
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_ASK,
   askBudget,
+  baselineLine,
+  baselineTake,
   rulesBudget,
   starsBudget,
   glanceLine,
@@ -444,11 +446,90 @@ describe("glanceTrait", () => {
   });
 });
 
+/*
+ * The first scored recording (the reel's honest wins, build 2): the
+ * concern named in the introduction leads Demos's line, in the line that
+ * trait already says, so the plan's promised number is the first thing
+ * read. Fillers, trailing off, rambling and no answer keep the take's own.
+ */
+describe("baselineLine", () => {
+  const first = (said: string | null, over: Partial<RepMetrics> = {}, extra: Partial<Parameters<typeof baselineLine>[0]> = {}) =>
+    baselineLine({ said, metrics: take(over), words: WORDS, transcript: TRANSCRIPT, ...extra });
+  const own = (trait: TraitId, over: Partial<RepMetrics> = {}) =>
+    glanceLine({ trait, metrics: take(over), words: WORDS, transcript: TRANSCRIPT, lead: null });
+
+  it("rushing: the pace line after their words, fast or in the zone", () => {
+    expect(first("rushing", { wpm: 184 })).toEqual({
+      parts: [{ kind: "text", text: "You said rushing: 184 words a minute." }],
+      sentence: "You said rushing: 184 words a minute.",
+      moment: null,
+      cue: null,
+    });
+    expect(first("rushing", { wpm: 148 })?.sentence).toBe("You said rushing: 148 words a minute, in the zone.");
+  });
+
+  it("freezing: the pause line, its first letter lowered, with the same moment", () => {
+    const g = first("freezing");
+    expect(g?.sentence).toBe("You said freezing: 1 of 4 pauses mid-sentence, at 0:20");
+    expect(g?.parts).toEqual([{ kind: "text", text: "You said freezing: 1 of 4 pauses mid-sentence, at " }, { kind: "moment" }]);
+    expect(g?.moment).toEqual(own("pause").moment);
+    expect(g?.cue).toBeNull();
+    const all = first("freezing", {
+      pauses: [
+        { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
+        { t: 31, len: 1.5, kind: "pre", verdict: "landing" },
+        { t: 58, len: 1.1, kind: "pre", verdict: "landing" },
+      ] as unknown as RepMetrics["pauses"],
+    });
+    expect(all?.sentence).toBe("You said freezing: all 3 pauses between sentences, longest 0:31");
+    expect(first("freezing", { pauses: [] })?.sentence).toBe("You said freezing: no one-second pauses in 62s.");
+  });
+
+  it("sounding flat: the Variety line, a repeated word with its moment, or none", () => {
+    const said = "The habit is a habit. A habit I keep, my habits.";
+    const words = (said.match(/[A-Za-z0-9']+/g) ?? []).map((word, i) => ({ word, start: 12 + i * 0.5, end: 12.3 + i * 0.5 }));
+    const g = baselineLine({ said: "sounding flat", metrics: take({ fillers: [] }), words, transcript: said });
+    expect(g?.sentence).toBe("You said sounding flat: “habit” 4 times, first 0:12");
+    expect(g?.moment?.label).toBe("Play 0:12, “habit”");
+    expect(g?.cue).toBeNull();
+    const plainText = "Every morning I walk along the river before work starts.";
+    const none = baselineLine({ said: "sounding flat", metrics: take({ fillers: [] }), words: null, transcript: plainText });
+    expect(none?.sentence).toBe("You said sounding flat: no word said 3 times.");
+  });
+
+  it("keeps the take's own line for fillers, trailing off, rambling and no answer", () => {
+    for (const said of ["fillers", "trailing off", "rambling", null, undefined, "", "something else"]) {
+      expect(first(said as string | null)).toBeNull();
+    }
+  });
+
+  it("is the first scored recording's only: a later take, an unscored first or a game keeps its own", () => {
+    const at = { repCountBefore: 0, ethosIndex: 640, previousIndex: null };
+    expect(baselineTake(at)).toBe(true);
+    expect(baselineTake({ ...at, repCountBefore: 1 })).toBe(false);
+    expect(baselineTake({ ...at, previousIndex: 610 })).toBe(false);
+    expect(baselineTake({ ...at, ethosIndex: null })).toBe(false);
+    expect(baselineTake({ ...at, repCountBefore: null })).toBe(false);
+    expect(baselineTake({ ...at, game: true })).toBe(false);
+  });
+
+  it("says nothing on a take too short to score, or a capped one", () => {
+    expect(first("rushing", {}, { scorable: false })).toBeNull();
+    expect(first("rushing", {}, { capped: true })).toBeNull();
+  });
+
+  it("fits the first take's ceiling with the reminder ask on it", () => {
+    const words = countWords(first("sounding flat", { pauses: [] })?.sentence ?? "");
+    expect(words).toBeLessThanOrEqual(10);
+    expect(askBudget(GLANCE_WORDS_FIRST, "Same time tomorrow? Remind me at 6 pm Not now")).toBe(GLANCE_WORDS_FIRST + 10);
+  });
+});
+
 describe("earnedLine", () => {
   const ladder: RewardMoment = { headline: "Level 3 is open", detail: "x", tone: "earned" };
   const index: RewardMoment = { headline: "Best Ethos yet", detail: "849, past your 690", tone: "earned" };
   const clean: RewardMoment = { headline: "Cleanest recording yet", detail: "1.2/min, under your 2", tone: "earned" };
-  const held: RewardMoment = { headline: MOST_PAUSES, detail: "5 one-second pauses, past your 4", tone: "earned" };
+  const held: RewardMoment = { headline: MOST_PAUSES, detail: "4 pauses between sentences, past your 3", tone: "earned" };
   const round: RewardMoment = { headline: "Best round yet", detail: "22s", tone: "earned" };
   it("takes the ladder over the Index over the trait's record over the best round", () => {
     expect(earnedLine({ bests: [index, clean, round], ladderMoment: ladder, trait: "fillers" })?.text).toBe("Level 3 is open");

@@ -340,9 +340,10 @@ export function TopicCard({
          recording screen's column gives it that height, 168 to 300.
          Under 600pt tall (320x568), and under 360 wide (a followed
          text size, #451), it may be as short as its words, so Record
-         rises into view (F12). */
+         rises into view (F12); under 600pt its foot is 20, as its head
+         is, for the line under Record (the review of build 5). */
       className={`family-fill vt-shared flex flex-col p-5 ${
-        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6 max-[359px]:min-h-0 [@media(max-height:600px)]:min-h-0"
+        compact ? "" : "min-h-[168px] flex-1 justify-between pb-6 max-[359px]:min-h-0 [@media(max-height:600px)]:min-h-0 [@media(max-height:600px)]:pb-5"
       }`}
     >
       {art && (

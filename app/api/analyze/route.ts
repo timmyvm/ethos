@@ -188,6 +188,14 @@ export interface AnalyzeResponse {
     remaining: number;
     /** True when the rep was measured but not judged, because of the cap. */
     capped: boolean;
+    /**
+     * This take's read came off the account's stored allowance and stayed
+     * spent, so `remaining` is the stored count (the reel's honest wins,
+     * build 5, lib/scored-left.ts). False for Premium, no session, a meter
+     * that could not be read or written, and a read handed back. Absent on
+     * a reply from before it.
+     */
+    counted?: boolean;
   };
 }
 
@@ -963,6 +971,7 @@ async function handleTake(
       unlimited: decision?.unlimited ?? false,
       remaining: decision && !decision.unlimited ? decision.remaining : 0,
       capped: scorable && decision !== null && !decision.allowed,
+      counted: claimed !== null && coach !== null,
     },
   };
   return NextResponse.json(body);

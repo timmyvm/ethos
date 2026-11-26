@@ -53,7 +53,8 @@ import { dayTurned, lastSpokeOn } from "@/lib/home";
 import { liteGraphics } from "@/lib/graphics";
 import { inAppBrowser, inAppLine } from "@/lib/in-app";
 import { readOnboarding } from "@/lib/answers";
-import { CAPPED_DOOR, CAPPED_LINE, CAPPED_REASON, PRO_MOMENT_LINE } from "@/lib/allowance-copy";
+import { CAPPED_DOOR, CAPPED_LINE, CAPPED_REASON, PRO_MOMENT_LINE, SCORED_USED } from "@/lib/allowance-copy";
+import { keepScoredLeft, readScoredLeft, scoredUsed, type ScoredLeft } from "@/lib/scored-left";
 import { buildPortfolio } from "@/lib/portfolio";
 import { poolHere } from "@/lib/pool";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -144,6 +145,7 @@ import {
   roundChimes,
   takeRewards,
   thinksFirst,
+  underRecord,
 } from "@/lib/rep-screen";
 import { unlockSound } from "@/lib/sound";
 import { holdAwake } from "@/lib/wake-lock";
@@ -177,6 +179,8 @@ import {
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_TESTER,
+  baselineLine,
+  baselineTake,
   glanceLine,
   glanceTrait,
   ladderCue,
@@ -704,6 +708,25 @@ function RepScreen() {
   /** Demos's line while he cuts in (F1); null while he listens. */
   const [cutIn, setCutIn] = useState<string | null>(null);
   const [anticipate, setAnticipate] = useState<RewardMoment | null>(null);
+  /**
+   * What the meter last said of today's scored recordings, and whose
+   * (lib/scored-left.ts): read on open, and kept from each reply.
+   */
+  const [scoredLeft, setScoredLeft] = useState<ScoredLeft | null>(null);
+  const [scoredFor, setScoredFor] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    currentSession()
+      .then((s) => {
+        if (!live) return;
+        setScoredFor(s?.userId ?? null);
+        setScoredLeft(readScoredLeft());
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   const [closing, setClosing] = useState<RewardMoment | null>(null);
   const [bests, setBests] = useState<RewardMoment[]>([]);
   /**
@@ -990,6 +1013,8 @@ function RepScreen() {
     // recording (a browser back mid-scoring), so it is still stored,
     // but its answer never takes over the other recording's screen.
     const live = () => lessonKeyRef.current === key;
+    /* Before any await: the meter counts the take on the day it was sent. */
+    const sentAt = Date.now();
     if (live()) {
       setPhase("analyzing");
       setError(null);
@@ -1083,6 +1108,19 @@ function RepScreen() {
         baselineRef.current = { ...baselineRef.current, repair: repairPredicted };
         setAnticipate((cue) => cueAfterTake(cue, repairBefore, repairPredicted));
       }
+      /* What the meter said of today's scored recordings, for this account
+         and the day the take was spoken (lib/scored-left.ts): kept only
+         when it is sure, so the line under the next Record never guesses. */
+      const spokenOn = new Date(Number(form.get("recordedAt")) || sentAt);
+      void currentSession()
+        .then((s) => {
+          const kept = keepScoredLeft({ uid: s?.userId, at: spokenOn, judged: (data as AnalyzeResponse).judged });
+          if (kept) {
+            setScoredFor(kept.uid);
+            setScoredLeft(kept);
+          }
+        })
+        .catch(() => {});
       /* The first take under #476 beside one scored before it (#491),
          read off the history from before this take, in the same frame
          as the result, so nothing on the glance moves when it lands. */
@@ -2196,6 +2234,18 @@ function RepScreen() {
   const ready =
     searchParams.get("ready") === "1" && !game && config.kind !== "boss" && config.tips.length > 0;
   /*
+   * Today's scored recordings are used (the reel's honest wins, build 5):
+   * said under Record before the take, once this phone is sure (this
+   * account, this day, none left, a plan read as free), grey and with no
+   * door. Never on the ready screen, the day's first take. While the plan
+   * is still being read the slot stays empty rather than flip.
+   */
+  const usedOnPhone = !ready && scoredUsed(scoredLeft, { uid: scoredFor, now: new Date(), free: true });
+  /* The repair's line outranks it (lib/rep-screen.ts underRecord): a capped take still keeps the day. */
+  const underRecordLine = underRecord({ cue: anticipate, usedOnPhone, plan, premium });
+  const sayScoredUsed = underRecordLine.used;
+  const holdAnticipate = anticipate !== null && underRecordLine.cue === null;
+  /*
    * The warm-up (#477, plan section 9, idea 2): on the day's first take,
    * the cue carried from an earlier day and not yet answered, rehearsed
    * alone in the tactic's slot before Record. Skip trades the two slots
@@ -2352,7 +2402,7 @@ function RepScreen() {
       <div
         className={
           phase === "idle"
-            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
+            ? `flex flex-1 flex-col justify-center pb-8 max-[359px]:pb-4 [@media(max-height:600px)]:pb-2 ${game ? "[@media(max-height:700px)]:pb-4" : ""}`
             : ""
         }
       >
@@ -2402,7 +2452,12 @@ function RepScreen() {
       )}
 
       {phase === "idle" && (
-        <div className={`mt-6 max-[359px]:mt-4 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
+        /* Under 600pt tall (320x568) the stack steps in where it has air
+           to give: 4 over the instruction, 8 under the tiles, 8 inside
+           each tile (TipStrip) and 4 under the topic (TopicCard), so a
+           two-line line under Record (SCORED_USED) stands whole on the
+           first screen (the review of build 5). */
+        <div className={`mt-6 max-[359px]:mt-4 [@media(max-height:600px)]:mt-3 ${game ? "[@media(max-height:700px)]:mt-4" : ""}`}>
           {/* recording-15: the instruction over the three tactics, a clear
               step above their 14px labels rather than a fourth label. */}
           {!ready && <h2 className="font-display text-lead font-bold">{doLine}</h2>}
@@ -2880,7 +2935,7 @@ function RepScreen() {
          */}
         {/* Anticipation cue — what this recording is about to earn (#48),
             one line under the tap that earns it. */}
-        {phase === "idle" && anticipate && (
+        {phase === "idle" && anticipate && !holdAnticipate && (
           <p
             data-record-cue=""
             className={`-mt-2 max-w-[280px] text-center text-caption font-semibold text-balance ${
@@ -2888,6 +2943,15 @@ function RepScreen() {
             }`}
           >
             {anticipate.headline}
+          </p>
+        )}
+        {/* In its place, today's scored recordings used (lib/scored-left.ts).
+            Positioned, so it paints over Record's shadow (Record's box is
+            `relative`, which painted its shadow over the line's middle
+            words and dimmed them in dark). */}
+        {phase === "idle" && sayScoredUsed && (
+          <p data-scored-used className="arrive relative -mt-2 max-w-[280px] text-center text-caption font-semibold text-stone-600">
+            {SCORED_USED}
           </p>
         )}
 
@@ -3178,6 +3242,8 @@ function Results({
           ) ?? null)
       : null;
   const [focusTrait] = useState(() => traitForSaid(buildPortfolio(readOnboarding().answers).focus?.said ?? null));
+  /* What the introduction recorded as bothering them, in their words ("rushing"). */
+  const [focusSaid] = useState(() => buildPortfolio(readOnboarding().answers).focus?.said ?? null);
   const upNext = lessonEnd && lessonDoneNow && missingPractice === null ? upNextLesson(lessonDoneNow, focusTrait) : null;
   /* Whatever sent this rep gets the loudest button back: the trait
      walk's closing screen, the whole reason that walk exists. A lesson
@@ -3512,7 +3578,7 @@ function Results({
   }, [cueNext]);
   /* A game round: Demos says the round's result with its moment, and the
      cue is what the ladder's count means (the #427 review). */
-  const said =
+  const saidTake =
     gameRound && reveal && scorable
       ? roundGlance({ round: gameRound, reveal, cue: ladder ? ladderCue(ladder.line) : null })
       : cueSaid
@@ -3526,6 +3592,20 @@ function Results({
           scorable,
           lead,
         });
+  /* The first scored recording leads with the concern the introduction
+     recorded, in that trait's own line ("You said rushing: 184 words a
+     minute."), with no cue (the reel's honest wins, build 2; lib/glance.ts
+     baselineLine). Fillers, trailing off, rambling or no answer: null, and
+     the take's own line stands. */
+  const firstSaid = baselineTake({
+    repCountBefore,
+    ethosIndex: result.ethosIndex,
+    previousIndex: result.previousIndex,
+    game: !!gameRound,
+  })
+    ? baselineLine({ said: focusSaid, metrics: result.metrics, words: result.words, transcript: result.transcript, scorable, capped })
+    : null;
+  const said = firstSaid ?? saidTake;
   const earnedNow = scorable
     ? (lessonLine ??
       earnedLine({
@@ -3680,8 +3760,8 @@ function Results({
       earned: earnedNow,
       /* The carried cue's shorter forms (#477): the line's number without
          its chip, the cue without "Tomorrow:", tried before the cue goes. */
-      lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
-      cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
+      lineShort: cueSaid && !firstSaid ? cueSaid.lineShort.sentence : null,
+      cueShort: cueSaid && !firstSaid && !reminder.node ? cueSaid.cueShort : null,
     },
     /* The repair's line rides on the ceiling, as the ask's words do; what
        its taps add past that, the carried cue gives up first. */

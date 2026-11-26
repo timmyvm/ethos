@@ -45,7 +45,9 @@ export function TipStrip({
    * wide a label runs to three lines, so the tile steps its top and
    * bottom in by 4px each: that is the layout an iPhone gets once its
    * text size is followed (#451), and the recorder's Record stands
-   * under these.
+   * under these. Under 600pt tall (320x568) they step in 4 more each,
+   * and the label 4 nearer its glyph, so two lines under Record still
+   * stand on the first screen (the review of build 5).
    */
   const tight = shown.length === 3;
 
@@ -77,7 +79,7 @@ export function TipStrip({
               aria-expanded={on}
               aria-controls={`${id}-tip`}
               onClick={() => setOpen(on ? null : i)}
-              className={`tip-tile press flex flex-col items-start rounded-card border text-left ${tight ? "px-2.5 py-4 max-[359px]:py-3" : "p-4"}`}
+              className={`tip-tile press flex flex-col items-start rounded-card border text-left ${tight ? "px-2.5 py-4 max-[359px]:py-3 [@media(max-height:600px)]:py-2" : "p-4"}`}
               data-on={on || undefined}
             >
               <span className="flex w-full items-center justify-between">
@@ -89,7 +91,7 @@ export function TipStrip({
                 </span>
               </span>
               <span
-                className={`mt-3 font-semibold leading-[21px] text-ink text-balance ${tight ? "text-row" : "text-body"}`}
+                className={`mt-3 font-semibold leading-[21px] text-ink text-balance ${tight ? "text-row [@media(max-height:600px)]:mt-2" : "text-body"}`}
               >
                 {unbroken(face.label)}
               </span>

@@ -17,6 +17,7 @@
  */
 
 import type { TraitId } from "@/content/traits";
+import { traitForSaid } from "./lesson-up-next";
 import { recordingTrait } from "./log";
 import type { Pause, RepMetrics, Word } from "./metrics";
 import { filledWords, heldPauseMarks, landedPause, PAUSE_KEY_WORDS, PAUSE_WHY_WORDS, pauseWhy, sharedMiss } from "./pause-mark";
@@ -350,6 +351,57 @@ export function glanceLine(p: {
      for here (the #427 review), and the chip ends the sentence. */
   const said = n === 1 ? withMoment("1 filler, at ", moment, "") : withMoment(`${n} fillers, first `, moment, "");
   return { ...said, cue: cue(target) };
+}
+
+/**
+ * The account's first scored recording, the one "Day 0" stands under: no
+ * recording before it, a score of its own and none to compare with. A
+ * game round says its round's result instead. Unknown is never first.
+ */
+export function baselineTake(p: {
+  repCountBefore: number | null;
+  ethosIndex: number | null;
+  previousIndex: number | null;
+  game?: boolean;
+}): boolean {
+  return p.repCountBefore === 0 && p.ethosIndex !== null && p.previousIndex === null && !p.game;
+}
+
+/** The concerns the first recording leads with: each has its own measured line above. */
+const BASELINE_TRAITS: ReadonlySet<TraitId> = new Set<TraitId>(["pace", "pause", "range"]);
+
+/**
+ * The first scored recording's line (the reel's honest wins, build 2):
+ * the introduction asked what bothers them and the plan promised that
+ * number ("your words a minute against the 130 to 160 zone"), so on that
+ * take Demos leads with it, in the line that trait already says, after
+ * their own words: "You said rushing: 184 words a minute." The moment is
+ * that line's own. No cue: the line is the number to come back for, and
+ * "Day 0" under the score already says it is the one to beat.
+ *
+ * Null keeps the take's own line: no answer, fillers (the take already
+ * leads with them), trailing off and rambling (no trait measures them),
+ * a take too short to score or a capped one.
+ */
+export function baselineLine(p: {
+  /** What the introduction recorded (content/portfolio.ts PAINS `said`). */
+  said: string | null | undefined;
+  metrics: RepMetrics;
+  words?: Word[] | null;
+  transcript?: string;
+  scorable?: boolean;
+  capped?: boolean;
+}): GlanceLine | null {
+  if (!p.said || p.scorable === false || p.capped) return null;
+  const trait = traitForSaid(p.said);
+  if (!trait || !BASELINE_TRAITS.has(trait)) return null;
+  const own = glanceLine({ trait, metrics: p.metrics, words: p.words, transcript: p.transcript, lead: null });
+  const lead = `You said ${p.said}: `;
+  const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+  const [first, ...rest] = own.parts;
+  const parts: GlancePart[] =
+    first?.kind === "text" ? [{ ...first, text: lead + lower(first.text) }, ...rest] : [{ kind: "text", text: lead }, ...own.parts];
+  return { parts, sentence: lead + lower(own.sentence), moment: own.moment, cue: null };
 }
 
 /** The ladder line's first sentence ("1 of 2 counted."). */

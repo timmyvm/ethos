@@ -12,10 +12,13 @@ import {
   roundChimes,
   takeRewards,
   thinksFirst,
+  underRecord,
 } from "./rep-screen";
 import { endNote, personalBests } from "./rewards";
 import { repairWayOn } from "./glance";
-import { repairAfterTake, type RepairState, type StreakState } from "./streak";
+import { SCORED_USED } from "./allowance-copy";
+import { localDayKey, scoredUsed } from "./scored-left";
+import { keptDays, repairAfterTake, type RepairState, type StreakState } from "./streak";
 import { DONE_FOR_TODAY } from "./way-on";
 
 const streak = (over: Partial<StreakState> = {}): StreakState => ({
@@ -128,6 +131,62 @@ describe("a repair carried from take to take on one screen", () => {
     expect(cueAfterTake(cueAtOpen, open, short)).toBe(cueAtOpen);
     const plain = recordCue({ reps: [], starMap: {}, streak: streak({ current: 3 }), xp: 0 });
     expect(cueAfterTake(plain, null, null)).toBe(plain);
+  });
+});
+
+/**
+ * The two lines that can meet under Record (the integration of builds 1
+ * and 5): the day after a miss, with this phone sure today's 3 scored
+ * recordings are used. A capped fourth take still has 20+ words, is stored
+ * scorable and keeps the missed day, so the repair's line wins; once the
+ * day is kept, the used line takes the slot.
+ */
+describe("underRecord: the repair's line outranks today's scored recordings used", () => {
+  const at = new Date(2026, 11, 2, 19);
+  const usedHere = scoredUsed({ uid: "u1", day: localDayKey(at), left: 0 }, { uid: "u1", now: at, free: true });
+  const half: RepairState = { run: 5, missed: new Date(2026, 11, 1), counted: 1 };
+  const repairLine = recordCue({ reps: [], starMap: {}, streak: streak({ current: 0 }), xp: 0, repair: half });
+  const plainLine = recordCue({ reps: [], starMap: {}, streak: streak({ current: 6, didToday: true }), xp: 0 });
+
+  it("keeps the repair's line and holds the used line back while the repair is open", () => {
+    expect(usedHere).toBe(true);
+    expect(repairLine?.repair).toBe(true);
+    const shown = underRecord({ cue: repairLine, usedOnPhone: usedHere, plan: false, premium: false });
+    expect(shown.used).toBe(false);
+    expect(shown.cue?.headline).toBe("This one keeps a 5-day streak alive");
+    // The plan still being read changes nothing for the repair's line.
+    expect(underRecord({ cue: repairLine, usedOnPhone: usedHere, plan: null, premium: false }).cue).toBe(repairLine);
+    // Before the first counted take too.
+    const open = recordCue({ reps: [], starMap: {}, streak: streak({ current: 0 }), xp: 0, repair: { ...half, counted: 0 } });
+    expect(underRecord({ cue: open, usedOnPhone: true, plan: false, premium: false }).cue?.headline).toBe(
+      "Two recordings of 20+ words keep a 5-day streak alive"
+    );
+  });
+
+  it("a capped take keeps the day, and then the used line stands", () => {
+    // The capped fourth: scorable and stored, with no Ethos score.
+    const after = repairAfterTake(half, { scorable: true, stored: true, at });
+    expect(after).toBeNull();
+    expect(cueAfterTake(repairLine, half, after)).toBeNull();
+    // The rows say the same: the second take of the day is the capped one.
+    const iso = (month: number, d: number, h: number) => new Date(2026, month, d, h).toISOString();
+    const takes = [
+      ...[26, 27, 28, 29, 30].map((d) => ({ created_at: iso(10, d, 18), scorable: true, ethos_index: 640 })),
+      { created_at: iso(11, 2, 9), scorable: true, ethos_index: 650 },
+      { created_at: iso(11, 2, 19), scorable: true, ethos_index: null },
+    ];
+    expect(keptDays(takes, [], at, "2026-11-27").map((d) => d.getDate())).toEqual([1]);
+    // Read back, the cue is the plain one, and the used line takes its place.
+    const shown = underRecord({ cue: plainLine, usedOnPhone: usedHere, plan: false, premium: false });
+    expect(shown).toEqual({ cue: null, used: true });
+    expect(SCORED_USED).toBe("You've used today's 3 scored recordings. Ethos score back tomorrow.");
+  });
+
+  it("says nothing while the plan is unread, and never to Premium", () => {
+    expect(underRecord({ cue: plainLine, usedOnPhone: true, plan: null, premium: false })).toEqual({ cue: null, used: false });
+    expect(underRecord({ cue: plainLine, usedOnPhone: true, plan: true, premium: false })).toEqual({ cue: plainLine, used: false });
+    expect(underRecord({ cue: plainLine, usedOnPhone: true, plan: false, premium: true })).toEqual({ cue: plainLine, used: false });
+    expect(underRecord({ cue: plainLine, usedOnPhone: false, plan: false, premium: false })).toEqual({ cue: plainLine, used: false });
   });
 });
 

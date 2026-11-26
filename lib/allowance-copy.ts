@@ -25,6 +25,13 @@ export const CAPPED_REASON = `${DAILY_GRANT} scored recordings a day free`;
  */
 export const CAPPED_LINE = "Ethos score back tomorrow";
 
+/**
+ * Under Record, grey, once this phone knows today's scored recordings are
+ * used (lib/scored-left.ts, the reel's honest wins, build 5): the limit
+ * and when it resets, before the take rather than after it. No door.
+ */
+export const SCORED_USED = `You've used today's ${DAILY_GRANT} scored recordings. ${CAPPED_LINE}.`;
+
 /** The same, as the plum door from day 3 on: when, and the way to have it now. */
 export const CAPPED_DOOR = "Ethos score back tomorrow, or go Premium";
 

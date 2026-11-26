@@ -1542,9 +1542,13 @@ function Glance({
               outweigh and he is the message. #400's 270 left a daily one
               (no lesson bar) 14 that both bands were full for, so his feet
               stood 74 off the door at 390x844 (rule 7's 64; the final pass
-              of 19 Nov): at 290 he takes it, 284 there, 272 in a lesson. */}
+              of 19 Nov): at 290 he takes it, 284 there, 272 in a lesson.
+              Under 700pt tall he gives way to 64, the floor he already has
+              under 600, only when the line needs the room: a first
+              recording's "You said freezing: 1 of 4 pauses mid-sentence"
+              takes two lines beside the reminder ask at 375x667. */}
           <div
-            className={`relative mt-3 min-h-[88px] basis-0 ${scorable ? "max-h-[240px]" : "max-h-[290px]"} ${
+            className={`relative mt-3 min-h-[88px] basis-0 [@media(max-height:700px)]:min-h-16 ${scorable ? "max-h-[240px]" : "max-h-[290px]"} ${
               moment ? "grow-[4]" : "grow"
             }`}
           >

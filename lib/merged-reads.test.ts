@@ -401,4 +401,32 @@ describe("the merged reads on Postgres, 0037 and 0038 in either order (final pas
     ]);
     await db.close();
   }, 120_000);
+
+  it("d. a capped take that says the better phrase counts; one whose coach failed does not (the reel's extra A)", async () => {
+    const db = (await start.clone()) as PG;
+    await db.exec(F0037);
+    await db.exec(F0038);
+    // A free account's fourth take today (#514): a real answer, stored with
+    // no Ethos number and the meter's mark (lib/db.ts saveRep `capped`);
+    // and a real answer whose coach failed, with no number and no mark.
+    await db.exec(`
+      insert into public.lexicon (id, user_id, original, upgrade, rep_id, created_at)
+        values ('d0000000-0000-4000-8000-000000000001', '${A}', 'a lot of', 'plenty of', 'a0000000-0000-4000-8000-000000000001', '${at(5)}'),
+               ('d0000000-0000-4000-8000-000000000002', '${A}', 'really big', 'huge', 'a0000000-0000-4000-8000-000000000001', '${at(5)}');
+      insert into public.reps (id, user_id, created_at, duration_s, transcript, wpm, filler_count, stars, ethos_index, dimensions)
+        values ('a0000000-0000-4000-8000-000000000008', '${A}', '${at(0.4)}', 60, '${answer("plenty of")}', 140, 0, 2, null,
+                '{"tier1": {"pause": 70}, "tier2": null, "capped": true}'),
+               ('a0000000-0000-4000-8000-000000000009', '${A}', '${at(0.3)}', 60, '${answer("huge")}', 140, 0, 2, null,
+                '{"tier1": {"pause": 70}, "tier2": null}');
+    `);
+    const r = await readAll(db);
+    // The count reads the mark through PostgREST's json path, as Postgres answers it.
+    expect(r.reads.some((x) => x.table === "reps" && /capped:dimensions->capped/.test(x.select) && x.error === null)).toBe(true);
+    const plenty = r.answers.say.items.find((i) => i.swap.better === "plenty of")!;
+    expect(plenty.uses.map((u) => u.repId)).toEqual(["a0000000-0000-4000-8000-000000000008"]);
+    const huge = r.answers.say.items.find((i) => i.swap.better === "huge")!;
+    expect(huge.uses).toEqual([]);
+    expect(huge.state.heardAt).toBeNull();
+    await db.close();
+  }, 120_000);
 });

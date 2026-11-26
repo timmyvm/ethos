@@ -385,6 +385,15 @@ export async function saveRep(params: {
    * stored is touched (#422).
    */
   pauseRules?: number;
+  /**
+   * A free account's take past the day's scored recordings (#514),
+   * measured in full and stored with no Ethos number, kept as
+   * `dimensions.capped`. A take with no number is otherwise one the
+   * coach failed, or no answer at all; Say it better counts a capped one
+   * (its phrase is in the words, and the meter is the score's, not the
+   * words', lib/say.ts usesOf). Only ever written with a new row.
+   */
+  capped?: boolean;
 }): Promise<SavedRep | null> {
   const db = supabaseAdmin();
   if (!db) return null;
@@ -414,6 +423,7 @@ export async function saveRep(params: {
       anchors,
       tier2: coach?.dimensions ?? null,
       ...(params.pauseRules ? { pauseRules: params.pauseRules } : {}),
+      ...(params.capped ? { capped: true } : {}),
     },
     audio_path: audioPath,
     whisper_raw: params.whisperRaw ?? null,

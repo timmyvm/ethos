@@ -767,6 +767,9 @@ async function handleTake(
     }
   }
   const judgedAllowed = decision?.allowed ?? scorable;
+  /* Measured but not judged, because of the cap (#514): the glance says
+     so, and the row keeps it for Say it better's count (lib/db.ts). */
+  const capped = scorable && decision !== null && !decision.allowed;
 
   /* The words are in and measured: the wait shows them while Demos reads
      (#472). Only what the measured tier already holds; no score. */
@@ -912,6 +915,7 @@ async function handleTake(
       clientId,
       round,
       pauseRules: PAUSE_RULES,
+      capped,
     });
     // Nothing stored and nothing thrown: the audio is stored nowhere.
     if (!saved) spend.audioOwned = false;
@@ -962,7 +966,7 @@ async function handleTake(
       ran: coach !== null,
       unlimited: decision?.unlimited ?? false,
       remaining: decision && !decision.unlimited ? decision.remaining : 0,
-      capped: scorable && decision !== null && !decision.allowed,
+      capped,
     },
   };
   return NextResponse.json(body);

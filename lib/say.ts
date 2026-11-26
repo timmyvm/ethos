@@ -488,6 +488,13 @@ export interface TakeText {
    * `ethosIndex` with no tier 2). Undefined when not read.
    */
   ethos_index?: number | null;
+  /**
+   * A free account's take past the day's scored recordings (#514,
+   * `dimensions.capped`, lib/db.ts): measured in full, its words timed,
+   * and stored with no Ethos number because of the meter alone. Undefined
+   * when not read, and on a row stored before the mark was written.
+   */
+  capped?: boolean | null;
   /** Whisper's timed words, when read; undefined when not read. */
   words?: readonly TimedWord[] | null;
 }
@@ -506,14 +513,18 @@ export interface SwapUse {
  * The real recordings that used a swap's better phrase, newest first:
  * stored after the swap was saved, never a recording it came from (any
  * row merged into it included), and only one with an Ethos number (#507
- * review), exactly the takes whose glance can show the token (#509): a
- * take with no star was not scored and won nothing (#510), and a scored
- * take whose judged read did not run has no number to prove it beside,
- * so neither is a use, and neither marks the swap heard ahead of the
- * take that earns the token. Whisper's own text finds them, never inside a place the old
- * phrase was said again; where the timed words were read they must hold
- * it too, and give the moment. The test's one-line takes are never
- * stored, so they are never here.
+ * review) or one the day's meter alone left without it (a capped take,
+ * the reel's extra A, 26 Nov): exactly the takes whose glance can show
+ * the token (#509). A take with no star was no real answer and won
+ * nothing (#510), and a take whose coach failed or ran out of time is
+ * not counted either, so neither marks the swap heard ahead of the take
+ * that earns the token. A capped take is a real answer, measured in full
+ * with its words timed: the phrase is in them with its moment, and Say it
+ * better is free and uncapped (#507), so the score's meter (#514) does
+ * not decide what you say. Whisper's own text finds them, never inside a
+ * place the old phrase was said again; where the timed words were read
+ * they must hold it too, and give the moment. The test's one-line takes
+ * are never stored, so they are never here.
  */
 export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
   const out: SwapUse[] = [];
@@ -521,7 +532,7 @@ export function usesOf(swap: Swap, takes: readonly TakeText[]): SwapUse[] {
   const saved = Date.parse(swap.savedAt);
   for (const t of takes) {
     if (from.has(t.id) || !(Date.parse(t.created_at) > saved)) continue;
-    if (t.ethos_index === null) continue;
+    if (t.ethos_index === null && t.capped !== true) continue;
     const times = timesIn(t.transcript, swap.better, swap.said);
     if (times === 0) continue;
     let at: number | null = null;

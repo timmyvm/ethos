@@ -93,14 +93,17 @@ export function anticipation(
 
 /**
  * The line under Record on the day after a miss: "Two recordings of 20+
- * words keep a 5-day streak alive" before the first, "This one keeps a
- * 5-day streak alive" before the second, the same words the line uses on
- * any day a streak is on the line.
+ * words keep a 5-day streak alive" before the first, "One more of 20+
+ * words keeps a 5-day streak alive" before the second. Both name the 20
+ * words: a shorter take is stored unscorable and keeps nothing
+ * (lib/streak.ts repairAfterTake), so "This one keeps", which any take
+ * earns on a plain day, would promise a keep it does not give (the psych
+ * review, 26 Nov). "One more" is the glance's own word for the second.
  */
 export function repairCue(repair: Pick<RepairState, "run" | "counted">): string {
   return repair.counted === 0
     ? `Two recordings of 20+ words keep a ${repair.run}-day streak alive`
-    : `This one keeps a ${repair.run}-day streak alive`;
+    : `One more of 20+ words keeps a ${repair.run}-day streak alive`;
 }
 
 /**

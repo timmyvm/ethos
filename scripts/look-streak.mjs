@@ -31,7 +31,7 @@
  *           then under Record "Two recordings of 20+ words keep a 5-day
  *           streak alive"; the first take's glance taps "One more" with
  *           "Done for today" under it and the stone line; under Record
- *           again "This one keeps a 5-day streak alive"; the second
+ *           again "One more of 20+ words keeps a 5-day streak alive"; the second
  *           take's "Done for today" plays the moment 5 to 6, Tuesday drawn
  *           kept (the sky wash and the mic, no snowflake) and "Two
  *           recordings covered Tuesday." under the row; then Today on a
@@ -307,7 +307,7 @@ for (const scene of SCENES) {
         const cue2 = await recordCue();
         await page.screenshot({ path: shot("record2") });
         console.log(`${at}: under Record again "${cue2}"`);
-        const want2 = `This one keeps a ${run}-day streak alive`;
+        const want2 = `One more of 20+ words keeps a ${run}-day streak alive`;
         if (cue2 !== want2) fail(`${at}: under Record reads "${cue2}", wanted "${want2}"`);
         if (S.used && (await usedLine()) > 0) fail(`${at}: the used line stands beside the repair's under the second Record`);
         await take(3000);

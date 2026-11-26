@@ -25,7 +25,7 @@ All six are built, merged on one branch and checked together, ranked by how much
 - **Today:** unchanged. "Welcome back", and the flame at its grey 0.
 - **Under Record, first recording:** "Two recordings of 20+ words keep a 5-day streak alive"
 - **Results after the first:** the tap reads "One more" and records again on the same topic. "Done for today" becomes the quiet link under it, with the line "One more keeps a 5-day streak alive". Only on Today's practice or a topic of your own; lessons, games and the boss keep their own way on.
-- **Under Record, second recording:** "This one keeps a 5-day streak alive"
+- **Under Record, second recording:** "One more of 20+ words keeps a 5-day streak alive". It names the 20 words again because a shorter take keeps nothing.
 - **Streak screen after the second:** the flame lights on 5 and rolls to 6. The missed day is drawn in the freeze's sky wash with a small mic in it, so a covered day, a frozen day and an open day differ in shape as well as colour, with "Two recordings covered Tuesday." under the week row.
 
 Skip the second recording and nothing changes: at midnight it is the normal break it is today. A capped fourth recording still counts: it has its 20+ words, only no Ethos score.

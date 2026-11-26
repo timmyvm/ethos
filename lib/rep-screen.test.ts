@@ -116,7 +116,7 @@ describe("a repair carried from take to take on one screen", () => {
     const first = repairAfterTake(open, { scorable: true, stored: true, at });
     expect(glanceWay(first)?.tap).toBe("One more");
     const cue1 = cueAfterTake(cueAtOpen, open, first);
-    expect(cue1?.headline).toBe("This one keeps a 5-day streak alive");
+    expect(cue1?.headline).toBe("One more of 20+ words keeps a 5-day streak alive");
     expect(cue1?.tone).toBe("earned");
     // The second take is judged from what the first left, not the opening state.
     const second = repairAfterTake(first, { scorable: true, stored: true, at });
@@ -153,7 +153,7 @@ describe("underRecord: the repair's line outranks today's scored recordings used
     expect(repairLine?.repair).toBe(true);
     const shown = underRecord({ cue: repairLine, usedOnPhone: usedHere, plan: false, premium: false });
     expect(shown.used).toBe(false);
-    expect(shown.cue?.headline).toBe("This one keeps a 5-day streak alive");
+    expect(shown.cue?.headline).toBe("One more of 20+ words keeps a 5-day streak alive");
     // The plan still being read changes nothing for the repair's line.
     expect(underRecord({ cue: repairLine, usedOnPhone: usedHere, plan: null, premium: false }).cue).toBe(repairLine);
     // Before the first counted take too.

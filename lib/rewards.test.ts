@@ -77,9 +77,13 @@ describe("anticipation", () => {
     expect(first?.headline).toBe("Two recordings of 20+ words keep a 5-day streak alive");
     expect(first?.tone).toBe("earned");
     const second = anticipation([ms()], streak({ current: 1, didToday: true }), { run: 5, missed, counted: 1 });
-    expect(second?.headline).toBe("This one keeps a 5-day streak alive");
+    expect(second?.headline).toBe("One more of 20+ words keeps a 5-day streak alive");
     expect(second?.tone).toBe("earned");
     for (const a of [first, second]) expect(a?.headline).not.toMatch(/[\u2014\u2013]|lose|lost|before midnight|hours? left/i);
+    // Both name the condition: a take under 20 words is stored unscorable
+    // and keeps nothing (lib/streak.ts repairAfterTake), so neither line
+    // promises a keep that take would not give (the psych review).
+    for (const a of [first, second]) expect(a?.headline).toMatch(/20\+ words/);
   });
 
   it("keeps the milestone line on a day with no repair", () => {

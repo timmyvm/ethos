@@ -176,6 +176,8 @@ import {
   GLANCE_WORDS_FIRST,
   GLANCE_WORDS_LESSON_DONE,
   GLANCE_WORDS_TESTER,
+  baselineLine,
+  baselineTake,
   glanceLine,
   glanceTrait,
   ladderCue,
@@ -3124,6 +3126,8 @@ function Results({
           ) ?? null)
       : null;
   const [focusTrait] = useState(() => traitForSaid(buildPortfolio(readOnboarding().answers).focus?.said ?? null));
+  /* What the introduction recorded as bothering them, in their words ("rushing"). */
+  const [focusSaid] = useState(() => buildPortfolio(readOnboarding().answers).focus?.said ?? null);
   const upNext = lessonEnd && lessonDoneNow && missingPractice === null ? upNextLesson(lessonDoneNow, focusTrait) : null;
   /* Whatever sent this rep gets the loudest button back: the trait
      walk's closing screen, the whole reason that walk exists. A lesson
@@ -3458,7 +3462,7 @@ function Results({
   }, [cueNext]);
   /* A game round: Demos says the round's result with its moment, and the
      cue is what the ladder's count means (the #427 review). */
-  const said =
+  const saidTake =
     gameRound && reveal && scorable
       ? roundGlance({ round: gameRound, reveal, cue: ladder ? ladderCue(ladder.line) : null })
       : cueSaid
@@ -3472,6 +3476,20 @@ function Results({
           scorable,
           lead,
         });
+  /* The first scored recording leads with the concern the introduction
+     recorded, in that trait's own line ("You said rushing: 184 words a
+     minute."), with no cue (the reel's honest wins, build 2; lib/glance.ts
+     baselineLine). Fillers, trailing off, rambling or no answer: null, and
+     the take's own line stands. */
+  const firstSaid = baselineTake({
+    repCountBefore,
+    ethosIndex: result.ethosIndex,
+    previousIndex: result.previousIndex,
+    game: !!gameRound,
+  })
+    ? baselineLine({ said: focusSaid, metrics: result.metrics, words: result.words, transcript: result.transcript, scorable, capped })
+    : null;
+  const said = firstSaid ?? saidTake;
   const earnedNow = scorable
     ? (lessonLine ??
       earnedLine({
@@ -3605,8 +3623,8 @@ function Results({
       earned: earnedNow,
       /* The carried cue's shorter forms (#477): the line's number without
          its chip, the cue without "Tomorrow:", tried before the cue goes. */
-      lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
-      cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
+      lineShort: cueSaid && !firstSaid ? cueSaid.lineShort.sentence : null,
+      cueShort: cueSaid && !firstSaid && !reminder.node ? cueSaid.cueShort : null,
     },
     starsBudget(
       rulesBudget(

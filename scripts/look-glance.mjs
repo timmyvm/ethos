@@ -33,7 +33,13 @@
  * (LOOK_BEST=1), first (LOOK_FRESH=1),
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
  * upload, rules (#491: the first take under #476's pause rules against
- * a stored take scored before them, its note under the delta).
+ * a stored take scored before them, its note under the delta),
+ * baseline-rushing, baseline-freezing, baseline-flat (the reel's honest
+ * wins, build 2: an account's first scored recording, The baseline
+ * opened as the introduction opens it, with that concern answered in the
+ * introduction and the reminder ask showing; Demos's line leads "You said
+ * rushing:" and the take is held to GLANCE_WORDS_FIRST plus the ask's
+ * own words; baseline-fillers keeps the take's own line).
  *
  * The #427 review added: every glance's bands (no gap over 64 between
  * the header's back and the shelf at 390x844, reported elsewhere), the
@@ -55,6 +61,8 @@ import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_CJS ?? "/opt/node-tools/node_modules/playwright");
+/* The baseline variants are an account's first recording: nothing stored yet. */
+if ((process.argv[3] ?? "").startsWith("baseline-")) process.env.LOOK_FRESH = "1";
 const F = await import("./look-fixtures.mjs");
 /* The glance's named piece outside its ceiling (#509), by the name lib/glance.ts gives it. */
 const OUTSIDE = /export const OUTSIDE_CEILING = "([a-z-]+)";/.exec(readFileSync(new URL("../lib/glance.ts", import.meta.url), "utf8"))?.[1];
@@ -168,7 +176,15 @@ const bodies = {
   }),
   upload: () => A,
   rules: () => ({ ...A, pauseRules: 476, tier1: { ...A.tier1, pause: 73 }, previousIndex: RULES_PREV, ethosIndex: RULES_PREV + 71 }),
+  /* The first scored recording: no score before it. Rushing's take runs at
+     184 words a minute, over the zone the plan named. */
+  "baseline-rushing": () => ({ ...A, previousIndex: null, metrics: { ...A.metrics, wpm: 184 } }),
+  "baseline-freezing": () => ({ ...A, previousIndex: null }),
+  "baseline-flat": () => ({ ...A, previousIndex: null }),
+  "baseline-fillers": () => ({ ...A, previousIndex: null }),
 };
+/* The concern each baseline variant answered in the introduction (content/portfolio.ts PAINS). */
+const BASELINE_PAIN = { "baseline-rushing": ["rushing", "rushing"], "baseline-freezing": ["freezing", "freezing"], "baseline-flat": ["flat", "sounding flat"], "baseline-fillers": ["fillers", "fillers"] }[VARIANT] ?? null;
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
 /* capped (#514): a free account's fourth take today, so today already
    holds its three scored ones (09:12, 09:52, 10:47). capped-early: the
@@ -351,8 +367,9 @@ for (const size of SIZES) {
   await context.route("**/api/tester/collect", F.collectRoute);
   await context.addInitScript(F.seed, { theme: size.theme, session: F.session, pose: F.POSE_PREF, tester: VARIANT === "tester" });
   /* The reminder ask (#430) has had its showing today on this phone, so
-     each variant's glance is its own; the daily walk below shoots the ask. */
-  await context.addInitScript(() => {
+     each variant's glance is its own; the daily walk below shoots the ask.
+     A first recording asks (#430), so the baseline variants keep it. */
+  if (!BASELINE_PAIN) await context.addInitScript(() => {
     const d = new Date();
     localStorage.setItem("ethos.reminder.asked", `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
   });
@@ -403,7 +420,16 @@ for (const size of SIZES) {
       window.__ethosLookPresence = presence;
     }, PRESENCE);
   }
-  if (VARIANT === "lesson3") {
+  if (BASELINE_PAIN) {
+    /* The introduction's answer: the concern this first recording leads with. */
+    await context.addInitScript((pain) => {
+      localStorage.setItem(
+        "ethos.onboarding",
+        JSON.stringify({ answers: { ageBand: "19-22", goal: "work", pains: [pain], level: "some", context: "meetings" }, step: 6, done: true, synced: true })
+      );
+    }, BASELINE_PAIN[0]);
+  }
+  if (VARIANT === "lesson3" || BASELINE_PAIN) {
     /* A phone that has never been asked: the reminder ask can show. */
     await context.addInitScript(() => {
       try {
@@ -519,6 +545,9 @@ for (const size of SIZES) {
   } else if (VARIANT === "boss") {
     /* Where /boss's Start reading lands once the 90s read is over. */
     await page.goto(`${BASE}/rep?boss=week`);
+  } else if (BASELINE_PAIN) {
+    /* The introduction's floor: The baseline (app/welcome firstRep). */
+    await page.goto(`${BASE}/rep?lesson=f1`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
   } else if (["daily", "capped", "capped-early", "video", "rules"].includes(VARIANT)) {
@@ -595,8 +624,19 @@ for (const size of SIZES) {
 
   if (glance) {
     /* ---- the glance ----------------------------------------------------- */
-    const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" ? 28 : VARIANT === "lesson3" ? 30 : 25;
+    const ceiling = VARIANT === "tester" ? 36 : VARIANT === "first" || BASELINE_PAIN ? 28 : VARIANT === "lesson3" ? 30 : 25;
     await beat("glance", { ceiling });
+    /* The first recording leads with the concern (build 2); fillers keeps its own line. */
+    if (BASELINE_PAIN) {
+      const said = (await page.locator("main [data-glance-line]").first().innerText()).replace(/\s+/g, " ").trim();
+      const asked = await page.locator("main [data-reminder-ask]").count();
+      console.log(`${at} line: "${said}"; reminder ask ${asked ? "showing" : "not shown"}`);
+      if (TAG !== "before") {
+        const lead = `You said ${BASELINE_PAIN[1]}:`;
+        if (BASELINE_PAIN[0] === "fillers" ? said.startsWith("You said") : !said.startsWith(lead)) fail(`${at}: the line reads "${said}"`);
+        if (!asked) fail(`${at}: the reminder ask is not showing on the first recording`);
+      }
+    }
     console.log(`${at} glance: the tap is live ${tapLiveMs}ms after the first frame`);
     /* The fourth take's Premium door (#514) opens the paywall, its
        reason the free allowance and its first benefit the same rule. */

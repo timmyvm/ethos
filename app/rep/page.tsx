@@ -101,7 +101,7 @@ import {
 } from "@/lib/pro-moment";
 import { starsByLesson } from "@/lib/path";
 import { EthosScore } from "@/components/ui/EthosScore";
-import { wayOn as wayOnFor } from "@/lib/way-on";
+import { DONE_FOR_TODAY, wayOn as wayOnFor } from "@/lib/way-on";
 import { liveTipAt, liveTipsFor, yieldsToCutIn } from "@/lib/live-tips";
 import {
   loadPose,
@@ -147,7 +147,7 @@ import {
 import { unlockSound } from "@/lib/sound";
 import { holdAwake } from "@/lib/wake-lock";
 import { speechRecorder } from "@/lib/speech-recorder";
-import { computeStreak } from "@/lib/streak";
+import { computeStreak, repairAfterTake, repairState, type RepairState } from "@/lib/streak";
 import {
   askedIdsFrom,
   clampLevel,
@@ -182,6 +182,8 @@ import {
   lessonDone,
   lessonTakes,
   playsOnAfterSheet,
+  repairBudget,
+  repairWayOn,
   roundGlance,
   sheetSections,
 } from "@/lib/glance";
@@ -803,6 +805,8 @@ function RepScreen() {
    */
   const [anon, setAnon] = useState(false);
   const [streakNow, setStreakNow] = useState(0);
+  /** The repair as this take's glance draws it (lib/streak.ts repairAfterTake), fixed at its first frame. */
+  const [repairNow, setRepairNow] = useState<RepairState | null>(null);
 
   /**
    * Sticky per lesson type, and that is the whole rule now (#211): the
@@ -826,6 +830,8 @@ function RepScreen() {
     count: number;
     /** When it was read: a screen left open past midnight reads a new day (#416 review). */
     at: Date;
+    /** The day after a miss, while two takes can keep it (lib/streak.ts repairState); null on any other day or unread. */
+    repair: RepairState | null;
   } | null>(null);
   /** The baseline's "done today", only while it is still that day. */
   const doneToday = (b: { didToday: boolean; at: Date } | null) =>
@@ -905,16 +911,29 @@ function RepScreen() {
         // records, which compare readings.
         setRepCount(all.length);
         const map = starsByLesson(all);
-        const streak = computeStreak(all.map((r) => new Date(r.created_at)));
-        baselineRef.current = {
+        const plain = computeStreak(all.map((r) => new Date(r.created_at)));
+        const opened = {
           reps: rows,
-          didToday: streak.didToday,
+          didToday: plain.didToday,
           count: all.length,
           at: new Date(),
+          repair: null as RepairState | null,
         };
-        const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
+        baselineRef.current = opened;
+        /* The freezes first (#39): a held freeze covers a missed day
+           before two recordings are ever asked for it. Then the repair
+           still open today, if any (closure.md row 14), which the line
+           under Record says. A sync that fails says nothing of it. */
+        const [sync, xp] = await Promise.all([
+          syncFreezes(all).catch(() => null),
+          fetchXp().catch(() => ({ total: 0, week: 0 })),
+        ]);
+        // A take that landed meanwhile has read everything again: its answer stands.
+        if (baselineRef.current !== opened) return;
+        const repair = sync ? repairState(all, sync.frozenDays) : null;
+        opened.repair = repair;
         setAnticipate(
-          recordCue({ reps: rows, starMap: map, streak, xp: xp.total })
+          recordCue({ reps: rows, starMap: map, streak: sync?.streak ?? plain, xp: xp.total, repair })
         );
       })
       .catch(() => {});
@@ -1043,6 +1062,17 @@ function RepScreen() {
         return;
       }
       setResult(data as AnalyzeResponse);
+      /* The repair as the glance draws it from its first frame (closure.md
+         row 14): this take's own answer against the repair the screen
+         held, so the tap never changes under a finger. The rows read back
+         below are the truth every later screen uses. */
+      setRepairNow(
+        repairAfterTake(baselineRef.current?.repair ?? null, {
+          scorable: (data as AnalyzeResponse).scorable,
+          stored: !!(data as AnalyzeResponse).repId,
+          at: new Date(),
+        })
+      );
       /* The first take under #476 beside one scored before it (#491),
          read off the history from before this take, in the same frame
          as the result, so nothing on the glance moves when it lands. */
@@ -1085,10 +1115,16 @@ function RepScreen() {
           const dates = all.map((x) => new Date(x.created_at));
           // A failed freeze read rejects now; the streak's moment, the
           // coins and the closing note still land on the plain streak.
-          const { streak, frozenDays } = await syncFreezes(dates).catch(() => ({
+          const synced = await syncFreezes(all).catch(() => null);
+          const { streak, frozenDays, keptDays: kept } = synced ?? {
             streak: computeStreak(dates),
             frozenDays: [] as Date[],
-          }));
+            keptDays: [] as Date[],
+          };
+          /* The day after a miss, as the stored rows now stand: still open
+             (one recording of 20+ words in), or kept by this one. Unread
+             freezes say nothing of it. */
+          const repairAfter = synced ? repairState(all, frozenDays) : null;
           if (!live()) return;
           // Only the take that made today count owes the streak's moment
           // (#480), once a day on this phone; a second take of the day
@@ -1097,9 +1133,11 @@ function RepScreen() {
           // a moment still owed: it plays on the first exit that leaves.
           const owed = streakMoment({
             streak,
-            before: { didToday: doneToday(baselineRef.current) },
+            before: { didToday: doneToday(baselineRef.current), repair: baselineRef.current?.repair ?? null },
             repDates: dates,
             frozenDays,
+            keptDays: kept,
+            repair: repairAfter,
             now: new Date(),
             shownOn: momentShownOn(),
           });
@@ -1210,13 +1248,14 @@ function RepScreen() {
             didToday: true,
             count: all.length,
             at: new Date(),
+            repair: repairAfter,
           };
           // And the line under the next Record reads from it too: the
           // one from the screen's open said "keeps a 6-day streak alive"
           // after the debrief had just said 7.
           const xp = await fetchXp().catch(() => ({ total: 0, week: 0 }));
           if (!live()) return;
-          setAnticipate(recordCue({ reps, starMap: mapNow, streak, xp: xp.total }));
+          setAnticipate(recordCue({ reps, starMap: mapNow, streak, xp: xp.total, repair: repairAfter }));
         })
         .catch(() => {
           // Unread, nothing is owed: a streak the screen could not read
@@ -2081,6 +2120,7 @@ function RepScreen() {
           anonymous={anon}
           repCountBefore={repCount}
           streakNow={streakNow}
+          repair={repairNow}
           repsNow={repsNow}
           spineNow={spineNow}
           firstToday={firstScoredToday(baselineRef.current)}
@@ -2937,6 +2977,7 @@ function Results({
   anonymous,
   repCountBefore,
   streakNow,
+  repair,
   repsNow,
   spineNow,
   firstToday,
@@ -2977,6 +3018,8 @@ function Results({
   anonymous: boolean;
   repCountBefore: number | null;
   streakNow: number;
+  /** The day after a miss, as this take left it (lib/streak.ts repairAfterTake): still open, or null. */
+  repair: RepairState | null;
   repsNow: RepRow[];
   /** Every recording after this one, for the stars, days and count. */
   spineNow: RepSpine[];
@@ -3521,10 +3564,31 @@ function Results({
      Demos just asked, and the way on is the quiet link (the review: the
      tap moved on while he said "Give it 60 to 90 seconds"). */
   const retakeFirst = !scorable;
-  const primaryLabel = retakeFirst ? "Retake" : wayOn.label;
-  const quietLabel = retakeFirst ? wayOn.label : "Retake";
-  /* The ending's one quiet line under Retake: the streak's next day. */
-  const comeBack = lessonEnd && missingPractice === null ? comeBackLine(streakNow) : null;
+  /* The day after a miss (closure.md row 14), once its first recording of
+     20+ words is in: "One more" records again on the same topic (the
+     first take stays stored), "Done for today" is the quiet link that
+     still leaves for Today, and the ending's line slot says what the
+     second does. Decided at the glance's first frame, never after. Only
+     where the take is done for today: Today's practice or a topic of your
+     own, never a lesson, a game or the boss. */
+  const [repairWay] = useState(() =>
+    repairWayOn({
+      repair,
+      scorable,
+      label: onward.label,
+      doneForToday: DONE_FOR_TODAY,
+      lesson: !!lesson,
+      game: !!game,
+      boss: config.kind === "boss",
+    })
+  );
+  const primaryLabel = retakeFirst ? "Retake" : repairWay ? repairWay.tap : wayOn.label;
+  const quietLabel = retakeFirst ? wayOn.label : repairWay ? repairWay.quiet : "Retake";
+  const primaryGo = retakeFirst || repairWay ? onRetake : wayOn.go;
+  const quietGo = retakeFirst || repairWay ? wayOn.go : onRetake;
+  /* The ending's one quiet line under Retake: the streak's next day. On
+     the repair's glance, the same slot says what the second recording does. */
+  const comeBack = repairWay ? repairWay.line : lessonEnd && missingPractice === null ? comeBackLine(streakNow) : null;
 
   const delta =
     result.ethosIndex !== null && result.previousIndex !== null ? result.ethosIndex - result.previousIndex : null;
@@ -3608,21 +3672,26 @@ function Results({
       lineShort: cueSaid ? cueSaid.lineShort.sentence : null,
       cueShort: cueSaid && !reminder.node ? cueSaid.cueShort : null,
     },
-    starsBudget(
-      rulesBudget(
-        askBudget(
-          testerWords
-            ? GLANCE_WORDS_TESTER
-            : lessonLine
-              ? GLANCE_WORDS_LESSON_DONE
-              : delta === null && baseline
-                ? GLANCE_WORDS_FIRST
-                : GLANCE_WORDS,
-          reminder.words
+    /* The repair's line rides on the ceiling, as the ask's words do; what
+       its taps add past that, the carried cue gives up first. */
+    repairBudget(
+      starsBudget(
+        rulesBudget(
+          askBudget(
+            testerWords
+              ? GLANCE_WORDS_TESTER
+              : lessonLine
+                ? GLANCE_WORDS_LESSON_DONE
+                : delta === null && baseline
+                  ? GLANCE_WORDS_FIRST
+                  : GLANCE_WORDS,
+            reminder.words
+          ),
+          rulesNoteText
         ),
-        rulesNoteText
+        goals
       ),
-      goals
+      repairWay?.line ?? null
     ),
     proof
   );
@@ -3835,7 +3904,7 @@ function Results({
   const primary = (where: "shelf" | "sheet") => {
     const mark = where === "shelf" ? { "data-step-action": "" } : {};
     return (
-      <button {...mark} onClick={retakeFirst ? onRetake : wayOn.go} className={ACTION_ARROW_CLASS}>
+      <button {...mark} onClick={primaryGo} className={ACTION_ARROW_CLASS}>
         {/* 4px over and under, for the two longest lesson names at 320,
             which take two lines: one line is still the 48px pill. */}
         <span className="min-w-0 py-1 text-balance">{primaryLabel}</span>
@@ -4051,16 +4120,21 @@ function Results({
                 <button
                   type="button"
                   data-quiet-action
-                  onClick={retakeFirst ? wayOn.go : onRetake}
+                  onClick={quietGo}
                   className="press min-h-11 rounded-tap px-3 text-link text-stone-500"
                 >
                   {quietLabel}
                 </button>
               </div>
               {/* A lesson's ending points at coming back, one quiet line,
-                  its height held until the streak is read. */}
-              {lessonEnd && missingPractice === null && (
-                <p data-come-back className="-mt-1 min-h-[17px] text-center text-caption text-stone-500">
+                  its height held until the streak is read. The repair's
+                  glance says there what the second recording does. */}
+              {(repairWay || (lessonEnd && missingPractice === null)) && (
+                <p
+                  data-come-back
+                  data-repair-line={repairWay ? "" : undefined}
+                  className="-mt-1 min-h-[17px] text-center text-caption text-stone-500"
+                >
                   {comeBack}
                 </p>
               )}

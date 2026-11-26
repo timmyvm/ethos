@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RECIPES, STREAK_LAND_S } from "./sound-recipes";
-import { computeStreak } from "./streak";
+import { computeStreak, keptDays, repairState } from "./streak";
 import {
   bridgedDays,
   dayKey,
   freezeLine,
+  keptLine,
   momentTimeline,
   momentWeek,
   odometer,
@@ -118,6 +119,84 @@ describe("when the streak's moment shows", () => {
   it("marks the milestones the chime escalates on", () => {
     expect(moment({ spoke: [1, 2, 3, 4, 5, 6] })!.milestone).toBe(true);
     expect(moment({ spoke: [1, 2, 3] })!.milestone).toBe(false);
+  });
+});
+
+/*
+ * The day after a miss (closure.md row 14): spoke Thursday 12 to Monday 16
+ * November (a run of five), missed Tuesday 17, and Wednesday 18 is the
+ * repair. The rule's ship date is moved back for these days
+ * (lib/streak.ts REPAIR_FROM); the moment reads whatever it keeps.
+ */
+describe("the moment on the day two recordings keep a missed one", () => {
+  const FROM = "2026-11-01";
+  const WED = new Date(2026, 10, 18, 19, 30);
+  const take = (day: number, h = 18, scorable = true) => ({ created_at: new Date(2026, 10, day, h, 12).toISOString(), scorable });
+  const five = [12, 13, 14, 15, 16].map((n) => take(n));
+  /** The moment after Wednesday's takes, against the screen's state before the last of them. */
+  function repaired(wednesday: ReturnType<typeof take>[], beforeTakes: ReturnType<typeof take>[]) {
+    const takes = [...five, ...wednesday];
+    const repDates = takes.map((t) => new Date(t.created_at));
+    const kept = keptDays(takes, [], WED, FROM);
+    const streak = computeStreak(repDates, WED, kept);
+    const before = [...five, ...beforeTakes];
+    return streakMoment({
+      streak,
+      before: {
+        didToday: computeStreak(before.map((t) => new Date(t.created_at)), WED).didToday,
+        repair: repairState(before, [], WED, FROM),
+      },
+      repDates,
+      frozenDays: [],
+      keptDays: kept,
+      repair: repairState(takes, [], WED, FROM),
+      now: WED,
+      shownOn: null,
+    });
+  }
+
+  it("owes nothing for the first recording of 20+ words: the day is not kept yet", () => {
+    expect(repaired([take(18, 9)], [])).toBeNull();
+  });
+
+  it("owes nothing for a take too short to count either", () => {
+    expect(repaired([take(18, 9, false)], [])).toBeNull();
+  });
+
+  it("rolls 5 to 6 on the second, the kept Tuesday drawn without a freeze and named under the row", () => {
+    const m = repaired([take(18, 9), take(18, 19)], [take(18, 9)]);
+    expect(m).not.toBeNull();
+    expect(m!.from).toBe(5);
+    expect(m!.to).toBe(6);
+    expect(streakLine(m!.to)).toBe("6 days running");
+    expect(m!.week.map((d) => d.mark)).toEqual(["spoken", "kept", "spoken", "open", "open", "open", "open"]);
+    expect(m!.bridged).toEqual([]);
+    expect(dayKey(m!.kept!)).toBe(dayKey(new Date(2026, 10, 17)));
+    expect(keptLine(m!.kept)).toBe("Two recordings covered Tuesday.");
+    expect(freezeLine(m!.bridged)).toBeNull();
+  });
+
+  it("is still once a day on this phone", () => {
+    const takes = [...five, take(18, 9), take(18, 19)];
+    const repDates = takes.map((t) => new Date(t.created_at));
+    const kept = keptDays(takes, [], WED, FROM);
+    const before = [...five, take(18, 9)];
+    expect(
+      streakMoment({
+        streak: computeStreak(repDates, WED, kept),
+        before: { didToday: true, repair: repairState(before, [], WED, FROM) },
+        repDates,
+        frozenDays: [],
+        keptDays: kept,
+        repair: null,
+        now: WED,
+        shownOn: dayKey(WED),
+      })
+    ).toBeNull();
+  });
+
+  it("says nothing on a day nothing was kept", () => {
+    expect(keptLine(null)).toBeNull();
   });
 });
 

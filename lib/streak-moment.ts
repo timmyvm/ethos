@@ -32,14 +32,14 @@ import { weekStart } from "./level";
 import { STREAK_LAND_S } from "./sound-recipes";
 import { SPRING, springMs } from "./spring";
 import { DURATION } from "./motion";
-import { computeStreak, type StreakState } from "./streak";
+import { computeStreak, type RepairState, type StreakState } from "./streak";
 
-export type DayMark = "spoken" | "frozen" | "open";
+export type DayMark = "spoken" | "frozen" | "kept" | "open";
 
 export interface MomentDay {
   /** M, T, W, T, F, S, S. */
   label: string;
-  /** Spoken (today always is, here), carried by a freeze, or neither. */
+  /** Spoken (today always is, here), carried by a freeze, kept by two recordings (lib/streak.ts keptDays), or none. */
   mark: DayMark;
   today: boolean;
 }
@@ -53,6 +53,8 @@ export interface StreakMomentView {
   week: MomentDay[];
   /** The days just before today a freeze carried, oldest first: the gap this take crossed. */
   bridged: Date[];
+  /** The missed day this take kept, its second recording of 20+ words (closure.md row 14), or null. */
+  kept: Date | null;
   /** The local day it belongs to (`dayKey`), for once a day. */
   day: string;
   /** 7, 14 and 30 days: the sound is the milestone's (#140, #505). */
@@ -72,50 +74,75 @@ function dayBefore(now: Date, n: number): Date {
 
 /**
  * The moment the take that just landed is owed, or null. `streak` is the
- * stored streak read back after the take (freezes counted), `before` what
- * the screen knew before it (null when that read failed), `repDates` and
- * `frozenDays` everything the streak was counted from.
+ * stored streak read back after the take (freezes and kept days counted),
+ * `before` what the screen knew before it (null when that read failed),
+ * `repDates`, `frozenDays` and `keptDays` everything the streak was
+ * counted from.
+ *
+ * The day after a miss (closure.md row 14): while the repair is still
+ * open after the take (`repair`, its first recording of 20+ words, or one
+ * too short to count), nothing is owed; if the second never comes,
+ * midnight is the plain break it always was. The take that keeps the day
+ * owes the moment, from the run it kept (5) to today's count (6), the
+ * kept day drawn in the week and named under it.
  */
 export function streakMoment(p: {
   streak: StreakState;
-  before: { didToday: boolean } | null;
+  before: { didToday: boolean; repair?: RepairState | null } | null;
   repDates: Date[];
   frozenDays: Date[];
+  /** Days two recordings kept (lib/streak.ts keptDays). */
+  keptDays?: Date[];
+  /** The repair as it stands after this take, still open, or null. */
+  repair?: RepairState | null;
   now: Date;
   /** The day this phone last showed the moment (`momentShownOn`). */
   shownOn: string | null;
 }): StreakMomentView | null {
-  if (!celebratesStreak(p.streak, p.before)) return null;
+  if (p.repair) return null;
+  const kept = p.keptDays ?? [];
+  /* The repair the screen held before this take, while it is still
+     yesterday's (a screen left open past midnight holds an older one). */
+  const opened = p.before?.repair && dayKey(p.before.repair.missed) === dayKey(dayBefore(p.now, 1)) ? p.before.repair : null;
+  const keptNow =
+    opened && p.streak.didToday && p.streak.current > 0 && kept.some((k) => dayKey(k) === dayKey(opened.missed))
+      ? opened.missed
+      : null;
+  if (!keptNow && !celebratesStreak(p.streak, p.before)) return null;
   const day = dayKey(p.now);
   if (p.shownOn === day) return null;
   const to = p.streak.current;
   /* Yesterday's count is the streak as it stood before today's take: the
      same count over every stored day but today. Today adds exactly one
      day to a run that reached yesterday, or starts one, so it is always
-     one under today's; the clamp keeps a torn read from rolling down. */
+     one under today's; the clamp keeps a torn read from rolling down.
+     The take that kept yesterday rolls from the run it kept. */
   const earlier = p.repDates.filter((d) => dayKey(d) !== day && d.getTime() <= p.now.getTime());
-  const before = computeStreak(earlier, p.now, p.frozenDays).current;
+  const before = keptNow && opened ? opened.run : computeStreak(earlier, p.now, [...p.frozenDays, ...kept]).current;
   const from = Math.max(0, Math.min(before, to - 1));
   return {
     from,
     to,
-    week: momentWeek(p.repDates, p.frozenDays, p.now),
-    bridged: from > 0 ? bridgedDays(p.frozenDays, p.now, p.repDates) : [],
+    week: momentWeek(p.repDates, p.frozenDays, p.now, kept),
+    bridged: from > 0 && !keptNow ? bridgedDays(p.frozenDays, p.now, p.repDates) : [],
+    kept: keptNow,
     day,
     milestone: to === 7 || to === 14 || to === 30,
   };
 }
 
-/** This week, Monday first: each day spoken, frozen or open, today spoken. */
-export function momentWeek(repDates: Date[], frozenDays: Date[], now: Date): MomentDay[] {
+/** This week, Monday first: each day spoken, frozen, kept or open, today spoken. */
+export function momentWeek(repDates: Date[], frozenDays: Date[], now: Date, keptDays: Date[] = []): MomentDay[] {
   const start = weekStart(now);
   const today = dayKey(now);
   const spoken = new Set(repDates.filter((d) => d.getTime() <= now.getTime()).map(dayKey));
   spoken.add(today);
   const frozen = new Set(frozenDays.map(dayKey));
+  const kept = new Set(keptDays.map(dayKey));
   return LABELS.map((label, i) => {
     const k = dayKey(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
-    return { label, mark: spoken.has(k) ? "spoken" : frozen.has(k) ? "frozen" : "open", today: k === today };
+    const mark: DayMark = spoken.has(k) ? "spoken" : frozen.has(k) ? "frozen" : kept.has(k) ? "kept" : "open";
+    return { label, mark, today: k === today };
   });
 }
 
@@ -161,6 +188,14 @@ export function freezeLine(bridged: Date[]): string | null {
   const names = bridged.map((d) => WEEKDAY[d.getDay()]);
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
   return `${names.length === 1 ? "A freeze" : "Freezes"} covered ${list}.`;
+}
+
+/**
+ * Under it, when this take kept the day before (closure.md row 14), in
+ * freezeLine's grammar: "Two recordings covered Tuesday."
+ */
+export function keptLine(kept: Date | null): string | null {
+  return kept ? `Two recordings covered ${WEEKDAY[kept.getDay()]}.` : null;
 }
 
 /**

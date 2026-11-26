@@ -26,7 +26,7 @@ import type { RepRow } from "./client-data";
 import { isScorable, type RepMetrics } from "./metrics";
 import { heldPauseMarks } from "./pause-mark";
 import type { Milestone } from "./progress";
-import type { StreakState } from "./streak";
+import type { RepairState, StreakState } from "./streak";
 import { measured } from "./trait-readings";
 
 export interface RewardMoment {
@@ -59,9 +59,21 @@ const NEAR_MISS_RATIO = 0.85;
  */
 export function anticipation(
   milestones: Milestone[],
-  streak: StreakState
+  streak: StreakState,
+  /** The day after one missed, while two takes can still keep it (lib/streak.ts repairState). */
+  repair: RepairState | null = null
 ): RewardMoment | null {
   const closest = milestones[0];
+  /* A missed day two recordings of 20+ words can keep (closure.md row 14):
+     said here, where you record, and nowhere else. Its number is the run
+     it keeps, and the deadline is the day's own end, never a clock. */
+  if (repair) {
+    return {
+      headline: repairCue(repair),
+      detail: closest ? closest.line : "Five minutes, in and out.",
+      tone: "earned",
+    };
+  }
   if (!streak.didToday && streak.current > 0) {
     return {
       headline: `This one keeps a ${streak.current}-day streak alive`,
@@ -80,6 +92,18 @@ export function anticipation(
     detail: closest.detail,
     tone: "earned",
   };
+}
+
+/**
+ * The line under Record on the day after a miss: "Two recordings of 20+
+ * words keep a 5-day streak alive" before the first, "This one keeps a
+ * 5-day streak alive" before the second, the same words the line uses on
+ * any day a streak is on the line.
+ */
+export function repairCue(repair: Pick<RepairState, "run" | "counted">): string {
+  return repair.counted === 0
+    ? `Two recordings of 20+ words keep a ${repair.run}-day streak alive`
+    : `This one keeps a ${repair.run}-day streak alive`;
 }
 
 /**

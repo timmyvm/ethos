@@ -18,7 +18,7 @@ import {
   type RewardMoment,
 } from "./rewards";
 import { bestMoment } from "./round-copy";
-import type { StreakState } from "./streak";
+import type { RepairState, StreakState } from "./streak";
 
 /**
  * The streak roll-up plays on the take that made today count, and only
@@ -45,6 +45,8 @@ export function recordCue(p: {
   starMap: Record<string, number>;
   streak: StreakState;
   xp: number;
+  /** The day after a miss, while two takes can keep it (lib/streak.ts repairState): its line leads. */
+  repair?: RepairState | null;
 }): RewardMoment | null {
   return anticipation(
     nextMilestones({
@@ -55,7 +57,8 @@ export function recordCue(p: {
       freezesEquipped: 0,
       achievements: achievements(p.reps),
     }),
-    p.streak
+    p.streak,
+    p.repair ?? null
   );
 }
 

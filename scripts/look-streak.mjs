@@ -41,6 +41,10 @@
  *   repair-unread  the repair with every read between its two takes
  *           failing: the second line under Record and the second take's
  *           "Done for today" come from the first take's own answer.
+ *   repair-used  the repair on a phone that already holds today's 3 scored
+ *           recordings as used (`ethos.scored.left`, DECISIONS #522): both
+ *           lines under Record are the repair's and the used line never
+ *           shows, since a capped take still keeps the day (#518).
  *
  * Each scene that shows the moment is shot at its start, mid-roll and end
  * (the page's animations paused and sought, so a frame is its moment),
@@ -121,6 +125,9 @@ const SCENE = {
      line under Record still moves on and the take that keeps the day taps
      "Done for today", not "One more". */
   "repair-unread": { spoke: [2, 3, 4, 5, 6], frozen: [], from: 5, to: 6, moment: true, repair: true, viaTap: "Done for today", unread: true },
+  /* The same on a phone sure today's scored recordings are used (#522):
+     the repair's line outranks it (lib/rep-screen.ts underRecord). */
+  "repair-used": { spoke: [2, 3, 4, 5, 6], frozen: [], from: 5, to: 6, moment: true, repair: true, viaTap: "Done for today", used: true },
 };
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -213,9 +220,20 @@ for (const scene of SCENES) {
       css.textContent = "nextjs-portal{display:none!important}";
       document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
     });
+    /* repair-used: this phone's copy says today's scored recordings are
+       used, for this account, on the page's own (moved) day. */
+    if (S.used) {
+      await context.addInitScript((uid) => {
+        const d = new Date();
+        const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        localStorage.setItem("ethos.scored.left", JSON.stringify({ uid, day, left: 0 }));
+      }, F.session.user.id);
+    }
     const page = await context.newPage();
     page.on("pageerror", (e) => console.log("PAGEERROR", e.message.slice(0, 160)));
     const shot = (beat) => `${OUT}${TAG}-${scene}-${beat}-${size.name}.png`;
+    /* The used line under Record (#522), which the repair's outranks. */
+    const usedLine = () => page.locator("[data-scored-used]").count();
 
     /* The line under Record, once its reads have landed. */
     const recordCue = async () => {
@@ -264,6 +282,7 @@ for (const scene of SCENES) {
       console.log(`${at}: under Record "${cue1}"`);
       const want1 = `Two recordings of 20+ words keep a ${run}-day streak alive`;
       if (TAG !== "before" && cue1 !== want1) fail(`${at}: under Record reads "${cue1}", wanted "${want1}"`);
+      if (S.used && TAG !== "before" && (await usedLine()) > 0) fail(`${at}: the used line stands beside the repair's under Record`);
       await take(3000);
       await page.waitForSelector("main [data-glance]", { timeout: 30000 });
       await sleep(2600);
@@ -290,6 +309,7 @@ for (const scene of SCENES) {
         console.log(`${at}: under Record again "${cue2}"`);
         const want2 = `This one keeps a ${run}-day streak alive`;
         if (cue2 !== want2) fail(`${at}: under Record reads "${cue2}", wanted "${want2}"`);
+        if (S.used && (await usedLine()) > 0) fail(`${at}: the used line stands beside the repair's under the second Record`);
         await take(3000);
       }
     } else {
@@ -507,6 +527,18 @@ for (const scene of SCENES) {
       const label = await chip();
       console.log(`${at}: Today's chip after "${label}"`);
       if (TAG !== "before" && (!label || !label.startsWith(`Streak ${S.to}`) || label.includes("open"))) fail(`${at}: Today's chip reads "${label}", wanted ${S.to} lit`);
+    }
+    if (S.used) {
+      /* The day kept, the recorder again: now the used line stands, so its
+         absence above was the repair's line winning, not a copy unread. */
+      await page.goto(`${BASE}/rep`);
+      await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
+      await page.waitForSelector("[data-scored-used]", { timeout: 6000 }).catch(() => {});
+      await sleep(400);
+      await page.screenshot({ path: shot("record3") });
+      const used = await usedLine();
+      console.log(`${at}: under Record once kept, the used line ${used ? "stands" : "is missing"}`);
+      if (TAG !== "before" && used !== 1) fail(`${at}: once the day is kept the used line does not stand under Record`);
     }
     await context.close();
   }

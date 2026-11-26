@@ -218,6 +218,20 @@ describe("a missed day two recordings keep", () => {
     expect(keptDays(seven, [], WED_NIGHT)).toEqual([]);
   });
 
+  it("counts the run before the miss across a freeze, as computeStreak does", () => {
+    // 4 spoken, a freeze on Friday 27, 3 spoken: seven spoken days, so
+    // the run relies on freezes (#174) and Tuesday is not kept.
+    const freeze = [new Date(2026, 10, 27)];
+    const sevenOverFreeze = [...spoke(23, 24, 25, 26, 28, 29, 30), take(12, 2, 9), take(12, 2, 19)];
+    expect(keptDays(sevenOverFreeze, freeze, WED_NIGHT)).toEqual([]);
+    expect(repairState(sevenOverFreeze.slice(0, -2), freeze, new Date(2026, 11, 2, 8))).toBeNull();
+    // 1 spoken, a freeze on Sunday 29, 1 spoken: a run of two, kept.
+    const twoOverFreeze = [...spoke(28, 30), take(12, 2, 9), take(12, 2, 19)];
+    const sunday = [new Date(2026, 10, 29)];
+    expect(keys(keptDays(twoOverFreeze, sunday, WED_NIGHT))).toEqual(keys([TUE]));
+    expect(repairState(twoOverFreeze.slice(0, -2), sunday, new Date(2026, 11, 2, 8))?.run).toBe(2);
+  });
+
   it("keeps nothing across a two-day gap", () => {
     const takes = [...spoke(25, 26, 27, 28, 29), take(12, 2, 9), take(12, 2, 19)];
     expect(keptDays(takes, [], WED_NIGHT)).toEqual([]);

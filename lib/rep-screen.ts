@@ -15,6 +15,7 @@ import {
   anticipation,
   endNote,
   personalBests,
+  repairCue,
   type RewardMoment,
 } from "./rewards";
 import { bestMoment } from "./round-copy";
@@ -60,6 +61,25 @@ export function recordCue(p: {
     p.streak,
     p.repair ?? null
   );
+}
+
+/**
+ * The line under the next Record once a take has landed, before its rows
+ * are read back (closure.md row 14). Only the repair's line moves here:
+ * the take that brought the first recording of 20+ words in says what the
+ * second does, and the take that kept the day leaves nothing to say until
+ * the read lands. The read replaces it with the stored truth; when that
+ * read fails, this stands, so the line never asks for two recordings after
+ * one is in (the review, 26 Nov). Any other take leaves the line alone.
+ */
+export function cueAfterTake(
+  cue: RewardMoment | null,
+  before: RepairState | null,
+  after: RepairState | null
+): RewardMoment | null {
+  if (!before || after === before) return cue;
+  if (!after) return null;
+  return cue ? { ...cue, headline: repairCue(after) } : null;
 }
 
 /**

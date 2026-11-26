@@ -33,10 +33,14 @@
  *           "Done for today" under it and the stone line; under Record
  *           again "This one keeps a 5-day streak alive"; the second
  *           take's "Done for today" plays the moment 5 to 6, Tuesday drawn
- *           kept (the sky wash, no snowflake) and "Two recordings covered
- *           Tuesday." under the row; then Today on a lit 6. Its day is the
- *           first Wednesday after lib/streak.ts REPAIR_FROM (read from the
- *           file), so it runs on its own: `... after repair`.
+ *           kept (the sky wash and the mic, no snowflake) and "Two
+ *           recordings covered Tuesday." under the row; then Today on a
+ *           lit 6. Its day is the first Wednesday after lib/streak.ts
+ *           REPAIR_FROM (read from the file), so it runs on its own:
+ *           `... after repair`.
+ *   repair-unread  the repair with every read between its two takes
+ *           failing: the second line under Record and the second take's
+ *           "Done for today" come from the first take's own answer.
  *
  * Each scene that shows the moment is shot at its start, mid-roll and end
  * (the page's animations paused and sought, so a frame is its moment),
@@ -112,6 +116,11 @@ const SCENE = {
   lesson: { spoke: [1, 2, 3], frozen: [], from: 3, to: 4, moment: true, lesson: "know-the-landing" },
   /* Spoke Thursday to Monday, missed Tuesday: two takes today keep it. */
   repair: { spoke: [2, 3, 4, 5, 6], frozen: [], from: 5, to: 6, moment: true, repair: true, viaTap: "Done for today" },
+  /* The same, with the read after the first take failing (the review, 26
+     Nov): the second take is judged from the first's own answer, so the
+     line under Record still moves on and the take that keeps the day taps
+     "Done for today", not "One more". */
+  "repair-unread": { spoke: [2, 3, 4, 5, 6], frozen: [], from: 5, to: 6, moment: true, repair: true, viaTap: "Done for today", unread: true },
 };
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -163,6 +172,8 @@ for (const scene of SCENES) {
     await context.route("http://supabase.local/rest/v1/reps**", (route) => {
       const req = route.request();
       if (req.method() !== "GET") return route.fallback();
+      /* repair-unread: every read between the first take and the second fails. */
+      if (S.unread && taken.length === 1) return route.fulfill(F.json({ code: "XX000", message: "unread" }, 503));
       const url = new URL(req.url());
       let rows = history();
       if ((url.searchParams.get("lesson_id") ?? "").startsWith("like.game:")) rows = [];
@@ -385,6 +396,7 @@ for (const scene of SCENES) {
             frozen: el.querySelectorAll("[data-day='frozen']").length,
             kept: el.querySelectorAll("[data-day='kept']").length,
             keptMarks: el.querySelectorAll("[data-day='kept'] svg").length,
+            keptMics: el.querySelectorAll("[data-day='kept'] [data-mark='recordings'] svg").length,
             under: el.querySelector("[data-under-week]")?.textContent?.trim() ?? null,
             scrolls: document.scrollingElement.scrollHeight > innerHeight + 1,
             /* Today's block at rest: no transform held on it, or its layer
@@ -451,11 +463,12 @@ for (const scene of SCENES) {
       } else if (TAG !== "before") fail(`${at}: the moment's parts were not found to measure`);
       if ((Number(m.from) !== S.from || Number(m.to) !== S.to) && !(S.repair && TAG === "before")) fail(`${at}: rolled ${m.from} to ${m.to}, wanted ${S.from} to ${S.to}`);
       if (S.repair && TAG !== "before") {
-        /* Tuesday drawn kept, in the sky wash with no snowflake, and named under the row. */
+        /* Tuesday drawn kept, in the sky wash with the mic and no
+           snowflake (its own shape, DESIGN 10), and named under the row. */
         const tuesday = WEEKDAY[new Date(CLOCK.getTime() - 86_400_000).getDay()];
-        console.log(`${at}: kept days drawn ${m.kept} (${m.keptMarks} marks in them); under the row "${m.under}"`);
+        console.log(`${at}: kept days drawn ${m.kept} (${m.keptMarks} marks in them, ${m.keptMics} the mic); under the row "${m.under}"`);
         if (m.kept !== 1) fail(`${at}: ${m.kept} kept days drawn, wanted 1`);
-        if (m.keptMarks !== 0) fail(`${at}: the kept day carries a mark (a freeze's snowflake?)`);
+        if (m.keptMics !== 1 || m.keptMarks !== 1) fail(`${at}: the kept day carries ${m.keptMarks} marks, ${m.keptMics} of them the mic: wanted the mic alone`);
         if (m.under !== `Two recordings covered ${tuesday}.`) fail(`${at}: under the row "${m.under}"`);
       }
       if (m.taps !== 1) fail(`${at}: ${m.taps} filled taps`);

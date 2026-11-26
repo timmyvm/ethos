@@ -235,6 +235,31 @@ describe("Today's numbers kept between opens", () => {
     expect(next.streak.current).toBeGreaterThan(0);
   });
 
+  it("counts a day two recordings kept again from the kept spine, so a cold open draws the run, not the bare count", () => {
+    // Spoke 26 to 30 November, missed Tuesday 1 December, two takes of
+    // 20+ words on Wednesday (lib/streak.ts keptDays, closure.md row 14).
+    const row = (d: number, m: number, h: number, i: number) => ({
+      id: `k${i}`,
+      created_at: new Date(2026, m - 1, d, h).toISOString(),
+      lesson_id: null,
+      stars: 1,
+      ethos_index: 60,
+      mode: "daily",
+      scorable: true,
+    });
+    const five = [26, 27, 28, 29, 30].map((d, i) => row(d, 11, 18, i));
+    const repaired = [...five, row(2, 12, 9, 5), row(2, 12, 19, 6)];
+    heldFor("user-a");
+    hold(SPINE_KEY, repaired, heldMark());
+    hold(FREEZES_KEY, { ...freezes(), frozenDays: [], equipped: 0 }, heldMark());
+    reopen();
+    restoreHeld("user-a");
+    const back = keptFreezes(onPhone()!.items[FREEZES_KEY], new Date(2026, 11, 2, 21))!;
+    expect(back.keptDays.map((d) => d.toDateString())).toEqual([new Date(2026, 11, 1).toDateString()]);
+    expect(back.streak.current).toBe(6);
+    expect(back.streak.didToday).toBe(true);
+  });
+
   it("reads the account from the auth client's own key, and nothing else", () => {
     expect(phoneAccount("http://supabase.local")).toBeNull();
     disk.set("sb-supabase-auth-token", JSON.stringify({ access_token: "x", user: { id: "user-a" } }));

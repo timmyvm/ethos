@@ -137,6 +137,7 @@ import { SwapSheet } from "@/components/say/SwapSheet";
 import { proofLeads, withProof } from "@/lib/sound-recipes";
 import {
   backLabel,
+  cueAfterTake,
   defaultBack,
   exitBeat,
   recordCue,
@@ -1066,13 +1067,22 @@ function RepScreen() {
          row 14): this take's own answer against the repair the screen
          held, so the tap never changes under a finger. The rows read back
          below are the truth every later screen uses. */
-      setRepairNow(
-        repairAfterTake(baselineRef.current?.repair ?? null, {
-          scorable: (data as AnalyzeResponse).scorable,
-          stored: !!(data as AnalyzeResponse).repId,
-          at: new Date(),
-        })
-      );
+      const repairBefore = baselineRef.current?.repair ?? null;
+      const repairPredicted = repairAfterTake(repairBefore, {
+        scorable: (data as AnalyzeResponse).scorable,
+        stored: !!(data as AnalyzeResponse).repId,
+        at: new Date(),
+      });
+      setRepairNow(repairPredicted);
+      /* The next take on this screen is judged from this one, whether or
+         not the read below lands (the review: a failed read left the
+         opening state, so the take that kept the day drew "One more"),
+         and the line under the next Record says the same. A new baseline,
+         so the screen's opening read, if still out, leaves it alone. */
+      if (baselineRef.current && repairPredicted !== repairBefore) {
+        baselineRef.current = { ...baselineRef.current, repair: repairPredicted };
+        setAnticipate((cue) => cueAfterTake(cue, repairBefore, repairPredicted));
+      }
       /* The first take under #476 beside one scored before it (#491),
          read off the history from before this take, in the same frame
          as the result, so nothing on the glance moves when it lands. */
@@ -1133,7 +1143,7 @@ function RepScreen() {
           // a moment still owed: it plays on the first exit that leaves.
           const owed = streakMoment({
             streak,
-            before: { didToday: doneToday(baselineRef.current), repair: baselineRef.current?.repair ?? null },
+            before: { didToday: doneToday(baselineRef.current), repair: repairBefore },
             repDates: dates,
             frozenDays,
             keptDays: kept,

@@ -20,7 +20,7 @@ All six are built, merged on one branch and checked together, ranked by how much
 
 ### 1. Miss one day, keep the streak by speaking twice (Loss aversion, FOMO). Built: #518
 
-**What changed.** Someone on a 2 to 6 day streak misses one day and has no freeze. The next day, two recordings of 20+ words cover the missed day. The streak goes on. It is never offered more than once in 7 days, never for a two-day gap, and never for runs of 7 or more, which already earn freezes.
+**What changed.** Someone on a 2 to 6 day streak misses one day and has no freeze. The next day, two recordings of 20+ words cover the missed day. The streak goes on. A day is kept at most once in 7 days, never for a two-day gap, and never for runs of 7 or more, which already earn freezes. An offer nobody takes up keeps nothing, so it can come round again a few days later.
 
 - **Today:** unchanged. "Welcome back", and the flame at its grey 0.
 - **Under Record, first recording:** "Two recordings of 20+ words keep a 5-day streak alive"

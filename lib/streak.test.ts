@@ -333,6 +333,17 @@ describe("the repair still open today", () => {
     expect(repairState(takes, [], new Date(2026, 11, 6, 8))).toBeNull();
   });
 
+  it("spaces the days kept, not the offers: one not taken up leaves the next free", () => {
+    // Spoke Friday 27 to Sunday 29, missed Monday 30: offered Tuesday 1.
+    const base = [take(11, 27), take(11, 28), take(11, 29)];
+    expect(repairState(base, [], new Date(2026, 11, 1, 8))).toMatchObject({ run: 3, counted: 0 });
+    // One take Tuesday (nothing kept), one Wednesday, Thursday missed:
+    // offered again Friday 4, three days on (docs/growth/psych-20.md says
+    // a day is kept at most once in 7 days, not that it is offered once).
+    const later = [...base, take(12, 1), take(12, 2)];
+    expect(repairState(later, [], new Date(2026, 11, 4, 8))).toMatchObject({ run: 2, counted: 0 });
+  });
+
   it("predicts the glance's first frame from the take's own answer, and closes on the second", () => {
     const open = repairState(five, [], WED(8))!;
     const at = WED(9);

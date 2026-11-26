@@ -338,6 +338,29 @@ describe("the moment's clock", () => {
  * height goes to the flame; four bands share the rest, none over 64.
  * scripts/look-streak.mjs measures them at 390x844, 375x667 and 320x568.
  */
+/*
+ * DESIGN principle 10: a colour is never the whole message. A kept day
+ * shares the freeze's sky, so it carries a mark of its own, the mic, where
+ * the freeze carries its snowflake; an open day carries none (the review,
+ * 26 Nov: on a later day's moment, with no line under the row, a plain sky
+ * tile read as a lighter open day).
+ */
+describe("the week's marks differ in shape, not colour alone", () => {
+  const tsx = readFileSync("components/StreakMoment.tsx", "utf8");
+  const css = readFileSync("app/globals.css", "utf8");
+  it("draws the snowflake on a frozen day and the mic on a kept one", () => {
+    expect(tsx).toMatch(/d\.mark === "frozen" && <IconFreeze size=\{16\} \/>/);
+    expect(tsx).toMatch(/d\.mark === "kept" && \(\s*<span data-mark="recordings"[^>]*>\s*<IconMic size=\{16\} \/>/);
+  });
+  it("inks the kept day's mark in the freeze's sky ink", () => {
+    const at = css.indexOf('.streak-day[data-day="kept"] {');
+    expect(at).toBeGreaterThan(-1);
+    const rule = css.slice(at, css.indexOf("}", at));
+    expect(rule).toMatch(/background: var\(--pop-sky-wash\)/);
+    expect(rule).toMatch(/color: var\(--pop-sky-ink\)/);
+  });
+});
+
 describe("the moment's room", () => {
   const css = readFileSync("app/globals.css", "utf8");
   const tsx = readFileSync("components/StreakMoment.tsx", "utf8");

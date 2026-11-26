@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
-import { IconFreeze } from "@/components/Icon";
+import { IconFreeze, IconMic } from "@/components/Icon";
 import { FooterShelf } from "@/components/ui/FooterShelf";
 import { TapTick } from "@/components/ui/TapTick";
 import { DURATION, EASE_OUT } from "@/lib/motion";
@@ -260,6 +260,14 @@ export function StreakMoment({
             <span key={i} className="flex flex-col items-center gap-1.5">
               <span className="streak-day w-full" data-day={d.today ? "today" : d.mark}>
                 {d.mark === "frozen" && <IconFreeze size={16} />}
+                {/* A day two recordings kept: the freeze's sky, its own
+                    mark (the mic, what covered it), so kept, frozen and
+                    open differ in shape, not colour alone (DESIGN 10). */}
+                {d.mark === "kept" && (
+                  <span data-mark="recordings" className="grid place-items-center">
+                    <IconMic size={16} />
+                  </span>
+                )}
                 {d.today && <span data-fill="" />}
               </span>
               <span className={`font-display text-suffix ${d.today ? "font-extrabold text-ink" : "font-bold text-stone-400"}`}>

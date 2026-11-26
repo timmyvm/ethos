@@ -195,6 +195,29 @@ describe("the moment on the day two recordings keep a missed one", () => {
     ).toBeNull();
   });
 
+  it("rolls a kept run of 6 to 7 on its milestone, Tuesday still named under the row", () => {
+    const six = [11, 12, 13, 14, 15, 16].map((n) => take(n));
+    const takes = [...six, take(18, 9), take(18, 19)];
+    const repDates = takes.map((t) => new Date(t.created_at));
+    const kept = keptDays(takes, [], WED, FROM);
+    const before = [...six, take(18, 9)];
+    const m = streakMoment({
+      streak: computeStreak(repDates, WED, kept),
+      before: { didToday: true, repair: repairState(before, [], WED, FROM) },
+      repDates,
+      frozenDays: [],
+      keptDays: kept,
+      repair: repairState(takes, [], WED, FROM),
+      now: WED,
+      shownOn: null,
+    });
+    expect(m).not.toBeNull();
+    expect(m!.from).toBe(6);
+    expect(m!.to).toBe(7);
+    expect(m!.milestone).toBe(true);
+    expect(keptLine(m!.kept)).toBe("Two recordings covered Tuesday.");
+  });
+
   it("says nothing on a day nothing was kept", () => {
     expect(keptLine(null)).toBeNull();
   });

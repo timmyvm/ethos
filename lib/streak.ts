@@ -231,7 +231,10 @@ function runEnding(day: Date, spoken: Map<string, Date>, bridges: Set<string>): 
  * after `from`, the day this shipped. Days are the phone's, as
  * computeStreak counts them. Derived on every read and never stored, like
  * freezeBalance; a kept day bridges as a freeze does (#14, #38): it adds
- * nothing to current or longest and pays nothing.
+ * nothing to current or longest and pays no coin and no XP. The run it
+ * bridges earns freezes as any run does (lib/freeze-sync.ts), since the
+ * line under Record counts the freeze from the streak it shows; a kept
+ * day is never a freeze spent.
  */
 export function keptDays(
   takes: RepairTake[],

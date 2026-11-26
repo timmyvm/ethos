@@ -202,8 +202,10 @@ describe("the freeze sync's reads", () => {
 /*
  * One missed day, kept by two recordings (lib/streak.ts keptDays,
  * closure.md row 14): built narrow so #174 stands. A freeze held is spent
- * on the day first, and a kept day is never a freeze: it spends none,
- * earns none and holds none. The week after REPAIR_FROM: spoke Thursday
+ * on the day first, and a kept day is never a freeze spent. It bridges
+ * the run the streak shows, as a freeze does, and the freezes are earned
+ * from that run, the one the line under Record counts from (the review,
+ * 26 Nov). The week after REPAIR_FROM: spoke Thursday
  * 26 November to Monday 30, missed Tuesday 1 December.
  */
 describe("syncFreezes and a missed day two recordings keep", () => {
@@ -225,7 +227,7 @@ describe("syncFreezes and a missed day two recordings keep", () => {
     expect(night.streak.current).toBe(6);
   });
 
-  it("counts a kept day in the streak and in neither the freezes spent nor the balance", async () => {
+  it("counts a kept day in the streak as a bridge, and never as a freeze spent", async () => {
     // Five days, Tuesday missed, two takes on Wednesday and one on each
     // day to Saturday: nine days spoken around the kept one.
     const reps = [...five, at(12, 2, 9), at(12, 2, 19), at(12, 3), at(12, 4), at(12, 5)];
@@ -234,14 +236,56 @@ describe("syncFreezes and a missed day two recordings keep", () => {
     expect(out.streak.current).toBe(9);
     expect(out.frozenDays).toEqual([]);
     expect(db.frozen).toEqual([]);
-    // The same account with Tuesday unkept holds what it holds now: the
-    // kept day earned no freeze, though the run it bridges is past 7.
-    const unkept = await syncFreezes(
-      reps.map((d) => ({ created_at: d.toISOString(), scorable: false })),
-      at(12, 5, 21)
-    );
-    expect(unkept.keptDays).toEqual([]);
-    expect(out.equipped).toBe(unkept.equipped);
+    // The 9 the streak shows is the run the freezes are earned from: a
+    // full week of it earns one, as it does over a freeze.
+    expect(out.equipped).toBe(1);
+  });
+
+  /*
+   * The review's case: the streak shown and the line under Record count a
+   * kept day as a bridge, so the freezes must be earned from that same
+   * run, or "A 7-day streak earns a streak freeze" promises one the
+   * person never gets. An old clean best of 6, then three days, Monday
+   * 30 November missed, two takes on Tuesday, and on to Friday.
+   */
+  it("earns the freeze the line under Record promised, from the run the streak shows", async () => {
+    const { nextMilestones } = await import("./progress");
+    const freezeLineOf = (streak: Awaited<ReturnType<typeof syncFreezes>>["streak"]) =>
+      nextMilestones({ reps: [], starMap: {}, streak, xp: 0, freezesEquipped: 0, achievements: [] }).find(
+        (m) => m.kind === "freeze"
+      )!;
+    const old = [1, 2, 3, 4, 5, 6].map((d) => at(11, d));
+    const spoke = [at(11, 27), at(11, 28), at(11, 29), at(12, 1, 9), at(12, 1, 19)];
+    const tuesday = await syncFreezes(takes([...old, ...spoke]), at(12, 1, 21));
+    expect(tuesday.streak.current).toBe(4);
+    expect(freezeLineOf(tuesday.streak).line).toBe("A 7-day streak earns a streak freeze");
+    expect(tuesday.equipped).toBe(0);
+    const friday = await syncFreezes(takes([...old, ...spoke, at(12, 2), at(12, 3), at(12, 4)]), at(12, 4, 21));
+    expect(friday.streak.current).toBe(7);
+    // The line said 7 earns one, and the streak shows 7: one is held.
+    expect(friday.equipped).toBe(1);
+    expect(freezeLineOf(friday.streak).target).toBe(14);
+    // One rule for both: what is held is earned from the longest the line counts from.
+    expect(friday.equipped).toBe(Math.floor(freezeLineOf(friday.streak).current / 7));
+  });
+
+  it("a run of 6 kept on its seventh spoken day earns its freeze that day", async () => {
+    const six = [25, 26, 27, 28, 29, 30].map((d) => at(11, d));
+    const out = await syncFreezes(takes([...six, at(12, 2, 9), at(12, 2, 19)]), at(12, 2, 21));
+    expect(out.keptDays.map((d) => d.toDateString())).toEqual([at(12, 1).toDateString()]);
+    expect(out.streak.current).toBe(7);
+    expect(out.equipped).toBe(1);
+    expect(db.frozen).toEqual([]);
+  });
+
+  it("a freeze a kept run earned is held to spend on the next gap", async () => {
+    // Five days, Tuesday kept by two takes on Wednesday, Thursday spoken
+    // (7 days running), Friday missed: Saturday morning the freeze covers it.
+    const reps = [...five, at(12, 2, 9), at(12, 2, 19), at(12, 3)];
+    const out = await syncFreezes(takes(reps), at(12, 5, 8));
+    expect(out.rescued.map((d) => d.toDateString())).toEqual([at(12, 4).toDateString()]);
+    expect(out.keptDays.map((d) => d.toDateString())).toEqual([TUE]);
+    expect(out.streak.current).toBe(7);
     expect(out.equipped).toBe(0);
   });
 

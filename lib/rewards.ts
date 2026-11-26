@@ -222,15 +222,25 @@ export function personalBests(
     });
   }
 
-  /* A count of pauses between sentences (kind "pre"), the rule #495 put
-     on the Log (lib/metric-labels.ts `pausesBetween`), never an amount of
+  /* This take's pauses between sentences that landed, never an amount of
      silence (the review of #490). It counted every one-second pause, the
-     ones inside a sentence too, so a take with more of the fault Demos
-     names could break the record. Stored rows are only read, never
-     rescored (#422). The "Held the room" badge keeps its own rule. */
-  const bestBetween = Math.max(...prior.map((r) => pausesBetween(r.pauses)));
-  const between = current.composedPauses;
-  if (between > bestBetween) {
+     ones inside a sentence too, and then every pause before a sentence,
+     the dead ones past 3.5 seconds and the ones next to an um too, so a
+     take with more of the fault Demos names could break the record (the
+     review of build 6). Now it is the closing note's count (landedHeard),
+     the glance's and the pauses Hear it back draws sage.
+     Each earlier recording's best is read by the kinds it stored, every
+     pause before a sentence (`pausesBetween`, the Log's count, #495), and
+     never by its verdicts: no path that reads a stored recording moves
+     with its stored verdicts (#422, lib/stored-scores.test.ts). That
+     count is never below the pauses that landed on it, so a record is
+     only ever withheld by it, never claimed. A recording with no pause
+     list measured none, so it holds no best (unknown is never zero). The
+     "Held the room" badge keeps its own rule. */
+  const withPauses = prior.filter((r) => Array.isArray(r.pauses));
+  const bestBetween = Math.max(...withPauses.map((r) => pausesBetween(r.pauses)));
+  const between = landedHeard(current);
+  if (withPauses.length > 0 && between > bestBetween) {
     out.push({
       headline: MOST_PAUSES,
       detail: `${between} ${between === 1 ? "pause" : "pauses"} between sentences, past your ${bestBetween}`,

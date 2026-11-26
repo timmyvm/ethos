@@ -34,8 +34,10 @@
  * video (a Premium Voice + Video take, with Presence 72 since 68), boss,
  * upload, rules (#491: the first take under #476's pause rules against
  * a stored take scored before them, its note under the delta),
- * pauses-between, pauses-mid (the reel's honest wins, build 6: the pause
- * record on Today's Pausing card counts pauses between sentences only),
+ * pauses-between, pauses-mid, pauses-dead (the reel's honest wins, build
+ * 6: the pause record on Today's Pausing card counts the pauses between
+ * sentences that landed, so mid-sentence, dead and filled ones break
+ * none; asserted on the sheet),
  * baseline-rushing, baseline-freezing, baseline-flat (the reel's honest
  * wins, build 2: an account's first scored recording, The baseline
  * opened as the introduction opens it, with that concern answered in the
@@ -210,7 +212,26 @@ const bodies = {
       ],
     },
   }),
+  /* The review of build 6: four pauses before a sentence, but two ran
+     past 3.5 seconds and one had an um next to it, so one landed and no
+     record breaks. */
+  "pauses-dead": () => ({
+    ...A,
+    pauseHeadline: "1 pause between sentences. Two ran past 3.5 seconds.",
+    metrics: {
+      ...A.metrics,
+      heldPauses: 4, composedPauses: 4, midSentencePauses: 0,
+      pauses: [
+        { t: 2.1, len: 1.2, kind: "pre", verdict: "opening" },
+        { t: 18, len: 4.5, kind: "pre", verdict: "dead" },
+        { t: 33, len: 5, kind: "pre", verdict: "dead" },
+        { t: 47, len: 1, kind: "pre", verdict: "filled", note: "" },
+      ],
+    },
+  }),
 };
+/* What the sheet must say of the pause record on each pause variant. */
+const PAUSE_RECORD = { "pauses-between": true, "pauses-mid": false, "pauses-dead": false }[VARIANT];
 /* The concern each baseline variant answered in the introduction (content/portfolio.ts PAINS). */
 const BASELINE_PAIN = { "baseline-rushing": ["rushing", "rushing"], "baseline-freezing": ["freezing", "freezing"], "baseline-flat": ["flat", "sounding flat"], "baseline-fillers": ["fillers", "fillers"] }[VARIANT] ?? null;
 if (!bodies[VARIANT]) throw new Error(`unknown variant ${VARIANT}`);
@@ -578,7 +599,7 @@ for (const size of SIZES) {
     await page.goto(`${BASE}/rep?lesson=f1`);
   } else if (VARIANT === "lesson3") {
     await page.goto(`${BASE}/rep?lesson=the-cold-open&q=3&mods=no-notes&back=${encodeURIComponent("/lessons/the-cold-open")}`);
-  } else if (["daily", "capped", "capped-early", "video", "rules", "pauses-between", "pauses-mid"].includes(VARIANT)) {
+  } else if (["daily", "capped", "capped-early", "video", "rules", "pauses-between", "pauses-mid", "pauses-dead"].includes(VARIANT)) {
     await page.goto(`${BASE}/`);
     await page.waitForSelector("main .arrive", { timeout: 30000 });
     await sleep(800);
@@ -740,6 +761,16 @@ for (const size of SIZES) {
     const focusIn = await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'));
     if (!focusIn) fail(`${at}: focus did not move into the sheet`);
     await beat("sheet", { scope: "dialog", scroller: "[data-sheet-scroll]" });
+    if (PAUSE_RECORD !== undefined) {
+      /* The record counts the pauses that landed, the closing note's
+         count, so it never stands over more of the fault (build 6). */
+      const text = await page.locator('[role="dialog"]').first().innerText();
+      const record = /(\d+) pauses? between sentences, past your (\d+)/.exec(text);
+      const has = text.includes("Most pauses yet");
+      if (has !== PAUSE_RECORD) fail(`${at}: the sheet ${has ? "says" : "does not say"} Most pauses yet`);
+      else if (PAUSE_RECORD && !record) fail(`${at}: the pause record names no count`);
+      else console.log(`${at} pause record: ${has ? record[0] : "none"}`);
+    }
     /* A word in the transcript opens its sheet over this one. */
     const word = page.locator('[role="dialog"] .transcript [role="button"]').nth(3);
     if ((await word.count()) > 0) {

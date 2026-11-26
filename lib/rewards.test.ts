@@ -290,6 +290,75 @@ describe("personalBests", () => {
     expect(out.map((b) => b.headline)).not.toContain("Most silence you've held");
   });
 
+  /* The review of build 6: a pause before a sentence that ran past 3.5
+     seconds (dead) or had an um next to it (filled) is the fault the same
+     sheet names, so the record counts the pauses that landed, the closing
+     note's count (landedHeard), never every pause of kind "pre". */
+  const judgedPre = (t: number, verdict: "landing" | "opening" | "dead" | "filled", len = 1.2) => ({
+    t,
+    len,
+    kind: "pre" as const,
+    verdict,
+    note: "",
+  });
+  const judged = (ps: ReturnType<typeof judgedPre>[]) => ps as unknown as RepMetrics["pauses"];
+
+  it("breaks no pause record with dead air or an um between sentences", () => {
+    const prior = [rep({ pauses: judged([judgedPre(5, "landing"), judgedPre(15, "landing"), judgedPre(25, "landing")]) })];
+    const current = metrics({
+      heldPauses: 4,
+      composedPauses: 4,
+      midSentencePauses: 0,
+      pauses: judged([judgedPre(5, "landing"), judgedPre(15, "dead", 4.5), judgedPre(25, "dead", 5), judgedPre(40, "filled", 1)]),
+    });
+    expect(personalBests(prior, current, null).map((b) => b.headline)).not.toContain(MOST_PAUSES);
+    expect(endNote({ metrics: current, streak: streak(), repCount: 2 }).headline).toBe("1 pause between sentences");
+  });
+
+  /* An earlier recording's best is every pause it stored before a
+     sentence, read by kind and never by its verdicts (#422: no path that
+     reads a stored recording moves with them, lib/stored-scores.test.ts).
+     It is never below what landed on it, so it can only withhold a record. */
+  it("says the closing note's count, against every pause an earlier recording stored between sentences", () => {
+    // 5 pauses before a sentence earlier, 2 of them landed: its best is 5.
+    const prior = [
+      rep({
+        pauses: judged([
+          judgedPre(5, "landing"),
+          judgedPre(15, "opening"),
+          judgedPre(25, "dead", 4),
+          judgedPre(35, "filled"),
+          judgedPre(45, "filled"),
+        ]),
+      }),
+    ];
+    const landed = (n: number) =>
+      metrics({
+        heldPauses: n + 1,
+        composedPauses: n + 1,
+        midSentencePauses: 0,
+        pauses: judged([...Array.from({ length: n }, (_, i) => judgedPre(5 + i * 8, "landing")), judgedPre(70, "dead", 4)]),
+      });
+    expect(personalBests(prior, landed(3), null).map((b) => b.headline)).not.toContain(MOST_PAUSES);
+    // Judged again, the same rows read the same best.
+    const rejudged = prior.map((r) => ({ ...r, pauses: judged(r.pauses.map((p) => ({ ...(p as ReturnType<typeof judgedPre>), verdict: "landing" as const }))) }));
+    expect(personalBests(rejudged, landed(3), null)).toEqual(personalBests(prior, landed(3), null));
+    const record = personalBests(prior, landed(6), null).find((b) => b.headline === MOST_PAUSES);
+    expect(record?.detail).toBe("6 pauses between sentences, past your 5");
+    const close = endNote({ metrics: landed(6), streak: streak(), repCount: 2 });
+    expect(record?.detail.startsWith(close.headline)).toBe(true);
+  });
+
+  /* DESIGN rule 8: unknown is never zero. A recording with no pause list
+     measured no pauses, so it holds no best of 0 to be "past". */
+  it("holds no pause best on a recording with no pause list", () => {
+    const unknown = { ...rep(), pauses: null } as unknown as RepRow;
+    const current = metrics({ heldPauses: 2, composedPauses: 2, midSentencePauses: 0, pauses: pauses(2, 0) });
+    expect(personalBests([unknown, unknown], current, null).map((b) => b.headline)).not.toContain(MOST_PAUSES);
+    const out = personalBests([unknown, rep({ pauses: pauses(1, 0) })], current, null);
+    expect(out.find((b) => b.headline === MOST_PAUSES)?.detail).toBe("2 pauses between sentences, past your 1");
+  });
+
   it("says one pause in the singular", () => {
     const out = personalBests(
       [rep({ pauses: pauses(0, 5) })],

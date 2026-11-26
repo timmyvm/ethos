@@ -2934,11 +2934,12 @@ function RepScreen() {
          * is in play. A promise repeated daily stops being read.
          */}
         {/* Anticipation cue — what this recording is about to earn (#48),
-            one line under the tap that earns it. */}
+            one line under the tap that earns it. Positioned, as the used
+            line below is, so Record's shadow does not dim its middle words. */}
         {phase === "idle" && anticipate && !holdAnticipate && (
           <p
             data-record-cue=""
-            className={`-mt-2 max-w-[280px] text-center text-caption font-semibold text-balance ${
+            className={`relative -mt-2 max-w-[280px] text-center text-caption font-semibold text-balance ${
               anticipate.tone === "earned" ? "text-sage-700" : "text-stone-600"
             }`}
           >

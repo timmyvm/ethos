@@ -11,20 +11,14 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { newerCue, parseCueState, type CueState } from "./carried-cue";
+import { missingCueColumn, newerCue, parseCueState, type CueState } from "./carried-cue";
 import { currentSession, supabaseBrowser } from "./supabase-browser";
 import { CUE_KEY, WARMUP_SKIPPED_KEY } from "./cue-keys";
 
 export { CUE_KEY, WARMUP_SKIPPED_KEY, forgetCarriedCue } from "./cue-keys";
 
-/** PostgREST's and Postgres's answers for the column before 0034. */
-export function missingCueColumn(error: { code?: string; message?: string } | null): boolean {
-  if (!error) return false;
-  return (
-    (error.code === "42703" || error.code === "PGRST204" || /column/i.test(error.message ?? "")) &&
-    /carried_cue/.test(error.message ?? "")
-  );
-}
+/* The column's own answer before 0034 lives with the store's shape, so the reminder's sender reads it too. */
+export { missingCueColumn } from "./carried-cue";
 
 function readLocal(): { uid: string | null; state: CueState | null } | null {
   try {

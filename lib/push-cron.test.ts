@@ -38,6 +38,9 @@ let mostInFlight = 0;
 const stamped: string[] = [];
 const sent: string[] = [];
 const payloads: { title: string; body: string; url: string }[] = [];
+/** What the account's carried_cue read answers (0034), and whose rows it was asked for. */
+let cueRead: { data: { carried_cue: unknown } | null; error: { code?: string; message: string } | null } = { data: null, error: null };
+const cueAsked: string[] = [];
 /** The token the database's Vault holds (0028), or null for none; and each token it was asked about. */
 let vaultToken: string | null = null;
 let rpcError: { message: string } | null = null;
@@ -187,6 +190,28 @@ function notesQuery() {
   };
 }
 
+/* The account's row the reminder reads its cue from (0034, the reel's build 3). */
+function profilesQuery() {
+  let user = "";
+  let cols = "";
+  const q = {
+    select: (c: string) => {
+      cols = c;
+      return q;
+    },
+    eq: (_c: string, v: string) => {
+      user = v;
+      return q;
+    },
+    maybeSingle: async () => {
+      if (cols !== "carried_cue") throw new Error(`profiles read ${cols}`);
+      cueAsked.push(user);
+      return cueRead;
+    },
+  };
+  return q;
+}
+
 /* The introduction's row the reminder reads its pool from (#489): none here. */
 function onboardingQuery() {
   const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: null, error: null }) };
@@ -202,7 +227,9 @@ vi.mock("@/lib/db", () => ({
           ? notesQuery()
           : t === "onboarding"
             ? onboardingQuery()
-            : repsQuery(),
+            : t === "profiles"
+              ? profilesQuery()
+              : repsQuery(),
     rpc: async (fn: string, args: { token: string }) => {
       if (fn !== "push_tick_ok") return { data: null, error: { message: "no such function" } };
       asked.push(args.token);
@@ -283,6 +310,8 @@ beforeEach(() => {
   vaultToken = null;
   rpcError = null;
   asked.length = 0;
+  cueRead = { data: null, error: null };
+  cueAsked.length = 0;
 });
 
 describe("the reminder cron", () => {
@@ -542,5 +571,135 @@ describe("the reminder cron, #430 review", () => {
     await tick();
     expect(notes).toHaveLength(1);
     expect(Date.now() - Date.parse(notes[0].at)).toBeLessThan(60_000);
+  });
+});
+
+/*
+ * The reel's build 3 (26 Nov): the body is the cue today's warm-up
+ * rehearses, read from the account (profiles.carried_cue, 0034) through
+ * the warm-up's own rule (lib/carried-cue.ts warmsUp), on the
+ * subscriber's calendar. Anything else keeps the last take's line, and the
+ * title never changes.
+ */
+describe("the reminder cron, the carried cue", () => {
+  // 18:01 in Melbourne on Mon 9 Nov 2026 (AEDT, UTC+11): today is 2026-11-09 there, 07:01 UTC.
+  const AT = new Date(Date.UTC(2026, 10, 9, 7, 1));
+  const six = (): Sub => ({ ...due(1), reminder_hour: 18, tz: "Australia/Melbourne", quiet_from: 22, quiet_to: 7 });
+  const state = (cue: Record<string, unknown> | null) => ({
+    carried_cue: { v: 1, cue, aside: [], at: "2026-11-08T08:00:00.000Z" },
+  });
+  const like = (over: Record<string, unknown> = {}) => ({
+    kind: "filler",
+    word: "like",
+    from: 9,
+    last: 9,
+    givenOn: "2026-11-08",
+    answeredOn: null,
+    tries: 0,
+    line: { text: "The best part ‖ was the people.", at: 12.4 },
+    ...over,
+  });
+  async function ring() {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(AT);
+    try {
+      subs = [six()];
+      recent = [{ filler_count: 4, duration_s: 61.6 }];
+      return await (await tick()).json();
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+  const TODAY_BODY = "Last time: 4 fillers in 62 seconds.";
+
+  it("a cue carried in from yesterday is the body, the warm-up's two lines word for word", async () => {
+    cueRead = { data: state(like()), error: null };
+    expect((await ring()).sent).toBe(1);
+    expect(payloads[0]).toEqual({ title: "Your 6 pm practice", body: "Last time, “like” 9 times. Pause where “like” was.", url: "/" });
+    // The subscriber's own row, and only once the day is claimed.
+    expect(cueAsked).toEqual(["u1"]);
+  });
+
+  it("says the newest number a carried cue was measured at", async () => {
+    cueRead = { data: state(like({ kind: "fast", word: null, from: 190, last: 184, answeredOn: "2026-11-07", tries: 1, line: null })), error: null };
+    await ring();
+    expect(payloads[0].body).toBe("Last time, 184 words a minute. Pause at every full stop.");
+  });
+
+  it("a cue given today keeps today's body: the warm-up answers it tomorrow", async () => {
+    cueRead = { data: state(like({ givenOn: "2026-11-09" })), error: null };
+    await ring();
+    expect(payloads[0]).toEqual({ title: "Your 6 pm practice", body: TODAY_BODY, url: "/" });
+  });
+
+  it("a cue already answered today keeps today's body", async () => {
+    cueRead = { data: state(like({ givenOn: "2026-11-07", answeredOn: "2026-11-09" })), error: null };
+    await ring();
+    expect(payloads[0].body).toBe(TODAY_BODY);
+  });
+
+  it("no cue, no row, or a row that does not parse keeps today's body", async () => {
+    for (const data of [state(null), null, { carried_cue: null }, { carried_cue: { v: 2, cue: like() } }, { carried_cue: "like" }]) {
+      cueRead = { data: data as never, error: null };
+      payloads.length = 0;
+      await ring();
+      expect(payloads[0].body).toBe(TODAY_BODY);
+    }
+  });
+
+  it("a database without 0034's column (42703) keeps today's body and still sends", async () => {
+    cueRead = { data: null, error: { code: "42703", message: "column profiles.carried_cue does not exist" } };
+    const body = await ring();
+    expect(body).toMatchObject({ sent: 1, failed: 0 });
+    expect(payloads[0]).toEqual({ title: "Your 6 pm practice", body: TODAY_BODY, url: "/" });
+  });
+
+  it("a cue read that fails keeps today's body and still sends", async () => {
+    cueRead = { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } };
+    const body = await ring();
+    expect(body).toMatchObject({ sent: 1, failed: 0 });
+    expect(payloads[0].body).toBe(TODAY_BODY);
+  });
+
+  it("a cue too long for a push keeps today's body", async () => {
+    cueRead = { data: state(like({ kind: "repeat", word: "z".repeat(40), from: 12, last: 12, line: null })), error: null };
+    await ring();
+    expect(payloads[0].body).toBe(TODAY_BODY);
+  });
+
+  it("a late send keeps the late title over the cue's body", async () => {
+    cueRead = { data: state(like()), error: null };
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(Date.UTC(2026, 10, 9, 10, 16))); // 21:16 there
+    try {
+      subs = [six()];
+      expect((await (await tick()).json()).sent).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(payloads[0]).toEqual({ title: "Today's practice", body: "Last time, “like” 9 times. Pause where “like” was.", url: "/" });
+  });
+
+  it("reads 'today' on the subscriber's calendar, not the server's (lib/push.ts localDayKey)", async () => {
+    // 07:01 on Mon 9 Nov in Melbourne is 20:01 on Sun 8 Nov in UTC: a cue
+    // given on the 8th is yesterday's there, so the morning reminder says it.
+    cueRead = { data: state(like({ givenOn: "2026-11-08" })), error: null };
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(Date.UTC(2026, 10, 8, 20, 1)));
+    try {
+      subs = [{ ...six(), reminder_hour: 7, quiet_from: 23, quiet_to: 5 }];
+      recent = [{ filler_count: 4, duration_s: 61.6 }];
+      expect((await (await tick()).json()).sent).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(payloads[0]).toEqual({ title: "Your 7 am practice", body: "Last time, “like” 9 times. Pause where “like” was.", url: "/" });
+  });
+
+  it("never reads the cue on a day already practised", async () => {
+    cueRead = { data: state(like()), error: null };
+    repsToday = 1;
+    expect(await ring()).toMatchObject({ done: 1, sent: 0 });
+    expect(cueAsked).toEqual([]);
   });
 });

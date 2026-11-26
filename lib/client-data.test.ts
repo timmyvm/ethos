@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type Row = { id: string; created_at: string; scorable?: boolean; word_count?: number; distinct_words?: number };
 let table: Row[] = [];
 let profileError: { message: string } | null = null;
+/** A database before migration 0037: a select naming `scorable` is refused with 42703. */
+let before0037 = false;
 /** The columns the last read asked for. */
 let selected = "";
 
@@ -29,7 +31,11 @@ function query(rows: Row[]) {
     // PostgREST's max_rows: a response never holds more than 1000 rows,
     // however wide the range asked for.
     range: (from: number, to: number) =>
-      Promise.resolve({ data: out.slice(from, Math.min(to + 1, from + 1000)), error: null }),
+      Promise.resolve(
+        before0037 && /\bscorable\b/.test(selected)
+          ? { data: null, error: { code: "42703", message: "column reps.scorable does not exist" } }
+          : { data: out.slice(from, Math.min(to + 1, from + 1000)), error: null }
+      ),
     maybeSingle: () =>
       Promise.resolve(
         profileError
@@ -117,6 +123,26 @@ describe("fetchRepSpine", () => {
     // A few short columns, never the transcript or the whole judged read.
     expect(columns).not.toContain("transcript");
     expect(columns).not.toContain("dimensions");
+  });
+});
+
+describe("the spine's scorable column (the streak's repair, closure.md row 14)", () => {
+  it("reads whether each recording scored, the one column the repair counts", async () => {
+    table = [{ id: "r0", created_at: day(0), scorable: true }];
+    const rows = await fetchRepSpine();
+    expect(selected.split(",").map((c) => c.trim())).toContain("scorable");
+    expect(rows[0].scorable).toBe(true);
+  });
+
+  /* Last in the file: the 42703 is heard once a load, and every read after it asks without the column. */
+  it("reads the spine without it on a database before 0037, so nothing is kept and nothing fails", async () => {
+    before0037 = true;
+    table = [{ id: "r0", created_at: day(0) }, { id: "r1", created_at: day(1) }];
+    const rows = await fetchRepSpine();
+    expect(rows).toHaveLength(2);
+    expect(selected).not.toMatch(/scorable/);
+    expect(rows.every((r) => r.scorable === undefined)).toBe(true);
+    before0037 = false;
   });
 });
 

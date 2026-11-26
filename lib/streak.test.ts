@@ -3,8 +3,13 @@ import {
   computeStreak,
   freezeBalance,
   freezesEarned,
+  keptDays,
   MAX_EQUIPPED_FREEZES,
+  REPAIR_FROM,
+  repairAfterTake,
+  repairState,
   rescuableDays,
+  type RepairTake,
 } from "./streak";
 import { levelFromXp, weekStart, xpForLevel } from "./level";
 
@@ -174,5 +179,156 @@ describe("a streak read from every recording", () => {
     expect(computeStreak(dates, now).current).toBe(40);
     // The newest 90 of them, which is what the screens used to read.
     expect(computeStreak(dates.slice(-90), now).current).toBe(30);
+  });
+});
+
+/*
+ * One missed day, kept by speaking twice (closure.md row 14, #282). The
+ * week of Monday 30 November 2026, after REPAIR_FROM: spoke Thursday 26
+ * to Monday 30, missed Tuesday 1 December, and Wednesday is the repair.
+ */
+describe("a missed day two recordings keep", () => {
+  /** A recording at local h:00 on 2026-mm-dd, scorable unless said. */
+  const take = (m: number, day: number, h = 18, scorable: boolean | null | undefined = true): RepairTake =>
+    scorable === undefined
+      ? { created_at: new Date(2026, m - 1, day, h).toISOString() }
+      : { created_at: new Date(2026, m - 1, day, h).toISOString(), scorable };
+  /** One recording a day on each of these days of Nov/Dec 2026 (day > 20 is November). */
+  const spoke = (...days: number[]) => days.map((n) => (n > 20 ? take(11, n) : take(12, n)));
+  const TUE = new Date(2026, 11, 1);
+  const WED_NIGHT = new Date(2026, 11, 2, 21);
+  const keys = (ds: Date[]) => ds.map((x) => x.toDateString());
+  /** Spoke Thursday to Monday (a run of five), missed Tuesday, and Wednesday's takes. */
+  const fiveThen = (...wednesday: RepairTake[]) => [...spoke(26, 27, 28, 29, 30), ...wednesday];
+
+  it("ships with the day it ships on: nothing before it is ever kept", () => {
+    expect(REPAIR_FROM).toBe("2026-11-27");
+  });
+
+  it("keeps the day for a run of two and for a run of six", () => {
+    const two = [...spoke(29, 30), take(12, 2, 9), take(12, 2, 19)];
+    expect(keys(keptDays(two, [], WED_NIGHT))).toEqual(keys([TUE]));
+    const six = [...spoke(25, 26, 27, 28, 29, 30), take(12, 2, 9), take(12, 2, 19)];
+    expect(keys(keptDays(six, [], WED_NIGHT))).toEqual(keys([TUE]));
+  });
+
+  it("keeps nothing for a run of one, or of seven, which earns freezes (#174)", () => {
+    expect(keptDays([...spoke(30), take(12, 2, 9), take(12, 2, 19)], [], WED_NIGHT)).toEqual([]);
+    const seven = [...spoke(24, 25, 26, 27, 28, 29, 30), take(12, 2, 9), take(12, 2, 19)];
+    expect(keptDays(seven, [], WED_NIGHT)).toEqual([]);
+  });
+
+  it("keeps nothing across a two-day gap", () => {
+    const takes = [...spoke(25, 26, 27, 28, 29), take(12, 2, 9), take(12, 2, 19)];
+    expect(keptDays(takes, [], WED_NIGHT)).toEqual([]);
+  });
+
+  it("keeps nothing a freeze already covered: the freeze is spent first (#39)", () => {
+    const takes = fiveThen(take(12, 2, 9), take(12, 2, 19));
+    expect(keptDays(takes, [new Date(2026, 11, 1)], WED_NIGHT)).toEqual([]);
+  });
+
+  it("needs two recordings of 20+ words the next day", () => {
+    expect(keptDays(fiveThen(take(12, 2, 9)), [], WED_NIGHT)).toEqual([]);
+    // Two recordings, one of them under 20 words.
+    expect(keptDays(fiveThen(take(12, 2, 9), take(12, 2, 19, false)), [], WED_NIGHT)).toEqual([]);
+    // A row the server never filled counts for nothing.
+    expect(keptDays(fiveThen(take(12, 2, 9), take(12, 2, 19, null)), [], WED_NIGHT)).toEqual([]);
+  });
+
+  it("counts a capped fourth take: it is scorable, it only has no Ethos score", () => {
+    const capped = { ...take(12, 2, 20), ethos_index: null, stars: 0 };
+    const takes = fiveThen(take(12, 2, 9, false), take(12, 2, 10, false), take(12, 2, 11), capped);
+    expect(keys(keptDays(takes, [], WED_NIGHT))).toEqual(keys([TUE]));
+  });
+
+  it("keeps once in seven days: a second miss inside them ends the run", () => {
+    // Run of two, Tuesday 1 kept, then Wednesday to Friday spoken: a run
+    // of five, and Saturday 5 missed only four days after.
+    const takes = [...spoke(29, 30), take(12, 2, 9), take(12, 2, 19), ...spoke(3, 4), take(12, 6, 9), take(12, 6, 19)];
+    expect(keys(keptDays(takes, [], new Date(2026, 11, 6, 21)))).toEqual(keys([TUE]));
+    // Seven days after the kept one, still not; eight, kept again.
+    const week = (miss: number) => [
+      ...spoke(29, 30),
+      take(12, 2, 9),
+      take(12, 2, 19),
+      ...spoke(miss - 2, miss - 1),
+      take(12, miss + 1, 9),
+      take(12, miss + 1, 19),
+    ];
+    expect(keys(keptDays(week(8), [], new Date(2026, 11, 9, 21)))).toEqual(keys([TUE]));
+    expect(keys(keptDays(week(9), [], new Date(2026, 11, 10, 21)))).toEqual(keys([TUE, new Date(2026, 11, 9)]));
+  });
+
+  it("never keeps a day before REPAIR_FROM, so the deploy moves nobody's history", () => {
+    // Spoke 20 to 25 November, missed the 26th, two takes on the 27th.
+    const takes = [take(11, 21), take(11, 22), take(11, 23), take(11, 24), take(11, 25), take(11, 27, 9), take(11, 27, 19)];
+    expect(keptDays(takes, [], new Date(2026, 10, 27, 21))).toEqual([]);
+    // The same days, with the rule shipped earlier: kept.
+    expect(keptDays(takes, [], new Date(2026, 10, 27, 21), "2026-11-20")).toHaveLength(1);
+  });
+
+  it("keeps nothing when the database has no scorable column (before 0037)", () => {
+    const takes = fiveThen(take(12, 2, 9), take(12, 2, 19)).map(({ created_at }) => ({ created_at }));
+    expect(keptDays(takes, [], WED_NIGHT)).toEqual([]);
+    expect(repairState(takes, [], new Date(2026, 11, 2, 8))).toBeNull();
+  });
+
+  it("bridges like a freeze: 5 then 6, the kept day adding nothing to current or longest", () => {
+    const takes = fiveThen(take(12, 2, 9), take(12, 2, 19));
+    const dates = takes.map((t) => new Date(t.created_at));
+    const plain = computeStreak(dates, WED_NIGHT);
+    expect(plain.current).toBe(1);
+    const kept = keptDays(takes, [], WED_NIGHT);
+    const s = computeStreak(dates, WED_NIGHT, kept);
+    expect(s.current).toBe(6);
+    expect(s.longest).toBe(6);
+    expect(s.didToday).toBe(true);
+  });
+});
+
+describe("the repair still open today", () => {
+  const take = (m: number, day: number, h = 18, scorable: boolean | null = true): RepairTake => ({
+    created_at: new Date(2026, m - 1, day, h).toISOString(),
+    scorable,
+  });
+  const five = [take(11, 26), take(11, 27), take(11, 28), take(11, 29), take(11, 30)];
+  const WED = (h: number) => new Date(2026, 11, 2, h);
+
+  it("names the run and counts the day's takes of 20+ words: 0, then 1, then closed", () => {
+    expect(repairState(five, [], WED(8))).toEqual({ run: 5, missed: new Date(2026, 11, 1), counted: 0 });
+    expect(repairState([...five, take(12, 2, 9)], [], WED(10))?.counted).toBe(1);
+    expect(repairState([...five, take(12, 2, 9), take(12, 2, 10)], [], WED(11))).toBeNull();
+  });
+
+  it("is not moved by a take under 20 words: a too-short take changes nothing", () => {
+    expect(repairState([...five, take(12, 2, 9, false)], [], WED(10))?.counted).toBe(0);
+  });
+
+  it("is never offered when a freeze covered the day, on a two-day gap, or for a run past six", () => {
+    expect(repairState(five, [new Date(2026, 11, 1)], WED(8))).toBeNull();
+    expect(repairState(five, [], new Date(2026, 11, 3, 8))).toBeNull();
+    const seven = [take(11, 24), take(11, 25), ...five];
+    expect(repairState(seven, [], WED(8))).toBeNull();
+    expect(repairState([take(11, 30)], [], WED(8))).toBeNull();
+  });
+
+  it("is never offered inside seven days of a day already kept", () => {
+    // Kept Tuesday 1; then Wednesday to Friday spoken, Saturday missed.
+    const takes = [take(11, 29), take(11, 30), take(12, 2, 9), take(12, 2, 10), take(12, 3), take(12, 4)];
+    expect(repairState(takes, [], new Date(2026, 11, 6, 8))).toBeNull();
+  });
+
+  it("predicts the glance's first frame from the take's own answer, and closes on the second", () => {
+    const open = repairState(five, [], WED(8))!;
+    const at = WED(9);
+    const one = repairAfterTake(open, { scorable: true, stored: true, at });
+    expect(one).toEqual({ ...open, counted: 1 });
+    expect(repairAfterTake(open, { scorable: false, stored: true, at })).toEqual(open);
+    expect(repairAfterTake(open, { scorable: true, stored: false, at })).toEqual(open);
+    expect(repairAfterTake(one, { scorable: true, stored: true, at })).toBeNull();
+    // A take that lands past midnight: the repair's day is over.
+    expect(repairAfterTake(open, { scorable: true, stored: true, at: new Date(2026, 11, 3, 0, 1) })).toBeNull();
+    expect(repairAfterTake(null, { scorable: true, stored: true, at })).toBeNull();
   });
 });

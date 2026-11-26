@@ -359,7 +359,7 @@ export default function Home() {
     // reconciled streak keeps it until the next one lands, so the flame
     // never dips to the bare count and back.
     if (!quiet && !streakKept.current) setStreak(computeStreak(dates));
-    const sync = await readable(() => syncFreezes(dates));
+    const sync = await readable(() => syncFreezes(all));
     if (!sync.ok) {
       setStreakSettled(true);
       return;

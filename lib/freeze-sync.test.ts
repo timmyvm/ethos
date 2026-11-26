@@ -51,6 +51,8 @@ const { syncFreezes } = await import("./freeze-sync");
 const day = (n: number, h = 12) => new Date(2026, 8, 1 + n, h);
 const run = (from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => day(from + i));
+/** The spine's rows for these times, each a scorable take (syncFreezes reads the spine). */
+const takes = (dates: Date[]) => dates.map((d) => ({ created_at: d.toISOString(), scorable: true }));
 
 beforeEach(() => {
   db.frozen = [];
@@ -68,7 +70,7 @@ describe("syncFreezes", () => {
     const reps = run(0, 9);
     db.row = 1;
     db.pending = [{ createdAt: day(10, 22).getTime(), owner: "user-1" }];
-    const out = await syncFreezes(reps, day(11, 8));
+    const out = await syncFreezes(takes(reps), day(11, 8));
     expect(out.rescued).toEqual([]);
     expect(db.frozen).toEqual([]);
   });
@@ -77,14 +79,14 @@ describe("syncFreezes", () => {
     const reps = run(0, 9);
     db.row = 1;
     db.pending = [{ createdAt: day(10, 22).getTime(), owner: "someone-else" }];
-    const out = await syncFreezes(reps, day(11, 8));
+    const out = await syncFreezes(takes(reps), day(11, 8));
     expect(out.rescued).toHaveLength(1);
   });
 
   it("still rescues a missed day with nothing waiting for it", async () => {
     const reps = run(0, 9);
     db.row = 1;
-    const out = await syncFreezes(reps, day(11, 8));
+    const out = await syncFreezes(takes(reps), day(11, 8));
     expect(out.rescued.map((d) => d.getDate())).toEqual([day(10).getDate()]);
   });
 });
@@ -97,9 +99,9 @@ describe("syncFreezes", () => {
 describe("syncFreezes and the database's cap of two", () => {
   /** Every morning's sync, from `from` to `to`, over the spoken days. */
   async function mornings(reps: Date[], from: number, to: number) {
-    let out = await syncFreezes(reps.filter((d) => d < day(from, 8)), day(from, 8));
+    let out = await syncFreezes(takes(reps.filter((d) => d < day(from, 8))), day(from, 8));
     for (let n = from + 1; n <= to; n++) {
-      out = await syncFreezes(reps.filter((d) => d < day(n, 8)), day(n, 8));
+      out = await syncFreezes(takes(reps.filter((d) => d < day(n, 8))), day(n, 8));
     }
     return out;
   }
@@ -118,13 +120,13 @@ describe("syncFreezes and the database's cap of two", () => {
 
   it("counts a freeze bought at two held", async () => {
     db.purchased = 1;
-    const out = await syncFreezes(run(0, 14), day(15, 8));
+    const out = await syncFreezes(takes(run(0, 14)), day(15, 8));
     expect(out.equipped).toBe(3);
   });
 
   it("never asks the database to store more than it allows", async () => {
     db.purchased = 1;
-    await syncFreezes(run(0, 27), day(28, 8));
+    await syncFreezes(takes(run(0, 27)), day(28, 8));
     expect(db.grants.every((g) => g <= DB_CAP)).toBe(true);
   });
 });
@@ -133,7 +135,7 @@ describe("syncFreezes and a failed read", () => {
   it("fails out loud and writes nothing, so missing rows never mint or wipe freezes", async () => {
     db.failFrozenRead = true;
     db.row = 2;
-    await expect(syncFreezes(run(0, 13), day(14, 8))).rejects.toBeTruthy();
+    await expect(syncFreezes(takes(run(0, 13)), day(14, 8))).rejects.toBeTruthy();
     expect(db.grants).toEqual([]);
     expect(db.frozen).toEqual([]);
     expect(db.row).toBe(2);
@@ -163,7 +165,7 @@ describe("the freeze sync's reads", () => {
       vi.spyOn(cd, "fetchStreakRow").mockImplementation(slow("row", () => ({ freezes_equipped: 0 }))),
     ];
     try {
-      await syncFreezes(run(0, 3), day(3, 20));
+      await syncFreezes(takes(run(0, 3)), day(3, 20));
       expect(started.sort()).toEqual(["frozen@0", "purchased@0", "row@0"]);
     } finally {
       spies.forEach((s) => s.mockRestore());
@@ -177,12 +179,12 @@ describe("the freeze sync's reads", () => {
     const cd = await import("./client-data");
     const rowReads = vi.spyOn(cd, "fetchStreakRow");
     try {
-      const out = await syncFreezes(reps, day(11, 8));
+      const out = await syncFreezes(takes(reps), day(11, 8));
       expect(out.rescued).toHaveLength(1);
       expect(rowReads).toHaveBeenCalledTimes(2);
       rowReads.mockClear();
       // The next open has nothing to rescue: one read of the row.
-      await syncFreezes(reps, day(11, 9));
+      await syncFreezes(takes(reps), day(11, 9));
       expect(rowReads).toHaveBeenCalledTimes(1);
     } finally {
       rowReads.mockRestore();
@@ -192,7 +194,64 @@ describe("the freeze sync's reads", () => {
   it("a failed read still writes nothing", async () => {
     db.failFrozenRead = true;
     db.row = 1;
-    await expect(syncFreezes(run(0, 3), day(3, 20))).rejects.toThrow();
+    await expect(syncFreezes(takes(run(0, 3)), day(3, 20))).rejects.toThrow();
     expect(db.grants).toEqual([]);
+  });
+});
+
+/*
+ * One missed day, kept by two recordings (lib/streak.ts keptDays,
+ * closure.md row 14): built narrow so #174 stands. A freeze held is spent
+ * on the day first, and a kept day is never a freeze: it spends none,
+ * earns none and holds none. The week after REPAIR_FROM: spoke Thursday
+ * 26 November to Monday 30, missed Tuesday 1 December.
+ */
+describe("syncFreezes and a missed day two recordings keep", () => {
+  const at = (m: number, d: number, h = 18) => new Date(2026, m - 1, d, h);
+  const five = [at(11, 26), at(11, 27), at(11, 28), at(11, 29), at(11, 30)];
+  const TUE = at(12, 1, 12).toDateString();
+
+  it("spends a held freeze before any repair is considered", async () => {
+    db.purchased = 1;
+    // Wednesday morning, nothing said yet: the freeze covers Tuesday.
+    const open = await syncFreezes(takes(five), at(12, 2, 8));
+    expect(open.rescued.map((d) => d.toDateString())).toEqual([TUE]);
+    const { repairState } = await import("./streak");
+    expect(repairState(takes(five), open.frozenDays, at(12, 2, 8))).toBeNull();
+    // Two takes later that day keep nothing: the freeze already did.
+    const night = await syncFreezes(takes([...five, at(12, 2, 9), at(12, 2, 19)]), at(12, 2, 21));
+    expect(night.keptDays).toEqual([]);
+    expect(night.frozenDays.map((d) => d.toDateString())).toEqual([TUE]);
+    expect(night.streak.current).toBe(6);
+  });
+
+  it("counts a kept day in the streak and in neither the freezes spent nor the balance", async () => {
+    // Five days, Tuesday missed, two takes on Wednesday and one on each
+    // day to Saturday: nine days spoken around the kept one.
+    const reps = [...five, at(12, 2, 9), at(12, 2, 19), at(12, 3), at(12, 4), at(12, 5)];
+    const out = await syncFreezes(takes(reps), at(12, 5, 21));
+    expect(out.keptDays.map((d) => d.toDateString())).toEqual([TUE]);
+    expect(out.streak.current).toBe(9);
+    expect(out.frozenDays).toEqual([]);
+    expect(db.frozen).toEqual([]);
+    // The same account with Tuesday unkept holds what it holds now: the
+    // kept day earned no freeze, though the run it bridges is past 7.
+    const unkept = await syncFreezes(
+      reps.map((d) => ({ created_at: d.toISOString(), scorable: false })),
+      at(12, 5, 21)
+    );
+    expect(unkept.keptDays).toEqual([]);
+    expect(out.equipped).toBe(unkept.equipped);
+    expect(out.equipped).toBe(0);
+  });
+
+  it("keeps nothing from a spine read before 0037, which has no scorable column", async () => {
+    const reps = [...five, at(12, 2, 9), at(12, 2, 19)];
+    const out = await syncFreezes(
+      reps.map((d) => ({ created_at: d.toISOString() })),
+      at(12, 2, 21)
+    );
+    expect(out.keptDays).toEqual([]);
+    expect(out.streak.current).toBe(1);
   });
 });

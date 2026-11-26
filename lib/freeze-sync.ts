@@ -23,7 +23,9 @@ import { currentSession } from "./supabase-browser";
 import {
   computeStreak,
   freezeBalance,
+  keptDays,
   rescuableDays,
+  type RepairTake,
   type StreakState,
 } from "./streak";
 
@@ -52,6 +54,12 @@ export interface FreezeSync {
   equipped: number;
   /** Days a freeze just rescued, for the "your streak survived" note. */
   rescued: Date[];
+  /**
+   * Missed days two recordings kept (lib/streak.ts keptDays, closure.md
+   * row 14): counted in `streak` as bridges, never in `frozenDays`, so
+   * the freezes spent and held never move with them.
+   */
+  keptDays: Date[];
 }
 
 /**
@@ -77,22 +85,30 @@ export function keptFreezes(raw: unknown, now: Date = new Date()): FreezeSync | 
   if (days.some((d) => d === null || Number.isNaN(d.getTime()))) return null;
   const spine = held<RepSpine[]>(SPINE_KEY);
   if (!spine) return null;
-  const streak = computeStreak(spine.map((r) => new Date(r.created_at)), now, days as Date[]);
-  return { streak, frozenDays: days as Date[], equipped, rescued: [] };
+  /* The kept days are never stored: counted again from the held spine. */
+  const kept = keptDays(spine, days as Date[], now);
+  const streak = computeStreak(spine.map((r) => new Date(r.created_at)), now, [...(days as Date[]), ...kept]);
+  return { streak, frozenDays: days as Date[], equipped, rescued: [], keptDays: kept };
 }
 keepBetweenOpens<FreezeSync>(FREEZES_KEY, {
   save: (v) => ({ frozenDays: v.frozenDays.map((d) => d.toISOString()), equipped: v.equipped }),
   load: (raw) => keptFreezes(raw),
 });
 
-export function syncFreezes(repDates: Date[], now = new Date()): Promise<FreezeSync> {
-  return once(FREEZES_KEY, () => runFreezeSync(repDates, now));
+/**
+ * The freezes reconciled against every recording the account holds: the
+ * spine's rows (`fetchRepSpine`), each with its time and whether it
+ * scored, so the days two recordings kept are counted too.
+ */
+export function syncFreezes(takes: RepairTake[], now = new Date()): Promise<FreezeSync> {
+  return once(FREEZES_KEY, () => runFreezeSync(takes, now));
 }
 
 async function runFreezeSync(
-  repDates: Date[],
+  takes: RepairTake[],
   now: Date
 ): Promise<FreezeSync> {
+  const repDates = takes.map((t) => new Date(t.created_at));
   const mark = heldMark();
   // A failed read rejects, before anything is written: missing rows must
   // not look like "nothing spent yet" (a rescue paid twice) or "none
@@ -132,8 +148,16 @@ async function runFreezeSync(
     }
   }
 
-  const streak = computeStreak(repDates, now, frozenDays);
-  const equipped = freezeBalance(streak.longest, frozenDays.length, purchased);
+  // The freezes are earned, spent and held from the freezes alone (#174):
+  // a day two recordings kept never earns one, spends one or moves the
+  // balance, so the run they are counted from leaves it out.
+  const equipped = freezeBalance(computeStreak(repDates, now, frozenDays).longest, frozenDays.length, purchased);
+  // A held freeze is spent first (#39); only then can two recordings keep
+  // a day, which the streak counts as a bridge, like a freeze, adding
+  // nothing. A rescue only ever covers days after the last one spoken and
+  // a kept day lies before a spoken one, so the two never meet.
+  const kept = keptDays(takes, frozenDays, now);
+  const streak = computeStreak(repDates, now, [...frozenDays, ...kept]);
 
   // The column stays a mirror for anyone reading the table, clamped to
   // what its check accepts, and is never read back. An unread row skips
@@ -145,6 +169,6 @@ async function runFreezeSync(
     await grantFreezes(mirror).catch(() => 0);
   }
 
-  hold(FREEZES_KEY, { streak, frozenDays, equipped, rescued: [] }, mark);
-  return { streak, frozenDays, equipped, rescued };
+  hold(FREEZES_KEY, { streak, frozenDays, equipped, rescued: [], keptDays: kept }, mark);
+  return { streak, frozenDays, equipped, rescued, keptDays: kept };
 }

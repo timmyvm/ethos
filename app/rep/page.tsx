@@ -3562,9 +3562,10 @@ function Results({
   /*
    * Say it better's proof (#509): this take said a saved swap's better
    * phrase, found in Whisper's text as the count reads it and in its
-   * timed words for the moment. Only a stored take with its number proves
-   * anything (the count reads stored recordings, and the token marks the
-   * swap heard). Decided once, at the glance's first frame, from the
+   * timed words for the moment. Only a stored take the count reads
+   * proves anything (the token marks the swap heard): one with its
+   * number, or a capped one, which the meter alone left without it (the
+   * reel's extra A, lib/say.ts usesOf). Decided once, at the glance's first frame, from the
    * swaps as they were read when the recorder opened: a read that lands
    * after it shows nothing here (no token ever arrives under the reader,
    * rule 8) and leaves the swap unheard for the next take to prove. Said
@@ -3574,7 +3575,7 @@ function Results({
   const [sayAtLanding] = useState(say);
   const proof = useMemo(
     () =>
-      scorable && result.ethosIndex !== null && sayAtLanding
+      scorable && (result.ethosIndex !== null || capped) && sayAtLanding
         ? proofIn(sayAtLanding.swaps, sayAtLanding.states, {
             id: result.repId,
             transcript: result.transcript,
@@ -3582,7 +3583,7 @@ function Results({
             startedAt: new Date(startedAt),
           })
         : null,
-    [scorable, result.ethosIndex, result.repId, result.transcript, sayAtLanding, result.words, startedAt]
+    [scorable, result.ethosIndex, capped, result.repId, result.transcript, sayAtLanding, result.words, startedAt]
   );
   const fit = fitGlanceProof(
     {

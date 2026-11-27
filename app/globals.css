@@ -8772,13 +8772,18 @@ html[data-test-tile] .test-tile-slot {
 .since-day-to {
   grid-column: 3;
 }
-/* Better wears a shape as well as sage (DESIGN 10): a short bar under
-   the figure, the mark the panel took from designer C. Worse stays bare
-   in rust, so the two never differ by colour alone. */
-.since-better {
+/* A verdict wears a shape as well as its colour (DESIGN 10): better a
+   short solid bar under the figure, the mark the panel took from designer
+   C; worse the same bar broken into dashes (#526's review: worse stood
+   bare in rust, so it differed from a held figure by colour alone). Each
+   dash is a pill, the next ones its shadows, so every dash keeps the
+   bar's round ends. */
+.since-better,
+.since-worse {
   position: relative;
 }
-.since-better::after {
+.since-better::after,
+.since-worse::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -8789,10 +8794,24 @@ html[data-test-tile] .test-tile-slot {
   background: currentColor;
   transform: translateX(-50%);
 }
-.since-ledger .since-better::after {
+/* Three dashes of 6 with gaps of 5: the bar's 28. */
+.since-worse::after {
+  width: 6px;
+  box-shadow:
+    11px 0 0 currentColor,
+    22px 0 0 currentColor;
+  transform: translateX(-14px);
+}
+.since-ledger :is(.since-better, .since-worse)::after {
   bottom: -5px;
   width: 14px;
   height: 2px;
+}
+/* Two dashes of 5 with a gap of 4: the ledger bar's 14. */
+.since-ledger .since-worse::after {
+  width: 5px;
+  box-shadow: 9px 0 0 currentColor;
+  transform: translateX(-7px);
 }
 /* An unknown is a dash in the stage's quiet ink, never a bright slab. */
 .since-none,
@@ -8974,6 +8993,11 @@ html[data-test-tile] .test-tile-slot {
   .since-day {
     margin-top: 6px;
   }
+  /* The claim's mark rises with the day line, so it stands clear of
+     "Day N" (it touched it at 7px down over a 6px gap). */
+  .since-claim :is(.since-better, .since-worse)::after {
+    bottom: -4px;
+  }
   .since-board {
     margin-top: 8px;
   }
@@ -9009,6 +9033,13 @@ html[data-test-tile] .test-tile-slot {
   }
   .since-ledger > li {
     padding: 3px 0;
+  }
+  /* Over a 3px foot the mark sits 2px down, so it ends a pixel over the
+     next row's rule instead of on it (#526's review: at 5px down the
+     sage merged with the grey rule and the shape that says better was
+     lost). */
+  .since-ledger :is(.since-better, .since-worse)::after {
+    bottom: -2px;
   }
   .since-ledger-label {
     line-height: 1rem;

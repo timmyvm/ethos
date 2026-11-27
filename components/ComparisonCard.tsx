@@ -21,9 +21,10 @@ import {
  *
  * Still screenshot-shaped (vision.md principle 4): dark, one claim, no
  * chrome. The rows and their colours are lib/since-day-one.ts's, read off
- * the first and the latest measured recordings: sage only where the
- * drawn number got better, rust where it got worse, plain where it held
- * or is unknown, and the way it went is in each row's name.
+ * the first and the latest measured recordings: sage and a solid bar only
+ * where the drawn number got better, rust and a broken bar where it got
+ * worse, plain where it held or is unknown, and the way it went is in
+ * each row's name.
  *
  * Over the claim, where the stage has the room, the claim's measure is
  * drawn across every measured recording (the panel's graft 1, designer
@@ -85,13 +86,15 @@ function tone(r: { better: boolean | null }): string {
 }
 
 /**
- * The mark a better number wears besides its colour (DESIGN 10: two
- * marks that mean different things differ in shape): a short sage bar
- * under the figure, the shape the panel took from designer C. Worse
- * stays bare in rust, so better and worse never differ by colour alone.
+ * The mark a verdict wears besides its colour (DESIGN 10: two marks that
+ * mean different things differ in shape): better, a short solid sage bar
+ * under the figure, the shape the panel took from designer C; worse, the
+ * same bar broken into dashes, in rust (#526's review: worse was bare, so
+ * worse and held differed by colour alone). Held, unknown and a pace as
+ * far from 145 at both ends have no verdict and wear no mark.
  */
 function better(r: { better: boolean | null }): string {
-  return r.better === true ? " since-better" : "";
+  return r.better === true ? " since-better" : r.better === false ? " since-worse" : "";
 }
 
 /**

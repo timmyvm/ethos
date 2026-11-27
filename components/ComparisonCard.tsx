@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 import type { RepRow } from "@/lib/client-data";
-import { sinceDayOneCard, sinceName, type SinceRow } from "@/lib/since-day-one";
+import { linePath } from "@/lib/log";
+import {
+  sinceDayOneCard,
+  sinceLine,
+  sinceName,
+  sinceSeries,
+  SPAN_FLOOR,
+  type SinceLine,
+  type SinceRow,
+} from "@/lib/since-day-one";
 
 /**
  * Since day one's stage (#526): the number they said they would watch,
@@ -15,6 +24,13 @@ import { sinceDayOneCard, sinceName, type SinceRow } from "@/lib/since-day-one";
  * the first and the latest measured recordings: sage only where the
  * drawn number got better, rust where it got worse, plain where it held
  * or is unknown, and the way it went is in each row's name.
+ *
+ * Over the claim, where the stage has the room, the claim's measure is
+ * drawn across every measured recording (the panel's graft 1, designer
+ * B's line): a dot a recording, the house's centred mean through them,
+ * a ring where you started and a dot where you are. The claim prints
+ * both ends, so the line carries no labels; one bad last take reads as
+ * the spike it is, not as 26 days of decline.
  */
 export function ComparisonCard({
   reps,
@@ -31,11 +47,17 @@ export function ComparisonCard({
   const card = sinceDayOneCard(reps, lead);
   if (!card) return null;
   const [claim, ...ledger] = card.rows;
+  /* The line only where the claim stands both its ends: then its first and
+     last values are the claim's own two numbers. */
+  const line = claim.from !== null && claim.to !== null ? sinceLine(sinceSeries(reps, claim.key), SPAN_FLOOR[claim.key]) : null;
 
   return (
     <SinceStage
       hero={
         <>
+          {/* The line is the stage's art, over the head it illustrates
+              (Wellspoken's course page: art, then the centred head). */}
+          {line && <SinceChart line={line} tone={claim.better} />}
           {/* The claim's label is its eyebrow; the claim's own name says it. */}
           <p aria-hidden className="eyebrow since-eyebrow">
             {claim.label}
@@ -45,7 +67,7 @@ export function ComparisonCard({
       }
       ledger={
         <SinceLedger
-          rows={ledger.map((r) => ({ key: r.key, label: r.label, a: r.a, b: r.b, tone: tone(r), name: sinceName(r, card.days) }))}
+          rows={ledger.map((r) => ({ key: r.key, label: r.label, a: r.a, b: r.b, tone: `${tone(r)}${better(r)}`, name: sinceName(r, card.days) }))}
         />
       }
       foot={
@@ -58,8 +80,52 @@ export function ComparisonCard({
 }
 
 /** Sage where the number got better, rust where it got worse, the stage's ink where it held or is unknown. */
-function tone(r: SinceRow): string {
+function tone(r: { better: boolean | null }): string {
   return r.better === true ? "text-sage-lit" : r.better === false ? "text-rust-lit" : "text-cream";
+}
+
+/**
+ * The mark a better number wears besides its colour (DESIGN 10: two
+ * marks that mean different things differ in shape): a short sage bar
+ * under the figure, the shape the panel took from designer C. Worse
+ * stays bare in rust, so better and worse never differ by colour alone.
+ */
+function better(r: { better: boolean | null }): string {
+  return r.better === true ? " since-better" : "";
+}
+
+/**
+ * The claim's measure across every measured recording, drawn in the room
+ * the claim leaves (graft 1). It takes the stage's free height and gives
+ * it up below 44pt (`.since-chart`'s container query), where a line that
+ * short would read as noise. Hidden from a screen reader: the claim's
+ * name already says both ends.
+ */
+function SinceChart({ line, tone: verdict }: { line: SinceLine; tone: boolean | null }) {
+  const W = 1000;
+  const H = 1000;
+  const d = linePath(line.line.map(([x, y]) => [x * W, y * H]));
+  /* Every recording between the ends as a round cap on a zero-length
+     stroke, so each stays a circle however the plot is stretched. */
+  const dots = line.dots
+    .slice(1, -1)
+    .map(([x, y]) => `M${(x * W).toFixed(1)} ${(y * H).toFixed(1)}h0`)
+    .join("");
+  const [, y0] = line.dots[0];
+  const [, y1] = line.dots[line.dots.length - 1];
+  const end = verdict === true ? "since-end-better" : verdict === false ? "since-end-worse" : "";
+  return (
+    <div aria-hidden data-since-chart="" className="since-chart">
+      <div className="since-plot">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" focusable="false" className="block size-full overflow-visible">
+          {dots && <path d={dots} className="since-dots" />}
+          <path d={d} pathLength={1} className="since-path" />
+        </svg>
+        <span className="since-ring" style={{ left: "0%", top: `${y0 * 100}%` }} />
+        <span className={`since-dot ${end}`} style={{ left: "100%", top: `${y1 * 100}%` }} />
+      </div>
+    </div>
+  );
 }
 
 /** The arrow between two numbers: drawn, so it sits on the figures' middle at any size. */
@@ -86,7 +152,7 @@ function Claim({ row, days }: { row: SinceRow; days: number }) {
       <div aria-hidden className="since-claim">
         <span className="since-from font-display font-extrabold tabular-nums">{row.a}</span>
         <SinceArrow className="since-claim-arrow" />
-        <span className={`since-to font-display font-extrabold tabular-nums ${tone(row)}`}>{row.b}</span>
+        <span className={`since-to font-display font-extrabold tabular-nums ${tone(row)}${better(row)}`}>{row.b}</span>
         <span className="since-day">Day 1</span>
         <span className="since-day since-day-to">Day {days}</span>
       </div>
@@ -100,7 +166,7 @@ export type LedgerRow = {
   /** Day 1's number; absent on a ledger of one recording. */
   a?: string;
   b: string;
-  /** The colour class for `b`. */
+  /** The colour class for `b`, and its mark when better. */
   tone?: string;
   /** Every number in the row, in words, for a screen reader. */
   name: string;
@@ -116,7 +182,14 @@ export function SinceLedger({ rows, room = false }: { rows: LedgerRow[]; room?: 
   if (rows.length === 0) return null;
   const pairs = rows.some((r) => r.a !== undefined);
   return (
-    <ul className="since-ledger" data-pairs={pairs ? "" : undefined} data-room={room ? "" : undefined}>
+    <ul
+      className="since-ledger"
+      data-pairs={pairs ? "" : undefined}
+      data-room={room ? "" : undefined}
+      /* On the save wall each row takes a share of the stage's free height,
+         as the hero takes one (`.since-stage[data-room]`). */
+      style={room ? { flexGrow: rows.length } : undefined}
+    >
       {rows.map((r) => (
         <li key={r.key}>
           <span className="sr-only">{r.name}</span>
@@ -131,7 +204,10 @@ export function SinceLedger({ rows, room = false }: { rows: LedgerRow[]; room?: 
               <SinceArrow className="since-ledger-arrow" />
             </>
           )}
-          <span aria-hidden className={`since-ledger-b font-display text-num-m tabular-nums ${r.tone ?? "text-cream"}`}>
+          <span
+            aria-hidden
+            className={`since-ledger-b font-display text-num-m tabular-nums ${r.b === "—" ? "since-none" : r.tone ?? "text-cream"}`}
+          >
             {r.b}
           </span>
         </li>

@@ -8573,16 +8573,14 @@ html[data-test-tile] .test-tile-slot {
  * The two asks on the results' way out (lib/rep-screen.ts `exitBeat`):
  * Since day one (ProgressMoment, components/ComparisonCard.tsx) and the
  * save wall (SaveGate), on one stage. Their free height is the stage's
- * (DESIGN 7, #368): each was a centred block with two bands of bare
- * ground over and under it, about 140 at 390x844 on Since day one and 206
- * on the save wall. The stage's hero (eyebrow, number, the days or the
- * day line) holds the middle of it, centred as Wellspoken's course head
- * is; the quiet ledger and the foot stand at its bottom, so the ground
- * keeps only the rhythm's own steps.
+ * (DESIGN 7, #368), and inside the stage it goes to something true:
+ * Since day one's claim measure drawn across every recording over the
+ * claim (the panel's graft 1), the save wall's own number sized to the
+ * screen as the streak's count is (#496), and on a tall phone ledger rows
+ * that breathe. scripts/check-gaps.mjs counts the bands inside the stage
+ * as well as round it.
  *
- * The screen clears an iPhone's status bar and home bar (DESIGN 11): the
- * eyebrow stood at y29 under a 59pt inset, and Not now 2pt into the home
- * bar's 34.
+ * The screen clears an iPhone's status bar and home bar (DESIGN 11).
  */
 .since-screen {
   padding-top: max(1.75rem, calc(env(safe-area-inset-top) + 0.75rem));
@@ -8592,14 +8590,27 @@ html[data-test-tile] .test-tile-slot {
   margin: 16px 0;
 }
 .since-stage {
-  /* The stage's quiet ink: labels, "/1000", the days, the foot. */
-  --stage-ink: rgb(247 247 247 / 0.62);
+  /* The stage's inks, cut from the cream (the panel: tokens, never typed
+     colours): labels, "/1000", the days and the foot; day 1's numbers and
+     the arrows, quieter; the ledger's rules. */
+  --stage-ink: color-mix(in srgb, var(--color-cream) 62%, transparent);
+  --since-quiet: color-mix(in srgb, var(--color-cream) 45%, transparent);
+  --since-arrow: color-mix(in srgb, var(--color-cream) 38%, transparent);
+  --since-rule: color-mix(in srgb, var(--color-cream) 10%, transparent);
+  /* The stage's own fill, so the ring where you started cuts the line. */
+  --since-ground: var(--color-stage);
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
   margin-top: 12px;
   padding: 20px;
+  /* The stage fades in as the streak's moment's does (its DURATION.base),
+     under the hero's rise, so the dark never cuts in over the results. */
+  animation: fade-in var(--duration-base) var(--ease-out) backwards;
+}
+:root[data-theme="dark"] .since-stage {
+  --since-ground: var(--color-surface);
 }
 .since-hero {
   display: flex;
@@ -8608,14 +8619,111 @@ html[data-test-tile] .test-tile-slot {
   align-items: center;
   justify-content: center;
   min-height: 0;
-  padding: 20px 0 24px;
+  padding: 4px 0 20px;
   text-align: center;
 }
 /* The hero's label is how its number is read: a step brighter than the
    ledger's labels. */
 .since-eyebrow {
-  color: rgb(247 247 247 / 0.78);
+  color: color-mix(in srgb, var(--color-cream) 78%, transparent);
 }
+
+/* The line (graft 1): the claim's measure across every measured
+   recording, in the room the claim leaves. It takes the hero's free
+   height (a size container, so its own room decides), and under 44pt it
+   draws nothing: a line that short is noise (the Log's own line is 60). */
+.since-chart {
+  container: since-chart / size;
+  position: relative;
+  align-self: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0 0 14px;
+}
+.since-plot {
+  position: absolute;
+  inset: 8px 10px;
+  display: none;
+  color: var(--color-cream);
+}
+@container since-chart (min-height: 44px) {
+  .since-plot {
+    display: block;
+  }
+}
+.since-path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-cream) 70%, transparent);
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Each recording between the ends: a round cap on a zero-length stroke. */
+.since-dots {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-cream) 28%, transparent);
+  stroke-width: 6px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Where you started: a ring cut from the stage, so the line runs into it. */
+.since-ring {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 9999px;
+  border: 2.5px solid var(--since-quiet);
+  background: var(--since-ground);
+  transform: translate(-50%, -50%);
+}
+/* Where you are: filled in the claim's own tone, in a soft halo of it. */
+.since-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  color: var(--color-cream);
+  background: currentColor;
+  box-shadow:
+    0 0 0 3px var(--since-ground),
+    0 0 0 10px color-mix(in srgb, currentColor 18%, transparent);
+  transform: translate(-50%, -50%);
+}
+.since-end-better {
+  color: var(--color-sage-lit);
+}
+.since-end-worse {
+  color: var(--color-rust-lit);
+}
+/* The line draws from the ring to today's dot as the screen opens, the
+   recordings uncovered with it in their order, and the dot lands last.
+   A wipe, not the Log's dash offset: seeked frame by frame, a dash on a
+   non-scaling stroke drew a different length than its time (the
+   entrance strip, round 2), and a wipe also carries the dots. */
+.since-plot > svg {
+  animation: since-wipe 800ms var(--ease-out) 120ms backwards;
+}
+.since-dot {
+  animation: log-dot 320ms var(--ease-out) 820ms backwards;
+}
+@keyframes since-wipe {
+  from {
+    clip-path: inset(-8px 100% -8px -8px);
+  }
+  to {
+    clip-path: inset(-8px -8px -8px -8px);
+  }
+}
+:root[data-motion="reduce"] :is(.since-plot > svg, .since-dot) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.since-plot > svg, .since-dot) {
+    animation: none;
+  }
+}
+
 /* The claim: day 1's number, the arrow, today's, each over its day. The
    numbers share a baseline, the arrow sits on their middle, the days
    share a line under them. */
@@ -8632,7 +8740,7 @@ html[data-test-tile] .test-tile-slot {
   font-size: var(--text-num-hero);
   line-height: 1;
   letter-spacing: var(--text-num-hero--letter-spacing);
-  color: rgb(247 247 247 / 0.45);
+  color: var(--since-quiet);
 }
 .since-to {
   font-size: var(--text-num-xl);
@@ -8641,7 +8749,7 @@ html[data-test-tile] .test-tile-slot {
 }
 .since-arrow {
   display: block;
-  color: rgb(247 247 247 / 0.38);
+  color: var(--since-arrow);
 }
 .since-claim-arrow {
   width: 28px;
@@ -8660,6 +8768,33 @@ html[data-test-tile] .test-tile-slot {
 }
 .since-day-to {
   grid-column: 3;
+}
+/* Better wears a shape as well as sage (DESIGN 10): a short bar under
+   the figure, the mark the panel took from designer C. Worse stays bare
+   in rust, so the two never differ by colour alone. */
+.since-better {
+  position: relative;
+}
+.since-better::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 28px;
+  height: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+.since-ledger .since-better::after {
+  bottom: -5px;
+  width: 14px;
+  height: 2px;
+}
+/* An unknown is a dash in the stage's quiet ink, never a bright slab. */
+.since-none,
+.since-hero [data-ethos-score] > .font-display:not([data-score]) {
+  color: var(--since-quiet);
 }
 /* The ledger: the rest, a row each. Day 1's number right-aligned against
    the arrow, today's left-aligned after it, so the arrows stand in one
@@ -8680,14 +8815,14 @@ html[data-test-tile] .test-tile-slot {
   grid-template-columns: subgrid;
   align-items: baseline;
   padding: 10px 0;
-  border-top: 1px solid rgb(247 247 247 / 0.1);
+  border-top: 1px solid var(--since-rule);
 }
 .since-ledger-label {
   color: var(--stage-ink);
 }
 .since-ledger-a {
   justify-self: end;
-  color: rgb(247 247 247 / 0.45);
+  color: var(--since-quiet);
 }
 .since-ledger-arrow {
   width: 16px;
@@ -8703,16 +8838,50 @@ html[data-test-tile] .test-tile-slot {
 }
 .since-foot {
   padding-top: 12px;
-  border-top: 1px solid rgb(247 247 247 / 0.1);
+  border-top: 1px solid var(--since-rule);
   color: var(--stage-ink);
 }
-/* The save wall's hero: the Ethos number (or, with none, the take's lead
-   measure) at the claim's size, and the day line under it. */
-.since-take {
-  margin-top: 14px;
-  font-size: var(--text-num-xl);
+
+/* The save wall: the Ethos number (or, capped, the take's lead measure)
+   over the day line, and the take's own numbers as its ledger at every
+   size (graft 4: it stood only where the stage had 344pt, and 375x667
+   kept 114pt of empty dark round one number). Nothing on it is drawn, so
+   its room goes to its one number, sized to the screen between the
+   claim's 72 and 144 as the streak's count is (#496), and on a tall
+   phone to ledger rows that breathe; what is left falls evenly over,
+   between and under them, never into one band. */
+.since-stage[data-room] {
+  min-height: auto;
+  /* The last row keeps its own padding under it. */
+  padding-bottom: 12px;
+}
+/* The hero takes one share of the free height and each ledger row one
+   (SinceLedger's flex-grow is its row count), each centring what it
+   holds, so the room falls a little over and under every mark and the
+   rows' rules split it: no one band of dark, whatever the take holds (a
+   capped take's two rows, a take too short to score). */
+.since-stage[data-room] > .since-hero {
+  flex: 1 1 auto;
+  padding: 0;
+}
+/* Its rows are auto tracks, so a ledger given more height than it holds
+   stretches them evenly (the grid's own align-content: normal), and one
+   given none keeps each row its own height. */
+.since-stage[data-room] .since-ledger {
+  flex: 0 1 auto;
+  margin-top: 20px;
+}
+.since-stage[data-room] .since-ledger > li {
+  align-content: center;
+}
+.since-take,
+.since-hero [data-ethos-score] > [data-score] {
+  font-size: clamp(var(--text-num-xl), calc(34dvh - 160px), 9rem);
   line-height: 1;
   letter-spacing: var(--text-num-xl--letter-spacing);
+}
+.since-take {
+  margin-top: 14px;
 }
 /* The number centred, not the number and its "/1000": the "/1000"
    hangs off its right, so a pad its width on the left (Figtree 15, 4px
@@ -8725,25 +8894,27 @@ html[data-test-tile] .test-tile-slot {
 .since-board {
   margin-top: 14px;
 }
-/* The save wall's stage is as tall as the room it is given, never its
-   contents (size containment), and its ledger stands only where that
-   room holds it: the body over its tap takes six lines at 320. */
-.since-stage[data-room] {
-  container: since-room / size;
-  min-height: 188px;
-}
-/* A height query needs a definite height: the save wall's screen is the
-   screen's height, and its contents' when they are taller. */
-.since-screen:has(> .since-stage[data-room]) {
-  height: 100dvh;
-  min-height: fit-content;
-}
-.since-ledger[data-room] {
-  display: none;
-}
-@container since-room (min-height: 344px) {
-  .since-ledger[data-room] {
-    display: grid;
+/* A tall phone: the rows breathe and the save wall's figures take the
+   num-l step, so the stage's height is numbers, not dark. */
+@media (min-height: 800px) and (min-width: 360px) {
+  .since-ledger > li {
+    padding: 14px 0;
+  }
+  .since-stage[data-room] .since-ledger > li {
+    padding: 16px 0;
+  }
+  .since-stage[data-room] .since-ledger-b {
+    font-size: var(--text-num-l);
+    line-height: 1;
+    letter-spacing: var(--text-num-l--letter-spacing);
+  }
+  .since-stage[data-room] .since-ledger-label {
+    font-size: var(--text-body);
+  }
+  .since-hero [data-ethos-score],
+  .since-take,
+  .since-board {
+    margin-top: 18px;
   }
 }
 /* A claim of four places a side takes the step down (as the Log's number
@@ -8789,6 +8960,9 @@ html[data-test-tile] .test-tile-slot {
   .since-hero {
     padding: 4px 0 8px;
   }
+  .since-chart {
+    margin-top: 8px;
+  }
   .since-claim,
   .since-take,
   .since-hero [data-ethos-score] {
@@ -8803,6 +8977,9 @@ html[data-test-tile] .test-tile-slot {
   .since-ledger > li {
     padding: 6px 0;
   }
+  .since-stage[data-room] .since-ledger {
+    margin-top: 8px;
+  }
   /* The ledger's numbers take one step: today's at 17, as day 1's. */
   .since-ledger-b {
     font-size: var(--text-num-s);
@@ -8811,6 +8988,27 @@ html[data-test-tile] .test-tile-slot {
   }
   .since-foot {
     padding-top: 8px;
+  }
+}
+/* A 568pt phone: the save wall keeps the take's ledger (graft 4) by
+   giving up air, not numbers. */
+@media (max-height: 600px) {
+  .since-line {
+    margin: 8px 0;
+  }
+  .since-stage {
+    padding: 12px 16px;
+  }
+  .since-hero [data-ethos-score],
+  .since-take,
+  .since-board {
+    margin-top: 4px;
+  }
+  .since-ledger > li {
+    padding: 3px 0;
+  }
+  .since-ledger-label {
+    line-height: 1rem;
   }
 }
 /* ============== end of since day one and the save wall (#526) ============== */

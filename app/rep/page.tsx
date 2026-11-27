@@ -4048,6 +4048,7 @@ function Results({
         moment={gate}
         index={result.ethosIndex}
         metrics={result.metrics}
+        scorable={result.scorable !== false}
         streak={streakNow}
         onSkip={() => go(gateTo)}
       />
@@ -4335,6 +4336,7 @@ function SaveGate({
   moment,
   index,
   metrics,
+  scorable,
   streak,
   onSkip,
 }: {
@@ -4342,6 +4344,12 @@ function SaveGate({
   index: number | null;
   /** The take it asks to save: its numbers stand in the stage's ledger (#526). */
   metrics: RepMetrics;
+  /**
+   * False for a take too short to score (rep1 shows after any first take,
+   * lib/onboarding.ts `gateMoment`): its numbers are dashes, never the
+   * engine's zeros, and the hero is the Ethos slot's dash (DESIGN 8).
+   */
+  scorable: boolean;
   streak: number;
   onSkip: () => void;
 }) {
@@ -4356,9 +4364,9 @@ function SaveGate({
   /* The take's own numbers, the introduction's focus first (#232). With
      an Ethos number it is the hero and these are its ledger; without one
      (a capped take) the first of them is the hero, as on Since day one. */
-  const rows = takeRows(metrics, buildPortfolio(readOnboarding().answers).focus?.metric);
-  const lead = index === null ? rows[0] : null;
-  const ledger = index === null ? rows.slice(1) : rows;
+  const rows = takeRows(metrics, buildPortfolio(readOnboarding().answers).focus?.metric, { scorable });
+  const lead = index === null && scorable ? rows[0] : null;
+  const ledger = lead ? rows.slice(1) : rows;
 
   return (
     <main className="since-screen flex min-h-dvh flex-col px-5">
@@ -4387,12 +4395,19 @@ function SaveGate({
         }
         ledger={<SinceLedger room rows={ledger.map((r) => ({ key: r.key, label: r.label, b: r.value, name: r.name }))} />}
       />
+      {/* One negation on the screen (COPY-RULES, #526): "Nothing moves, so
+          nothing can go missing." went, as B and C cut it, and "in this
+          browser and nowhere else" is "only in this browser", so "can't
+          take them" is the one left. A take too short to score has no
+          score to keep, so its line does not name one. */}
       <p className="since-line text-body leading-relaxed text-stone-500">
         {moment === "rep1"
-          ? "This recording, its score and the streak it starts live in this browser and nowhere else. "
-          : `${article(days)} ${days}-day streak and every number behind it live in this browser and nowhere else. `}
+          ? scorable
+            ? "This recording, its score and the streak it starts live only in this browser. "
+            : "This recording and the streak it starts live only in this browser. "
+          : `${article(days)} ${days}-day streak and every number behind it live only in this browser. `}
         An account attaches them to you, so a cleared cache or a new phone
-        can&apos;t take them. Nothing moves, so nothing can go missing.
+        can&apos;t take them.
       </p>
 
       <Link href="/signup" className={PRIMARY}>

@@ -4375,13 +4375,17 @@ function SaveGate({
       {/* The stage Since day one stands on (#526), so the two asks read as
           one family: the number at display size under its eyebrow, the day
           line under it as the claim's days stand under the claim, and the
-          numbers behind it as the quiet ledger where the stage has the
-          room for them. No Demos: the number is the argument (#134). */}
+          numbers behind it as the quiet ledger, at every size. No Demos:
+          the number is the argument (#134). */}
       <SinceStage
         room
         hero={
           <>
-            <p className="eyebrow since-eyebrow">{lead ? lead.label : "Your Ethos"}</p>
+            {/* A capped take's label is in its number's own name, so the
+                eyebrow is for the eye only: said once (the fit judge). */}
+            <p aria-hidden={lead ? true : undefined} className="eyebrow since-eyebrow">
+              {lead ? lead.label : "Your Ethos"}
+            </p>
             {lead ? (
               <p className="since-take font-display font-extrabold tabular-nums">
                 <span aria-hidden>{lead.value}</span>

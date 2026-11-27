@@ -34,9 +34,18 @@ export function proMomentDue(args: {
   /** How many recordings exist, for the comparison card's two ends. */
   repCount: number;
   shown: boolean;
+  /**
+   * The card can stand its two ends: two measured recordings
+   * (lib/since-day-one.ts `sinceDayOneCard` is not null). Three days of
+   * takes too short to measure leave it nothing to draw, and the screen
+   * would be its eyebrow, its line and its taps over bare ground, so the
+   * moment waits, unshown, for a later exit (#526, the panel's must-fix).
+   */
+  comparable: boolean;
 }): boolean {
   if (args.premium || args.shown) return false;
   if (args.daysSpoken < PRO_MOMENT_DAYS) return false;
+  if (!args.comparable) return false;
   return args.repCount >= 2;
 }
 

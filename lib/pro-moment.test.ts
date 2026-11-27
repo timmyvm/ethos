@@ -7,7 +7,7 @@ import { PRO_MOMENT_DAYS, proMomentDue } from "./pro-moment";
  * buy. DECISIONS #11 is the placement; docs/growth/04 §2 the rules.
  */
 describe("proMomentDue", () => {
-  const base = { premium: false, daysSpoken: 3, repCount: 3, shown: false };
+  const base = { premium: false, daysSpoken: 3, repCount: 3, shown: false, comparable: true };
 
   it("fires on the third day of speaking", () => {
     expect(proMomentDue(base)).toBe(true);
@@ -34,6 +34,12 @@ describe("proMomentDue", () => {
 
   it("needs two recordings for the card's two ends", () => {
     expect(proMomentDue({ ...base, repCount: 1 })).toBe(false);
+  });
+
+  it("waits while the card cannot draw its two ends (the panel's must-fix: no screen of bare ground)", () => {
+    // Three days of takes too short to measure: Since day one has no
+    // first and latest to stand, so the moment stays due for a later exit.
+    expect(proMomentDue({ ...base, daysSpoken: 4, repCount: 6, comparable: false })).toBe(false);
   });
 
   it("keeps the threshold at three days", () => {

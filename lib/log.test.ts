@@ -145,7 +145,9 @@ describe("sinceDayOne", () => {
       rep({ id: "c", transcript: "um so yeah", filler_count: 0, wpm: 73, duration_s: 4.1, ethos_index: null, created_at: "2026-11-06T09:00:00Z" }),
     ];
     const html = renderToStaticMarkup(createElement(ComparisonCard, { reps }));
-    expect(html).toContain("Day 1 to day 27");
+    // The claim's two days (#526): it read "Day 1 to day 27" over the rows.
+    expect(html).toContain(">Day 1<");
+    expect(html).toContain(">Day 27<");
     expect(html).toContain(">3.0<");
     expect(html).not.toContain(">0.0<");
     expect(html).toContain(">141<");

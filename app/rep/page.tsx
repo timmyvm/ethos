@@ -26,7 +26,8 @@ import { ClosingNote } from "@/components/rep/ClosingNote";
 import { useGlanceReminder } from "@/components/rep/ReminderAsk";
 import { firstScoredToday } from "@/lib/reminder-ask";
 import { SHEET_NAME, WholeRecording } from "@/components/rep/WholeRecording";
-import { ComparisonCard } from "@/components/ComparisonCard";
+import { ComparisonCard, SinceLedger, SinceStage } from "@/components/ComparisonCard";
+import { boardLine, takeRows } from "@/lib/since-day-one";
 import { Paywall } from "@/components/LazyPaywall";
 import type { PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
@@ -192,7 +193,7 @@ import {
   roundGlance,
   sheetSections,
 } from "@/lib/glance";
-import { starGoals } from "@/lib/metrics";
+import { starGoals, type RepMetrics } from "@/lib/metrics";
 import { DIMENSION_NAME, fillerTrend, isTraitKey } from "@/lib/dimension-rows";
 import { levelUpLine, levelUps, traitLevels, type LevelUpView } from "@/lib/traits";
 import { carryCue, cueDay, cueGlance, warmsUp, type CueState } from "@/lib/carried-cue";
@@ -4043,6 +4044,7 @@ function Results({
       <SaveGate
         moment={gate}
         index={result.ethosIndex}
+        metrics={result.metrics}
         streak={streakNow}
         onSkip={() => go(gateTo)}
       />
@@ -4329,11 +4331,14 @@ function Results({
 function SaveGate({
   moment,
   index,
+  metrics,
   streak,
   onSkip,
 }: {
   moment: GateMoment;
   index: number | null;
+  /** The take it asks to save: its numbers stand in the stage's ledger (#526). */
+  metrics: RepMetrics;
   streak: number;
   onSkip: () => void;
 }) {
@@ -4344,34 +4349,48 @@ function SaveGate({
   }, [moment]);
 
   const days = Math.max(streak, 1);
+  const title = boardLine(moment, days);
+  /* The take's own numbers, the introduction's focus first (#232). With
+     an Ethos number it is the hero and these are its ledger; without one
+     (a capped take) the first of them is the hero, as on Since day one. */
+  const rows = takeRows(metrics, buildPortfolio(readOnboarding().answers).focus?.metric);
+  const lead = index === null ? rows[0] : null;
+  const ledger = index === null ? rows.slice(1) : rows;
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
+    <main className="since-screen flex min-h-dvh flex-col px-5">
       <div className="eyebrow">Before you go</div>
 
-      <div className="flex flex-1 flex-col justify-center">
-        {/* The Ethos number as every screen draws it (#493), under its
-            eyebrow; it read "/1000 · your baseline", and the title under
-            it already says this is day 1. */}
-        {index !== null && (
+      {/* The stage Since day one stands on (#526), so the two asks read as
+          one family: the number at display size under its eyebrow, the day
+          line under it as the claim's days stand under the claim, and the
+          numbers behind it as the quiet ledger where the stage has the
+          room for them. No Demos: the number is the argument (#134). */}
+      <SinceStage
+        room
+        hero={
           <>
-            <p className="eyebrow">Your Ethos</p>
-            <EthosScore value={index} size="hero" className="mt-1" />
+            <p className="eyebrow since-eyebrow">{lead ? lead.label : "Your Ethos"}</p>
+            {lead ? (
+              <p className="since-take font-display font-extrabold tabular-nums">
+                <span aria-hidden>{lead.value}</span>
+                <span className="sr-only">{lead.name}</span>
+              </p>
+            ) : (
+              <EthosScore value={index} size="xl" onStage />
+            )}
+            <h1 className="since-board font-display text-title text-balance">{title}</h1>
           </>
-        )}
-        <h1 className="font-display mt-4 text-title">
-          {moment === "rep1"
-            ? "Day 1 is on the board."
-            : `${days} days on the board.`}
-        </h1>
-        <p className="mt-3 max-w-[92%] text-body leading-relaxed text-stone-500">
-          {moment === "rep1"
-            ? "This recording, its score and the streak it starts live in this browser and nowhere else. "
-            : `${article(days)} ${days}-day streak and every number behind it live in this browser and nowhere else. `}
-          An account attaches them to you, so a cleared cache or a new phone
-          can&apos;t take them. Nothing moves, so nothing can go missing.
-        </p>
-      </div>
+        }
+        ledger={<SinceLedger room rows={ledger.map((r) => ({ key: r.key, label: r.label, b: r.value, name: r.name }))} />}
+      />
+      <p className="since-line text-body leading-relaxed text-stone-500">
+        {moment === "rep1"
+          ? "This recording, its score and the streak it starts live in this browser and nowhere else. "
+          : `${article(days)} ${days}-day streak and every number behind it live in this browser and nowhere else. `}
+        An account attaches them to you, so a cleared cache or a new phone
+        can&apos;t take them. Nothing moves, so nothing can go missing.
+      </p>
 
       <Link href="/signup" className={PRIMARY}>
         Save my progress
@@ -4417,17 +4436,16 @@ function ProgressMoment({
   }, []);
 
   return (
-    <main className="flex min-h-dvh flex-col px-5 pb-8 pt-7">
+    <main className="since-screen flex min-h-dvh flex-col px-5">
       <div className="eyebrow">Since day one</div>
 
-      <div className="flex flex-1 flex-col justify-center">
-        {/* Leads with the number they said they'd watch (#232). */}
-        <ComparisonCard
-          reps={reps}
-          lead={buildPortfolio(readOnboarding().answers).focus?.metric}
-        />
-        <p className="mt-4 text-body text-stone-500">{PRO_MOMENT_LINE}</p>
-      </div>
+      {/* Leads with the number they said they'd watch (#232), stood as
+          the stage's claim (#526); the stage takes the free height. */}
+      <ComparisonCard
+        reps={reps}
+        lead={buildPortfolio(readOnboarding().answers).focus?.metric}
+      />
+      <p className="since-line text-body text-stone-500">{PRO_MOMENT_LINE}</p>
 
       <button onClick={() => setSheet(true)} className={PRIMARY}>
         See Premium

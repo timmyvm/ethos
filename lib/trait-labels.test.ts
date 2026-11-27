@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { TRAITS } from "@/content/traits";
+import { SINCE_LABELS } from "@/lib/since-day-one";
 import {
   ALL_FILLERS,
   ALL_FILLERS_PER_MIN,
@@ -34,10 +35,9 @@ function rateOf(label: string): string | null {
   return RATE.test(label) ? "a minute" : null;
 }
 
-/** Every string literal the results' Since day one card draws as a label. */
+/** Every label the results' Since day one stage draws (lib/since-day-one.ts, #526). */
 function comparisonCardLabels(): string[] {
-  const src = readFileSync("components/ComparisonCard.tsx", "utf8");
-  return [...src.matchAll(/(?:label|fillers|wpm|pause): "([^"]+)"/g)].map((m) => m[1]);
+  return [...SINCE_LABELS];
 }
 
 /* The labels that say a measure in one line. The Log's What moved rows,
@@ -75,11 +75,12 @@ describe("a label that names a trait prints that trait's unit", () => {
     // Timothy, 31 October (E32): one label wherever the rate is printed;
     // its unit in words since #495.
     expect(ALL_FILLERS_PER_MIN).toBe("All fillers a minute");
-    // The results' Since day one card prints the same number, so it
-    // borrows the same label.
-    const comparison = readFileSync("components/ComparisonCard.tsx", "utf8");
+    // The results' Since day one stage prints the same number, so it
+    // borrows the same label (its rows are lib/since-day-one.ts's, #526).
+    const comparison = readFileSync("lib/since-day-one.ts", "utf8");
     expect(comparison).not.toMatch(/"Fillers (\/ min|a minute)"/);
-    expect(comparison.match(/(label|fillers): ALL_FILLERS_PER_MIN,/g)?.length).toBe(2);
+    expect(comparison.match(/fillers: ALL_FILLERS_PER_MIN,/g)?.length).toBe(1);
+    expect(SINCE_LABELS).toContain(ALL_FILLERS_PER_MIN);
     // The Fillers trait itself is not a minute rate, so the old label
     // broke the rule this file holds.
     expect(traitNamed("Fillers / min")?.id).toBe("fillers");
@@ -120,7 +121,7 @@ describe("one recording's pauses between sentences (#495)", () => {
 
   it("reads Pauses between sentences in a recording wherever two recordings are compared", () => {
     expect(PAUSES_PER_RECORDING).toBe("Pauses between sentences in a recording");
-    const src = readFileSync("components/ComparisonCard.tsx", "utf8");
+    const src = readFileSync("lib/since-day-one.ts", "utf8");
     expect(src).not.toMatch(/"Held pauses"|kind !== "beat"/);
     expect(src).toMatch(/PAUSES_PER_RECORDING,/);
     expect(src).toMatch(/pausesBetween\(/);

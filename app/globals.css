@@ -8568,3 +8568,249 @@ html[data-test-tile] .test-tile-slot {
   border-radius: 8px;
   background: var(--color-streak);
 }
+
+/* ================ since day one and the save wall (#526) ================
+ * The two asks on the results' way out (lib/rep-screen.ts `exitBeat`):
+ * Since day one (ProgressMoment, components/ComparisonCard.tsx) and the
+ * save wall (SaveGate), on one stage. Their free height is the stage's
+ * (DESIGN 7, #368): each was a centred block with two bands of bare
+ * ground over and under it, about 140 at 390x844 on Since day one and 206
+ * on the save wall. The stage's hero (eyebrow, number, the days or the
+ * day line) holds the middle of it, centred as Wellspoken's course head
+ * is; the quiet ledger and the foot stand at its bottom, so the ground
+ * keeps only the rhythm's own steps.
+ *
+ * The screen clears an iPhone's status bar and home bar (DESIGN 11): the
+ * eyebrow stood at y29 under a 59pt inset, and Not now 2pt into the home
+ * bar's 34.
+ */
+.since-screen {
+  padding-top: max(1.75rem, calc(env(safe-area-inset-top) + 0.75rem));
+  padding-bottom: max(2rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+}
+.since-line {
+  margin: 16px 0;
+}
+.since-stage {
+  /* The stage's quiet ink: labels, "/1000", the days, the foot. */
+  --stage-ink: rgb(247 247 247 / 0.62);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 12px;
+  padding: 20px;
+}
+.since-hero {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 20px 0 24px;
+  text-align: center;
+}
+/* The hero's label is how its number is read: a step brighter than the
+   ledger's labels. */
+.since-eyebrow {
+  color: rgb(247 247 247 / 0.78);
+}
+/* The claim: day 1's number, the arrow, today's, each over its day. The
+   numbers share a baseline, the arrow sits on their middle, the days
+   share a line under them. */
+.since-claim {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: center;
+  justify-items: center;
+  align-items: baseline;
+  column-gap: 14px;
+  margin-top: 14px;
+}
+.since-from {
+  font-size: var(--text-num-hero);
+  line-height: 1;
+  letter-spacing: var(--text-num-hero--letter-spacing);
+  color: rgb(247 247 247 / 0.45);
+}
+.since-to {
+  font-size: var(--text-num-xl);
+  line-height: 1;
+  letter-spacing: var(--text-num-xl--letter-spacing);
+}
+.since-arrow {
+  display: block;
+  color: rgb(247 247 247 / 0.38);
+}
+.since-claim-arrow {
+  width: 28px;
+  height: 28px;
+  align-self: center;
+  stroke-width: 2.4px;
+}
+.since-day {
+  grid-row: 2;
+  margin-top: 10px;
+  font-family: var(--font-display-face), sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  font-weight: 600;
+  color: var(--stage-ink);
+}
+.since-day-to {
+  grid-column: 3;
+}
+/* The ledger: the rest, a row each. Day 1's number right-aligned against
+   the arrow, today's left-aligned after it, so the arrows stand in one
+   column and each pair reads as one; a ledger takes its rules (DESIGN 7). */
+.since-ledger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 8px;
+}
+.since-ledger[data-pairs] {
+  grid-template-columns: minmax(0, 1fr) auto 1.125rem auto;
+}
+/* Each row is the list's own subgrid, so a column is as wide as its
+   widest number and no wider: the label keeps the rest. */
+.since-ledger > li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid rgb(247 247 247 / 0.1);
+}
+.since-ledger-label {
+  color: var(--stage-ink);
+}
+.since-ledger-a {
+  justify-self: end;
+  color: rgb(247 247 247 / 0.45);
+}
+.since-ledger-arrow {
+  width: 16px;
+  height: 16px;
+  justify-self: center;
+  stroke-width: 2.4px;
+}
+.since-ledger[data-pairs] .since-ledger-b {
+  justify-self: start;
+}
+.since-ledger:not([data-pairs]) .since-ledger-b {
+  justify-self: end;
+}
+.since-foot {
+  padding-top: 12px;
+  border-top: 1px solid rgb(247 247 247 / 0.1);
+  color: var(--stage-ink);
+}
+/* The save wall's hero: the Ethos number (or, with none, the take's lead
+   measure) at the claim's size, and the day line under it. */
+.since-take {
+  margin-top: 14px;
+  font-size: var(--text-num-xl);
+  line-height: 1;
+  letter-spacing: var(--text-num-xl--letter-spacing);
+}
+/* The number centred, not the number and its "/1000": the "/1000"
+   hangs off its right, so a pad its width on the left (Figtree 15, 4px
+   after) holds the digits on the stage's axis. */
+.since-hero [data-ethos-score] {
+  justify-content: center;
+  margin-top: 14px;
+  padding-left: 40px;
+}
+.since-board {
+  margin-top: 14px;
+}
+/* The save wall's stage is as tall as the room it is given, never its
+   contents (size containment), and its ledger stands only where that
+   room holds it: the body over its tap takes six lines at 320. */
+.since-stage[data-room] {
+  container: since-room / size;
+  min-height: 188px;
+}
+/* A height query needs a definite height: the save wall's screen is the
+   screen's height, and its contents' when they are taller. */
+.since-screen:has(> .since-stage[data-room]) {
+  height: 100dvh;
+  min-height: fit-content;
+}
+.since-ledger[data-room] {
+  display: none;
+}
+@container since-room (min-height: 344px) {
+  .since-ledger[data-room] {
+    display: grid;
+  }
+}
+/* A claim of four places a side takes the step down (as the Log's number
+   does), and so does a narrow phone: 36 and 56. */
+[data-since-claim][data-long] .since-from {
+  font-size: var(--text-num-l);
+  letter-spacing: var(--text-num-l--letter-spacing);
+}
+[data-since-claim][data-long] .since-to {
+  font-size: var(--text-num-hero);
+  letter-spacing: var(--text-num-hero--letter-spacing);
+}
+@media (max-width: 359px) {
+  .since-from {
+    font-size: var(--text-num-l);
+    letter-spacing: var(--text-num-l--letter-spacing);
+  }
+  .since-to {
+    font-size: var(--text-num-hero);
+    letter-spacing: var(--text-num-hero--letter-spacing);
+  }
+  .since-ledger {
+    column-gap: 6px;
+  }
+  .since-ledger[data-pairs] {
+    grid-template-columns: minmax(0, 1fr) auto 0.875rem auto;
+  }
+}
+/* A short screen, or a narrow one (320x692 is an iPhone two text steps
+   up, under its insets): the rhythm's steps tighten so the tap and Not
+   now stand on the first screen with nothing scrolled. */
+@media (max-width: 359px), (max-height: 700px) {
+  .since-screen {
+    padding-top: max(1rem, calc(env(safe-area-inset-top) + 0.5rem));
+    padding-bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+  }
+  .since-line {
+    margin: 10px 0;
+  }
+  .since-stage {
+    padding: 16px;
+  }
+  .since-hero {
+    padding: 4px 0 8px;
+  }
+  .since-claim,
+  .since-take,
+  .since-hero [data-ethos-score] {
+    margin-top: 8px;
+  }
+  .since-day {
+    margin-top: 6px;
+  }
+  .since-board {
+    margin-top: 8px;
+  }
+  .since-ledger > li {
+    padding: 6px 0;
+  }
+  /* The ledger's numbers take one step: today's at 17, as day 1's. */
+  .since-ledger-b {
+    font-size: var(--text-num-s);
+    line-height: var(--text-num-s--line-height);
+    letter-spacing: var(--text-num-s--letter-spacing);
+  }
+  .since-foot {
+    padding-top: 8px;
+  }
+}
+/* ============== end of since day one and the save wall (#526) ============== */

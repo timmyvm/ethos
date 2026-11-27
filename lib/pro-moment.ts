@@ -35,11 +35,13 @@ export function proMomentDue(args: {
   repCount: number;
   shown: boolean;
   /**
-   * The card can stand its two ends: two measured recordings
-   * (lib/since-day-one.ts `sinceDayOneCard` is not null). Three days of
+   * The card can stand its two ends: two measured recordings on two
+   * calendar days (lib/since-day-one.ts `sinceStands`). Three days of
    * takes too short to measure leave it nothing to draw, and the screen
-   * would be its eyebrow, its line and its taps over bare ground, so the
-   * moment waits, unshown, for a later exit (#526, the panel's must-fix).
+   * would be its eyebrow, its line and its taps over bare ground (#526,
+   * the panel's must-fix); two short days and two measured takes on the
+   * third would print "Day 1" under both numbers (#526's review). Either
+   * way the moment waits, unshown, for a later exit.
    */
   comparable: boolean;
 }): boolean {

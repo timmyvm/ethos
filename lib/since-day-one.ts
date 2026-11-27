@@ -143,6 +143,17 @@ export function sinceDayOneCard(reps: RepRow[], lead?: string | null): SinceCard
 }
 
 /**
+ * Whether Since day one can stand (#526's review): two measured ends on
+ * two calendar days. Takes too short to measure count as days spoken
+ * (`proMomentDue`'s three), so three days can hold both measured ends on
+ * one day, and the claim would print "Day 1" under both numbers. The
+ * moment waits for the second day instead, as it waits for two ends.
+ */
+export function sinceStands(card: SinceCard | null): card is SinceCard {
+  return card !== null && card.days >= 2;
+}
+
+/**
  * What a screen reader hears for a row: the label, both numbers with
  * their days, the way it went, and better or worse in words, since the
  * arrow is drawn for the eye and the colour is never the whole message

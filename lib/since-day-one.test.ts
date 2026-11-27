@@ -12,6 +12,7 @@ import {
   sinceName,
   sinceSeries,
   SINCE_LABELS,
+  sinceStands,
   SPAN_FLOOR,
   takeRows,
 } from "./since-day-one";
@@ -128,6 +129,33 @@ describe("sinceDayOneCard: the rows Since day one draws", () => {
 
   it("borrows the measures' one names (#495)", () => {
     expect(SINCE_LABELS).toEqual(["Ethos", ALL_FILLERS_PER_MIN, WORDS_A_MINUTE, PAUSES_PER_RECORDING]);
+  });
+});
+
+describe("sinceStands: Since day one's two ends on two days (#526's review)", () => {
+  /* Two takes too short to score on days 1 and 2, then two measured on
+     day 3: three days spoken, two measured ends, both on one day. The
+     claim would print "Day 1" under both numbers, so the moment waits. */
+  const short = (at: string) => rep({ id: at, created_at: at, transcript: "um hi", scorable: false } as Partial<RepRow>);
+  const measuredOn = (at: string, ethos: number) => rep({ id: at, created_at: at, ethos_index: ethos });
+
+  it("waits while both measured ends stand on one calendar day", () => {
+    const rows = [
+      short("2026-10-01T09:00:00Z"),
+      short("2026-10-02T09:00:00Z"),
+      measuredOn("2026-10-03T09:00:00Z", 600),
+      measuredOn("2026-10-03T10:00:00Z", 640),
+    ];
+    const card = sinceDayOneCard(rows);
+    expect(card?.days).toBe(1);
+    expect(sinceStands(card)).toBe(false);
+  });
+
+  it("stands once the ends are on two days, and never on no card", () => {
+    expect(sinceStands(sinceDayOneCard([measuredOn("2026-10-01T09:00:00Z", 600), measuredOn("2026-10-02T09:00:00Z", 640)]))).toBe(true);
+    expect(sinceStands(sinceDayOneCard([day1, mid, day26]))).toBe(true);
+    expect(sinceStands(null)).toBe(false);
+    expect(sinceStands(sinceDayOneCard([short("2026-10-01T09:00:00Z"), short("2026-10-03T09:00:00Z")]))).toBe(false);
   });
 });
 

@@ -27,7 +27,7 @@ import { useGlanceReminder } from "@/components/rep/ReminderAsk";
 import { firstScoredToday } from "@/lib/reminder-ask";
 import { SHEET_NAME, WholeRecording } from "@/components/rep/WholeRecording";
 import { ComparisonCard, SinceLedger, SinceStage } from "@/components/ComparisonCard";
-import { boardLine, sinceDayOneCard, takeRows } from "@/lib/since-day-one";
+import { boardLine, sinceDayOneCard, sinceStands, takeRows } from "@/lib/since-day-one";
 import { Paywall } from "@/components/LazyPaywall";
 import type { PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
@@ -3289,9 +3289,10 @@ function Results({
     daysSpoken,
     repCount: spineNow.length,
     shown: proMomentShown(),
-    /* Since day one stands only on two measured ends (#526): with fewer it
-       would be bare ground under its eyebrow, so it waits, unshown. */
-    comparable: sinceDayOneCard(repsNow) !== null,
+    /* Since day one stands only on two measured ends on two calendar days
+       (#526 and its review): with fewer it would be bare ground under its
+       eyebrow, or "Day 1" under both numbers, so it waits, unshown. */
+    comparable: sinceStands(sinceDayOneCard(repsNow)),
   });
   /*
    * Every exit lands here. "Go again" from the address already on screen
@@ -4451,11 +4452,12 @@ function ProgressMoment({
 }) {
   const [sheet, setSheet] = useState(false);
 
-  /* The card stands only on two measured ends; `proMomentDue` waits for
-     them, and should the rows behind it change under the screen, the exit
-     goes on where it was going and the moment stays due (#526: never a
-     screen of bare ground under its eyebrow). */
-  const comparable = sinceDayOneCard(reps) !== null;
+  /* The card stands only on two measured ends on two days; `proMomentDue`
+     waits for them, and should the rows behind it change under the screen,
+     the exit goes on where it was going and the moment stays due (#526:
+     never a screen of bare ground under its eyebrow, nor "Day 1" under
+     both its numbers). */
+  const comparable = sinceStands(sinceDayOneCard(reps));
   // Shown is shown, whatever gets tapped — once per browser, like the
   // save wall. Declining is final; the sheet never proactively returns.
   useEffect(() => {

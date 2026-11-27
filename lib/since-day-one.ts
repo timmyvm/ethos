@@ -179,6 +179,27 @@ export function boardLine(moment: "rep1" | "streak", days: number): string {
   return moment === "rep1" || n === 1 ? "Day 1 is on the board" : `${n} days on the board`;
 }
 
+/** "An" before a number said with a vowel: an 8-day, an 11-day, an 18-day, an 80-day. */
+function article(n: number): string {
+  return /^(8|11|18|8\d)$/.test(String(n)) ? "An" : "A";
+}
+
+/**
+ * The save wall's first sentence (#134, #526): what lives only in this
+ * browser. A first recording names its score only where it has one: a
+ * take too short to score, or one whose coach failed to read it, has no
+ * Ethos to keep, so its line never promises one (#526's review).
+ */
+export function saveWallLine(moment: "rep1" | "streak", days: number, scored: boolean): string {
+  if (moment === "rep1") {
+    return scored
+      ? "This recording, its score and the streak it starts live only in this browser."
+      : "This recording and the streak it starts live only in this browser.";
+  }
+  const n = Math.max(1, Math.floor(days));
+  return `${article(n)} ${n}-day streak and every number behind it live only in this browser.`;
+}
+
 export type TakeRow = {
   key: Exclude<SinceKey, "ethos">;
   label: string;

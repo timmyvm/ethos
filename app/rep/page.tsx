@@ -27,7 +27,7 @@ import { useGlanceReminder } from "@/components/rep/ReminderAsk";
 import { firstScoredToday } from "@/lib/reminder-ask";
 import { SHEET_NAME, WholeRecording } from "@/components/rep/WholeRecording";
 import { ComparisonCard, SinceLedger, SinceStage } from "@/components/ComparisonCard";
-import { boardLine, sinceDayOneCard, sinceStands, takeRows } from "@/lib/since-day-one";
+import { boardLine, saveWallLine, sinceDayOneCard, sinceStands, takeRows } from "@/lib/since-day-one";
 import { Paywall } from "@/components/LazyPaywall";
 import type { PaywallAsk } from "@/components/Paywall";
 import { PermissionHelp } from "@/components/PermissionHelp";
@@ -3022,10 +3022,6 @@ function eyebrowOf(unit: string): string {
 }
 
 /** "An 8-day streak", "An 11-day", "An 18-day", "An 80-day"; "A" otherwise. */
-function article(n: number): string {
-  return /^(8|11|18|8\d)$/.test(String(n)) ? "An" : "A";
-}
-
 /*
  * Results, as one glance and one door (DECISIONS #427).
  *
@@ -4403,16 +4399,12 @@ function SaveGate({
       {/* One negation on the screen (COPY-RULES, #526): "Nothing moves, so
           nothing can go missing." went, as B and C cut it, and "in this
           browser and nowhere else" is "only in this browser", so "can't
-          take them" is the one left. A take too short to score has no
-          score to keep, so its line does not name one. */}
+          take them" is the one left. A take with no Ethos (too short to
+          score, or a coach that failed) has no score to keep, so its line
+          does not name one (`saveWallLine`, #526's review). */}
       <p className="since-line text-body leading-relaxed text-stone-500">
-        {moment === "rep1"
-          ? scorable
-            ? "This recording, its score and the streak it starts live only in this browser. "
-            : "This recording and the streak it starts live only in this browser. "
-          : `${article(days)} ${days}-day streak and every number behind it live only in this browser. `}
-        An account attaches them to you, so a cleared cache or a new phone
-        can&apos;t take them.
+        {saveWallLine(moment, days, index !== null)} An account attaches them
+        to you, so a cleared cache or a new phone can&apos;t take them.
       </p>
 
       <Link href="/signup" className={PRIMARY}>

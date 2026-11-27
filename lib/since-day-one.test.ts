@@ -12,6 +12,7 @@ import {
   sinceName,
   sinceSeries,
   SINCE_LABELS,
+  saveWallLine,
   sinceStands,
   SPAN_FLOOR,
   takeRows,
@@ -156,6 +157,23 @@ describe("sinceStands: Since day one's two ends on two days (#526's review)", ()
     expect(sinceStands(sinceDayOneCard([day1, mid, day26]))).toBe(true);
     expect(sinceStands(null)).toBe(false);
     expect(sinceStands(sinceDayOneCard([short("2026-10-01T09:00:00Z"), short("2026-10-03T09:00:00Z")]))).toBe(false);
+  });
+});
+
+describe("saveWallLine: what the save wall says lives only in this browser", () => {
+  it("names the score only when the take has one (#526's review: a coach that failed leaves no score to keep)", () => {
+    expect(saveWallLine("rep1", 1, true)).toBe("This recording, its score and the streak it starts live only in this browser.");
+    expect(saveWallLine("rep1", 1, false)).toBe("This recording and the streak it starts live only in this browser.");
+    expect(saveWallLine("rep1", 1, false)).not.toMatch(/score/);
+  });
+
+  it("says a run as its days, with the article said aloud", () => {
+    expect(saveWallLine("streak", 3, true)).toBe("A 3-day streak and every number behind it live only in this browser.");
+    expect(saveWallLine("streak", 8, false)).toBe("An 8-day streak and every number behind it live only in this browser.");
+    expect(saveWallLine("streak", 11, true)).toMatch(/^An 11-day/);
+    expect(saveWallLine("streak", 18, true)).toMatch(/^An 18-day/);
+    expect(saveWallLine("streak", 83, true)).toMatch(/^An 83-day/);
+    expect(saveWallLine("streak", 0, true)).toMatch(/^A 1-day/);
   });
 });
 

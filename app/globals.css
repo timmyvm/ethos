@@ -8640,15 +8640,18 @@ html[data-test-tile] .test-tile-slot {
   min-height: 0;
   margin: 0 0 14px;
 }
+/* Hidden by visibility, never display: a container query that toggled
+   display restarted the wipe each time an animation over it ended (at
+   200 and 517ms, the entrance strip), and visibility keeps it running. */
 .since-plot {
   position: absolute;
   inset: 8px 10px;
-  display: none;
+  visibility: hidden;
   color: var(--color-cream);
 }
 @container since-chart (min-height: 44px) {
   .since-plot {
-    display: block;
+    visibility: visible;
   }
 }
 .since-path {

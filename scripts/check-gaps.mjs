@@ -62,8 +62,12 @@
  * top edge to its first mark, mark to mark, the last to its foot, a
  * drawn line by its own extent, not its box). Any band over 64 fails
  * either way. Scenes: since, since-wpm, since-worse, since-noindex,
- * save-rep1, save-streak, save-noindex and save-unscored, at 390x844 in
- * both themes and 430x932 light (the tallest phone the camera holds).
+ * save-rep1, save-streak, save-noindex and save-unscored, and since
+ * #526's review the day-3 stories whose change is under its measure's
+ * floor (since-d3, Ethos 598 to 615; since-d3-pause, pauses 1 to 2) and
+ * a flat line (since-flat), at 390x844 in both themes, 430x932 light
+ * (the tallest phone the camera holds) and 320x692 light under an
+ * iPhone's insets (the 390x844 iPhone two text steps up, DESIGN 11).
  * On the build of 27 Nov they fail: about 150pt of ground over and under
  * the card.
  *
@@ -481,6 +485,16 @@ const guestSession = {
   token_type: "bearer", expires_in: 86_400, expires_at: guestExp, refresh_token: "g-r1", user: guestUser,
 };
 const fixtureRows = () => F.reps.map((r) => ({ ...r }));
+/** Five recordings over three days on Melbourne's calendar, the newest this morning; `each` sets their story. */
+const threeDays = (each) =>
+  fixtureRows()
+    .slice(-5)
+    .map((r, i) => {
+      const [ago, h] = [[2, 9], [2, 19], [1, 9], [1, 20], [0, 7]][i];
+      const row = { ...r, id: `d3-${i}`, client_id: `d3-${i}`, created_at: F.dayIso(ago, h) };
+      each(row, i);
+      return row;
+    });
 const CAPPED = { coach: null, ethosIndex: null, judged: { ran: false, unlimited: false, remaining: 0, capped: true } };
 const UNSCORED = {
   ...analyzeBody, coach: null, ethosIndex: null, previousIndex: null, scorable: false,
@@ -510,14 +524,28 @@ const SINCE_SCENES = {
   "save-streak": { screen: "save", rows: () => fixtureRows().slice(-2), body: () => analyzeBody, unseen: ["streak"] },
   "save-noindex": { screen: "save", rows: () => fixtureRows().slice(-2), body: () => ({ ...analyzeBody, ...CAPPED }), unseen: ["streak"] },
   "save-unscored": { screen: "save", rows: () => [], body: () => UNSCORED, unseen: ["rep1"] },
+  /* The paywall's usual moment (#526's review): day 3, a change under
+     its measure's floor, which drew a thin line in a tall plot. Ethos
+     leads ("I ramble"), then the pauses ("I freeze"), then a flat line. */
+  "since-d3": { screen: "progress", pains: ["rambling"], rows: () => threeDays((r, i) => (r.ethos_index = [598, 605, 612, 607, 615][i])) },
+  "since-d3-pause": {
+    screen: "progress",
+    pains: ["freezing"],
+    rows: () => threeDays((r, i) => (r.pauses = Array.from({ length: [1, 2, 1, 2, 2][i] }, (_, j) => ({ t: 5 + j * 9, len: 1.1, kind: "pre" })))),
+  },
+  "since-flat": { screen: "progress", pains: [], rows: () => fixtureRows().map((r) => ({ ...r, ethos_index: 640 })) },
 };
+/* 320x692 is a 390x844 iPhone with its text two steps up (DESIGN 11),
+   under a Dynamic Island's insets: a chart that cannot draw there must
+   give its room back (#526's review: 81pt over the eyebrow). */
 const SINCE_SIZES = [
   { width: 390, height: 844, themes: ["light", "dark"] },
   { width: 430, height: 932, themes: ["light"] },
+  { width: 320, height: 692, themes: ["light"], insets: { top: 59, bottom: 34 } },
 ];
 const STAGE = "main [data-since-stage], main .card-stage";
 
-async function sinceShot(name, scene, theme, { width, height }) {
+async function sinceShot(name, scene, theme, { width, height, insets }) {
   const guest = scene.screen === "save";
   resetPlan("free");
   F.repsMode.rows = scene.rows ? scene.rows() : null;
@@ -578,6 +606,10 @@ async function sinceShot(name, scene, theme, { width, height }) {
   );
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 140)));
+  if (insets) {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: { left: 0, right: 0, ...insets } });
+  }
   const at = `${name} ${width}x${height}`;
   try {
     await page.goto(`${BASE}/rep?mode=daily`);

@@ -54,6 +54,8 @@ const day = (n, h = 18) => {
   return new Date(wall - melOffset(new Date(wall)) * 60000);
 };
 const iso = (n) => day(n).toISOString();
+/** n days before Melbourne's today at h:12 on its clock, as a stored created_at: for a scene's own rows. */
+export const dayIso = (n, h = 18) => day(n, h).toISOString();
 /** That day's date in Melbourne, as a `date` column holds it. */
 const dateOnly = (n) => {
   const d = new Date(Date.UTC(MY, MM - 1, MD - n));

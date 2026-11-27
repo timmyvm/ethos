@@ -60,6 +60,22 @@
  *   save-unscored     a guest's first take too short to score (#526's
  *                     panel): "Your Ethos" over a dash, the take's
  *                     numbers as dashes, never the engine's zeros.
+ *   save-noscore      a guest's first take, long enough to score, that
+ *                     the coach failed to read: no Ethos, so its line
+ *                     names no score.
+ * The day-3 stories (the review of #526: the fixture's wide filler and
+ * pace story was the only line any scene drew, and a small change drew
+ * a thin line in a tall plot):
+ *   progress-d3       the paywall's usual moment: 5 recordings over 3
+ *                     days, the pain "I ramble", so Ethos leads, 598 to
+ *                     615 (under its 100-point floor).
+ *   progress-d3-pause the same 3 days, the pain "I freeze": pauses
+ *                     between sentences 1, 2, 1, 2, 2.
+ *   progress-flat     every Ethos 640, no pain: a flat line.
+ *   progress-worse-wpm  I rush, 150 to 171 words a minute: worse, in rust
+ *                     with its own mark.
+ *   progress-even-wpm   I rush, 135 to 155: as far from 145 at both ends,
+ *                     no verdict, no mark.
  *
  * Sizes (LOOK_SIZES, a comma list of WxH or WxH-theme; themes from
  * LOOK_THEMES, default light,dark): 390x844, 375x667, 320x568, 430x932,
@@ -74,6 +90,9 @@
  *     own `measure` (read out of scripts/check-gaps.mjs at run time and
  *     run in the page, so the camera and the gate cannot drift apart),
  *     with what stands over and under it;
+ *   - the largest band inside the stage, by check-gaps.mjs's own
+ *     `stageBands` (borrowed the same way): stage edge to first mark,
+ *     mark to mark, a drawn line by its strokes;
  *   - whether the page scrolls, and by how much;
  *   - whether the one filled tap (`.tap`, `.tap-tonal`) and Not now are
  *     wholly on the first screen, with their tops and bottoms;
@@ -81,6 +100,12 @@
  *
  * It FAILS (exit 1) when, on a scene that is not the sheet:
  *   - a band over 64px stands at 390x844 or 430x932 (DESIGN 7, #368);
+ *   - a band over 64px stands inside the stage at 390x844, 430x932 or
+ *     320x692 (the 390x844 iPhone two text steps up, DESIGN 11);
+ *   - a scene's `unsaid` words are on the screen (a take with no Ethos
+ *     is never told its score is kept);
+ *   - a figure is sage or rust without its mark, or a mark runs into the
+ *     rule or the day line under it (`MARKS`, DESIGN 10);
  *   - the filled tap, or Not now, is not wholly on the first screen at
  *     any size (the decline is held too: a wall whose way out needs a
  *     scroll is the bait #134 rules out);
@@ -136,6 +161,13 @@ if (from < 0 || to < 0) throw new Error(`scripts/check-gaps.mjs has no "${HEAD}"
 const MEASURE = GAPS.slice(from, to + 2);
 const LIMIT = Number(/const LIMIT = (\d+);/.exec(GAPS)?.[1] ?? 64);
 const gapsIn = (page, scope = null) => page.evaluate(`(${MEASURE})(${JSON.stringify({ scope })})`);
+/* And its measure of a stage's inside (#526's review), read the same way. */
+const STAGE_HEAD = "function stageBands({ scope }) {";
+const sFrom = GAPS.indexOf(STAGE_HEAD);
+const sTo = sFrom < 0 ? -1 : GAPS.indexOf("\n}\n", sFrom);
+if (sFrom < 0 || sTo < 0) throw new Error(`scripts/check-gaps.mjs has no "${STAGE_HEAD}" to borrow`);
+const STAGE_BANDS = GAPS.slice(sFrom, sTo + 2);
+const stageIn = (page) => page.evaluate(`(${STAGE_BANDS})(${JSON.stringify({ scope: "main [data-since-stage]" })})`);
 
 /* ---- sizes ------------------------------------------------------------- */
 const IPHONE_UA =
@@ -144,6 +176,10 @@ const ALL_SIZES = ["390x844", "375x667", "320x568", "430x932", "320x692"];
 /* 320x692: the text two steps up (DESIGN 11), under a Dynamic Island. */
 const TEXT_UP = "320x692";
 const BAND_HELD = new Set(["390x844", "430x932"]);
+/* Inside the stage the text-up size is held too: its hero is the 390x844
+   iPhone's at a larger text size, and a chart that cannot draw there must
+   give its room back (#526's review). */
+const STAGE_HELD = new Set(["390x844", "430x932", TEXT_UP]);
 const STRIP = process.env.LOOK_STRIP === "1";
 const REDUCE = process.env.LOOK_REDUCE === "1";
 const STRIP_AT = [0, 80, 160, 240, 400];
@@ -164,6 +200,22 @@ const A = F.analyzeBody;
 const clones = () => F.reps.map((r) => ({ ...r }));
 /** The fixture's two newest recordings, yesterday's and the day before's: a guest two days in. */
 const twoDays = () => clones().slice(-2);
+/** Five recordings over three days on Melbourne's calendar, the newest this morning; `each` sets their story. */
+const threeDays = (each) =>
+  clones()
+    .slice(-5)
+    .map((r, i) => {
+      const [ago, h] = [[2, 9], [2, 19], [1, 9], [1, 20], [0, 7]][i];
+      const row = { ...r, id: `d3-${i}`, client_id: `d3-${i}`, created_at: F.dayIso(ago, h) };
+      each(row, i);
+      return row;
+    });
+/** The fixture with its two ends changed by `set(first, last)`. */
+const ends = (set) => {
+  const r = clones();
+  set(r[0], r[r.length - 1]);
+  return r;
+};
 const CAPPED = { coach: null, ethosIndex: null, judged: { ran: false, unlimited: false, remaining: 0, capped: true } };
 /* Six seconds and a few words: under 20, so not scored. The engine still
    answers its zeros (0 fillers, a rate off a few words). */
@@ -206,7 +258,24 @@ const SCENES = {
   /* A first take too short to score (the panel's must-fix: rep1 shows
      after any first take, lib/onboarding.ts gateMoment): its numbers are
      the engine's zeros, which the wall must draw as dashes. */
-  "save-unscored": { screen: "save", guest: true, rows: () => [], stored: true, body: () => UNSCORED, unseen: ["rep1"] },
+  "save-unscored": { screen: "save", guest: true, rows: () => [], stored: true, body: () => UNSCORED, unseen: ["rep1"], unsaid: ["its score"] },
+  /* A first take long enough to score whose coach failed: no Ethos, so
+     the paragraph names no score (#526's review). */
+  "save-noscore": { screen: "save", guest: true, rows: () => [], stored: true, body: () => ({ ...A, previousIndex: null, coach: null, ethosIndex: null }), unseen: ["rep1"], unsaid: ["its score"] },
+  /* Day 3, as the paywall's moment usually meets it (#526's review). */
+  "progress-d3": { screen: "progress", pains: ["rambling"], rows: () => threeDays((r, i) => (r.ethos_index = [598, 605, 612, 607, 615][i])) },
+  "progress-d3-pause": {
+    screen: "progress",
+    pains: ["freezing"],
+    rows: () => threeDays((r, i) => (r.pauses = Array.from({ length: [1, 2, 1, 2, 2][i] }, (_, j) => ({ t: 5 + j * 9, len: 1.1, kind: "pre" })))),
+  },
+  "progress-flat": {
+    screen: "progress",
+    pains: [],
+    rows: () => clones().map((r) => ({ ...r, ethos_index: 640 })),
+  },
+  "progress-worse-wpm": { screen: "progress", pains: ["rushing"], rows: () => ends((a, z) => ((a.wpm = 150), (z.wpm = 171))) },
+  "progress-even-wpm": { screen: "progress", pains: ["rushing"], rows: () => ends((a, z) => ((a.wpm = 135), (z.wpm = 155))) },
 };
 const ONLY = (process.env.LOOK_SCENES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const scenes = Object.keys(SCENES).filter((n) => ONLY.length === 0 || ONLY.some((o) => (o.endsWith("*") ? n.startsWith(o.slice(0, -1)) : n === o)));
@@ -296,6 +365,50 @@ function PROBE({ scope }) {
     inset,
     firstText,
   };
+}
+
+/**
+ * The verdict marks (DESIGN 10, #526's review): every figure toned sage
+ * or rust wears its shape (`.since-better`, `.since-worse`), so better
+ * and worse never differ by colour alone; and each mark, drawn as the
+ * figure's ::after, stands clear of what is under it: the next ledger
+ * row's rule (or the foot's), and under the claim the "Day N" line.
+ */
+function MARKS() {
+  const stage = document.querySelector("main [data-since-stage]");
+  if (!stage) return null;
+  const out = { bare: [], tight: [], marks: [] };
+  const text = (el) => (el.textContent ?? "").trim();
+  for (const el of stage.querySelectorAll(".since-to, .since-ledger-b")) {
+    const sage = el.classList.contains("text-sage-lit");
+    const rust = el.classList.contains("text-rust-lit");
+    const mark = el.classList.contains("since-better") ? "better" : el.classList.contains("since-worse") ? "worse" : null;
+    if ((sage && mark !== "better") || (rust && mark !== "worse")) out.bare.push(`${text(el)} is ${sage ? "sage" : "rust"} with ${mark ?? "no"} mark`);
+    if (!mark) continue;
+    const r = el.getBoundingClientRect();
+    const a = getComputedStyle(el, "::after");
+    const barBottom = r.bottom - parseFloat(a.bottom);
+    const barTop = barBottom - parseFloat(a.height);
+    let under = null;
+    let what = "";
+    const li = el.closest("li");
+    if (li) {
+      const next = li.nextElementSibling ?? stage.querySelector(".since-foot");
+      if (next) (under = next.getBoundingClientRect().top), (what = li.nextElementSibling ? "the next row's rule" : "the foot's rule");
+    } else {
+      const day = stage.querySelector(".since-day-to");
+      if (day) {
+        const range = document.createRange();
+        range.selectNodeContents(day);
+        under = range.getClientRects()[0]?.top ?? day.getBoundingClientRect().top;
+        what = `"${text(day)}"`;
+      }
+    }
+    const clear = under === null ? null : Math.round((under - barBottom) * 10) / 10;
+    out.marks.push({ figure: text(el), mark, bar: [Math.round(barTop * 10) / 10, Math.round(barBottom * 10) / 10], clear, under: what });
+    if (clear !== null && clear < 1) out.tight.push(`${text(el)}'s ${mark} mark ends ${-clear}px into ${what}`);
+  }
+  return out;
 }
 
 /* ---- the browser --------------------------------------------------------- */
@@ -486,6 +599,8 @@ async function shoot(name, scene, { size, theme }, attempt = 1) {
     await page.mouse.move(0, 0).catch(() => {});
     await sleep(300);
     const m = await gapsIn(page, scene.sheet ? scope : null);
+    const inner = scene.sheet ? { none: true } : await stageIn(page);
+    const marks = scene.sheet ? null : await page.evaluate(MARKS);
     const p = await page.evaluate(PROBE, { scope });
     const file = `${OUT}${name}-${size}-${theme}.png`;
     await page.screenshot({ path: file });
@@ -530,12 +645,25 @@ async function shoot(name, scene, { size, theme }, attempt = 1) {
     if (p.inset.bottom > 0 && not && not.bottom > p.vh - p.inset.bottom)
       console.log(`      Not now's foot (${not.bottom}) is inside the ${p.inset.bottom}px home bar inset`);
     for (const g of entry.bands.filter((g) => g.at !== entry.band?.at && g.size > LIMIT)) console.log(`      also ${g.size}px at y${g.at} between ${g.above} and ${g.below}`);
+    const worstIn = inner.none ? null : inner.gaps.reduce((a, g) => (g.size > (a?.size ?? -1) ? g : a), null);
+    entry.stageBand = worstIn ? { size: Math.round(worstIn.size), at: Math.round(worstIn.at), above: worstIn.above, below: worstIn.below } : null;
+    entry.marks = marks;
+    if (marks?.marks.length) console.log(`      marks: ${marks.marks.map((m) => `${m.figure} ${m.mark} (${m.clear}px over ${m.under})`).join("; ")}`);
+    if (!inner.none) {
+      console.log(`      inside the stage: ${worstIn ? say(worstIn) : "no band"}`);
+      for (const g of inner.gaps.filter((g) => g !== worstIn && g.size > LIMIT)) console.log(`      also inside ${say(g)}`);
+    }
     console.log(`      text (${p.words} words): ${p.text}`);
     if (p.below) console.log(`      under the fold: ${p.below}`);
     if (errors.length) console.log(`      page errors: ${errors.join(" | ")}`);
 
     if (!scene.sheet) {
       if (BAND_HELD.has(size) && worst && worst.size > LIMIT) fail(`${at}: a ${Math.round(worst.size)}px band (DESIGN 7 holds ${LIMIT} at ${size})`);
+      for (const w of scene.unsaid ?? []) if (`${p.text} ${p.below}`.includes(w)) fail(`${at}: says "${w}", which this take does not have`);
+      for (const b of marks?.bare ?? []) fail(`${at}: ${b} (DESIGN 10: a colour is never the whole message)`);
+      for (const t of marks?.tight ?? []) fail(`${at}: ${t}`);
+      if (STAGE_HELD.has(size) && worstIn && worstIn.size > LIMIT)
+        fail(`${at}: a ${Math.round(worstIn.size)}px band inside the stage, ${worstIn.above} to ${worstIn.below}`);
       if (!tap) fail(`${at}: no filled tap`);
       else if (!entry.tapOnScreen) fail(`${at}: the tap is not wholly on the first screen (${tap.top} to ${tap.bottom} of ${p.vh})`);
       if (!not) fail(`${at}: no Not now`);

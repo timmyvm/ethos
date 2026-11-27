@@ -9,8 +9,9 @@
  * One row per scene, one column per size and theme; with an after folder
  * each column is a pair, "before, 390 light" beside "after, 390 light".
  * Under every shot, the camera's own measures from that folder's
- * report.json: the largest band, the scroll, and whether the tap and Not
- * now stand on the first screen, in rust where the camera fails them.
+ * report.json: the largest band, the largest inside the stage, the
+ * scroll, and whether the tap and Not now stand on the first screen, in
+ * rust where the camera fails them.
  *
  *   SHEET_ROWS=progress,save-rep1          scenes, one row each (default:
  *                                          progress and save-rep1)
@@ -42,6 +43,8 @@ if (!out || !beforeDir) {
 const SCALE = Number(process.env.SHEET_SCALE ?? 0.6);
 const MAX_KB = Number(process.env.SHEET_MAX_KB ?? 250);
 const BAND_HELD = new Set(["390x844", "430x932"]);
+/* Inside the stage the camera holds 320x692 too (#526's review). */
+const STAGE_HELD = new Set(["390x844", "430x932", "320x692"]);
 const NO_SCROLL = new Set(["320x568", "320x692"]);
 const SHORT = { "390x844": "390", "375x667": "375", "320x568": "320", "430x932": "430", "320x692": "320 text+2" };
 const ABOUT = {
@@ -53,6 +56,13 @@ const ABOUT = {
   "save-rep1": "Before you go, after the first recording, with its Ethos",
   "save-streak": "Before you go, the third day running",
   "save-noindex": "Before you go, the third day, no Ethos",
+  "save-unscored": "Before you go, a first take too short to score",
+  "save-noscore": "Before you go, a first take the coach failed to read: no score to keep",
+  "progress-d3": "Since day one on day 3, I ramble: Ethos 598 to 615, under its floor",
+  "progress-d3-pause": "Since day one on day 3, I freeze: pauses 1 to 2",
+  "progress-flat": "Since day one, every Ethos 640: a flat line",
+  "progress-worse-wpm": "Since day one, I rush, 150 to 171: worse, its broken bar",
+  "progress-even-wpm": "Since day one, I rush, 135 to 155: as far from 145, no verdict",
 };
 
 const folders = [["before", beforeDir], ...(afterDir ? [["after", afterDir]] : [])].map(([tag, dir]) => {
@@ -94,8 +104,11 @@ function measures(entry, size) {
   const tapBad = !sheet && !entry.tapOnScreen;
   const notBad = !sheet && !entry.notNowOnScreen;
   const bit = (text, bad) => `<span style="color:${bad ? RUST : "#555"};font-weight:${bad ? 700 : 500}">${esc(text)}</span>`;
+  const inside = entry.stageBand?.size;
+  const insideBad = STAGE_HELD.has(size) && (inside ?? 0) > 64;
   return [
     bit(`band ${band}px`, bandBad),
+    ...(inside === undefined ? [] : [bit(`inside ${inside}px`, insideBad)]),
     bit(entry.scrolls ? `scrolls ${entry.scrollBy}px` : "no scroll", scrollBad),
     bit(entry.tapOnScreen ? "tap on screen" : "tap off screen", tapBad),
     ...(sheet ? [] : [bit(entry.notNowOnScreen ? "Not now on" : "Not now off", notBad)]),

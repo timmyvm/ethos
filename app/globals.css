@@ -8613,14 +8613,122 @@ html[data-test-tile] .test-tile-slot {
   --since-ground: var(--color-surface);
 }
 .since-hero {
+  /* The hero's steps, as tokens, so Since day one's room below can count
+     them; the short and narrow phones' blocks change the tokens. */
+  --hero-pt: 4px;
+  --hero-pb: 20px;
+  --claim-mt: 14px;
+  --day-mt: 10px;
+  --chart-mt: 0px;
+  --chart-mb: 14px;
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 0;
-  padding: 4px 0 20px;
+  padding: var(--hero-pt) 0 var(--hero-pb);
   text-align: center;
+}
+/* The claim's label over its figures: one head, so the room round it
+   falls over and under the pair, never between them. */
+.since-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Since day one's room (#526's review). The line was drawn on at least
+   its measure's floor in all the hero's free height, so a small change
+   (day 3's usual 598 to 615, under the floor of 100) was a thin line in
+   a tall plot, with 61 to 133pt of dark over and under it. Now the hero
+   is a size container and shares its room out in order:
+     - the line takes the share its change spans (`sinceLine`'s cover,
+       `--since-cover`), never under 56pt where it draws, and none at all
+       where the room cannot hold 56 (it gave its room back to nobody at
+       320x692, finding 2: 81pt over the eyebrow);
+     - the claim's figures take what the line leaves, from 72 to 144
+       (56 on a narrow phone or a long pair), as wide as the pair's places
+       can stand (`--since-pa`, `--since-pb`),
+       as the save wall's number takes its room;
+     - on a tall phone the ledger's rows take a share of the stage's room
+       beside the hero, in the part the line does not cover
+       (`--since-share`: a whole share for a pair too wide to grow, half
+       for a short one; on a shorter phone the line needs it all), and
+       what the hero has left falls over the line, between it and the
+       head, and under the head (0.75, 1 and 1.5 parts, so the line's own
+       dark over a flat run and the room over it stay one band).
+   With the wide story (a cover of 1) nothing moves: the line takes it all.
+   The hero's basis is its least, a length: a size container sized from
+   its content (a basis of auto) reads 0 for 100cqh in Chrome. */
+.since-stage:not([data-room]) {
+  --since-cover: 1;
+  --since-pa: 3;
+  --since-pb: 3;
+  --since-share: 0;
+}
+.since-stage:not([data-room]) > .since-hero {
+  container: since-hero / size;
+  --from-ratio: 0.7778;
+  --to-least: var(--text-num-xl);
+  --chart-least: 56px;
+  /* The head without its figures: the eyebrow's line, the gap, the days. */
+  --head: calc(1.125rem + var(--claim-mt) + var(--day-mt) + 1.125rem);
+  /* All the line could take, the claim at its least. */
+  --room: calc(100cqh - var(--head) - var(--to-least));
+  /* Open (a length past any screen) where the room holds the line at its
+     least with its gaps, shut (0) where it does not. */
+  --gate: clamp(0px, (var(--room) - var(--chart-least) - var(--chart-mt) - var(--chart-mb)) * 1000, 100000px);
+  --chart-h: min(var(--gate), max(var(--chart-least), var(--since-cover) * (var(--room) - var(--chart-mt) - var(--chart-mb))));
+  --chart-box: min(var(--gate), var(--chart-h) + var(--chart-mt) + var(--chart-mb));
+  /* The widest the pair stands: Outfit's figures are 0.56em (0.57 here),
+     the arrow and its gaps 56, and 8 either side is kept clear. */
+  --to-fit: calc((100cqw - 72px) / (0.57 * (var(--from-ratio) * var(--since-pa) + var(--since-pb))));
+  --to: clamp(var(--to-least), min(var(--to-least) + var(--room) - var(--chart-box), var(--to-fit)), 9rem);
+  --hero-least: calc(var(--hero-pt) + var(--hero-pb) + var(--head) + var(--to-least));
+  flex: 1 1 var(--hero-least);
+  min-height: var(--hero-least);
+  justify-content: flex-start;
+}
+/* What the hero has left, in parts: 0.75 over the line, 1 between it and
+   the head (`.since-gap`), 1.5 under the head. */
+.since-stage:not([data-room]) > .since-hero::before,
+.since-stage:not([data-room]) > .since-hero::after,
+.since-gap {
+  content: "";
+  flex: 1 1 0;
+  min-height: 0;
+}
+.since-stage:not([data-room]) > .since-hero::before {
+  flex-grow: 0.75;
+}
+.since-stage:not([data-room]) > .since-hero::after {
+  flex-grow: 1.5;
+}
+/* No line (the claim has an unknown end): the figures take the room. */
+.since-stage:not([data-room]):not([data-line]) > .since-hero {
+  --chart-least: 0px;
+  --chart-mt: 0px;
+  --chart-mb: 0px;
+}
+.since-stage:not([data-room]) .since-from {
+  font-size: calc(var(--to) * var(--from-ratio));
+}
+.since-stage:not([data-room]) .since-to {
+  font-size: var(--to);
+}
+/* A ledger whose pair cannot take the room breathes with what the line
+   does not cover, its rows stretched evenly as the save wall's are. */
+.since-stage:not([data-room]) .since-ledger {
+  flex-grow: calc((1 - var(--since-cover)) * var(--since-share));
+}
+@media (max-height: 759px) {
+  .since-stage:not([data-room]) .since-ledger {
+    flex-grow: 0;
+  }
+}
+.since-stage:not([data-room]) .since-ledger > li {
+  align-content: center;
 }
 /* The hero's label is how its number is read: a step brighter than the
    ledger's labels. */
@@ -8629,16 +8737,17 @@ html[data-test-tile] .test-tile-slot {
 }
 
 /* The line (graft 1): the claim's measure across every measured
-   recording, in the room the claim leaves. It takes the hero's free
-   height (a size container, so its own room decides), and under 44pt it
+   recording, in the room the claim leaves. Its height is its share of
+   the hero's room (above); it is a size container too, so under 44pt it
    draws nothing: a line that short is noise (the Log's own line is 60). */
 .since-chart {
   container: since-chart / size;
   position: relative;
   align-self: stretch;
-  flex: 1 1 0;
+  flex: 0 1 auto;
+  height: var(--chart-h);
   min-height: 0;
-  margin: 0 0 14px;
+  margin: min(var(--gate), var(--chart-mt)) 0 min(var(--gate), var(--chart-mb));
 }
 /* Hidden by visibility, never display: a container query that toggled
    display restarted the wipe each time an animation over it ended (at
@@ -8737,7 +8846,7 @@ html[data-test-tile] .test-tile-slot {
   justify-items: center;
   align-items: baseline;
   column-gap: 14px;
-  margin-top: 14px;
+  margin-top: var(--claim-mt);
 }
 .since-from {
   font-size: var(--text-num-hero);
@@ -8762,7 +8871,7 @@ html[data-test-tile] .test-tile-slot {
 }
 .since-day {
   grid-row: 2;
-  margin-top: 10px;
+  margin-top: var(--day-mt);
   font-family: var(--font-display-face), sans-serif;
   font-size: 0.8125rem;
   line-height: 1.125rem;
@@ -8941,21 +9050,25 @@ html[data-test-tile] .test-tile-slot {
 }
 /* A claim of four places a side takes the step down (as the Log's number
    does), and so does a narrow phone: 36 and 56. */
+.since-hero:has([data-since-claim][data-long]) {
+  --from-ratio: 0.6429;
+  --to-least: var(--text-num-hero);
+}
 [data-since-claim][data-long] .since-from {
-  font-size: var(--text-num-l);
   letter-spacing: var(--text-num-l--letter-spacing);
 }
 [data-since-claim][data-long] .since-to {
-  font-size: var(--text-num-hero);
   letter-spacing: var(--text-num-hero--letter-spacing);
 }
 @media (max-width: 359px) {
+  .since-stage:not([data-room]) > .since-hero {
+    --from-ratio: 0.6429;
+    --to-least: var(--text-num-hero);
+  }
   .since-from {
-    font-size: var(--text-num-l);
     letter-spacing: var(--text-num-l--letter-spacing);
   }
   .since-to {
-    font-size: var(--text-num-hero);
     letter-spacing: var(--text-num-hero--letter-spacing);
   }
   .since-ledger {
@@ -8980,18 +9093,14 @@ html[data-test-tile] .test-tile-slot {
     padding: 16px;
   }
   .since-hero {
-    padding: 4px 0 8px;
+    --hero-pb: 8px;
+    --claim-mt: 8px;
+    --day-mt: 6px;
+    --chart-mt: 8px;
   }
-  .since-chart {
-    margin-top: 8px;
-  }
-  .since-claim,
   .since-take,
   .since-hero [data-ethos-score] {
     margin-top: 8px;
-  }
-  .since-day {
-    margin-top: 6px;
   }
   /* The claim's mark rises with the day line, so it stands clear of
      "Day N" (it touched it at 7px down over a 6px gap). */

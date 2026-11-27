@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { RepRow } from "@/lib/client-data";
 import { linePath } from "@/lib/log";
 import {
@@ -51,19 +51,38 @@ export function ComparisonCard({
   /* The line only where the claim stands both its ends: then its first and
      last values are the claim's own two numbers. */
   const line = claim.from !== null && claim.to !== null ? sinceLine(sinceSeries(reps, claim.key), SPAN_FLOOR[claim.key]) : null;
+  /* How the stage's room is shared (#526's review, app/globals.css): the
+     line takes `cover` of the hero's, the claim's figures what the line
+     leaves, as wide as the pair can stand (its places a side), and the
+     ledger's rows a share of what the line does not cover, whole for a
+     pair too wide to grow, half for a short one. */
+  const pa = places(claim.a);
+  const pb = places(claim.b);
+  const room = {
+    "--since-cover": line ? line.cover : 0,
+    "--since-pa": pa,
+    "--since-pb": pb,
+    "--since-share": pa + pb > 4 ? 1 : 0.5,
+  } as CSSProperties;
 
   return (
     <SinceStage
+      line={line !== null}
+      style={room}
       hero={
         <>
           {/* The line is the stage's art, over the head it illustrates
               (Wellspoken's course page: art, then the centred head). */}
           {line && <SinceChart line={line} tone={claim.better} />}
-          {/* The claim's label is its eyebrow; the claim's own name says it. */}
-          <p aria-hidden className="eyebrow since-eyebrow">
-            {claim.label}
-          </p>
-          <Claim row={claim} days={card.days} />
+          {/* The hero's room left over, between the line and the head. */}
+          <span aria-hidden className="since-gap" />
+          <div className="since-head">
+            {/* The claim's label is its eyebrow; the claim's own name says it. */}
+            <p aria-hidden className="eyebrow since-eyebrow">
+              {claim.label}
+            </p>
+            <Claim row={claim} days={card.days} />
+          </div>
         </>
       }
       ledger={
@@ -99,10 +118,12 @@ function better(r: { better: boolean | null }): string {
 
 /**
  * The claim's measure across every measured recording, drawn in the room
- * the claim leaves (graft 1). It takes the stage's free height and gives
- * it up below 44pt (`.since-chart`'s container query), where a line that
- * short would read as noise. Hidden from a screen reader: the claim's
- * name already says both ends.
+ * the claim leaves (graft 1). It stands in the share of the hero's room
+ * its change spans (`line.cover`, #526's review), and gives the room back
+ * where it cannot stand 56pt (`.since-stage:not([data-room]) >
+ * .since-hero`); its plot also hides under 44pt (`.since-chart`'s
+ * container query), where a line that short would read as noise. Hidden
+ * from a screen reader: the claim's name already says both ends.
  */
 function SinceChart({ line, tone: verdict }: { line: SinceLine; tone: boolean | null }) {
   const W = 1000;
@@ -140,6 +161,11 @@ export function SinceArrow({ className = "" }: { className?: string }) {
   );
 }
 
+/** A figure's width in digits: a point is half of one. */
+function places(s: string): number {
+  return s.replace(".", "").length + (s.includes(".") ? 0.5 : 0);
+}
+
 /**
  * The claim: day 1's number, the arrow, today's number, each over its
  * day. A screen reader hears it once, as the row's name.
@@ -147,7 +173,6 @@ export function SinceArrow({ className = "" }: { className?: string }) {
 function Claim({ row, days }: { row: SinceRow; days: number }) {
   /* Four places a side do not stand at 56 and 72 in a 320 column: a long
      pair takes the step down, as a narrow phone does. */
-  const places = (s: string) => s.replace(".", "").length + (s.includes(".") ? 0.5 : 0);
   const long = places(row.a) + places(row.b) > 6.5;
   return (
     <div data-since-claim="" data-long={long ? "" : undefined}>
@@ -231,6 +256,8 @@ export function SinceStage({
   ledger,
   foot,
   room = false,
+  line = false,
+  style,
 }: {
   hero: ReactNode;
   ledger?: ReactNode;
@@ -241,9 +268,19 @@ export function SinceStage({
    * stage has the height for it (`.since-stage[data-room]`).
    */
   room?: boolean;
+  /** Since day one draws its line over the claim (`.since-stage[data-line]`). */
+  line?: boolean;
+  /** The hero's shares, as custom properties (ComparisonCard). */
+  style?: CSSProperties;
 }) {
   return (
-    <section data-since-stage="" data-room={room ? "" : undefined} className="since-stage card-stage elev-1 rounded-sheet text-cream">
+    <section
+      data-since-stage=""
+      data-room={room ? "" : undefined}
+      data-line={line ? "" : undefined}
+      style={style}
+      className="since-stage card-stage elev-1 rounded-sheet text-cream"
+    >
       <div className="since-hero arrive">{hero}</div>
       {ledger}
       {foot}

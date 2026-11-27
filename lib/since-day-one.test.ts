@@ -337,10 +337,40 @@ describe("sinceLine: the line drawn in the claim's empty stage (graft 1)", () =>
     expect(Math.abs(l.line[3][1] - 0.5)).toBeLessThan(Math.abs(l.dots[3][1] - 0.5));
   });
 
-  it("draws a small change small, on the measure's floor", () => {
+  it("draws a small change small, on the measure's floor: its rise on the stage is the change over the floor", () => {
     const l = sinceLine([5.0, 5.2], SPAN_FLOOR.fillers)!;
+    /* The plot stands `cover` of the line's room tall, so a rise in the
+       plot's unit square times the cover is its share of the room. */
     const rise = l.dots[0][1] - l.dots[1][1];
-    expect(rise).toBeCloseTo(0.2 / 4, 9);
+    expect(rise * l.cover).toBeCloseTo(0.2 / 4, 9);
     expect(SPAN_FLOOR).toEqual({ ethos: 100, fillers: 4, wpm: 40, pause: 4 });
+  });
+
+  it("covers only the room its change spans (#526's review: a thin line in a tall plot left dark over and under it)", () => {
+    // Day 3's usual Ethos story: 17 points against a 100-point floor.
+    const small = sinceLine([598, 605, 612, 607, 615], SPAN_FLOOR.ethos)!;
+    expect(small.cover).toBe(0.35);
+    // The fixture's wide filler story fills its room.
+    const wide = sinceLine([9.3, 6, 4, 2.8], SPAN_FLOOR.fillers)!;
+    expect(wide.cover).toBe(1);
+    // Between the two, the change's share of the floor.
+    expect(sinceLine([5, 7], 4)!.cover).toBeCloseTo(0.5, 9);
+    // Whatever the cover, the line stands inside its plot, and a change
+    // at least the cover's floor reaches the plot's top and bottom.
+    for (const l of [small, wide, sinceLine([5, 7], 4)!]) {
+      for (const [, y] of [...l.dots, ...l.line]) {
+        expect(y).toBeGreaterThanOrEqual(-1e-9);
+        expect(y).toBeLessThanOrEqual(1 + 1e-9);
+      }
+    }
+    const ys = wide.dots.map(([, y]) => y);
+    expect(Math.min(...ys)).toBeCloseTo(0, 9);
+    expect(Math.max(...ys)).toBeCloseTo(1, 9);
+  });
+
+  it("draws a flat run flat, across the middle of its plot", () => {
+    const flat = sinceLine([640, 640, 640], SPAN_FLOOR.ethos)!;
+    expect(flat.cover).toBe(0.35);
+    for (const [, y] of [...flat.dots, ...flat.line]) expect(y).toBeCloseTo(0.5, 9);
   });
 });

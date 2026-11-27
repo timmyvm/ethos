@@ -276,22 +276,42 @@ export function sinceSeries(reps: RepRow[], key: SinceKey): number[] {
  */
 export const SPAN_FLOOR: Record<SinceKey, number> = { ethos: LINE_SPAN, fillers: 4, wpm: 40, pause: 4 };
 
+/**
+ * The least of its room a line's plot stands in (#526's review): a flat
+ * run or a change far under the floor still draws as a line across a
+ * strip, never as a dot, and the strip is short enough that no dark
+ * stands over and under it.
+ */
+export const COVER_FLOOR = 0.35;
+
 export type SinceLine = {
   /** The line's vertices: the house's centred mean, its two ends and their neighbours each recording's own. */
   line: [number, number][];
   /** Every recording's own value, a dot each. */
   dots: [number, number][];
+  /**
+   * The share of the line's room its plot stands in: the change over the
+   * span it is drawn on, from COVER_FLOOR to 1. The plot is that tall and
+   * the line fills it, so a small change stands in a short strip, at the
+   * floor's scale, instead of as a thin line in a tall plot.
+   */
+  cover: number;
 };
 
 /**
- * The line in the unit square (x 0 to 1, one step a recording in order;
- * y 0 at the top), scaled on the values' own range, on at least `floor`
- * units centred on it. Null under two values. The middle is smoothed as
- * the Log's line is (a mean of up to two either side); the window
- * narrows to nothing at each end and at the vertex beside it, so the
- * line starts and ends on the claim's two numbers and a last take unlike
- * the rest is drawn where it is, never smoothed into the one before it
- * (the panel's graft 6).
+ * The line in its plot's unit square (x 0 to 1, one step a recording in
+ * order; y 0 at the top). It is scaled on the values' own range, on at
+ * least `floor` units: a change under the floor stands at the floor's
+ * scale, so a small change looks small and a flat run looks flat (the
+ * Log's LINE_SPAN, #506). The plot is `cover` of the room tall and holds
+ * that share of the span, centred on the values, so the line fills it
+ * top to bottom and a change too small for the cover's floor stands on
+ * its middle. Null under two values. The middle is smoothed as the Log's
+ * line is (a mean of up to two either side); the window narrows to
+ * nothing at each end and at the vertex beside it, so the line starts
+ * and ends on the claim's two numbers and a last take unlike the rest is
+ * drawn where it is, never smoothed into the one before it (the panel's
+ * graft 6).
  */
 export function sinceLine(values: readonly number[], floor: number): SinceLine | null {
   const n = values.length;
@@ -304,11 +324,15 @@ export function sinceLine(values: readonly number[], floor: number): SinceLine |
   const lo = Math.min(...values);
   const hi = Math.max(...values);
   const span = Math.max(floor, hi - lo);
-  const base = (lo + hi) / 2 - span / 2;
-  const y = (v: number) => 1 - (v - base) / span;
+  const cover = Math.min(1, Math.max(COVER_FLOOR, (hi - lo) / span));
+  /* The plot's window: `cover` of the span, centred on the values. */
+  const window = cover * span;
+  const base = (lo + hi) / 2 - window / 2;
+  const y = (v: number) => 1 - (v - base) / window;
   const x = (i: number) => i / (n - 1);
   return {
     line: smooth.map((v, i): [number, number] => [x(i), y(v)]),
     dots: values.map((v, i): [number, number] => [x(i), y(v)]),
+    cover,
   };
 }

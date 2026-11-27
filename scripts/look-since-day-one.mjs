@@ -57,6 +57,9 @@
  *                     stored, this one today): "3 days on the board."
  *   save-noindex      the same day with no Ethos number (a capped take,
  *                     coach null): SaveGate draws no "Your Ethos".
+ *   save-unscored     a guest's first take too short to score (#526's
+ *                     panel): "Your Ethos" over a dash, the take's
+ *                     numbers as dashes, never the engine's zeros.
  *
  * Sizes (LOOK_SIZES, a comma list of WxH or WxH-theme; themes from
  * LOOK_THEMES, default light,dark): 390x844, 375x667, 320x568, 430x932,
@@ -96,6 +99,13 @@
  *   LOOK_SCENES='progress,save*' LOOK_SIZES=390x844,320x568-light node scripts/look-since-day-one.mjs
  *   node scripts/sheet-since-day-one.mjs out.jpg /tmp/sdo/before /tmp/sdo/after
  *
+ * The entrance (DESIGN's look loop, step 5): LOOK_STRIP=1 also writes
+ * <scene>-<WxH>-<theme>-t<ms>.png at 0, 80, 160, 240 and 400ms after the
+ * screen opens. Every animation is paused the frame the screen stands
+ * and then seeked (a screenshot costs longer than the gaps between the
+ * frames), so each frame is that moment exactly. LOOK_REDUCE=1 shoots
+ * with Settings' reduced motion on, and prints the hero's animation.
+ *
  * PLAYWRIGHT_MODULE names Playwright's ESM entry (default: the machine's
  * global one under /opt/node22). Shots are <scene>-<WxH>-<theme>.png in
  * LOOK_OUT, plus -full.png for a screen that scrolls.
@@ -134,6 +144,9 @@ const ALL_SIZES = ["390x844", "375x667", "320x568", "430x932", "320x692"];
 /* 320x692: the text two steps up (DESIGN 11), under a Dynamic Island. */
 const TEXT_UP = "320x692";
 const BAND_HELD = new Set(["390x844", "430x932"]);
+const STRIP = process.env.LOOK_STRIP === "1";
+const REDUCE = process.env.LOOK_REDUCE === "1";
+const STRIP_AT = [0, 80, 160, 240, 400];
 const NO_SCROLL = new Set(["320x568", "320x692"]);
 const THEMES = (process.env.LOOK_THEMES ?? "light,dark").split(",").map((s) => s.trim()).filter(Boolean);
 const SHOTS = [];
@@ -152,6 +165,17 @@ const clones = () => F.reps.map((r) => ({ ...r }));
 /** The fixture's two newest recordings, yesterday's and the day before's: a guest two days in. */
 const twoDays = () => clones().slice(-2);
 const CAPPED = { coach: null, ethosIndex: null, judged: { ran: false, unlimited: false, remaining: 0, capped: true } };
+/* Six seconds and a few words: under 20, so not scored. The engine still
+   answers its zeros (0 fillers, a rate off a few words). */
+const UNSCORED = {
+  ...A,
+  coach: null,
+  ethosIndex: null,
+  previousIndex: null,
+  scorable: false,
+  metrics: { ...A.metrics, durationS: 6, wordCount: 9, wpm: 90, fillerCount: 0, fillersPerMin: 0, fillers: [], pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 0 },
+  judged: { ran: false, unlimited: false, remaining: 3, capped: false },
+};
 const SCENES = {
   progress: { screen: "progress" },
   "progress-wpm": { screen: "progress", pains: ["rushing"] },
@@ -179,6 +203,10 @@ const SCENES = {
   "save-rep1": { screen: "save", guest: true, rows: () => [], stored: true, body: () => ({ ...A, previousIndex: null }), unseen: ["rep1"] },
   "save-streak": { screen: "save", guest: true, rows: twoDays, stored: true, body: () => A, unseen: ["streak"] },
   "save-noindex": { screen: "save", guest: true, rows: twoDays, stored: true, body: () => ({ ...A, ...CAPPED }), unseen: ["streak"] },
+  /* A first take too short to score (the panel's must-fix: rep1 shows
+     after any first take, lib/onboarding.ts gateMoment): its numbers are
+     the engine's zeros, which the wall must draw as dashes. */
+  "save-unscored": { screen: "save", guest: true, rows: () => [], stored: true, body: () => UNSCORED, unseen: ["rep1"] },
 };
 const ONLY = (process.env.LOOK_SCENES ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const scenes = Object.keys(SCENES).filter((n) => ONLY.length === 0 || ONLY.some((o) => (o.endsWith("*") ? n.startsWith(o.slice(0, -1)) : n === o)));
@@ -347,7 +375,11 @@ async function shoot(name, scene, { size, theme }, attempt = 1) {
   await context.route("**/api/tester/collect", F.collectRoute);
   await context.addInitScript(F.seed, { theme, session: scene.guest ? guestSession : F.session, pose: F.POSE_PREF });
   await context.addInitScript(
-    ({ unseen, pains }) => {
+    ({ unseen, pains, reduce }) => {
+      if (reduce) {
+        const prefs = JSON.parse(localStorage.getItem("ethos.prefs") ?? "{}");
+        localStorage.setItem("ethos.prefs", JSON.stringify({ ...prefs, reducedMotion: true }));
+      }
       const d = new Date();
       const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       /* One beat per exit: the streak's moment already played today, the reminder already asked. */
@@ -362,7 +394,7 @@ async function shoot(name, scene, { size, theme }, attempt = 1) {
       css.textContent = "nextjs-portal{display:none!important}";
       document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
     },
-    { unseen: scene.unseen ?? [], pains: scene.pains ?? null }
+    { unseen: scene.unseen ?? [], pains: scene.pains ?? null, reduce: REDUCE }
   );
   const page = await context.newPage();
   const errors = [];
@@ -405,6 +437,31 @@ async function shoot(name, scene, { size, theme }, attempt = 1) {
       .then(() => true)
       .catch(() => false);
     if (!landed) throw new Miss(`the exit landed on ${new URL(page.url()).pathname}, not on the ${scene.screen === "save" ? "save wall" : "progress moment"}`);
+    if (STRIP) {
+      /* Held the frame it stands, then seeked: frame t is t ms after the
+         screen opened, for every animation that started with it. */
+      const running = await page.evaluate(() => {
+        const all = document.getAnimations();
+        for (const a of all) a.pause();
+        return all.map((a) => `${a.animationName ?? a.constructor.name}@${a.effect?.target?.className?.baseVal ?? a.effect?.target?.className ?? ""}`.slice(0, 60));
+      });
+      entry.animations = running;
+      for (const t of STRIP_AT) {
+        /* Seeked, then two frames for the paint to catch up: an SVG stroke
+           seeked while paused is repainted on the next frame, not this one. */
+        await page.evaluate(
+          (t) =>
+            new Promise((done) => {
+              for (const a of document.getAnimations()) a.currentTime = t;
+              requestAnimationFrame(() => requestAnimationFrame(() => done(null)));
+            }),
+          t
+        );
+        await sleep(60);
+        await page.screenshot({ path: `${OUT}${name}-${size}-${theme}-t${t}.png` });
+      }
+      console.log(`      strip: ${running.length} animations: ${running.join(" | ")}`);
+    }
     const wall = await page.locator('main a[href="/signup"]').count();
     if (scene.screen === "save" && wall === 0) throw new Miss("no way to /signup: this is not the save wall");
     if (scene.screen === "progress" && wall > 0) throw new Miss("a way to /signup: the save wall came instead of Since day one");

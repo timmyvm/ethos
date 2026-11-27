@@ -51,11 +51,27 @@
  * #496 its flame takes the free height and it is measured like every
  * other screen.
  *
+ * The two asks on the results' way out (#526, lib/rep-screen.ts
+ * `exitBeat`): Since day one (a free account's day-3 progress moment) and
+ * the save wall (Before you go, after a guest's first recording and at a
+ * 3-day run), reached as a person reaches them, by a take and the
+ * header's back (the route scripts/look-since-day-one.mjs takes). Their
+ * stage takes the free height, so a band can hide INSIDE it, where the
+ * card counts as one box: each is measured twice, its ground as every
+ * screen's, and the inside of its stage (`stageBands`: from the stage's
+ * top edge to its first mark, mark to mark, the last to its foot, a
+ * drawn line by its own extent, not its box). Any band over 64 fails
+ * either way. Scenes: since, since-wpm, since-worse, since-noindex,
+ * save-rep1, save-streak, save-noindex and save-unscored, at 390x844 in
+ * both themes and 430x932 light (the tallest phone the camera holds).
+ * On the build of 27 Nov they fail: about 150pt of ground over and under
+ * the card.
+ *
  * Screens: the five tabs, /boss, the lesson page, the trait page, the unit
  * intro, the Shop, Settings, the paywall, recording idle and live, the
- * celebration, the results' glance and its sheet, and every screen of the
- * introduction, with the name question also at 390x508, its keyboard
- * up.
+ * celebration, the results' glance and its sheet, Since day one and the
+ * save wall, and every screen of the introduction, with the name question
+ * also at 390x508, its keyboard up.
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 import {
@@ -69,6 +85,7 @@ import {
   sayMode,
   savedWordsMode,
 } from "./look-fixtures.mjs";
+import * as F from "./look-fixtures.mjs";
 
 const BASE = process.env.BASE ?? process.env.LOOK_BASE ?? "http://localhost:3123";
 const ONLY = process.argv.slice(2);
@@ -236,6 +253,94 @@ function measure({ scope }) {
   return { gaps, floor, runs: runs.length };
 }
 
+/**
+ * In the page: the bands INSIDE a stage (#526). `measure` counts a card
+ * standing in the flow as one box, so the room a stage takes is never a
+ * band to it, and a stage can hold 150pt of empty dark and pass. This
+ * measures the stage's inside as `measure` measures a screen: every text
+ * line, every control, every small painted mark (a ring, a dot), every
+ * rule by its edge, and a drawn line by the extent of its own strokes
+ * (an svg's paths, not its box: a flat line in a tall plot leaves dark
+ * over and under it). The first band runs from the stage's top edge and
+ * the last to its foot; nothing inside the stage is skipped for being
+ * aria-hidden, since art is what fills a stage. `scope` is a selector
+ * list; the first match is measured.
+ */
+function stageBands({ scope }) {
+  const stage = document.querySelector(scope);
+  if (!stage) return { none: true };
+  const vh = window.innerHeight;
+  const sr = stage.getBoundingClientRect();
+  const top = Math.max(0, sr.top);
+  const bottom = Math.min(vh, sr.bottom);
+  const visible = (el) => el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) ?? true;
+  const describe = (el) => {
+    const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 28);
+    const cls = typeof el.className === "string" ? el.className.split(/\s+/).slice(0, 2).join(".") : el.tagName === "path" ? "path" : "";
+    return `${el.tagName.toLowerCase()}${cls ? "." + cls : ""}${text ? ` "${text}"` : ""}`;
+  };
+  const boxes = [];
+  const add = (t, b, el) => {
+    if (b <= top || t >= bottom || b - t <= 0) return;
+    boxes.push({ top: Math.max(top, t), bottom: Math.min(bottom, b), el: describe(el) });
+  };
+  const w = document.createTreeWalker(stage, NodeFilter.SHOW_ELEMENT);
+  for (let el = w.nextNode(); el; el = w.nextNode()) {
+    if (el.closest(".sr-only") || !visible(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    for (const node of el.childNodes) {
+      if (node.nodeType !== 3 || !node.textContent.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rr of range.getClientRects()) if (rr.width > 0) add(rr.top, rr.bottom, el);
+    }
+    if (el.tagName === "svg") {
+      const marks = [...el.querySelectorAll("path, circle, rect, line, polyline")];
+      if (marks.length === 0) add(r.top, r.bottom, el);
+      /* A stroke's box grows by half its width; a dot drawn as a
+         zero-length stroke has no box of its own but its round cap. */
+      for (const m of marks) {
+        const mr = m.getBoundingClientRect();
+        const half = (parseFloat(getComputedStyle(m).strokeWidth) || 0) / 2;
+        add(mr.top - half, mr.bottom + half, m);
+      }
+      continue;
+    }
+    if (el.closest("svg")) continue;
+    if (/^(IMG|VIDEO|CANVAS|PICTURE|BUTTON|A|INPUT)$/.test(el.tagName)) {
+      add(r.top, r.bottom, el);
+      continue;
+    }
+    const cs = getComputedStyle(el);
+    const bg = cs.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [0, 0, 0, 0];
+    const painted = (bg.length < 4 || bg[3] > 0.05) && cs.backgroundColor !== "transparent";
+    if (painted && r.height <= 48) add(r.top, r.bottom, el);
+    if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== "none") add(r.top, r.top + 1, el);
+    if (parseFloat(cs.borderBottomWidth) > 0 && cs.borderBottomStyle !== "none") add(r.bottom - 1, r.bottom, el);
+  }
+  boxes.sort((a, b) => a.top - b.top);
+  const runs = [];
+  for (const b of boxes) {
+    const last = runs[runs.length - 1];
+    if (last && b.top <= last.bottom + 0.5) {
+      if (b.bottom > last.bottom) {
+        last.bottom = b.bottom;
+        last.lastEl = b.el;
+      }
+    } else runs.push({ top: b.top, bottom: b.bottom, firstEl: b.el, lastEl: b.el });
+  }
+  const gaps = [];
+  if (runs.length === 0) return { gaps: [{ size: bottom - top, at: top, above: "the stage's top edge", below: "its foot" }], top, bottom };
+  gaps.push({ size: runs[0].top - top, at: top, above: "the stage's top edge", below: runs[0].firstEl });
+  for (let i = 1; i < runs.length; i++) {
+    gaps.push({ size: runs[i].top - runs[i - 1].bottom, at: runs[i - 1].bottom, above: runs[i - 1].lastEl, below: runs[i].firstEl });
+  }
+  const last = runs[runs.length - 1];
+  if (sr.bottom <= vh) gaps.push({ size: bottom - last.bottom, at: last.bottom, above: last.lastEl, below: "the stage's foot" });
+  return { gaps, top, bottom };
+}
+
 const browser = await chromium.launch({
   args: ["--font-render-hinting=none", "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
 });
@@ -355,6 +460,200 @@ const SCREENS = [
   ["shop", "/shop", "main h1"],
   ["settings", "/settings", "main .inset-group"],
 ];
+
+/* ---- the two asks on the results' way out (#526) ---------------------- */
+/*
+ * The take's route, as scripts/look-since-day-one.mjs walks it (see its
+ * header for why there is no shorter way in): /rep?mode=daily, Record,
+ * 2.5 s of fake mic, Stop, /api/analyze answered at once, the reads after
+ * the take, then the header's back, an exit that leaves. The guest of the
+ * save wall is the one the app still lets record: an anonymous session
+ * whose email link is on its way (lib/account-gate.ts `pendingEmail`).
+ */
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+const guestExp = Math.floor(Date.now() / 1000) + 86_400;
+const guestUser = {
+  id: "guest1", aud: "authenticated", role: "authenticated", email: "", new_email: "guest@example.com", is_anonymous: true,
+  app_metadata: {}, user_metadata: {}, identities: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+};
+const guestSession = {
+  access_token: `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "guest1", aud: "authenticated", role: "authenticated", exp: guestExp, is_anonymous: true, session_id: "g1" })}.sig`,
+  token_type: "bearer", expires_in: 86_400, expires_at: guestExp, refresh_token: "g-r1", user: guestUser,
+};
+const fixtureRows = () => F.reps.map((r) => ({ ...r }));
+const CAPPED = { coach: null, ethosIndex: null, judged: { ran: false, unlimited: false, remaining: 0, capped: true } };
+const UNSCORED = {
+  ...analyzeBody, coach: null, ethosIndex: null, previousIndex: null, scorable: false,
+  metrics: { ...analyzeBody.metrics, durationS: 6, wordCount: 9, wpm: 90, fillerCount: 0, fillersPerMin: 0, fillers: [], pauses: [], heldPauses: 0, composedPauses: 0, midSentencePauses: 0, stars: 0 },
+  judged: { ran: false, unlimited: false, remaining: 3, capped: false },
+};
+const SINCE_SCENES = {
+  since: { screen: "progress" },
+  "since-wpm": { screen: "progress", pains: ["rushing"] },
+  "since-worse": {
+    screen: "progress",
+    rows: () => {
+      const r = fixtureRows();
+      Object.assign(r[r.length - 1], { filler_count: 12, pauses: [{ t: 8, len: 1.2, kind: "mid" }] });
+      return r;
+    },
+  },
+  "since-noindex": {
+    screen: "progress",
+    rows: () => {
+      const r = fixtureRows();
+      r[0].ethos_index = null;
+      return r;
+    },
+  },
+  "save-rep1": { screen: "save", rows: () => [], body: () => ({ ...analyzeBody, previousIndex: null }), unseen: ["rep1"] },
+  "save-streak": { screen: "save", rows: () => fixtureRows().slice(-2), body: () => analyzeBody, unseen: ["streak"] },
+  "save-noindex": { screen: "save", rows: () => fixtureRows().slice(-2), body: () => ({ ...analyzeBody, ...CAPPED }), unseen: ["streak"] },
+  "save-unscored": { screen: "save", rows: () => [], body: () => UNSCORED, unseen: ["rep1"] },
+};
+const SINCE_SIZES = [
+  { width: 390, height: 844, themes: ["light", "dark"] },
+  { width: 430, height: 932, themes: ["light"] },
+];
+const STAGE = "main [data-since-stage], main .card-stage";
+
+async function sinceShot(name, scene, theme, { width, height }) {
+  const guest = scene.screen === "save";
+  resetPlan("free");
+  F.repsMode.rows = scene.rows ? scene.rows() : null;
+  F.extraReps.splice(0, F.extraReps.length);
+  const context = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor: 1,
+    isMobile: true,
+    hasTouch: true,
+    permissions: ["microphone"],
+    locale: "en-AU",
+    timezoneId: "Australia/Melbourne",
+    colorScheme: theme,
+    serviceWorkers: "block",
+  });
+  const watch = { answered: false, listed: 0, user: 0, last: Date.now() };
+  await context.route("http://supabase.local/**", async (route) => {
+    const url = new URL(route.request().url());
+    watch.last = Date.now();
+    if (watch.answered && route.request().method() === "GET" && url.pathname.startsWith("/rest/v1/reps")) watch.listed += 1;
+    if (watch.answered && watch.listed >= 2 && url.pathname.startsWith("/auth/v1/user")) watch.user += 1;
+    if (guest) {
+      if (url.pathname.startsWith("/auth/v1/user")) return route.fulfill(json(guestUser));
+      if (url.pathname.startsWith("/auth/v1/signup") || url.pathname.startsWith("/auth/v1/token")) return route.fulfill(json(guestSession));
+    }
+    return supabaseRoute(route);
+  });
+  await context.route("**/api/analyze", async (route) => {
+    const body = scene.body ? scene.body() : analyzeBody;
+    if (guest) {
+      const last = F.reps[F.reps.length - 1];
+      F.extraReps.splice(0, F.extraReps.length, { ...last, id: "rep-live", client_id: "rep-live", created_at: new Date().toISOString(), ethos_index: body.ethosIndex ?? null });
+    }
+    watch.answered = true;
+    watch.last = Date.now();
+    await route.fulfill(json(body));
+  });
+  await context.route("**/api/push", (r) => r.fulfill(json({ ok: true })));
+  await context.route("**/api/billing/*", billingApiRoute);
+  await context.route("**/api/tester/collect", F.collectRoute);
+  await context.addInitScript(F.seed, { theme, session: guest ? guestSession : session, pose: F.POSE_PREF });
+  await context.addInitScript(
+    ({ unseen, pains }) => {
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      localStorage.setItem("ethos.streak.moment", today);
+      localStorage.setItem("ethos.reminder.asked", today);
+      for (const g of unseen) localStorage.removeItem(`ethos.gates.${g}`);
+      if (pains) {
+        const o = JSON.parse(localStorage.getItem("ethos.onboarding") ?? "{}");
+        localStorage.setItem("ethos.onboarding", JSON.stringify({ ...o, answers: { ...o.answers, pains } }));
+      }
+      const css = document.createElement("style");
+      css.textContent = "nextjs-portal{display:none!important}";
+      document.addEventListener("DOMContentLoaded", () => document.head.appendChild(css));
+    },
+    { unseen: scene.unseen ?? [], pains: scene.pains ?? null }
+  );
+  const page = await context.newPage();
+  page.on("pageerror", (e) => console.log("PAGEERROR", page.url(), e.message.slice(0, 140)));
+  const at = `${name} ${width}x${height}`;
+  try {
+    await page.goto(`${BASE}/rep?mode=daily`);
+    await page.waitForSelector('button[data-record="start"]', { timeout: 30000 });
+    await sleep(700);
+    await page.click('button[data-record="start"]', { force: true });
+    await page.waitForSelector('button[data-record="stop"]', { timeout: 20000 });
+    await sleep(2500);
+    await page.click('button[data-record="stop"]', { force: true });
+    await page.waitForSelector("main [data-results-back]", { state: "visible", timeout: 30000 });
+    const t0 = Date.now();
+    while (Date.now() - t0 < 12000) {
+      const read = watch.listed >= 2 && (!guest || watch.user >= 1);
+      if (read && Date.now() - watch.last > 600) break;
+      await sleep(100);
+    }
+    await sleep(400);
+    await page.locator("main [data-results-back]").click();
+    const landed = await page
+      .waitForFunction(
+        () =>
+          !document.querySelector("[data-results-back]") &&
+          [...document.querySelectorAll("main button, main a[href]")].some((b) => (b.innerText ?? "").trim() === "Not now"),
+        null,
+        { timeout: 8000 }
+      )
+      .then(() => true)
+      .catch(() => false);
+    const wall = await page.locator('main a[href="/signup"]').count();
+    if (!landed || (scene.screen === "save") !== wall > 0) {
+      await context.close();
+      return "missed";
+    }
+    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => {
+      for (const a of document.getAnimations()) {
+        try {
+          a.finish();
+        } catch {}
+      }
+    });
+    await check(page, at, theme);
+    const inner = await page.evaluate(stageBands, { scope: STAGE });
+    const say = (g) => `${Math.round(g.size)}px at y${Math.round(g.at)} between ${g.above} and ${g.below}`;
+    if (inner.none) lines.push(`      ${at} (${theme}): no stage to measure inside`);
+    else {
+      const worst = inner.gaps.reduce((a, g) => (g.size > (a?.size ?? -1) ? g : a), null);
+      const ok = !worst || worst.size <= LIMIT;
+      if (ok) passed += 1;
+      else failed += 1;
+      lines.push(`${ok ? "ok  " : "FAIL"}  ${at} inside its stage (${theme}): largest ${worst ? say(worst) : "none"}`);
+      if (VERBOSE || !ok) for (const g of inner.gaps.filter((g) => g.size > 24)) lines.push(`        ${say(g)}`);
+    }
+  } catch (e) {
+    failed += 1;
+    lines.push(`FAIL  ${at} (${theme}): ${String(e.message ?? e).split("\n")[0]}`);
+  } finally {
+    await context.close().catch(() => {});
+    F.repsMode.rows = null;
+    F.extraReps.splice(0, F.extraReps.length);
+  }
+  return "shot";
+}
+
+for (const [name, scene] of Object.entries(SINCE_SCENES)) {
+  if (!want(name)) continue;
+  for (const size of SINCE_SIZES) {
+    for (const theme of size.themes) {
+      /* A way in that misses (the exit's beat raced a read) is tried once more. */
+      if ((await sinceShot(name, scene, theme, size)) === "missed" && (await sinceShot(name, scene, theme, size)) === "missed") {
+        failed += 1;
+        lines.push(`FAIL  ${name} ${size.width}x${size.height} (${theme}): the exit never reached the ${scene.screen === "save" ? "save wall" : "progress moment"}`);
+      }
+    }
+  }
+}
 
 for (const theme of ["light", "dark"]) {
   const { context, page } = await open(theme);

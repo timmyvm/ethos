@@ -148,7 +148,7 @@ export function rescuableDays(
  * current, longest, freezes or badges. The integrator and Timothy's push
  * move it to the day it lands.
  */
-export const REPAIR_FROM = "2026-11-27";
+export const REPAIR_FROM = "2026-11-28";
 
 /** Recordings of 20+ words the day after the miss asks for. */
 export const REPAIR_TAKES = 2;
@@ -181,7 +181,7 @@ function addDays(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
 
-/** "2026-11-27" as the phone's own midnight that day. */
+/** "2026-11-28" as the phone's own midnight that day. */
 function localDay(s: string): Date {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);

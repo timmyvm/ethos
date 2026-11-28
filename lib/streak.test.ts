@@ -202,7 +202,7 @@ describe("a missed day two recordings keep", () => {
   const fiveThen = (...wednesday: RepairTake[]) => [...spoke(26, 27, 28, 29, 30), ...wednesday];
 
   it("ships with the day it ships on: nothing before it is ever kept", () => {
-    expect(REPAIR_FROM).toBe("2026-11-27");
+    expect(REPAIR_FROM).toBe("2026-11-28");
   });
 
   it("keeps the day for a run of two and for a run of six", () => {

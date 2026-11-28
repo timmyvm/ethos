@@ -74,7 +74,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_CJS ?? "/opt/node-tools/node
 /* The repair keeps no day before it shipped (lib/streak.ts REPAIR_FROM):
    its variant's "today" is the first Wednesday whose Tuesday is on or
    after it, set before the fixtures load. */
-const REPAIR_FROM = /export const REPAIR_FROM = "(\d{4}-\d{2}-\d{2})";/.exec(readFileSync(new URL("../lib/streak.ts", import.meta.url), "utf8"))?.[1] ?? "2026-11-27";
+const REPAIR_FROM = /export const REPAIR_FROM = "(\d{4}-\d{2}-\d{2})";/.exec(readFileSync(new URL("../lib/streak.ts", import.meta.url), "utf8"))?.[1] ?? "2026-11-28";
 if (process.argv[3] === "repair" && !process.env.LOOK_TODAY) {
   const d = new Date(`${REPAIR_FROM}T12:00:00Z`);
   while (d.getUTCDay() !== 2) d.setUTCDate(d.getUTCDate() + 1);

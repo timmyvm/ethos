@@ -32,7 +32,7 @@ Skip the second recording and nothing changes: at midnight it is the normal brea
 
 **One change from the plan, found in review.** Freezes are now earned from the streak you see, with covered days in it. Earning them from the streak without covered days let the app show 7 days and play the 7-day moment while holding no freeze, and the line under Record promised one. So a 6-day run covered on its seventh spoken day earns its freeze that day, as 6 days, a freeze and one more day always has. A covered day is never a freeze spent.
 
-**Starts on:** 27 Nov (`REPAIR_FROM`), so nobody's numbers move on the day it ships. If it lands on main later than that, move the date to the day it lands.
+**Starts on:** 28 Nov (`REPAIR_FROM`), the day it shipped to main, so nobody's numbers moved when it landed.
 
 **Why it's honest:** It is earned by work and can never be bought. Like a freeze, the covered day bridges the streak but never adds to it. The deadline is the real end of the day, and it is said only where you record. There is no push, no countdown and no sad Demos. Missing a day still costs a second recording. Your freeze cap (#174) is untouched.
 

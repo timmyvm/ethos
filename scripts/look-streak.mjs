@@ -68,7 +68,7 @@ const SCENES = process.argv.slice(3).length ? process.argv.slice(3) : ["roll", "
 
 /* The repair keeps no day before it shipped (lib/streak.ts REPAIR_FROM), so
    its scene runs on the first Wednesday whose Tuesday is on or after it. */
-const REPAIR_FROM = /export const REPAIR_FROM = "(\d{4}-\d{2}-\d{2})";/.exec(readFileSync(new URL("../lib/streak.ts", import.meta.url), "utf8"))?.[1] ?? "2026-11-27";
+const REPAIR_FROM = /export const REPAIR_FROM = "(\d{4}-\d{2}-\d{2})";/.exec(readFileSync(new URL("../lib/streak.ts", import.meta.url), "utf8"))?.[1] ?? "2026-11-28";
 const repairWednesday = (from) => {
   const d = new Date(`${from}T12:00:00Z`);
   while (d.getUTCDay() !== 2) d.setUTCDate(d.getUTCDate() + 1);
